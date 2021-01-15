@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta name="generator" content="jemdoc, see http://jemdoc.jaboc.net/" />
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link rel="stylesheet" href="../../jemdoc.css" type="text/css" />
+<title>OR750</title>
+</head>
+<body>
+<div id="layout-content">
+<style>
+body {width: 1000px;}
+</style>
+<h1>OR 750. Setting up G Cloud machine for deep learning</h1>
+<p>Here is the URL you will need to access in order to request a Google Cloud Platform coupon. You will be asked to provide your school email address and name. An email will be sent to you to confirm these details before a coupon is sent to you.</p>
+<p><a href="http://google.force.com/GCPEDU?cid=cSvFBzss7Zqq0mzEGzsZGfoUc9BQsk4Uy0XeTcKZVj6aOpZVFBA90DrzXaEPn1Br/" target=&ldquo;blank&rdquo;>Student Coupon Retrieval Link</a></p>
+<p>You will be asked for a name and email address, which needs to match the domain. A confirmation email will be sent to you with a coupon code.</p>
+<ul>
+<li><p>You can request a coupon from the URL and redeem it until: 1/4/2018</p>
+</li>
+<li><p>Coupon valid through: 9/4/2018</p>
+</li>
+<li><p>You can only request ONE code per unique email address.</p>
+</li>
+</ul>
+<p>Please contact me if you have any questions or issues.</p>
+<p>Once you redeemed the coupon go to the Google cloud console. </p>
+<p>Click on the top of the screen to select list of projects and click on + to create a new project. </p>
+<table class="imgtable"><tr><td>
+<img src="image/1.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>I typically use Cloud Shel, which you can start by clicking on the terminal icon on the top right corner. You can also install gcloud on your local machine as described <a href="https://cloud.google.com/compute/docs/instances/connecting-to-instance" target=&ldquo;blank&rdquo;>here</a>. </p>
+<p>Ask to increase you quota on GPUs, it is 0 be default. Go to Compute Engine -&gt; Quotas</p>
+<table class="imgtable"><tr><td>
+<img src="image/2.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>And check the Google Compute Engine API NVIDIA K80 GPUs for us-east1 region, then click Edit Quotas on the top</p>
+<table class="imgtable"><tr><td>
+<img src="image/3.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>Now create a virtual machine by clicking Compute Engine -&gt; VM Instances. </p>
+<table class="imgtable"><tr><td>
+<img src="image/4.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>Make sure you choose zone us-east1-c. </p>
+<table class="imgtable"><tr><td>
+<img src="image/5.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>Using the gcloud command</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+gcloud beta compute instances create dl-gpu \
+	--machine-type n1-standard-2 --zone us-east1-c --accelerator \
+	type=nvidia-tesla-k80,count=1 --image-family ubuntu-1604-lts --image-project \
+	ubuntu-os-cloud --boot-disk-size 50GB --maintenance-policy TERMINATE \
+	--restart-on-failure
+</pre></div></div>
+<p>ssh to your newly created machine by </p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+gcloud compute ssh dl-gpu --zone us-east1-c
+</pre></div></div>
+<p>Install CUDA libraries by running the following script (with sudo)</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+#!/bin/bash
+echo "Checking for CUDA and installing."
+# Check for CUDA and try to install.
+if ! dpkg-query -W cuda-8-0; then
+  # The 16.04 installer works with 16.10.
+  curl -O http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_8.0.61-1_amd64.deb
+  dpkg -i ./cuda-repo-ubuntu1604_8.0.61-1_amd64.deb
+  apt-get update
+  apt-get install cuda-8-0 -y
+fi
+</pre></div></div>
+<p>Verify coda installation</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+nvidia-smi
+</pre></div></div>
+<p>Install Anaconda</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+#https://www.digitalocean.com/community/tutorials/how-to-install-the-anaconda-python-distribution-on-ubuntu-16-04
+curl -O https://repo.continuum.io/archive/Anaconda2-5.0.0.1-Linux-x86_64.sh
+bash Anaconda2-5.0.0.1-Linux-x86_64.sh
+source ~/.bashrc
+</pre></div></div>
+<p>Install pytorch</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+conda install pytorch torchvision cuda80 -c soumith
+</pre></div></div>
+<p>Verify that pytroch has access to cuda</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+sokolov83@dl-gpu:~$ python
+Python 2.7.13 |Anaconda, Inc.| (default, Sep 30 2017, 18:12:43)
+[GCC 7.2.0] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+&gt;&gt;&gt; import torch
+&gt;&gt;&gt; torch.cuda.is_available()
+True
+</pre></div></div>
+<p>Repeat the steps to create a CPU machine</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+gcloud beta compute instances create dl-cpu
+	--machine-type n1-standard-2 --zone us-east1-c --image-family ubuntu-1604-lts
+	--image-project ubuntu-os-cloud --boot-disk-size 50GB --maintenance-policy
+	 TERMINATE --restart-on-failure
+</pre></div></div>
+<p>Then start the instance and ssh to the  it </p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+gcloud compute ssh dl-cpu --zone us-east1-c
+</pre></div></div>
+<h2>Using Jupyter Notebook with Google Compute Engine</h2>
+<p>Many of the assignments will involve using Jupyter Notebook. Below, we discuss how to run Jupyter Notebook from your GCE instance and use it on your local browser.</p>
+<h3>Getting a Static IP Address</h3>
+<p>Change the Extenal IP address of your GCE instance to be static (see screenshot below).</p>
+<table class="imgtable"><tr><td>
+<img src="image/6.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>To Do this, click on the 3 line icon next to the Google Cloud Platform button on the top left corner of your screen, go to Networking and External IP addresses (see screenshot below).</p>
+<table class="imgtable"><tr><td>
+<img src="image/7.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>To have a static IP address, change Type from Ephemeral to Static. Enter your preffered name for your static IP, mine is assignment-1 (see screenshot below). And click on Reserve. Remember to release the static IP address when you are done because according to this page Google charges a small fee for unused static IPs. Type should now be set to Static.</p>
+<table class="imgtable"><tr><td>
+<img src="image/8.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>Take note of your Static IP address (circled on the screenshot below). I used 104.196.224.11 for this tutorial.</p>
+<table class="imgtable"><tr><td>
+<img src="image/9.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<h2>Adding a Firewall rule</h2>
+<p>One last thing you have to do is adding a new firewall rule allowing TCP acess to a particular &lt;PORT-NUMBER&gt;. I usually use 7000 or 8000 for &lt;PORT-NUMBER&gt;. Click on the 3 line icon at the top of the page next to Google Cloud Platform. On the menu that pops up on the left column, go to Networking and Firewall rules (see the screenshot below).</p>
+<table class="imgtable"><tr><td>
+<img src="image/10.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>Click on the blue CREATE FIREWALL RULE button. Enter whatever name you want: I used assignment1-rules. Enter 0.0.0.0/0 for Source IP ranges and tcp:&lt;PORT-NUMBER&gt; for Allowed protocols and ports where &lt;PORT-NUMBER&gt; is the number you used above. Click on the blue Create button. See the screen shot below.</p>
+<table class="imgtable"><tr><td>
+<img src="image/12.png" alt="Polaris Project" width="600px" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<p>NOTE: Some people are seeing a different screen where instead of Allowed protocols and ports there is a field titled Specified protocols and ports. You should enter tcp:&lt;PORT-NUMBER&gt; for this field if this is the page you see. Also, if you see a field titled Targets select All instances in the network.</p>
+<h2>Configuring Jupyter Notebook</h2>
+<p>The following instructions are excerpts from this page that has more detailed instructions.</p>
+<p>On your GCE instance check where the Jupyter configuration file is located:</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+ls ~/.jupyter/jupyter_notebook_config.py
+</pre></div></div>
+<p>Mine was in <i>home</i>timnitgebru<i>.jupyter</i>jupyter<u>notebook</u>config.py</p>
+<p>If it doesn’t exist, create one:</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+# Remember to activate your virtualenv ('source .env/bin/activate') so you can actually run jupyter :)
+jupyter notebook --generate-config
+</pre></div></div>
+<p>Using your favorite editor (vim, emacs etc…) add the following lines to the config file, (e.g.: <i>home</i>timnitgebru<i>.jupyter</i>jupyter<u>notebook</u>config.py):</p>
+<div class="codeblock">
+<div class="blockcontent"><pre>
+c = get_config()
+
+c.NotebookApp.ip = '*'
+
+c.NotebookApp.open_browser = False
+
+c.NotebookApp.port = &lt;PORT-NUMBER&gt;
+</pre></div></div>
+<p>Where &lt;PORT-NUMBER&gt; is the same number you used in the prior section. Save your changes and close the file</p>
+<div id="footer">
+<div id="footer-text">
+Page generated 2019-03-09 09:56:31 EST, by <a href="https://github.com/wsshin/jemdoc_mathjax" target="blank">jemdoc+MathJax</a>.
+</div>
+</div>
+</div>
+</body>
+</html>
