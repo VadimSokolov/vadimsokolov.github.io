@@ -1,4 +1,7 @@
 #!/bin/zsh
 # quarto render index.qmd   
-quarto render
-quarto publish --no-render gh-pages
+quarto render cv.qmd
+quarto render index.qmd
+quarto render research.qmd
+
+# quarto publish --no-render gh-pages
