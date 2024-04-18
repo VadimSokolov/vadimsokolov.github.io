@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.549">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Bayes, AI and Deep Learning - 6&nbsp; AB Testing</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../qmd/hyp.html" rel="next">
+<link href="../qmd/bl.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+</head><body class="nav-sidebar floating fullcontent"><div class="hidden">
+<p><span class="math display">\[
+\newcommand{\prob}[1]{\operatorname{P}\left(#1\right)}
+\newcommand{\Var}[1]{\operatorname{Var}\left(#1\right)}
+\newcommand{\sd}[1]{\operatorname{sd}\left(#1\right)}
+\newcommand{\Cor}[1]{\operatorname{Corr}\left(#1\right)}
+\newcommand{\Cov}[1]{\operatorname{Cov}\left(#1\right)}
+\newcommand{\E}[1]{\operatorname{E}\left(#1\right)}
+\newcommand{\defeq}{\overset{\text{\tiny def}}{=}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\mini}{minimize}
+\]</span></p>
+</div>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+
+
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../qmd/prob.html">Bayes</a></li><li class="breadcrumb-item"><a href="../qmd/ab.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">AB Testing</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Bayes, AI and Deep Learning</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Principles of Data Science</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Bayes</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/prob.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Probability and Uncertainty</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/bayes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Bayes Rule</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/dec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Utility, Risk and Decisions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/bl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Bayesian Parameter Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/ab.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">AB Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/hyp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Bayesian Hypothesis Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/sp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Stochastic Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Gaussian Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/rl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Reinforcement Learning</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Pattern Matching and Data Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/theoryai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Theory of AI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/glm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Linear and Multiple Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/logistic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Generalized Linear Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/rct.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">RCT: Field vs Observational</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/select.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Model Selection</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/tree.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Tree Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/forecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Forecasting</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Deep Learning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/nn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/dlopt.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/arch.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Image Processing</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/ex.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Exercises</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../qmd/prob.html">Bayes</a></li><li class="breadcrumb-item"><a href="../qmd/ab.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">AB Testing</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span id="sec-abtesting" class="quarto-section-identifier"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">AB Testing</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The Internet age opened the door to enamours data collection from images to videos as well as personalized information. The data collected are observational rather than ones collected from a designed experiment - where hopefully we can control the environment in order to find the effects of intervening in the situation.</p>
+<p>Any competitive business always strives to improve its efficiency. Requirements to improve can be driven by changing market conditions, customer behavior and their demands. We would like to test our ideas on how to improve things and to pick the best course of action. AB testing provides a statistical framework for addressing such issues. It is the underpinning for testing new ideas and measuring the effects of strategy A versus B. It is widely used for testing marketing complains, product designs or even effects of new drugs. It relies on a statistical procedure sometimes known as hypothesis testing, hence AB testing allows us to draw conclusions from controlled designed experiments. We would also like to use these methods on observational study and thus brings up questions of causation. Instrumental variables provide ways of trying to tease out main effects. Propensity scores and matching are also popular techniques. We often interested in a question whether the observed effect is there due to noise or a true one. We can use hypothesis testing to answer this question in a rigorous way. Think, of coin tossing experiment. If you tossed coin twice and it came heads both of the times, does it mean that the coin is biased? Common sense tells us that two tosses is not enough to make a definitive conclusion and we should toss this coin a few more times to gain confidence. Hypothesis, testing is just that, the procedure that tells us if we have enough evidence to make a conclusion or more data is required to collect. It uses probability distributions to quantify uncertainty about a experiment outcomes. Let’s do a more practical example.</p>
+<p>There is a whole field on bandit problems - how to optimally sequential allocate our resources as a trade-off between exploitation (gain more information in an environment you understand to solely gain efficiency) or exploration (to learn about new environments which might be less optimal than the current one).</p>
+<p>You work as a quant for a trading firm and you have developed a new algorithm to trade stocks. You tested you algorithm on the historical data and it outperformed the state of the art algorithm used in your company. Now, the important question is whether your trading strategy can truly outperform the market or it is just got lucky. We need to analyze the performance of the algorithm after it was created and need to decide whether we have truly discovered a dominant strategy. Sequential analysis - a natural framework for Bayesian methods - allows us to decide on how long we need to wait before we have enough evidence that our algorithm has an edge.</p>
+<p>The effect we try to measure is usually present in some statistics that we calculate from data, for example sample mean, proportion, or difference in means.</p>
+<div id="exm-pyx" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.1 (Pyx Trial)</strong></span> The “Pyx Trial” refers to an ancient ceremony held in the United Kingdom’s Royal Mint. This tradition, dating back to the 12th century, is a method of testing the quality of minted coins to ensure it meets the standards of weight and purity set by law. The term “Pyx” comes from the Greek word “pyxis,” meaning a small box, which is used to hold the sample coins that are to be tested.</p>
+<p>Sir Isaac Newton became Warden of the Mint in 1696 and later the Master of the Mint. His role was crucial in reforming the coinage and improving its quality. Newton was rigorous in enforcing standards and combating counterfeiting and clipping (the practice of shaving off small amounts of precious metal from coins). Newton applied his scientific mind to the problems of minting, including refining assays (the testing of the purity of metals), improving the design of coins to prevent clipping, and introducing milled edges on coins.</p>
+<p>The trial starts by selecting <span class="math inline">\(n\)</span> coins from each batch produced by the Royal Mint. These coins are placed in a box called the Pyx. The number of coins used in the Trial of the Pyx can vary each year. This number depends on several factors, including the variety and quantity of coins produced by the Royal Mint in that particular year. Typically, a representative sample of each type of coin minted is selected for testing. Then, for each coin attribute (weight, size, composition), the mean (average) value of the sample is calculated as well as the variance of the mean.</p>
+<p>Suppose we have minted one million of coins and collected the sample of <span class="math inline">\(n=100\)</span> coins, the legal weight tolerance for a certain coin is 0.05 grams.</p>
+<p>We will use the simulated data for our analysis. Let’s simulate the weights of all of the coins produced</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">17</span>) <span class="co"># Kharlamov</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>allcoins <span class="ot">=</span> <span class="fu">runif</span>(<span class="dv">1000000</span>, <span class="fl">4.95</span>, <span class="fl">5.05</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, we survey 2500 randomly selected coins</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>survey_sample <span class="ot">=</span> <span class="fu">sample</span>(allcoins,<span class="at">size =</span> <span class="dv">100</span>, <span class="at">replace =</span> F)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>xbar <span class="ot">=</span> <span class="fu">mean</span>(survey_sample)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The sample mean of 5 is very close to the true mean of 5. However, if we are to collect a different sample, the sample mean will be slightly different</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>survey_sample <span class="ot">=</span> <span class="fu">sample</span>(allcoins,<span class="at">size =</span> <span class="dv">100</span>, <span class="at">replace =</span> F)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>xbar <span class="ot">=</span> <span class="fu">mean</span>(survey_sample)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, we simulate 1000 surveys and calculate the sample mean for each survey.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>prep <span class="ot">=</span> <span class="fu">replicate</span>(<span class="dv">2000</span>, <span class="fu">mean</span>(<span class="fu">sample</span>(allcoins,<span class="at">size =</span> <span class="dv">100</span>,<span class="at">replace =</span> F)))</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(prep, <span class="at">breaks =</span> <span class="dv">30</span>, <span class="at">freq =</span> F, <span class="at">main=</span><span class="st">"Histogram of voting proportions"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">seq</span>(<span class="fl">4.9</span>,<span class="fl">5.1</span>,<span class="at">length.out =</span> <span class="dv">500</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(p, <span class="fu">dnorm</span>(p,<span class="fu">mean</span>(prep),<span class="fu">sd</span>(prep)), <span class="at">col=</span><span class="st">"red"</span>,<span class="at">lwd=</span><span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ab_files/figure-html/mi-vote-plot-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We see that the red bell-curve (normal density) is a good model for the distribution over the means calculated from samples. In fact, the <em>central limit theorem</em> says that sample proportions do follow normal distribution. We need to estimate the mean and standard deviation of this bell curve. It is natural to use the sample mean as the estimate of the mean of the bell curve.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(prep)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 5</code></pre>
+</div>
+</div>
+<p>The mean <span class="math display">\[
+\bar x = \frac{1}{n}\sum_{i=1}^{n} x_i
+\]</span> is close to the true population mean of 5. We sometimes use the notation <span class="math inline">\(\hat \mu\)</span> to denote an estimate. So we have <span class="math inline">\(\hat \mu = \bar x\)</span>.</p>
+<p>However, the standard deviation is much lower compared to the standard deviation of the population</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(prep)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.0028</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(allcoins)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.029</code></pre>
+</div>
+</div>
+<p>The variance of the mean measures how much the sample mean is expected to vary from one sample to another, if you were to take multiple samples from the same population.</p>
+<p>Assuming that samples are uncorrelated (correct sampling procedure is important!), the variance of the mean is given by <span class="math display">\[
+Var(\bar x) = Var\left(\frac{1}{n} \sum_{i=1}^{n} x_i\right) = \frac{1}{n^2} \sum_{i=1}^{n} Var(x_i) = \frac{\sigma^2}{n}.
+\]</span></p>
+<p>Therefore, the variance of the mean formula is <span class="math display">\[
+Var(\bar x) = \frac{\sigma^2}{n}.
+\]</span> If we know the the population variance <span class="math inline">\(Var(x_i) = \sigma^2\)</span>, then we can calculate the variance of the mean. However, in practice, we do not know the population variance. Instead, we estimate it using the sample variance <span class="math inline">\(s^2\)</span>. The estimated variance of the mean is then <span class="math display">\[
+Var(\bar x) = \frac{s^2}{n}.
+\]</span> The standard deviation of the mean is called the <strong>standard error</strong> and is given by <span class="math display">\[
+SE(\bar x) = \sqrt{Var(\bar x)} = \frac{s}{\sqrt{n}}.
+\]</span></p>
+<p>Let’s compare the standard error of the mean and standard deviation calculated from the simulations</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(prep)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.0028</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(allcoins)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.0029</code></pre>
+</div>
+</div>
+<p>They are very close!</p>
+<p>This statistical property allows us to quantify uncertainty about the sample mean and say something about the true value of the mean <span class="math inline">\(\mu\)</span>, in terms of a probabilistic interval statement.</p>
+</div>
+<p><strong>Central Limit Theorem</strong></p>
+<p>CLT states that, given a sufficiently large sample size, the distribution of the sample means will be approximately normally distributed, regardless of the shape of the population distribution. This normal distribution is also known as the Gaussian distribution. The theorem applies to a wide range of population distributions, including distributions that are not normal. This universality makes it one of the most powerful and widely-used theorems in statistics.</p>
+<p>The first and simplest case of the CLT was published in 1738 by the De Moivre and is called the <a href="https://en.wikipedia.org/wiki/De_Moivre–Laplace_theorem">De Moivre–Laplace theorem</a>. According to this theorem the standard normal distribution arises as the limit of scaled and centered Binomial distributions, in the following sense. Let <span class="math inline">\(x_1,\ldots,x_n\)</span> be independent, identically distributed Rademacher random variables, that is, independent random variables with distribution <span class="math display">\[
+P(x_i = 1) = P(x_i = -1) = \frac{1}{2}.
+\]</span> Then, the distribution of the sum of these random variables converges to the standard normal distribution as <span class="math inline">\(n\)</span> tends to infinity. That is, for any <span class="math inline">\(a&lt;b\)</span>, we have <span class="math display">\[
+\lim_{n\to\infty} P\left(a \le \frac{x_1+\cdots+x_n}{\sqrt{n}} \le b\right) = \int_a^b \frac{1}{\sqrt{2\pi}} e^{-x^2/2} dx.
+\]</span> In this case, the sum <span class="math inline">\(x_1+\cdots+x_n\)</span> has mean <span class="math inline">\(n\mu\)</span> and variance <span class="math inline">\(n\sigma^2\)</span>, so that the standardized sum <span class="math inline">\((x_1+\cdots+x_n - n\mu)/\sqrt{n\sigma^2}\)</span> has mean <span class="math inline">\(0\)</span> and variance <span class="math inline">\(1\)</span>. The theorem then states that the distribution of this standardized sum converges to the standard normal distribution as <span class="math inline">\(n\)</span> tends to infinity.</p>
+<p>In 1889 Francis Galton published a paper where he described what we now call the Galton Board. The Galton Board is a vertical board with interleaved rows of pins. Balls are dropped from the top, and bounce left and right as they hit the pins. Eventually, they are collected into one of several bins at the bottom. The distribution of balls in the bins approximates the normal distribution. Each pin is a physical realization of the binomial draw and each row is a summand. The location at the bottom is a sum of the binomial draws. The <code>galton-ball.r</code> script simulates the Galton board experiment. The script is available in the <code>R</code> folder of the book repository. <a href="#fig-galton" class="quarto-xref">Figure&nbsp;<span class="quarto-unresolved-ref">fig-galton</span></a> shows the result of the simulation. The distribution of the balls in the bins approximates the normal distribution.</p>
+<div id="fig-galton" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-galton-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="../fig/galton.jpg" class="img-fluid figure-img" style="width:50.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-galton-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6.1: Galton Board
+</figcaption>
+</figure>
+</div>
+<div id="exm-simcity" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.2</strong></span> Electronic Arts is a company that makes video games. SimCity 5, one of EA’s most popular video games, sold 1.1 million copies in the first two weeks of its launch last year. 50% of sales were digital downloads, thanks to a strong A/B testing strategy.</p>
+<p>As EA prepared to release the new version of SimCity, they released a promotional offer to drive more game pre-orders. The offer was displayed as a banner across the top of the pre-order page – front-and-center for shoppers. But according to the team, the promotion was not driving the increase in pre-orders they had expected.</p>
+<p>They decided to test some other options to see what design or layout would drive more revenue.</p>
+<div id="fig-simsity" class="quarto-layout-panel">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-simsity-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../fig/simcity_original.jpg" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>Original</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../fig/simcity_variation.jpg" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>Variation4</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-simsity-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6.2: SimCity banner
+</figcaption>
+</figure>
+</div>
+<p>One variation removed the promotional offer from the page altogether. The test lead to some very surprising results: The variation with no offer messaging whatsoever drove 43.4% more purchases. Turns out people really just wanted to buy the game – no extra incentive necessary.</p>
+<p>Most people believe that direct promotions drive purchases, but for EA, this turned out to be totally false. Testing gave them the information needed to maximize revenue in a way that would not have been otherwise possible.</p>
+<p>We use R: abtest to examine whether a black or pink background results in more purchases. Run experiment for one week:</p>
+<ul>
+<li><p>Pink background: <span class="math inline">\(40\)</span>% purchase rate with <span class="math inline">\(500\)</span> visitors</p></li>
+<li><p>Black background: <span class="math inline">\(30\)</span>% purchase rate with <span class="math inline">\(550\)</span> visitors</p></li>
+</ul>
+<p>Let’s run the AB test to see which is more effective, we will calculate the confidence intervals for conversion rates for each variation of site.</p>
+<p>The <code>abtestfunc</code>function below calculates CIs (80% significance, <span class="math inline">\(Z=1.28\)</span>).</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>site1 <span class="ot">=</span> <span class="fu">c</span>(.<span class="dv">40</span>, <span class="dv">500</span>) <span class="co"># pink</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>site2 <span class="ot">=</span> <span class="fu">c</span>(.<span class="dv">30</span>, <span class="dv">550</span>) <span class="co"># black</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>abtestfunc <span class="ot">&lt;-</span> <span class="cf">function</span>(ad1, ad2){</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>sterror1 <span class="ot">=</span> <span class="fu">sqrt</span>( ad1[<span class="dv">1</span>] <span class="sc">*</span> (<span class="dv">1</span><span class="sc">-</span>ad1[<span class="dv">1</span>]) <span class="sc">/</span> ad1[<span class="dv">2</span>] )</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>sterror2 <span class="ot">=</span> <span class="fu">sqrt</span>( ad2[<span class="dv">1</span>] <span class="sc">*</span> (<span class="dv">1</span><span class="sc">-</span>ad2[<span class="dv">1</span>]) <span class="sc">/</span> ad2[<span class="dv">2</span>] )</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>minmax1 <span class="ot">=</span> <span class="fu">c</span>((ad1[<span class="dv">1</span>] <span class="sc">-</span> <span class="fl">1.28</span><span class="sc">*</span>sterror1) <span class="sc">*</span> <span class="dv">100</span>, (ad1[<span class="dv">1</span>] <span class="sc">+</span> <span class="fl">1.28</span><span class="sc">*</span>sterror1) <span class="sc">*</span> <span class="dv">100</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>minmax2 <span class="ot">=</span> <span class="fu">c</span>((ad2[<span class="dv">1</span>] <span class="sc">-</span> <span class="fl">1.28</span><span class="sc">*</span>sterror2) <span class="sc">*</span> <span class="dv">100</span>, (ad2[<span class="dv">1</span>] <span class="sc">+</span> <span class="fl">1.28</span><span class="sc">*</span>sterror2) <span class="sc">*</span> <span class="dv">100</span>)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>( <span class="fu">round</span>(minmax1,<span class="dv">2</span>) )</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>( <span class="fu">round</span>(minmax2,<span class="dv">2</span>) )</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="fu">abtestfunc</span>(site1, site2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 37 43
+ 28 32</code></pre>
+</div>
+</div>
+<p>Purchase rate for the pink background is significantly higher!</p>
+</div>
+<p><strong><span class="math inline">\(Z\)</span>-Score</strong></p>
+<div id="exm-crash1987" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.3 (Stock market crash 1987)</strong></span> Prior to the October, 1987 crash SP500 monthly returns were 1.2% with a risk/volatility of 4.3%. The question is how extreme was the 1987 crash of <span class="math inline">\(-21.76\)</span>%? <span class="math display">\[
+X \sim N \left(1.2, 4.3^2 \right )
+\]</span> This probability distribution can be standardized to yield <span class="math display">\[
+Z =\frac{X-\mu}{\sigma} = \frac{X - 1.2}{4.3} \sim N(0,1) .
+\]</span> Now,, we calculate the observed <span class="math inline">\(Z\)</span>, given the outcome of the crash event <span class="math display">\[
+Z = \frac{-0.2176 - 0.012}{0.043} = -5.27
+\]</span> That’s is <span class="math inline">\(5\)</span>-sigma event in terms of the distribution of <span class="math inline">\(X\)</span>. Meaning that -0.2176 is 5 standard diviations away from the mean. Under a normal model that is equivalent to <span class="math inline">\(P(X &lt; -0.2176)\)</span> = 4.66^{-8}.</p>
+<p>On August 24th, 2015, Chinese equities ended down $- 8.5 $% (Black Monday). In the last <span class="math inline">\(25\)</span> years, average is $0.09 $% with a volatility of $2.6 $%, and <span class="math inline">\(56\)</span>% time close within one standard deviation. SP500, average is <span class="math inline">\(0.03\)</span>% with a volatility of <span class="math inline">\(1.1\)</span>%. <span class="math inline">\(74\)</span>% time close within one standard deviation</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../fig/stock-monday.png" class="img-fluid figure-img" style="width:40.0%"></p>
+<figcaption>Economist article, August 2015.</figcaption>
+</figure>
+</div>
+</div>
+<section id="confidence-intervals" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="confidence-intervals"><span class="header-section-number">6.1</span> Confidence Intervals</h2>
+<p>The fact that the distribution of the simulated means from the Pyx example can be described well by a normal bell curve, in fact has a theoretical justification. It is called the <strong>Central Limit Theorem</strong>. The Central Limit Theorem states that, given a sufficiently large sample size, the distribution of the sample means will be approximately normally distributed, regardless of the shape of the population distribution. This normal distribution is also known as the Gaussian distribution.</p>
+<p>There are a few conditions. The sampled observations must be independent. In practice, this means that the sampling should be random, and one observation should not influence another.Further, the sample size should be sufficiently large. While there is no strict rule for what constitutes ‘large enough,’ a common guideline is a sample size of 30 or more. However, if the population distribution is far from normal, a larger sample size may be required.</p>
+<p>We can estimate the mean of this bell curve using <span class="math inline">\(\bar x\)</span> and the standard deviation (standard error) using <span class="math inline">\(s/\sqrt{n}\)</span>.</p>
+<p>The square-root nature of this relation is somewhat unfortunate. To double your certainty about the population mean, you need to quadruple the sample size.</p>
+<p>One of the main applications of this results is the construction of <strong>confidence intervals</strong>. A confidence interval is a range of values that is likely to contain the true value of the population mean. It is a plausible range for the quantity we are trying to estimate. The confidence interval is calculated using the sample mean <span class="math inline">\(\bar x\)</span> and the standard error <span class="math inline">\(s/\sqrt{n}\)</span>. The confidence interval is centered around the sample mean and has a width of <span class="math inline">\(2 \times SE(\bar x)\)</span>. The confidence interval is calculated as follows <span class="math display">\[
+\bar x \pm 2 \times SE(\bar x) = \bar x \pm 2 \times \frac{s}{\sqrt{n}}.
+\]</span></p>
+<p>The theorem applies to a wide range of population distributions, including distributions that are not normal. This universality makes it one of the most powerful and widely-used theorems in statistics.</p>
+<p>Here are a few conclusions we can make thus far 1. Mean estimates are based on random samples and therefore random (uncertain) themselves<br>
+We need to account for this uncertainty!</p>
+<ol start="2" type="1">
+<li><p>Standard Error measures the uncertainty of an estimate</p></li>
+<li><p>Using properties of the Normal distribution, we can construct <span class="math inline">\(95\)</span>% Confidence Intervals<br>
+This provides us with a plausible range for the quantity we are trying to estimate.</p></li>
+</ol>
+<p>Coming back to the Patriots coin toss example, we know that they won 19 out of 25 tosses during the 2014-2015 season. In this example, our observations are values 0 (lost toss) and 1 (won toss) and the average over those 0-1 observations is called the <strong>proportion</strong> and is denoted by <span class="math inline">\(\hat p\)</span> <strong>instead of</strong> <span class="math inline">\(\bar x\)</span>. When we deal with proportions, we can calculate the sample variance from its mean <span class="math inline">\(\hat p\)</span> as follows <span class="math display">\[
+s^2_{\hat p} = \frac{\hat p(1-\hat p)}{n}.
+\]</span> Thus, we know that given our observations and CLT, the true vale of the probability of winning a toss is normally distributed. Our best guess at the mean <span class="math inline">\(\hat p\)</span> is <span class="math inline">\(19/25 = 0.76\)</span> and variance <span class="math inline">\(s^2 = 0.76(1-0.76)/25 = 0.091\)</span> <span class="math display">\[
+\hat p \sim N(0.76, 0.091).
+\]</span> Then a <span class="math inline">\(95\%\)</span> Confidence Interval is calculated by</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fl">0.76</span> <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.96</span>,<span class="fl">1.96</span>)<span class="sc">*</span><span class="fl">0.091</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.58 0.94</code></pre>
+</div>
+</div>
+<p>Since 0.5 is outside the confidence interval, we say that we do not have enough evidence to say that the coin tosses were fair.</p>
+<div id="exm-Mythbusters" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.4 (Mythbusters)</strong></span> In 2006 the creators of Mythbusters TV show on Discovery channel wanted to test weather yawning is contagious in humans. They have recruited 50 participants and each of those went through an interview. At the end of 34 randomly selected interviews the interviewer did yawn. Then participants were asked to wait in a next door room. Out of 34 participants form the experimental group, 10 did yawn (29.4%) and only 4 out 16 (25%) in the control group did yawn. The difference in the proportion of those who did yawn was 4.4%. The show hosts Kari Byron, Tory Belleci and Scottie Chapman concluded that yawn is indeed contagious.</p>
+<p>The question is what happens if we are to re-run this experiment several times with different groups of participants, will wee see the same difference of 4.4%? The fact is that from one experiment to another calculated proportions of yawners in both groups will be different.</p>
+<p>In our example, the proportion of yawners in the experiment group is <span class="math inline">\(\hat p_e = 0.294\)</span> and in the control group is <span class="math inline">\(\hat p_c = 0.25\)</span>. Thus, <span class="math display">\[
+\hat \sigma^2_e = 0.294(1-0.294) = 0.21,~~~\hat \sigma^2_c = 0.25(1-0.25) = 0.19
+\]</span></p>
+<p>We can apply CLT and calculate the uncertainty about <span class="math inline">\(\hat p_{e}\)</span> and <span class="math inline">\(\hat p_{c}\)</span> <span class="math display">\[
+\hat p_e\sim N(0.294, 0.21/34),~~~ \hat p_c\sim N(0.25, 0.19/34).
+\]</span> Now, instead of comparing proportions (numbers), we can compare their distributions and thus quantify uncertainties. If we plot density functions of those two Normal variables, we can see that although means are different, there is a large overlap of the two density functions.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">seq</span>(<span class="fl">0.0</span>,<span class="fl">0.6</span>, <span class="at">length.out =</span> <span class="dv">200</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(p,<span class="fu">dnorm</span>(p,<span class="fl">0.25</span>, <span class="fu">sqrt</span>(<span class="fl">0.19</span><span class="sc">/</span><span class="dv">34</span>)), <span class="at">col=</span><span class="dv">2</span>, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">lwd=</span><span class="dv">3</span>, <span class="at">ylab=</span><span class="st">"Density"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(p,<span class="fu">dnorm</span>(p,<span class="fl">0.294</span>, <span class="fu">sqrt</span>(<span class="fl">0.21</span><span class="sc">/</span><span class="dv">34</span>)), <span class="at">col=</span><span class="dv">3</span>, <span class="at">lwd=</span><span class="dv">3</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="fu">c</span>(<span class="st">"control"</span>, <span class="st">"experiment"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">2</span>), <span class="at">lwd=</span><span class="dv">3</span>, <span class="at">bty=</span><span class="st">'n'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ab_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The amount of overlap is the measure of how certain we are that <span class="math inline">\(p_e\)</span> and <span class="math inline">\(p_c\)</span> are different. Large overlap means we are not very certain if proportions are truly different. For example, both <span class="math inline">\(p_e\)</span> and <span class="math inline">\(p_c\)</span> have a high probability of being between 0.2 and 0.4. We can use properties of normal distribution to say specifically what is the amount of this overlap by calculating the corresponding 95% confidence interval of the difference between the proportions. Know that difference of two Normal random variables is another Normal <span class="math display">\[
+\hat p_e - \hat p_c \sim N(0.294 - 0.25, 0.208/34 + 0.185/16) = N(0.044, 0.0177)
+\]</span> Now we can calculate 95% confidence interval for <span class="math inline">\(\hat p_e - \hat p_c\)</span>, again using properties of Normal</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fl">0.044</span> <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.96</span>,<span class="fl">1.96</span>)<span class="sc">*</span><span class="fu">sqrt</span>(<span class="fl">0.0177</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> -0.22  0.30</code></pre>
+</div>
+</div>
+<p>The interval is wide and most importantly, it does contain 0. Thus, we cannot say for sure that the proportions are different. They might just appear to be different due to a chance (sampling error). Meaning, that if we are to re-run the experiment we should expect the difference to be anywhere between -0.22 and 0.31 in 95% if of the cases.</p>
+<p>Thus, statistical analysis does not confirm the conclusion made by the show hosts and indicates that there no evidence that the proportion of yawners is difference between the control and experiment groups.</p>
+</div>
+<div id="exm-googe" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.5 (Search algorithm)</strong></span> Let’s look at another example and test effectiveness of Google’s new search algorithm. We measure effectiveness by the number of users who clicked on one of the search results. As users send the search requests, they will be randomly processed with Algo 1 or Algo 2. We wait until 2500 search requests were processed by each of the algorithms and calculate the following table based on how often people clicked through</p>
+<table class="table">
+<caption>Google Search Algorithm</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: center;">Algo1</th>
+<th style="text-align: center;">Algo2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>success</td>
+<td style="text-align: center;">1755</td>
+<td style="text-align: center;">1818</td>
+</tr>
+<tr class="even">
+<td>failure</td>
+<td style="text-align: center;">745</td>
+<td style="text-align: center;">682</td>
+</tr>
+<tr class="odd">
+<td>total</td>
+<td style="text-align: center;">2500</td>
+<td style="text-align: center;">2500</td>
+</tr>
+</tbody>
+</table>
+<p>The probability of success is estimated to be <span class="math inline">\(\hat{p}_1 = 0.702\)</span> for the current algorithm and <span class="math inline">\(\hat{p}_2 = 0.727\)</span> for the new algorithm. We can calculate the 95% confidence interval or 95% Bayesian credible region for both estimated proportions Is the new algorithm</p>
+<p>For Algo 1:</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">=</span> <span class="fl">0.702</span>; p2 <span class="ot">=</span> <span class="fl">0.727</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.96</span>,<span class="fl">1.96</span>)<span class="sc">*</span><span class="fu">sqrt</span>(p1<span class="sc">*</span>(<span class="dv">1</span><span class="sc">-</span>p1)<span class="sc">/</span><span class="dv">2500</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.68 0.72</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>p2 <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.96</span>,<span class="fl">1.96</span>)<span class="sc">*</span><span class="fu">sqrt</span>(p2<span class="sc">*</span>(<span class="dv">1</span><span class="sc">-</span>p2)<span class="sc">/</span><span class="dv">2500</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.71 0.74</code></pre>
+</div>
+</div>
+<p>Given that the intervals do not overlap, there is enough evidence that algorithms are different, and the new Algo 1 is indeed more efficient.</p>
+<p>We will get a slightly more precise estimation of uncertainty if we calculate confidence interval for the difference of the proportions. Since <span class="math inline">\(p_1\)</span> and <span class="math inline">\(p_2\)</span> both follow Normal distribution, thus their difference is also normally distributed <span class="math display">\[
+p_1 - p_2 \sim N(\hat p_1 - \hat p_2, s_1^2/n + s_2^2/n).
+\]</span> Applying this formula for the Google search algorithm experiment, we calculate the 95% confidence interval for the difference</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">-</span> p2  <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.96</span>,<span class="fl">1.96</span>)<span class="sc">*</span><span class="fu">sqrt</span>(p1<span class="sc">*</span>(<span class="dv">1</span><span class="sc">-</span>p1)<span class="sc">/</span><span class="dv">2500</span> <span class="sc">+</span> p2<span class="sc">*</span>(<span class="dv">1</span><span class="sc">-</span>p2)<span class="sc">/</span><span class="dv">2500</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> -5.0e-02  2.9e-05</code></pre>
+</div>
+</div>
+<p>The confidence interval for the difference does contain 0, and thus we cannot say that we are confident that algorithms are different!</p>
+<p>More generally, if the number of observations in two groups are different, say <span class="math inline">\(n_1\)</span> and <span class="math inline">\(n_2\)</span> then the <span class="math display">\[
+s_{ \bar{X}_1 - \bar{X}_2 } = \sqrt{ \frac{ s^2_{ \bar{X}_1 }}{n_1} + \frac{ s^2_{ \bar{X}_2 }}{n_2} }
+\]</span> or for proportions, we compute <span class="math display">\[
+s_{ \hat{p}_1 - \hat{p}_2 } = \sqrt{ \frac{ \hat{p}_1 (1- \hat{p}_1)}{n_1} + \frac{ \hat{p}_2 (1- \hat{p}_2)}{n_2} }.
+\]</span></p>
+</div>
+<p>Then we formulate a hypothesis that we are to test. Our status-quo assumption (there is no effect) is called the null hypothesis and is typically denoted by <span class="math inline">\(H_0\)</span>.</p>
+<p>To translate the question from this experiment into language of hypothesis testing, we say that our null hypothesis is that proportion of yawning participants in control (<span class="math inline">\(\hat p_c\)</span>) and experimental group (<span class="math inline">\(\hat p_e\)</span>) is the same <span class="math inline">\(H_0: \hat p_c - \hat p_e = 0\)</span>, and the alternative hypothesis is <span class="math inline">\(H_a: \hat p_c &gt; \hat p_e\)</span>. The goal is to use the data tell us if the hypothesis is correct or not.</p>
+<p>A key statistical fact behind the hypothesis testing is the Central Limit Theorem. It states that if we have a sample <span class="math inline">\(\{x_1,\ldots,x_n\}\)</span> with <span class="math inline">\(n\)</span> observations from any distribution <span class="math inline">\(x_i \sim p(x)\)</span>, then average of the sample follows a Normal distribution with mean <span class="math inline">\(\mu\)</span> and variance <span class="math inline">\(\sigma^2/n\)</span> <span class="math display">\[
+\bar X = \frac{1}{n}\sum_{i=1}^{n}X_i \sim N(\mu, \sigma^2/n)
+\]</span></p>
+<p>Let’s us a simple simulated data set to demonstrate the central limit theorem. We generate 100 outcomes of a Bernoulli trial with <span class="math inline">\(p=0.3\)</span> and calculate the mean of this sample <span class="math inline">\(\hat p\)</span>. We repeat it 2000 times and compare the empirical distribution of <span class="math inline">\(\hat p\)</span> with <span class="math inline">\(N(0.3, 0.046)\)</span>.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>a <span class="ot">=</span> <span class="fu">replicate</span>(<span class="dv">2000</span>,<span class="fu">mean</span>(<span class="fu">rbinom</span>(<span class="dv">100</span>,<span class="dv">1</span>,<span class="fl">0.3</span>)))</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">density</span>(a), <span class="at">main=</span><span class="st">""</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>se <span class="ot">=</span> <span class="fu">sqrt</span>(<span class="fl">0.3</span><span class="sc">*</span>(<span class="dv">1</span><span class="fl">-0.3</span>)<span class="sc">/</span><span class="dv">100</span>)  <span class="co">#  0.046</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="dv">0</span>,<span class="fl">0.5</span>,<span class="at">length.out =</span> <span class="dv">300</span>)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fu">dnorm</span>(x,<span class="at">mean =</span> <span class="fl">0.3</span>,<span class="at">sd =</span> se), <span class="at">col=</span><span class="st">"red"</span>, <span class="at">lwd=</span><span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ab_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>There are three ways to quantify uncertainty in hypothesis testing. The first approach relies on calculating confidence intervals, as we did for the yawn example. There are two complimentary approaches. One is to calculate what is called a <span class="math inline">\(p\)</span>-value, that is the probability of getting the result observed in the data, assuming null-hypothesis is true. If <span class="math inline">\(p\)</span>-value is low, then we reject the null-hypothesis. For the yawn example, the conditional probability that the observed difference in proportions is greater then 0.044, given null hypothesis is true is given by</p>
+<p><span class="math display">\[
+p-\mathrm{value} = P(\hat p_e - \hat p_c \ge 0.044 \mid H_0),
+\]</span> which can be calculated using <code>pnorm</code> function</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(<span class="fl">0.044</span>,<span class="dv">0</span>,<span class="fu">sqrt</span>(<span class="fl">0.017</span>))     </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.37</code></pre>
+</div>
+</div>
+<p>The <span class="math inline">\(p\)</span>-value of 0.37 means that there is 37% chance to observe the difference to be greater then 0.044 assuming the null-hypothesis. It is quite high! We want the <span class="math inline">\(p\)</span>-value to be low, only then we can claim that we have discovered a new fact, i.e.&nbsp;that yawning is contentious. In many applications we require this number to be at most 0.005. The smallest acceptable <span class="math inline">\(p\)</span>-value is called the <strong>significance level</strong> and is typically denoted as <span class="math inline">\(\alpha\)</span>. We can test the hypothesis at different levels of significance <span class="math inline">\(\alpha\)</span>. Further we assume that the statistic we are analyzing follows the sampling distribution. The probability distribution of the statistics values is either Normal, or <span class="math inline">\(t\)</span>-distribution for continuous variable.</p>
+<p>In a nutshell a hypothesis is a statement about a population developed for the purpose of testing with data.To summarize the process of testing a significance of our discovery for proportions, we perform the hypothesis testing following the 5-step process.</p>
+<ul>
+<li>Step 1: Formulate the Null Hypothesis (<span class="math inline">\(H_0\)</span>), which we assume to be true unless there is sufficient evidence to the contrary. Then, alternative Hypothesis (<span class="math inline">\(H_1\)</span>): test against the null, e.g.&nbsp;<span class="math inline">\(H_0: p_e - p_c = 0\)</span>, and <span class="math inline">\(H_a: p_e - p_c &gt; 0\)</span>. If there is evidence that <span class="math inline">\(H_0\)</span> is false, we accept <span class="math inline">\(H_1\)</span>.</li>
+<li>Step 2:Select the significance level <span class="math inline">\(\alpha\)</span>. While <span class="math inline">\(\alpha = 0.05\)</span> (the 5% level) is the most commonly used., <span class="math inline">\(\alpha = 0.01\)</span> (the 1% level) is prevalent in medical and quality assurance examples.</li>
+<li>Step 3: Compute the Test Statistic (<span class="math inline">\(Z\)</span> or <span class="math inline">\(T\)</span>)</li>
+<li>Step 4: Formulate the Decision Rule. For example, reject the Null hypothesis if <span class="math inline">\(|Z| &gt; 1.96\)</span></li>
+<li>Step 5: Make a Decision, Compute the p-value. p-value is the smallest significance level at which a null hypothesis can be rejected. If <span class="math inline">\(p\)</span>-value <span class="math inline">\(&lt;\alpha\)</span>, we have evidence that <span class="math inline">\(H_1\)</span> is is true, we accept <span class="math inline">\(H_1\)</span> and claim we have a discovery. If <span class="math inline">\(p\)</span>-value is <span class="math inline">\(\ge \alpha\)</span>, then we cannot reject the null-hypothesis.</li>
+</ul>
+<p>In Steps 1-2 we formulate the hypothesis. In steps 3-5 we make a decision.</p>
+<p>In the context of hypothesis testing, we come back to the type I and type II errors we already discussed. They can be used to describe two types of errors you can make when testing</p>
+<ol type="1">
+<li><p>Type I Error: Rejecting a true <span class="math inline">\(H_0\)</span>.</p></li>
+<li><p>Type II Error: Not rejecting a false <span class="math inline">\(H_0\)</span>.</p></li>
+</ol>
+<p>And the significance level is then <span class="math display">\[
+Pr(\mbox{reject } H_0 \mid H_0 \; \mbox{ true}) =
+P(\mbox{type I error}).
+\]</span></p>
+<p>Hypothesis testing is often used in scientific reporting. For example, the discovery of Higgs Boson was announced as a result of hypothesis testing. Scientists used the five-sigma concept to test the Higgs-Boson hypothesis. This concept, however, is somewhat counter-intuitive. It has to do with a . That is not the probability that the Higgs boson doesn’t exist. It is, rather, the inverse: If the particle doesn’t exist, one in 3.5 million is the chance an experiment just like the one announced would nevertheless come up with a result appearing to confirm it does exist. In other words, one in 3.5 million is the likelihood of finding a false positive a fluke produced by random statistical fluctuation that seems as definitive as the findings released by two teams of researchers at the CERN laboratory in Geneva. So we can talk about the significance level as <span class="math inline">\(p\)</span>-value to be one-in-3.5-million andt hen the <span class="math inline">\(Z\)</span>-score is five.</p>
+<p>The test statistic (<span class="math inline">\(T\)</span> or <span class="math inline">\(Z\)</span>) to quantifies uncertainty between the null-hypothesis value and the observed one is equal the number many standard deviations they are apart from each other. This value is called the <span class="math inline">\(Z\)</span>-score, and is calculated as <span class="math display">\[
+Z = \frac{ \bar{x} - \mu_0 }{\sqrt{\Var{\bar x}} },
+\]</span> where <span class="math inline">\(\mu_0\)</span> is the mean assumed under null-hypothesis. The square root of the statistic’s variance <span class="math inline">\(\sqrt{\Var{\bar x}}\)</span> is called standard error and is denoted by <span class="math inline">\(se(\bar x)\)</span>.</p>
+<p>Let’s calculate the <span class="math inline">\(Z\)</span>- score for the yawning example. When we plug-in <span class="math inline">\(\mu_0 = 0\)</span>, <span class="math inline">\(\bar{x}  = \hat p_e - \hat p_c = 0.044\)</span>, <span class="math inline">\(\Var{\bar x} =\Var{\hat p_e - \hat p_c} =  0.0177\)</span>, we get <span class="math inline">\(Z\)</span> statistic to be 0.33. Thus, our observed difference is very close to 0.</p>
+<p>To summarize the duality of confidence interval, <span class="math inline">\(p\)</span>-value and <span class="math inline">\(Z\)</span>-score, the following statements are equivalent</p>
+<ol type="1">
+<li>0 is inside the 95% confidence interval</li>
+<li><span class="math inline">\(p\)</span>-value is greater then 0.05</li>
+<li><span class="math inline">\(Z\)</span>-statistic is less then 1.96</li>
+</ol>
+<p>Let us proceed with another example.</p>
+<div id="exm-coke" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.6 (Coke vs Pepsi)</strong></span> The most famous hypothesis test in history in whether people can decide the difference between Coke and Pepsi. We run a double blind experiment, neither the experimenter or subject know the allocation. Pepsi claimed that more than half of Diet Coke drinkers said they preferred to drink Diet Pepsi. That is our null hypothesis. The data comes from a random sample of <span class="math inline">\(100\)</span> drinkers. We find that <span class="math inline">\(56\)</span> favor Pepsi.</p>
+<p>This is a hypothesis test about the proportion of drinkers who prefer Pepsi <span class="math display">\[H_0 : p = \frac{1}{2} \; \; \mathrm{ and} \; \; H_1 : p &gt; \frac{1}{2}\]</span> Let’s estimate our statistics form data: <span class="math display">\[\hat{p} = X/n = 56/100 = 0.56\]</span></p>
+<p>This is my best estimate of the true <span class="math inline">\(p\)</span>. The standard error of my statistic <span class="math display">\[se(\hat{p}) =  \sqrt{\hat{p}(1-\hat{p})/n} = 0.0496 .\]</span></p>
+<p>The <span class="math inline">\(95\)</span>% is then <span class="math display">\[0.56 \pm 1.96 (0.0496) = 0.56 \pm 0.098 = ( 0.463, 0.657 )\]</span> <span class="math inline">\(p=0.5\)</span> lies inside the confidence interval. Pepsi was lying!</p>
+<p>The <span class="math inline">\(Z\)</span>-score now with <span class="math inline">\(s_{ \hat{p} }= \sqrt{ p_0(1-p_0)/n} = 0.05\)</span> <span class="math display">\[Z = \frac{ \hat{p} - p_0 }{ s_{\hat{p} }} = \frac{ 0.56-0.5}{0.05} = 1.2 &lt; 1.64\]</span> Let’s take the usual <span class="math inline">\(\alpha = 0.05\)</span>. Don’t reject <span class="math inline">\(H_0\)</span> for a one-sided test at <span class="math inline">\(5\)</span>% level. We need a larger <span class="math inline">\(n\)</span> to come to a more definitive conclusion. We might come to a different conclusion with a larger sample size. One of the downsides of hypothesis testing is that it generates a yes/no answer without having any uncertainty associated with it.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop.test</span>(<span class="dv">56</span>,<span class="dv">100</span>,<span class="at">alternative=</span><span class="st">'greater'</span>, <span class="at">conf.level =</span> <span class="fl">0.95</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    1-sample proportions test with continuity correction
+
+data:  56 out of 100, null probability 0.5
+X-squared = 1, df = 1, p-value = 0.1
+alternative hypothesis: true p is greater than 0.5
+95 percent confidence interval:
+ 0.47 1.00
+sample estimates:
+   p 
+0.56 </code></pre>
+</div>
+</div>
+</div>
+<div id="exm-Avonex" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.7 (Avonex)</strong></span> Now we consider a few more examples of Hypothesis testing. We consider the dispute about the Biogen’s Avonex. Biogen made the following assertion:</p>
+<p>“Avonex delivers the highest rate of satisfaction: 95% among patients”In response to that statement, the U.S. Food and Drug Administration(FDA) on October 30th, 2002 informed the biotech company Biogen to stop publishing misleading promotions for its multiple sclerosis drug Avonex. To clarify the issue, FDA did run an experiment. The FDA found that in arandom sample of <span class="math inline">\(75\)</span> patients surveyed, only 60% said they were withAvonex. Who, the question is: WHo is Right?</p>
+<p>Let’s use hypothesis testing to get an answer. Following our five-stepprocess to set up a Hypothesis Test:</p>
+<p>The null hypothesis: <span class="math inline">\(H_0 : p = 0.95 = p_0\)</span>.</p>
+<p>The alternative hypothesis: <span class="math inline">\(H_1 : p &lt; 0.95\)</span>.</p>
+<p>A 1-sided alternative.</p>
+<p>We’ll use a small significance level, 1%.</p>
+<p>The appropriate test statistic is <span class="math display">\[Z = \frac{ \hat{p} - p_0 }{ \sqrt{ \frac{ p_0 ( 1 - p_0 ) }{ n} } }\]</span> where <span class="math inline">\(\hat{p} = 0.60 , p_0 = 0.95\)</span> and <span class="math inline">\(n=75\)</span>.</p>
+<p>Hence <span class="math inline">\(Z = \frac{ 0.6 - 0.95 }{ \sqrt{ \frac{ 0.95 \times 0.05  }{ 75} } } = - 14\)</span>.</p>
+<p>Now lets find the critical region and <span class="math inline">\(p\)</span>-value</p>
+<p>The critical region is <span class="math inline">\(Z &lt; -2.32\)</span>.</p>
+<p>As the observed test statistic <span class="math inline">\(Z\)</span> falls well within the rejection region.</p>
+<p>The p-value of the test is <span class="math inline">\(P ( Z &lt; - 14 ) = 0.0000\)</span>. Again the statistical evidence is that the FDA is right and Biogen is not.</p>
+<p>Avonex: Testing Proportions in R</p>
+<p>Null Hypothesis: Biogen is innocent</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop.test</span>(<span class="dv">45</span>,<span class="dv">75</span>,<span class="fl">0.95</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    1-sample proportions test with continuity correction
+
+data:  45 out of 75, null probability 0.95
+X-squared = 186, df = 1, p-value &lt;2e-16
+alternative hypothesis: true p is not equal to 0.95
+95 percent confidence interval:
+ 0.48 0.71
+sample estimates:
+  p 
+0.6 </code></pre>
+</div>
+</div>
+<p>The p-value is <span class="math inline">\(2.2 \times 10^{-16}\)</span>!</p>
+</div>
+<div id="exm-Pfizer" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.8 (Pfizer)</strong></span> We consider another example that involves pharmaceutical company Pfizer. Pfizer introduced Viagra in early 1998. During <span class="math inline">\(1998\)</span> of the <span class="math inline">\(6\)</span> million Viagra users <span class="math inline">\(77\)</span> died from coronary problems such as heart attacks.Pfizer claimed that this rate is no more than the general population.A clinical study found <span class="math inline">\(11\)</span> out of <span class="math inline">\(1,500,000\)</span> men who were not on Viagra died of coronary problems during the same length of time as the<span class="math inline">\(77\)</span> Viagra users who died in <span class="math inline">\(1998\)</span>.The question is,Let’s calculate the significance Interval. A 95% confidence interval fora difference in proportions <span class="math inline">\(p_1 - p_2\)</span> is <span class="math display">\[
+( \hat{p}_1 - \hat{p}_2 ) \pm 1.96
+\sqrt{ \frac{ \hat{p}_1 ( 1 - \hat{p}_1 ) }{ n_1 }  +
+    \frac{ \hat{p}_2 ( 1 - \hat{p}_2 ) }{ n_2 } }
+\]</span></p>
+<ol type="1">
+<li><p>Can do a confidence interval or a <span class="math inline">\(Z\)</span>-score test.</p></li>
+<li><p>With Viagra, <span class="math inline">\(\hat{p}_1 = 77/6000000 = 0.00001283\)</span> and without Viagra <span class="math inline">\(\hat{p}_2 = 11/1500000 = 0.00000733\)</span>.</p></li>
+<li><p>Need to test whether these are equal.</p></li>
+</ol>
+<p>With a <span class="math inline">\(95\)</span>% confidence interval for <span class="math inline">\(( p_1 - p_2 )\)</span> you get an interval <span class="math display">\[
+( 0.00000549 , 0.0000055).
+\]</span></p>
+<p>This interval doesn’t contain zero.</p>
+<p>The evidence is that the proportion is higher.</p>
+<ol type="1">
+<li><p>Measured very accurately as <span class="math inline">\(n\)</span> is large even though <span class="math inline">\(p\)</span> is small.</p></li>
+<li><p>With testing might use a one-sided test and an <span class="math inline">\(\alpha\)</span> of <span class="math inline">\(0.01\)</span>.</p></li>
+</ol>
+<p>Difference of proportions:</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop.test</span>(<span class="at">x=</span><span class="fu">c</span>(<span class="dv">11</span>,<span class="dv">77</span>), <span class="at">n=</span><span class="fu">c</span>(<span class="dv">1500000</span>,<span class="dv">6000000</span>), <span class="at">alternative=</span><span class="st">'greater'</span>,<span class="at">conf.level=</span>.<span class="dv">95</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    2-sample test for equality of proportions with continuity correction
+
+data:  c(11, 77) out of c(1500000, 6e+06)
+X-squared = 3, df = 1, p-value = 0.9
+alternative hypothesis: greater
+95 percent confidence interval:
+ -1e-05  1e+00
+sample estimates:
+ prop 1  prop 2 
+7.3e-06 1.3e-05 </code></pre>
+</div>
+</div>
+<p>The p-value for the Null is <span class="math inline">\(1-0.948 =0.052\)</span>.</p>
+</div>
+<div id="exm-Pfizer" class="theorem example">
+<p><span class="theorem-title"><strong>Example 6.9 (Lord Rayleigh’s Argon Discovery)</strong></span> Lord Rayleigh won the Nobel Prize for discovery of Argon. This discovery occurred when he noticed a small discrepancy between two sets of measurements on nitrogen gas that he had extracted from the air and one he had made in the lab.</p>
+<ol type="1">
+<li><p><strong>First</strong>, he removed all oxygen from a sample of air. He measured the density of the remaining gas in a fixed volume at constant temperature and pressure.</p></li>
+<li><p><strong>Second</strong>, he prepared the same volume of pure nitrogen by the chemical decomposition of nitrous oxide (<span class="math inline">\(N_2 O\)</span>) and nitric oxide <span class="math inline">\(NO\)</span>.</p></li>
+</ol>
+<p>Here’s the results</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>air <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">2.31017</span>, <span class="fl">2.30986</span>, <span class="fl">2.31010</span>, <span class="fl">2.31001</span>, <span class="fl">2.31024</span>, <span class="fl">2.31010</span>, <span class="fl">2.31028</span>, <span class="cn">NA</span>)</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>decomp <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">2.30143</span>, <span class="fl">2.29890</span>, <span class="fl">2.29816</span>, <span class="fl">2.30182</span>, <span class="fl">2.29869</span>, <span class="fl">2.29940</span>, <span class="fl">2.29849</span>, <span class="fl">2.29889</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="st">"Air"</span><span class="ot">=</span>air,<span class="st">"Chemical Decomposition"</span><span class="ot">=</span>decomp)</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(d, <span class="at">booktabs =</span> <span class="cn">TRUE</span>,<span class="at">caption =</span> <span class="st">'Lord Rayleigh Argon Discovery'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<caption>Lord Rayleigh Argon Discovery</caption>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Air</th>
+<th style="text-align: right;">Chemical.Decomposition</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(d)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ab_files/figure-html/Rayleigh-1.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>Lord Rayleigh’s results</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-null_prefix="true">
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">mean</th>
+<th style="text-align: right;">sd</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Air</td>
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">0.00014</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Decomposition</td>
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">0.00138</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">t.test</span>(air,decomp,<span class="at">var.equal=</span>T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Two Sample t-test
+
+data:  air and decomp
+t = 20, df = 13, p-value = 3e-11
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 0.0095 0.0118
+sample estimates:
+mean of x mean of y 
+      2.3       2.3 </code></pre>
+</div>
+</div>
+<p>The Z-score is 20. It is a 20-sigma event and we’ve found Argon!</p>
+</div>
+</section>
+<section id="multiple-testing" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="multiple-testing"><span class="header-section-number">6.2</span> Multiple Testing</h2>
+<p>If we want to test 1000 hypothesis and we test each hypothesis one-by-one. Say, the ground truth is that only 10% (100) of those hypothesis are true. Using <span class="math inline">\(\alpha=0.05\)</span> rule, we assume that out of 900 false hypothesis <span class="math inline">\(0.05 \cdot 900 = 45\)</span> will show up as positive (false positives). Now we run our one-by-one hypothesis tests and our procedure correctly identified 80 out of 100 true positives and incorrectly identified 45 false positives and 20 false negatives. Now, among 125 hypothesis identified as positives 45 in fact are not! Another way to look at it is to calculate the probability of at least one false positive <span class="math inline">\(p(\mbox{at least one false positive}) = 1 - (1-0.05)^{1000} = 1\)</span>. We are almost guaranteed to see at least one false positive.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>,<span class="dv">1</span> <span class="sc">-</span> (<span class="dv">1</span><span class="fl">-0.05</span>)<span class="sc">^</span>{<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>}, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">ylab=</span><span class="st">"False Positive Rate"</span>, <span class="at">xlab=</span><span class="st">"Number of Tests"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ab_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="576"></p>
+<figcaption>Probability of At Least 1 False Positive</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>One way to deal with the problem is to lower the cut-off to <span class="math inline">\(\alpha/n\)</span>. This approach is called the Bonferroni correction. For case of 1000 hypothesis we set <span class="math inline">\(\alpha = 0.00005\)</span>. However this conservative approach will lead to many false negatives. Probability of identifying at least one significant result is then <span class="math inline">\(1 - (1-0.00005)^{1000} = 0.049\)</span></p>
+<table class="table">
+<caption>Classification of results for a testing procedure. T/F = True/False, D/N = Discovery/Non-discovery. We observe <span class="math inline">\(m\)</span>, <span class="math inline">\(D\)</span> and <span class="math inline">\(N\)</span>.</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: center;"><span class="math inline">\(H_0\)</span> Accepted</th>
+<th style="text-align: center;"><span class="math inline">\(H_0\)</span> Rejected</th>
+<th style="text-align: center;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(H_0\)</span> True</td>
+<td style="text-align: center;">TN</td>
+<td style="text-align: center;">FD</td>
+<td style="text-align: center;"><span class="math inline">\(T_0\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(H_0\)</span> False</td>
+<td style="text-align: center;">FN</td>
+<td style="text-align: center;">TD</td>
+<td style="text-align: center;"><span class="math inline">\(T_1\)</span></td>
+</tr>
+<tr class="odd">
+<td>Total</td>
+<td style="text-align: center;"><span class="math inline">\(N\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(D\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(m\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>A more practical approach is to use the <strong>False Discovery Rate</strong> <span class="math display">\[
+\text{FDR} = \E{\frac{FD}{D}}
+\]</span> which is the proportion of false positives among all significant results. We aim to set a cutoff so that FDR <span class="math inline">\(&lt; Q\)</span>. The FDR approach allows to increase the power while maintaining some principled bound on error.</p>
+<p>Benjamini and Hochberg developed a procedure based on FDR to perform multiple testing. Under their procedure, we put individual <span class="math inline">\(p\)</span>-values in order from smallest to largest. The we choose the largest <span class="math inline">\(p_k\)</span> value that is smaller than <span class="math inline">\((k/m)/Q\)</span>. where <span class="math inline">\(Q\)</span> is the false discovery rate you choose. Then all hypothesis with index <span class="math inline">\(i&lt;k\)</span> are significant. Benjamini and Hochberg showed that under this procedure the FDR <span class="math inline">\(&lt;Q\)</span>.</p>
+<p>As an example, García-Arenzana et al.&nbsp;(2014) tested associations of 25 dietary variables with mammographic density, an important risk factor for breast cancer, in Spanish women. They found the following results:</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../../data/cancer-diet.csv"</span>)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(d, <span class="at">booktabs =</span> <span class="cn">TRUE</span>,<span class="at">caption =</span> <span class="st">'Dietary Risk Factors of Cancer'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small">
+<caption>Dietary Risk Factors of Cancer</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Label</th>
+<th style="text-align: right;">p.value</th>
+<th style="text-align: right;">Rank</th>
+<th style="text-align: right;">BH</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Total calories</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.01</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Olive oil</td>
+<td style="text-align: right;">0.01</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.02</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Whole milk</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.03</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">White meat</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">0.04</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Proteins</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0.05</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Nuts</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0.06</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Cereals and pasta</td>
+<td style="text-align: right;">0.07</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">0.07</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">White fish</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0.08</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Butter</td>
+<td style="text-align: right;">0.21</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">0.09</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Vegetables</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">0.10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Skimmed milk</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">0.11</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Red meat</td>
+<td style="text-align: right;">0.25</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">0.12</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Fruit</td>
+<td style="text-align: right;">0.27</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0.13</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Eggs</td>
+<td style="text-align: right;">0.28</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">0.14</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Blue fish</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">0.15</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Legumes</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">0.16</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Carbohydrates</td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">0.17</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Potatoes</td>
+<td style="text-align: right;">0.57</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">0.18</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Bread</td>
+<td style="text-align: right;">0.59</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.19</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Fats</td>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.20</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Sweets</td>
+<td style="text-align: right;">0.76</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">0.21</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Dairy products</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">0.22</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Semi-skimmed milk</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">23</td>
+<td style="text-align: right;">0.23</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Total meat</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">0.24</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Processed meat</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">0.25</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>If we choose <span class="math inline">\(Q = 0.25\)</span>, then <span class="math inline">\(k=5\)</span> (Proteins) is our cut-off rank. Thus we accept <span class="math inline">\(H_0\)</span> for the first five tests. Note, that traditional hypothesis testing procedure only controls for Type 1 error and FDR-based procedure controls for both error types.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../qmd/bl.html" class="pagination-link  aria-label=" &lt;span="" parameter="" learning&lt;="" span&gt;"="">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Bayesian Parameter Learning</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../qmd/hyp.html" class="pagination-link" aria-label="<span class='chapter-number'>7</span>&nbsp; <span class='chapter-title'>Bayesian Hypothesis Testing</span>">
+        <span class="nav-page-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Bayesian Hypothesis Testing</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
