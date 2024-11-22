@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>14&nbsp; Calssification: Logistic Regression – Bayes, AI and Deep Learning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../qmd/14-theoryai.html" rel="next">
+<link href="../qmd/12-glm.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-29e2c20b02301cfff04dc8050bf30c7e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-7580570a2e354cd56757c689413fca0c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+</head><body class="nav-sidebar floating fullcontent"><div class="hidden">
+<p><span class="math display">\[
+\newcommand{\prob}[1]{\operatorname{P}\left(#1\right)}
+\newcommand{\Var}[1]{\operatorname{Var}\left(#1\right)}
+\newcommand{\sd}[1]{\operatorname{sd}\left(#1\right)}
+\newcommand{\Cor}[1]{\operatorname{Corr}\left(#1\right)}
+\newcommand{\Cov}[1]{\operatorname{Cov}\left(#1\right)}
+\newcommand{\E}[1]{\operatorname{E}\left(#1\right)}
+\newcommand{\defeq}{\overset{\text{\tiny def}}{=}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\mini}{minimize}
+\]</span></p>
+</div>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+
+
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../qmd/10-data.html">AI</a></li><li class="breadcrumb-item"><a href="../qmd/13-logistic.html"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Calssification: Logistic Regression</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Bayes, AI and Deep Learning</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Principles of Data Science</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Bayes</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/1-prob.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Probability and Uncertainty</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/2-bayes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Bayes Rule</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/3-dec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Utility, Risk and Decisions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/4-bl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Bayesian Parameter Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/5-ab.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">AB Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/6-hyp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Bayesian Hypothesis Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/7-sp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Stochastic Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/8-gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Gaussian Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/9-rl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Reinforcement Learning</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/10-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Unreasonable Effectiveness of Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/11-pattern.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Pattern Matching</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/12-glm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Linear and Multiple Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/13-logistic.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Calssification: Logistic Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/14-theoryai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Theory of AI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/15-rct.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">RCT: Field vs Observational</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/16-select.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Model Selection</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/17-tree.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Tree Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/18-forecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Forecasting</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Deep Learning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/19-nn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/20-dlopt.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/21-arch.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Image Processing</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/ex.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Exercises</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../qmd/references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../qmd/10-data.html">AI</a></li><li class="breadcrumb-item"><a href="../qmd/13-logistic.html"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Calssification: Logistic Regression</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Calssification: Logistic Regression</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The cross-entropy loss function is used for for categorical variables. Given the observed data set <span class="math inline">\(\{(x_i,y_i)\}_{i=1}^n\)</span>, where each <span class="math inline">\(y_i\)</span> is either 0 or 1, the goal is to predict a probability that the next observation will be 1. We denote this value by <span class="math inline">\(f(x_i,\beta) = P(y_{n+1} = 1\mid x_{n+1})\)</span>. We can use the cross-entropy loss function to measure the difference between <span class="math inline">\(f(x_i,\beta)\)</span> and actual outcomes. Note, we need to make sure that <span class="math inline">\(f(x_i,\beta) \in (0,1)\)</span>, e.g.&nbsp;it outputs a number between zero and one for this loss function to work.<br>
+<span class="math display">\[
+\mini_{\beta} -\sum_{i=1}^n y_i \log \left ( f(x_i,\beta) \right ) + (1-y_i) \log \left ( 1-f(x_i,\beta) \right ).
+\]</span> The cross-entropy estimator is the value of <span class="math inline">\(\beta\)</span> that minimizes the cross-entropy loss function.</p>
+<p>In the unconditional case, when we do not observe any inputs <span class="math inline">\(x\)</span>, the cross-entropy estimator is again, the sample mean. If we take the derivative of the above expression with respect to <span class="math inline">\(\beta\)</span> and set it to zero, we get <span class="math display">\[
+\frac{d}{d\beta} -\sum_{i=1}^n y_i \log \left ( \beta \right ) + (1-y_i) \log \left ( 1-\beta \right ) = -\sum_{i=1}^n \frac{y_i}{\beta} - \frac{1-y_i}{1-\beta} = 0
+\]</span> which gives us the solution <span class="math display">\[
+\hat{\beta} = \frac{1}{n}\sum_{i=1}^n y_i.
+\]</span> which is the sample mean.</p>
+<p>Unlike the least squares estimator, there is no analytical solution to the problem of minimizing cross-entropy. However, there are efficient numerical optimization algorithms that can be used to find the optimal solution. As we will show later, the cross-entropy estimator is equivalent to the maximum likelihood estimator, assuming that <span class="math inline">\(y\)</span> is the Bernoulli random variable.</p>
+<p>In the case when we have more than two classes <span class="math inline">\(y \in \{1,\ldots,K\}\)</span>, we simply build <span class="math inline">\(K\)</span> models <span class="math inline">\(f_1(x_i,\beta),\ldots, f(x_K,\beta)\)</span>, one for each class and then use the softmax function to convert the output of each model into a number between zero and one. The softmax function is defined as follows <span class="math display">\[
+\mathrm{softmax}\left(f_j(x,\beta)\right) = \frac{\exp(f_j(x,\beta))}{\sum_{i=1}^K \exp(f_i(x,\beta))}.
+\]</span> The softmax function is a generalization of the sigmoid function to the case of more than two classes. It is often used as the activation function in the output layer of neural networks for multi-class classification problems. It converts the output of each model into a probability distribution over the classes, making it suitable for multi-class classification with probabilistic outputs.</p>
+<p>In summary, choosing the right loss function for your predictive rule depends on several factors, including type of prediction task: regression vs classification and importance of sensitivity to outliers.</p>
+<p>For that, we need to specify the loss function that will measure the mismatch between an observed and a predicted values. The loss function is a measure of how well the model fits the data and is used to estimate the parameters of the model. The goal is to find the values of the parameters that minimize the loss function. A most popular choice for the loss function is the squared error loss function. <span class="math display">\[
+L(\beta; ~D) = \sum_{i=1}^n (y_i - f(x_i))^2 \rightarrow \mathrm{minimize}_{\beta}
+\]</span></p>
+<p><strong>Breiman’s Two Cultures</strong></p>
+<p>Statistical prediction problems are of great practical and theoretical interest. The deep learning predictor has a number of advantages over traditional predictors, including that</p>
+<ul>
+<li>input data can include all data of possible relevance to the prediction problem at hand</li>
+<li>nonlinearities and complex interactions among input data are accounted for seamlessly</li>
+<li>overfitting is more easily avoided than traditional high dimensional procedures</li>
+<li>there exists fast, scale computational frameworks (TensorFlow)</li>
+</ul>
+<p>Let <span class="math inline">\(x\)</span> be a high dimensional input containing a large set of potentially relevant data. Let <span class="math inline">\(y\)</span> represent an output (or response) to a task which we aim to solve based on the information in <span class="math inline">\(x\)</span>. Brieman [2000] summaries the difference between statistical and machine learning philosophy as follows.</p>
+<blockquote class="blockquote">
+<p>“There are two cultures in the use of statistical modeling to reach conclusions from data. One assumes that the data are generated by a given stochastic data model. The other uses algorithmic models and treats the data mechanism as unknown.”</p>
+</blockquote>
+<blockquote class="blockquote">
+<p>“The statistical community has been committed to the almost exclusive use of data models. This commitment has led to irrelevant theory, questionable conclusions, and has kept statisticians from working on a large range of interesting current problems.”</p>
+</blockquote>
+<blockquote class="blockquote">
+<p>“Algorithmic modeling, both in theory and practice, has developed rapidly in fields outside statistics. It can be used both on large complex data sets and as a more accurate and informative alternative to data modeling on smaller data sets. If our goal as a field is to use data to solve problems, then we need to move away from exclusive dependence on data models and adopt a more diverse set of tools.”</p>
+</blockquote>
+<section id="logistic-regression" class="level2" data-number="14.1">
+<h2 data-number="14.1" class="anchored" data-anchor-id="logistic-regression"><span class="header-section-number">14.1</span> Logistic Regression</h2>
+<p>When the value <span class="math inline">\(y\)</span> we are trying to predict is <em>categorical</em> (or <em>qualitative</em>) we have a <em>classification</em> problem. For a binary output we predict the probability its going to happen <span class="math display">\[
+p ( Y=1 | X = x ),
+\]</span> where <span class="math inline">\(X = (x_1,\ldots,x_p)\)</span> is our usual list of predictors.</p>
+<p>Suppose that we have a binary response, <span class="math inline">\(y\)</span> taking the value <span class="math inline">\(0\)</span> or <span class="math inline">\(1\)</span></p>
+<ol type="1">
+<li>Win or lose</li>
+<li>Sick or healthy</li>
+<li>Buy or not buy</li>
+<li>Pay or default</li>
+</ol>
+<p>The goal is to predict the probability that <span class="math inline">\(y\)</span> equals <span class="math inline">\(1\)</span>. You can then do and categorize a new data point. Assessing credit risk and default data is a typical problem. - <span class="math inline">\(y\)</span>: whether or not a customer defaults on their credit card (No or Yes). - <span class="math inline">\(x\)</span>: The average balance that customer has remaining on their credit card after making their monthly payment, plus as many other features you think might predict <span class="math inline">\(Y\)</span>.</p>
+<p>A linear model is a powerful tool to find relations among different variables <span class="math display">\[
+y = \beta^Tx + \epsilon.
+\]</span> It works assuming that <span class="math inline">\(y\)</span> variable is contentious and ranges in <span class="math inline">\((-\infty,+\infty)\)</span>. Another assumption is that conditional distribution of <span class="math inline">\(y\)</span> is normal <span class="math inline">\(p(y\mid \beta^Tx) \sim N(\beta^Tx, \sigma^2)\)</span></p>
+<p>What do we do when assumptions about conditional normal distributions do not hold. For example <span class="math inline">\(y\)</span> can be a binary variable with values 0 and 1. For example <span class="math inline">\(y\)</span> is</p>
+<ol type="1">
+<li>Outcome of an election</li>
+<li>Result of spam filter</li>
+<li>Decision variable about loan approval</li>
+</ol>
+<p>We model response <span class="math inline">\(\{0,1\}\)</span>, using a continuous variable <span class="math inline">\(y \in [0,1]\)</span> which is interpreted as the probability that response equals to 1. <span class="math display">\[
+p( y= 1 | x_1, \ldots , x_p  ) = F \left ( \beta_1 x_1 + \ldots + b_p x_p   \right )
+\]</span> where <span class="math inline">\(f\)</span> is increasing and <span class="math inline">\(0&lt; f(x)&lt;1\)</span>.</p>
+<p>It seems logical to find a transformation <span class="math inline">\(F\)</span> so that <span class="math inline">\(F(\beta^Tx + \epsilon) \in [0,1]\)</span>. Then we can predict using <span class="math inline">\(F(\beta^Tx)\)</span> and intercepting interpret the result as a probability, i.e if <span class="math inline">\(F(\beta^Tx) = z\)</span> then we interpret it as <span class="math inline">\(p(y=1) = z\)</span>. Such function <span class="math inline">\(F\)</span> is called a link function.</p>
+<p>Do we know a function that maps any real number to a number in <span class="math inline">\([0,1]\)</span> interval? What about commutative distribution function <span class="math inline">\(F(x) = p(Z \le x)\)</span>? If we choose CDF <span class="math inline">\(\Phi(x)\)</span> for <span class="math inline">\(N(0,1)\)</span> then we have <span class="math display">\[\begin{align*}
+\hat y = p(y=1) &amp;= \Phi(\beta^Tx) \\
+\Phi^{-1}(\hat y) = &amp; \beta^Tx + \epsilon
+\end{align*}\]</span> This is a linear model for <span class="math inline">\(\Phi^{-1}(\hat y)\)</span>, but not for <span class="math inline">\(y\)</span>! You can thing of this as a change of units for variable <span class="math inline">\(y\)</span>. In this specific case, when we use normal CDF, the resulting model is called probit, it stands for probability unit. The resulting link function is <span class="math inline">\(\Phi^{-1}\)</span> and now <span class="math inline">\(\Phi^{-1}(Y)\)</span> follows a normal distribution! This term was coined in the 1930’s by biologists studying the dosage-cure rate link. We can fit a probit model using glm function in R.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">92</span>) <span class="co"># Kuzy</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">3</span>,<span class="dv">3</span>,<span class="at">length.out =</span> <span class="dv">100</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">pnorm</span>(x<span class="sc">+</span><span class="fu">rnorm</span>(<span class="dv">100</span>))<span class="sc">&gt;</span><span class="fl">0.5</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>probitModel <span class="ot">=</span> <span class="fu">glm</span>(y<span class="sc">~</span>x, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"probit"</span>))</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>mc <span class="ot">=</span> <span class="fu">as.double</span>(<span class="fu">coef</span>(probitModel))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># we want to predict outcome for x = -1</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>xnew <span class="ot">=</span> <span class="sc">-</span><span class="dv">1</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>(<span class="at">yt =</span> mc[<span class="dv">1</span>] <span class="sc">+</span> mc[<span class="dv">2</span>]<span class="sc">*</span>xnew)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> -0.86</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>(<span class="fu">pnorm</span>(yt))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.19</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>(<span class="at">pred =</span> <span class="fu">predict</span>(probitModel, <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(xnew)), <span class="at">type=</span><span class="st">"response"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   1 
+0.19 </code></pre>
+</div>
+</div>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>nd <span class="ot">=</span> <span class="fu">dnorm</span>(mc[<span class="dv">1</span>] <span class="sc">+</span> mc[<span class="dv">2</span>]<span class="sc">*</span>x)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x,nd, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">col=</span><span class="st">"red"</span>, <span class="at">xlab=</span><span class="st">"x"</span>, <span class="at">ylab =</span> <span class="st">"P(y=1)"</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">polygon</span>(<span class="fu">c</span>(<span class="sc">-</span><span class="dv">3</span>,x[x<span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">1</span>],<span class="sc">-</span><span class="dv">1</span>),<span class="fu">c</span>(<span class="dv">0</span>,nd[x<span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">1</span>],<span class="dv">0</span>), <span class="at">col=</span><span class="st">"blue"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Our prediction is the blue area which is equal to 0.195.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x,y, <span class="at">type=</span><span class="st">'p'</span>, <span class="at">col=</span><span class="st">"red"</span>, <span class="at">xlab=</span><span class="st">"x"</span>, <span class="at">ylab =</span> <span class="st">"P(y=1)"</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>pred_probit <span class="ot">=</span> <span class="fu">predict</span>(probitModel, <span class="fu">list</span>(<span class="at">x=</span>x), <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,pred_probit, <span class="at">type=</span><span class="st">'l'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>A couple of observations: (i) this fits the data much better than the linear estimation, and (i) it always lies between 0 and 1. Instead of thinking of <span class="math inline">\(y\)</span> as a probability and transforming right hand side of the linear model we can think of transforming <span class="math inline">\(y\)</span> so that transformed variable lies in <span class="math inline">\((-\infty,+\infty)\)</span>. We can use odds ratio, that we talked about before <span class="math display">\[
+\dfrac{y}{1-y}
+\]</span></p>
+<p>Odds ration lies in the interval <span class="math inline">\((0,+\infty)\)</span>. Almost what we need, but not exactly. Can we do another transform that maps <span class="math inline">\((0,+\infty)\)</span> to <span class="math inline">\((-\infty,+\infty)\)</span>? <span class="math display">\[
+\log\left(\dfrac{y}{1-y}\right)
+\]</span> will do the trick! This function is called a logit function and it is This function is called a logit function and it is the inverse of the sigmoidal <a href="https://en.wikipedia.org/wiki/Logistic_function">"logistic"</a> function or logistic transform. The is linear in <span class="math display">\[
+\log \left ( \frac{ p \left ( y=1|x \right ) }{ 1 -  p \left ( Y=1|x \right ) } \right ) = \beta_0 + \beta_1 x_1 + \ldots + x_p.
+\]</span> These model are easy to fit in R:</p>
+<p><code>glm( y ~ x1 + x2,  family="binomial")</code></p>
+<ul>
+<li>is for indicates <span class="math inline">\(y=0\)</span> or <span class="math inline">\(1\)</span></li>
+<li>has a bunch of other options.</li>
+</ul>
+<p>Outside of specific field, i.e.&nbsp;behavioral economics, the logistic function is much more popular of a choice compared to probit model. Besides that fact that is more intuitive to work with logit transform, it also has several nice properties when we deal with multiple classes (more then 2). Also, it is computationally easier then working with normal distributions. The density function of the logit is very similar to the probit one.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>logitModel  <span class="ot">=</span> <span class="fu">glm</span>(y<span class="sc">~</span>x, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>pred_logit <span class="ot">=</span> <span class="fu">predict</span>(logitModel, <span class="fu">list</span>(<span class="at">x =</span> x), <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x,pred_probit, <span class="at">pch=</span><span class="dv">20</span>, <span class="at">col=</span><span class="st">"red"</span>, <span class="at">cex=</span><span class="fl">0.9</span>, <span class="at">ylab=</span><span class="st">"y"</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,pred_logit, <span class="at">type=</span><span class="st">'p'</span>, <span class="at">pch=</span><span class="dv">20</span>, <span class="at">cex=</span><span class="fl">0.5</span>, <span class="at">col=</span><span class="st">"blue"</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,y, <span class="at">type=</span><span class="st">'p'</span>, <span class="at">pch=</span><span class="dv">21</span>, <span class="at">cex=</span><span class="fl">0.5</span>, <span class="at">bg=</span><span class="st">"lightblue"</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>,<span class="at">pch=</span><span class="dv">20</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"Logit"</span>, <span class="st">"Probit"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="st">"blue"</span>,<span class="st">"red"</span>),<span class="at">y.intersp =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can easily derive an inverse of the logit function to get back the original <span class="math inline">\(y\)</span> <span class="math display">\[
+\log\left(\dfrac{y}{1-y}\right) = \beta^Tx;~~ y=\dfrac{e^{\beta^Tx}}{1+e^{\beta^Tx}}
+\]</span></p>
+<div id="exm-nba" class="theorem example">
+<p><span class="theorem-title"><strong>Example 14.1 (Example: NBA point spread)</strong></span> &nbsp;</p>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>NBA <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../../data/NBAspread.csv"</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">attach</span>(NBA)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>n <span class="ot">=</span> <span class="fu">nrow</span>(NBA)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(NBA<span class="sc">$</span>spread[favwin<span class="sc">==</span><span class="dv">1</span>], <span class="at">col=</span><span class="dv">5</span>, <span class="at">main=</span><span class="st">""</span>, <span class="at">xlab=</span><span class="st">"spread"</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(NBA<span class="sc">$</span>spread[favwin<span class="sc">==</span><span class="dv">0</span>], <span class="at">add=</span><span class="cn">TRUE</span>, <span class="at">col=</span><span class="dv">6</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"favwin=1"</span>, <span class="st">"favwin=0"</span>), <span class="at">fill=</span><span class="fu">c</span>(<span class="dv">5</span>,<span class="dv">6</span>), <span class="at">bty=</span><span class="st">"n"</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(NBA<span class="sc">$</span>spread <span class="sc">~</span> NBA<span class="sc">$</span>favwin, <span class="at">col=</span><span class="fu">c</span>(<span class="dv">6</span>,<span class="dv">5</span>), <span class="at">horizontal=</span><span class="cn">TRUE</span>, <span class="at">ylab=</span><span class="st">"favwin"</span>, <span class="at">xlab=</span><span class="st">"spread"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell quarto-layout-panel" data-null_prefix="true" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="576"></p>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid" width="576"></p>
+</div>
+</div>
+</div>
+<p>Does the Vegas point spread predict whether the favorite wins or not? Turquoise = Favorites does win, Purple = Favorite does not win. In R: the output gives us</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>nbareg <span class="ot">=</span> <span class="fu">glm</span>(favwin<span class="sc">~</span>spread<span class="dv">-1</span>, <span class="at">family=</span>binomial)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(nbareg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = favwin ~ spread - 1, family = binomial)
+
+Coefficients:
+       Estimate Std. Error z value Pr(&gt;|z|)    
+spread   0.1560     0.0138    11.3   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 766.62  on 553  degrees of freedom
+Residual deviance: 527.97  on 552  degrees of freedom
+AIC: 530
+
+Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>s <span class="ot">=</span> <span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">30</span>,<span class="at">length=</span><span class="dv">100</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">=</span> <span class="fu">exp</span>(s<span class="sc">*</span>nbareg<span class="sc">$</span>coef[<span class="dv">1</span>])<span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">exp</span>(s<span class="sc">*</span>nbareg<span class="sc">$</span>coef[<span class="dv">1</span>]))</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(s, fit, <span class="at">typ=</span><span class="st">"l"</span>, <span class="at">col=</span><span class="dv">4</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">ylim=</span><span class="fu">c</span>(<span class="fl">0.5</span>,<span class="dv">1</span>), <span class="at">xlab=</span><span class="st">"spread"</span>, <span class="at">ylab=</span><span class="st">"P(favwin)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The <span class="math inline">\(\beta\)</span> measures how our log-odds change! <span class="math inline">\(\beta = 0.156\)</span></p>
+<p>Let’s do the NBA Point Spread Prediction. “Plug-in” the values for the new game into our logistic regression <span class="math display">\[
+{ P \left ( \mathrm{ favwin}  \mid  \mathrm{ spread} \right ) = \frac{ e^{ \beta x } }{ 1 + e^{\beta x} } }
+\]</span> Check that when <span class="math inline">\(\beta =0\)</span> we have <span class="math inline">\(p= \frac{1}{2}\)</span>.</p>
+<p>Given our new values spread<span class="math inline">\(=8\)</span> or spread<span class="math inline">\(=4\)</span>, the win probabilities are <span class="math inline">\(77\)</span>% and <span class="math inline">\(65\)</span>%, respectively. Clearly, the bigger spread means a higher chance of winning.</p>
+</div>
+<div id="exm-tennis" class="theorem example">
+<p><span class="theorem-title"><strong>Example 14.2 (Logistic Regression for Tennis Classification)</strong></span> Data science plays a major role in tennis, you can learn about recent AI tools developed by IBM from this <a href="https://finance.yahoo.com/video/ibm-serving-ai-technology-tennis-150742376.html">This Yahoo Article</a>.</p>
+<p>We will analyze the <a href="https://archive.ics.uci.edu/ml/datasets/Tennis+Major+Tournament+Match+Statistics">Tennis Major Tournament Match Statistics Data Set</a> from the UCI ML repository. The data set has one per each game from four major Tennis tournaments in 2013 (Australia Open, French Open, US Open, and Wimbledon).</p>
+<p>Let’s load the data and familiarize ourselves with it</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"./../../data/tennis.csv"</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(d)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 943  44</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(d[,<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>'data.frame':   943 obs. of  5 variables:
+ $ Player1: chr  "Lukas Lacko" "Leonardo Mayer" "Marcos Baghdatis" "Dmitry Tu"..
+ $ Player2: chr  "Novak Djokovic" "Albert Montanes" "Denis Istomin" "Michael "..
+ $ Round  : int  1 1 1 1 1 1 1 1 1 1 ...
+ $ Result : int  0 1 0 1 0 0 0 1 0 1 ...
+ $ FNL1   : int  0 3 0 3 1 1 2 2 0 3 ...</code></pre>
+</div>
+</div>
+<p>Let’s look at the few coluns of the randomly selected five rows of the data</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>d[<span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">943</span>,<span class="at">size =</span> <span class="dv">5</span>),<span class="fu">c</span>(<span class="st">"Player1"</span>,<span class="st">"Player2"</span>,<span class="st">"Round"</span>,<span class="st">"Result"</span>,<span class="st">"gender"</span>,<span class="st">"surf"</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="kable-table">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 5%">
+<col style="width: 26%">
+<col style="width: 33%">
+<col style="width: 8%">
+<col style="width: 9%">
+<col style="width: 9%">
+<col style="width: 8%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Player1</th>
+<th style="text-align: left;">Player2</th>
+<th style="text-align: right;">Round</th>
+<th style="text-align: right;">Result</th>
+<th style="text-align: left;">gender</th>
+<th style="text-align: left;">surf</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">532</td>
+<td style="text-align: left;">Florian Mayer</td>
+<td style="text-align: left;">Juan Monaco</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">M</td>
+<td style="text-align: left;">Hard</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">816</td>
+<td style="text-align: left;">L.Kubot</td>
+<td style="text-align: left;">J.Janowicz</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">M</td>
+<td style="text-align: left;">Grass</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">431</td>
+<td style="text-align: left;">Svetlana Kuznetsova</td>
+<td style="text-align: left;">Ekaterina Makarova</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">W</td>
+<td style="text-align: left;">Clay</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">568</td>
+<td style="text-align: left;">Marcos Baghdatis</td>
+<td style="text-align: left;">Go Soeda</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">M</td>
+<td style="text-align: left;">Hard</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">216</td>
+<td style="text-align: left;">Mandy Minella</td>
+<td style="text-align: left;">Anastasia Pavlyuchenkova</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">W</td>
+<td style="text-align: left;">Hard</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>We have data for 943 matches and for each match we have 44 columns, including names of the players, their gender, surface type and match statistics. Let’s look at the number of break points won by each player. We will plot BPW (break points won) by each player on the scatter plot and will colorize each dot according to the outcome</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">=</span> <span class="fu">dim</span>(d)[<span class="dv">1</span>]</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(d<span class="sc">$</span>BPW<span class="fl">.1</span><span class="sc">+</span><span class="fu">rnorm</span>(n),d<span class="sc">$</span>BPW<span class="fl">.2</span><span class="sc">+</span><span class="fu">rnorm</span>(n), <span class="at">pch=</span><span class="dv">21</span>, <span class="at">col=</span>d<span class="sc">$</span>Result<span class="sc">+</span><span class="dv">2</span>, <span class="at">cex=</span><span class="fl">0.6</span>, <span class="at">bg=</span><span class="st">"yellow"</span>, <span class="at">lwd=</span><span class="fl">0.8</span>,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab=</span><span class="st">"BPW by Player 1"</span>, <span class="at">ylab=</span><span class="st">"BPW by Player 2"</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="fu">c</span>(<span class="st">"P1 won"</span>, <span class="st">"P2 won"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">2</span>), <span class="at">pch=</span><span class="dv">21</span>, <span class="at">bg=</span><span class="st">"yellow"</span>, <span class="at">bty=</span><span class="st">'n'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can clearly see that number of the break points won is a clear predictor of the match outcome. Which is obvious and follows from the rules, to win a match, a player must win break points. Now, we want to understand the impact of a winning a break point on the overall match outcome. We do it by building a logistic regression model</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">which</span>(<span class="fu">is.na</span>(d<span class="sc">$</span>BPW<span class="fl">.1</span>)) <span class="co"># there is one row with NA value for the BPW.1 value and we remove it</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 171</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> d[<span class="sc">-</span><span class="dv">171</span>,]; n <span class="ot">=</span> <span class="fu">dim</span>(d)[<span class="dv">1</span>]</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>m <span class="ot">=</span> <span class="fu">glm</span>(Result <span class="sc">~</span> BPW<span class="fl">.1</span> <span class="sc">+</span> BPW<span class="fl">.2</span><span class="dv">-1</span>, <span class="at">data=</span>d, <span class="at">family =</span> <span class="st">"binomial"</span> )</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = Result ~ BPW.1 + BPW.2 - 1, family = "binomial", 
+    data = d)
+
+Coefficients:
+      Estimate Std. Error z value Pr(&gt;|z|)    
+BPW.1   0.4019     0.0264    15.2   &lt;2e-16 ***
+BPW.2  -0.4183     0.0277   -15.1   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 1305.89  on 942  degrees of freedom
+Residual deviance:  768.49  on 940  degrees of freedom
+AIC: 772.5
+
+Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+</div>
+<p><code>R</code> output does not tell us how accurate our model is but we can quickly check it by using the <code>table</code> function. We will use <span class="math inline">\(0.5\)</span> as a threshold for our classification.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(d<span class="sc">$</span>Result, <span class="fu">as.integer</span>(m<span class="sc">$</span>fitted.values<span class="sc">&gt;</span><span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   
+      0   1
+  0 416  61
+  1  65 400</code></pre>
+</div>
+</div>
+<p>Thus, our model got (416+416)/942 = 0.88% of the predictions correctly!</p>
+<p>Essentially, the logistic regression is trying to draw a line that separates the red observations from the green one. In out case, we have two predictors <span class="math inline">\(x_1\)</span> = BPW.1 and <span class="math inline">\(x_2\)</span> = BPW.2 and our model is <span class="math display">\[
+\log\left(\dfrac{p}{1-p}\right) = \beta_1x_1 + \beta_2 x_2,
+\]</span> where <span class="math inline">\(p\)</span> is the probability of player 1 winning the match. We want to find the line along which the probability is 1/2, meaning that <span class="math inline">\(p/(1-p) = 1\)</span> and log-odds <span class="math inline">\(\log(p/(1-p)) = 0\)</span>, thus the equation for the line is <span class="math inline">\(\beta_1x_1 + \beta_2 x_2 = 0\)</span> or <span class="math display">\[
+x_2 = \dfrac{-\beta_1}{\beta_2}x_1
+\]</span></p>
+<p>Let’s see the line found by the <code>glm</code> function</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="fu">c</span>(<span class="st">"P1 won"</span>, <span class="st">"P2 won"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">2</span>), <span class="at">pch=</span><span class="dv">21</span>, <span class="at">bg=</span><span class="st">"yellow"</span>, <span class="at">bty=</span><span class="st">'n'</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">30</span>,<span class="at">length.out =</span> <span class="dv">200</span>)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>y  <span class="ot">=</span>  <span class="sc">-</span>m<span class="sc">$</span>coefficients[<span class="dv">1</span>]<span class="sc">*</span>x<span class="sc">/</span>m<span class="sc">$</span>coefficients[<span class="dv">2</span>]</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,y, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">col=</span><span class="st">"red"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>There are a couple of observations. First, effect of a break point on the game outcome is significant and symmetric, effect of loosing break point is the same as the effect of winning one. We also can interpret the effect of winning a break point in the following way. We will keep BPW.2 = 0 and will calculate what happens to the probability of winning when BPW.1 changes from 0 to 1. The odds ration for player 1 winning when BPW.1 = 0 is <code>exp(0)</code> which is 1, meaning that the probability that P1 wins is 1/2. Now when BPW.1 = 1, the odds ratio is 1.5</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="fl">0.4019</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 1.5</code></pre>
+</div>
+</div>
+<p>We can calculate probability of winning from the regression equation <span class="math display">\[
+\dfrac{p}{1-p} = 1.5,~~~p = 1.5(1-p),~~~2.5p = 1.5,~~~p = 0.6
+\]</span> Thus probability of winning goes from 50% to 60%, we can use <code>predict</code> function to get this result</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict.glm</span>(m,<span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="at">BPW.1 =</span> <span class="fu">c</span>(<span class="dv">0</span>), <span class="at">BPW.2 =</span> <span class="fu">c</span>(<span class="dv">0</span>)), <span class="at">type=</span><span class="st">"response"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  1 
+0.5 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict.glm</span>(m,<span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="at">BPW.1 =</span> <span class="fu">c</span>(<span class="dv">1</span>), <span class="at">BPW.2 =</span> <span class="fu">c</span>(<span class="dv">0</span>)), <span class="at">type=</span><span class="st">"response"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  1 
+0.6 </code></pre>
+</div>
+</div>
+<p>What happens to the chances of winning when P1 wins three more break points compared to the opponent</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict.glm</span>(m,<span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="at">BPW.1 =</span> <span class="fu">c</span>(<span class="dv">0</span>), <span class="at">BPW.2 =</span> <span class="fu">c</span>(<span class="dv">0</span>)), <span class="at">type=</span><span class="st">"response"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  1 
+0.5 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict.glm</span>(m,<span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="at">BPW.1 =</span> <span class="fu">c</span>(<span class="dv">3</span>), <span class="at">BPW.2 =</span> <span class="fu">c</span>(<span class="dv">0</span>)), <span class="at">type=</span><span class="st">"response"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   1 
+0.77 </code></pre>
+</div>
+</div>
+<p>Chances go up by 27%.</p>
+<p>Tennis is arguably the sport in which mean and women are treated equally. Both man and women matches are shown during the prime-time on TV, they both have the same prize money. However, one of the comments you hear often is that Women’s matches are “less predictable”, meaning that an upset (when the favorite looses) is more likely to happen in a women’s match compared to man Matches. We can test thus statement by looking at the residuals. The large the residual the less accurate our prediction was.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>outlind <span class="ot">=</span> <span class="fu">which</span>(d<span class="sc">$</span>res<span class="sc">&lt;</span><span class="dv">2</span>)</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(d<span class="sc">$</span>res[outlind] <span class="sc">~</span> d<span class="sc">$</span>gender[outlind], <span class="at">col=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>), <span class="at">xlab=</span><span class="st">"Gender"</span>,<span class="at">ylab=</span><span class="st">"Residual"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s do a formal T-test on the residuals foe men’s and women’s matches</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>men <span class="ot">=</span> d <span class="sc">%&gt;%</span> <span class="fu">filter</span>(res<span class="sc">&lt;</span><span class="dv">2</span>, gender<span class="sc">==</span><span class="st">"M"</span>) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(res)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>women <span class="ot">=</span> d <span class="sc">%&gt;%</span> <span class="fu">filter</span>(res<span class="sc">&lt;</span><span class="dv">2</span>, gender<span class="sc">==</span><span class="st">"W"</span>) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(res)</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="fu">t.test</span>(men, women, <span class="at">alternative =</span> <span class="st">"two.sided"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Welch Two Sample t-test
+
+data:  men and women
+t = -5, df = 811, p-value = 3e-06
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.105 -0.043
+sample estimates:
+mean of x mean of y 
+      1.2       1.3 </code></pre>
+</div>
+</div>
+<p>Looks like the crowd wisdom that Women’s matches are less predictable is correct.</p>
+</div>
+<div id="exm-Default" class="theorem example">
+<p><span class="theorem-title"><strong>Example 14.3 (Credit Card Default)</strong></span> We have 10,000 observations</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>Default <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../../data/CreditISLR.csv"</span>, <span class="at">stringsAsFactors =</span> T)</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(Default)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="kable-table">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">default</th>
+<th style="text-align: left;">student</th>
+<th style="text-align: right;">balance</th>
+<th style="text-align: right;">income</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: right;">730</td>
+<td style="text-align: right;">44362</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: right;">817</td>
+<td style="text-align: right;">12106</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: right;">1074</td>
+<td style="text-align: right;">31767</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: right;">529</td>
+<td style="text-align: right;">35704</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: right;">786</td>
+<td style="text-align: right;">38464</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: right;">920</td>
+<td style="text-align: right;">7492</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>Let’s build a logistic regression model</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>glm.fit<span class="ot">=</span><span class="fu">glm</span>(default<span class="sc">~</span>balance,<span class="at">data=</span>Default,<span class="at">family=</span>binomial)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(glm.fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = default ~ balance, family = binomial, data = Default)
+
+Coefficients:
+             Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept) -10.65133    0.36116   -29.5   &lt;2e-16 ***
+balance       0.00550    0.00022    24.9   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 2920.6  on 9999  degrees of freedom
+Residual deviance: 1596.5  on 9998  degrees of freedom
+AIC: 1600
+
+Number of Fisher Scoring iterations: 8</code></pre>
+</div>
+</div>
+<p>We use it now to predict default</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict.glm</span>(glm.fit,<span class="at">newdata =</span> <span class="fu">list</span>(<span class="at">balance=</span><span class="dv">1000</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   1 
+-5.2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="sc">-</span><span class="fl">1.065e+01</span> <span class="sc">+</span> <span class="fl">5.499e-03</span><span class="sc">*</span><span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> -5.2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict.glm</span>(glm.fit,<span class="at">newdata =</span> <span class="fu">list</span>(<span class="at">balance=</span><span class="dv">1000</span>), <span class="at">type=</span><span class="st">"response"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     1 
+0.0058 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="sc">-</span><span class="fl">1.065e+01</span> <span class="sc">+</span> <span class="fl">5.499e-03</span><span class="sc">*</span><span class="dv">1000</span>)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">exp</span>(<span class="sc">-</span><span class="fl">1.065e+01</span> <span class="sc">+</span> <span class="fl">5.499e-03</span><span class="sc">*</span><span class="dv">1000</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.0058</code></pre>
+</div>
+</div>
+<p>Predicting default</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">predict.glm</span>(glm.fit,<span class="at">newdata =</span> x, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x<span class="sc">$</span>balance,y, <span class="at">pch=</span><span class="dv">20</span>, <span class="at">col=</span><span class="st">"red"</span>, <span class="at">xlab =</span> <span class="st">"balance"</span>, <span class="at">ylab=</span><span class="st">"Default"</span>)</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(Default<span class="sc">$</span>balance, <span class="fu">as.integer</span>(Default<span class="sc">$</span>default)<span class="sc">-</span><span class="dv">1</span>, <span class="at">type=</span><span class="st">'p'</span>,<span class="at">pch=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="confusion-matrix" class="level2" data-number="14.2">
+<h2 data-number="14.2" class="anchored" data-anchor-id="confusion-matrix"><span class="header-section-number">14.2</span> Confusion Matrix</h2>
+<p>We can use accuracy rate: <span class="math display">\[
+\text{accuracy} = \dfrac{\text{\# of Correct answers}}{n}
+\]</span> or its dual, error rate <span class="math display">\[
+\text{error rate} = 1 - \text{accuracy}.
+\]</span> You remember, we haw two types of errors. We can use confusion matrix to quantify those</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: center;">Predicted: YES</th>
+<th style="text-align: center;">Predicted: NO</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Actual: YES</td>
+<td style="text-align: center;">TPR</td>
+<td style="text-align: center;">FNR</td>
+</tr>
+<tr class="even">
+<td>Actual: NO</td>
+<td style="text-align: center;">FPR</td>
+<td style="text-align: center;">TNR</td>
+</tr>
+</tbody>
+</table>
+<p>True positive rate (TPR) is the sensitivity and false positive rate (FPR) is the specificity of our predictive model</p>
+<p>Example: Evolute the previous model Accuracy = 0.96</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: center;">Predicted: YES</th>
+<th style="text-align: center;">Predicted: NO</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Actual: YES</td>
+<td style="text-align: center;">TPR=0.6</td>
+<td style="text-align: center;">FNR=0.4</td>
+</tr>
+<tr class="even">
+<td>Actual: NO</td>
+<td style="text-align: center;">FPR=0.03</td>
+<td style="text-align: center;">TNR=0.97</td>
+</tr>
+</tbody>
+</table>
+<p>I used <span class="math inline">\(p=0.2\)</span> as a cut-off. What if I use smaller or larger <span class="math inline">\(p\)</span>, e.g. <span class="math inline">\(p=0\)</span>?</p>
+<p>ROC Curve Shows what happens for different cut-off values</p>
+<p>First, we define a function, that calculates the ROC</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>roc <span class="ot">&lt;-</span> <span class="cf">function</span>(p,y, ...){</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">factor</span>(y)</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(p)</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(p)</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>  Q <span class="ot">&lt;-</span> p <span class="sc">&gt;</span> <span class="fu">matrix</span>(<span class="fu">rep</span>(<span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">1</span>,<span class="at">length=</span><span class="dv">100</span>),n),<span class="at">ncol=</span><span class="dv">100</span>,<span class="at">byrow=</span><span class="cn">TRUE</span>)</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>  specificity <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(<span class="sc">!</span>Q[y<span class="sc">==</span><span class="fu">levels</span>(y)[<span class="dv">1</span>],])</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>  sensitivity <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(Q[y<span class="sc">==</span><span class="fu">levels</span>(y)[<span class="dv">2</span>],])</span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(<span class="dv">1</span><span class="sc">-</span>specificity, sensitivity, <span class="at">type=</span><span class="st">"l"</span>, ...)</span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">abline</span>(<span class="at">a=</span><span class="dv">0</span>,<span class="at">b=</span><span class="dv">1</span>,<span class="at">lty=</span><span class="dv">2</span>,<span class="at">col=</span><span class="dv">8</span>)</span>
+<span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="do">## roc curve and fitted distributions</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>pred <span class="ot">=</span> <span class="fu">predict.glm</span>(glm.fit,<span class="at">newdata =</span> Default, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>default <span class="ot">=</span> y</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a><span class="fu">roc</span>(<span class="at">p=</span>pred, <span class="at">y=</span>Default<span class="sc">$</span>default, <span class="at">bty=</span><span class="st">"n"</span>, <span class="at">main=</span><span class="st">"in-sample"</span>)</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a><span class="co"># our 1/5 rule cutoff</span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="at">x=</span> <span class="dv">1</span><span class="sc">-</span><span class="fu">mean</span>((pred<span class="sc">&lt;</span>.<span class="dv">2</span>)[default<span class="sc">==</span><span class="dv">0</span>]), </span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y=</span><span class="fu">mean</span>((pred<span class="sc">&gt;</span>.<span class="dv">2</span>)[default<span class="sc">==</span><span class="dv">1</span>]), </span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">cex=</span><span class="fl">1.5</span>, <span class="at">pch=</span><span class="dv">20</span>, <span class="at">col=</span><span class="st">'red'</span>) </span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a><span class="do">## a standard `max prob' (p=.5) rule</span></span>
+<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="at">x=</span> <span class="dv">1</span><span class="sc">-</span><span class="fu">mean</span>((pred<span class="sc">&lt;</span>.<span class="dv">5</span>)[default<span class="sc">==</span><span class="dv">0</span>]), </span>
+<span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">y=</span><span class="fu">mean</span>((pred<span class="sc">&gt;</span>.<span class="dv">5</span>)[default<span class="sc">==</span><span class="dv">1</span>]), </span>
+<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">cex=</span><span class="fl">1.5</span>, <span class="at">pch=</span><span class="dv">20</span>, <span class="at">col=</span><span class="st">'blue'</span>) </span>
+<span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>,<span class="at">fill=</span><span class="fu">c</span>(<span class="st">"red"</span>,<span class="st">"blue"</span>),</span>
+<span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"p=1/5"</span>,<span class="st">"p=1/2"</span>),<span class="at">bty=</span><span class="st">"n"</span>,<span class="at">title=</span><span class="st">"cutoff"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Look at other predictors</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>glm.fit<span class="ot">=</span><span class="fu">glm</span>(default<span class="sc">~</span>balance<span class="sc">+</span>income<span class="sc">+</span>student,<span class="at">data=</span>Default,<span class="at">family=</span>binomial)</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(glm.fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = default ~ balance + income + student, family = binomial, 
+    data = Default)
+
+Coefficients:
+             Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept) -1.09e+01   4.92e-01  -22.08   &lt;2e-16 ***
+balance      5.74e-03   2.32e-04   24.74   &lt;2e-16 ***
+income       3.03e-06   8.20e-06    0.37   0.7115    
+studentYes  -6.47e-01   2.36e-01   -2.74   0.0062 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 2920.6  on 9999  degrees of freedom
+Residual deviance: 1571.5  on 9996  degrees of freedom
+AIC: 1580
+
+Number of Fisher Scoring iterations: 8</code></pre>
+</div>
+</div>
+<p>Student is significant!?</p>
+<p>Student vs Balance</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(balance<span class="sc">~</span>student,<span class="at">data=</span>Default, <span class="at">col =</span> Default<span class="sc">$</span>student, <span class="at">ylab =</span> <span class="st">"balance"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s adjust for balance</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>x2 <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">balance =</span> <span class="fu">seq</span>(<span class="dv">1000</span>,<span class="dv">2500</span>,<span class="at">length.out =</span> <span class="dv">100</span>), <span class="at">student =</span> <span class="fu">as.factor</span>(<span class="fu">rep</span>(<span class="st">"No"</span>,<span class="dv">100</span>)), <span class="at">income=</span><span class="fu">rep</span>(<span class="dv">40</span>,<span class="dv">100</span>))</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>y1 <span class="ot">=</span> <span class="fu">predict.glm</span>(glm.fit,<span class="at">newdata =</span> x1, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>y2 <span class="ot">=</span> <span class="fu">predict.glm</span>(glm.fit,<span class="at">newdata =</span> x2, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x1<span class="sc">$</span>balance,y1, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">col=</span><span class="st">"red"</span>, <span class="at">xlab=</span><span class="st">"Balance"</span>, <span class="at">ylab =</span> <span class="st">"P(Default)"</span>)</span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x2<span class="sc">$</span>balance,y2, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">col=</span><span class="st">"black"</span>)</span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>,<span class="at">bty=</span><span class="st">"n"</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"Not Student"</span>, <span class="st">"Student"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="st">"black"</span>,<span class="st">"red"</span>), <span class="at">lwd=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="estimating-the-regression-coefficients" class="level3" data-number="14.2.1">
+<h3 data-number="14.2.1" class="anchored" data-anchor-id="estimating-the-regression-coefficients"><span class="header-section-number">14.2.1</span> Estimating the Regression Coefficients</h3>
+<p>The coefficients <span class="math inline">\(\beta = (\beta_0, \beta_1)\)</span> can be estimated using maximum likelihood method we discussed when talked about linear regression.</p>
+<p>The model we derived above, gives us probability of <span class="math inline">\(y\)</span>, given <span class="math inline">\(x\)</span> <span class="math display">\[
+p(y\mid x) = \dfrac{e^{\beta^Tx}}{1+e^{\beta^Tx}}
+\]</span></p>
+<p>Now the problem is as follows <span class="math display">\[
+\underset{\beta}{maximize} \prod_{i:y_i = 1}p(x_i)\prod_{j:y_j = 0}(1-p(x_j)).
+\]</span></p>
+<p>Maximum likelihood is a very general approach that is used to fit many of the non-linear models.</p>
+</section>
+<section id="choosing-p-and-evaluating-quality-of-classifier" class="level3" data-number="14.2.2">
+<h3 data-number="14.2.2" class="anchored" data-anchor-id="choosing-p-and-evaluating-quality-of-classifier"><span class="header-section-number">14.2.2</span> Choosing <span class="math inline">\(p\)</span> and Evaluating Quality of Classifier</h3>
+<p>In logistic regression we use the logistic function to calculate a probability of <span class="math inline">\(y = 1\)</span> <span class="math display">\[
+p(y=1\mid x) = \dfrac{e^{\beta^Tx}}{1+e^{\beta^Tx}}.
+\]</span> Then, to predict a label we use a rule if <span class="math inline">\(y&lt;p\)</span>, predict 0, and predict 1 otherwise. Now we answer the question of how to choose the cut-off value <span class="math inline">\(p\)</span>. We show it through an example.</p>
+<div id="exm-bank" class="theorem example">
+<p><span class="theorem-title"><strong>Example 14.4 (Load Default)</strong></span> Assume a bank is using a logistic regression model to predict probability of a loan default and would issue a loan if <span class="math inline">\(a = p(y=1) &lt; p\)</span>. Here <span class="math inline">\(p\)</span> is the level of risk bank is willing to take. If bank chooses <span class="math inline">\(p=1\)</span> and gives loans to everyone it is likely to loose a lot of money from defaulted accounts. If it chooses <span class="math inline">\(p = 0\)</span> it will not issue loan to anyone and wont make any money. In order to choose an appropriate <span class="math inline">\(p\)</span>, we need to know what are the risks. Assume, bank makes $0.25 on every $1 borrowed in interest in fees and loose the entire amount of $1 if account defaults. This leads to the following pay-off matrix</p>
+<table class="caption-top table">
+<caption>Pay-off matrix for a loan</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: center;">payer</th>
+<th style="text-align: center;">defaulter</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>loan</td>
+<td style="text-align: center;">-0.25</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr class="even">
+<td>no load</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+</tr>
+</tbody>
+</table>
+<p>Then, given <span class="math inline">\(a = p(y=1)\)</span>, the expected profit is profit = <span class="math inline">\(0.25(1-a) - a\)</span> to maintain a positive profit we need to choose <span class="math display">\[
+0.25(1-a) - a &gt;0 \iff -1.25a &gt; -0.25 \iff a &lt; 0.25 /1.25= 0.2
+\]</span> Thus, by choosing cutoff to be 0.2 or less, we guarantee to make profit on our loans.</p>
+<p>To evaluate a binary classification predictor, we will use confusion matrix. It is shows numbers of correct predictions by the model (true positives and true negatives) and incorrect ones (false positive and false negatives). Say, we have a model that predicts weather person has a disease or not and we evaluate this model using 200 samples (<span class="math inline">\(n=200\)</span>) with 60 being labeled as 0 (NO) and 140 labeled as 1 (YES) and model predicted correctly 130 YES labeled observations and 50 NOs.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: center;">Predicted: YES</th>
+<th style="text-align: center;">Predicted: NO</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Actual: YES</td>
+<td style="text-align: center;">TP = 130</td>
+<td style="text-align: center;">FN = 10</td>
+</tr>
+<tr class="even">
+<td>Actual: NO</td>
+<td style="text-align: center;">FP = 10</td>
+<td style="text-align: center;">TN = 50</td>
+</tr>
+</tbody>
+</table>
+<p>Sometimes, it is convenient to used rates rather than absolute counts and we compute</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: left;">Predicted: YES</th>
+<th style="text-align: left;">Predicted: NO</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Actual: YES</td>
+<td style="text-align: left;">TPR = 130/140</td>
+<td style="text-align: left;">FNR = 10/140</td>
+</tr>
+<tr class="even">
+<td>Actual: NO</td>
+<td style="text-align: left;">FPR = 10/60</td>
+<td style="text-align: left;">TNR = 50/60</td>
+</tr>
+</tbody>
+</table>
+<p>True positive rate (TPR) is nothing but the sensitivity and false positive rate (FPR) is the specificity of our predictive model. Accuracy, which is the percent of correct predictions is another metric can be used to evaluate a classifier. <span class="math display">\[
+\mbox{Accuracy} = \dfrac{\mbox{TP + TN}}{n}.
+\]</span> The error rate is opposite to accuracy <span class="math display">\[
+\mbox{Error rate}  = 1- \mbox{Accuracy}
+\]</span></p>
+<p>For a logistic regression, the confusion matrix will be different for different choices of the cut-off values <span class="math inline">\(p\)</span>. If we would like to understand the performance of the model for different values of <span class="math inline">\(p\)</span> we can split an ROC curve, which plots pairs of TPR and FPR for different values of <span class="math inline">\(p\)</span>. Saw we take a sequence of 11 values <span class="math inline">\(p \in {0, 0.1, 0.2,\ldots,1}\)</span> and we evaluate TPR and FPR for those 10 values and plot those pairs on a 2D plot then we will get the ROC curve. A few facts about the ROC curve:</p>
+<ol type="1">
+<li>If we set <span class="math inline">\(p=0\)</span>, then any model will always predict NO, this leads to FPR=0 and TPR=0</li>
+<li>If we set <span class="math inline">\(p=1\)</span> and model always predicts YES, then we get FPR = 1 and TPR = 1</li>
+<li>If we have an “ideal" model then for any <span class="math inline">\(0&lt;p&lt;1\)</span> we will have FPR = 0 and TPR = 1.</li>
+<li>A naive model that uses coin flip to classify will have FPR = 1/2 and TPR = 1/2</li>
+<li>An ROC curve for an model will lie in-between the ideal curve and naive curve. If your model is worse then naive, it is not a good model. And your model cannot be better than an ideal model.</li>
+</ol>
+</div>
+<div id="exm-default" class="theorem example">
+<p><span class="theorem-title"><strong>Example 14.5 (Default)</strong></span> Let’s consider an example. We want to predict default given attributes of the loan applicant. We have 1000 observations of 9 variables</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>credit <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../../data/credit.csv"</span>)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>credit<span class="sc">$</span>history <span class="ot">=</span> <span class="fu">factor</span>(credit<span class="sc">$</span>history, <span class="at">levels=</span><span class="fu">c</span>(<span class="st">"A30"</span>,<span class="st">"A31"</span>,<span class="st">"A32"</span>,<span class="st">"A33"</span>,<span class="st">"A34"</span>))</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="fu">levels</span>(credit<span class="sc">$</span>history) <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"good"</span>,<span class="st">"good"</span>,<span class="st">"poor"</span>,<span class="st">"poor"</span>,<span class="st">"terrible"</span>)</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>credit<span class="sc">$</span>foreign <span class="ot">&lt;-</span> <span class="fu">factor</span>(credit<span class="sc">$</span>foreign, <span class="at">levels=</span><span class="fu">c</span>(<span class="st">"A201"</span>,<span class="st">"A202"</span>), <span class="at">labels=</span><span class="fu">c</span>(<span class="st">"foreign"</span>,<span class="st">"german"</span>))</span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>credit<span class="sc">$</span>rent <span class="ot">&lt;-</span> <span class="fu">factor</span>(credit<span class="sc">$</span>housing<span class="sc">==</span><span class="st">"A151"</span>)</span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>credit<span class="sc">$</span>purpose <span class="ot">&lt;-</span> <span class="fu">factor</span>(credit<span class="sc">$</span>purpose, <span class="at">levels=</span><span class="fu">c</span>(<span class="st">"A40"</span>,<span class="st">"A41"</span>,<span class="st">"A42"</span>,<span class="st">"A43"</span>,<span class="st">"A44"</span>,<span class="st">"A45"</span>,<span class="st">"A46"</span>,<span class="st">"A47"</span>,<span class="st">"A48"</span>,<span class="st">"A49"</span>,<span class="st">"A410"</span>))</span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a><span class="fu">levels</span>(credit<span class="sc">$</span>purpose) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"newcar"</span>,<span class="st">"usedcar"</span>,<span class="fu">rep</span>(<span class="st">"goods/repair"</span>,<span class="dv">4</span>),<span class="st">"edu"</span>,<span class="cn">NA</span>,<span class="st">"edu"</span>,<span class="st">"biz"</span>,<span class="st">"biz"</span>)</span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>credit <span class="ot">&lt;-</span> credit[,<span class="fu">c</span>(<span class="st">"Default"</span>, <span class="st">"duration"</span>, <span class="st">"amount"</span>,</span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"installment"</span>, <span class="st">"age"</span>, <span class="st">"history"</span>,</span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"purpose"</span>, <span class="st">"foreign"</span>, <span class="st">"rent"</span>)]</span>
+<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">head</span>(credit))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 11%">
+<col style="width: 9%">
+<col style="width: 15%">
+<col style="width: 5%">
+<col style="width: 11%">
+<col style="width: 17%">
+<col style="width: 10%">
+<col style="width: 7%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">Default</th>
+<th style="text-align: right;">duration</th>
+<th style="text-align: right;">amount</th>
+<th style="text-align: right;">installment</th>
+<th style="text-align: right;">age</th>
+<th style="text-align: left;">history</th>
+<th style="text-align: left;">purpose</th>
+<th style="text-align: left;">foreign</th>
+<th style="text-align: left;">rent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1169</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">67</td>
+<td style="text-align: left;">terrible</td>
+<td style="text-align: left;">goods/repair</td>
+<td style="text-align: left;">foreign</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">5951</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: left;">poor</td>
+<td style="text-align: left;">goods/repair</td>
+<td style="text-align: left;">foreign</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">2096</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: left;">terrible</td>
+<td style="text-align: left;">edu</td>
+<td style="text-align: left;">foreign</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">42</td>
+<td style="text-align: right;">7882</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: left;">poor</td>
+<td style="text-align: left;">goods/repair</td>
+<td style="text-align: left;">foreign</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">4870</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: left;">poor</td>
+<td style="text-align: left;">newcar</td>
+<td style="text-align: left;">foreign</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">9055</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: left;">poor</td>
+<td style="text-align: left;">edu</td>
+<td style="text-align: left;">foreign</td>
+<td style="text-align: left;">FALSE</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>We build a logistic regression model using all of the 8 predictors and their interactions</p>
+<pre><code>credscore = glm(Default~.^2,data=credit,family=binomial)</code></pre>
+<p>Then we plot ROC curve (FPR vs TPR) for different values of <span class="math inline">\(p\)</span> and compare the curve with the naive</p>
+<div class="cell" data-layout-align="center" data-null_prefix="true">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../fig/svg/roc-example.svg" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>ROC curve for logistic regression model for repearting defualts</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="multinomial-logistic-regression" class="level2" data-number="14.3">
+<h2 data-number="14.3" class="anchored" data-anchor-id="multinomial-logistic-regression"><span class="header-section-number">14.3</span> Multinomial logistic regression</h2>
+<p>Softmax regression (or multinomial logistic regression) is a generalization of logistic regression to the case where we want to handle multiple classes. In logistic regression we assumed that the labels were binary: <span class="math inline">\(y_i \in \{0,1\}\)</span> . We used such a classifier to distinguish between two kinds of hand-written digits. Softmax regression allows us to handle <span class="math inline">\(y_i \in \{1,\ldots ,K\}\)</span> where <span class="math inline">\(K\)</span> is the number of classes. Our model took the form: <span class="math display">\[
+f(x\mid \beta)=\dfrac{1}{1+\exp(-\beta^Tx)}~,
+\]</span> and the model parameters <span class="math inline">\(\beta\)</span> were trained to minimize the loss function (negative log-likelihood) <span class="math display">\[
+J(\beta) = -\left[ \sum_{i=1}^m y_i \log f(x\mid \beta) + (1-y_i) \log (1-f(x\mid \beta)) \right]
+\]</span></p>
+<p>Given a test input <span class="math inline">\(x\)</span>, we want our model to estimate the probability that <span class="math inline">\(p(y=k|x)\)</span> for each value of <span class="math inline">\(k=1,\ldots ,K\)</span> Thus, our model will output a <span class="math inline">\(K\)</span>-dimensional vector (whose elements sum to 1) giving us our K estimated probabilities. Concretely, our model <span class="math inline">\(f(x\mid \beta)\)</span> takes the form: <span class="math display">\[
+\begin{aligned}
+f(x\mid \beta) =
+\begin{bmatrix}
+p(y = 1 | x; \beta) \\
+p(y = 2 | x; \beta) \\
+\vdots \\
+p(y = K | x; \beta)
+\end{bmatrix}
+=
+\frac{1}{ \sum_{j=1}^{K}{\exp(\beta_k^T x) }}
+\begin{bmatrix}
+\exp(\beta_1^{T} x ) \\
+\exp(\beta_2^{T} x ) \\
+\vdots \\
+\exp(\beta_k^T x ) \\
+\end{bmatrix}\end{aligned}
+\]</span></p>
+<p>Here <span class="math inline">\(\beta_i \in R^n, i=1,\ldots,K\)</span> are the parameters of our model. Notice that the term <span class="math inline">\(1/ \sum_{j=1}^{K}{\exp(\beta_k^T x) }\)</span> normalizes the distribution, so that it sums to one.</p>
+<p>For convenience, we will also write <span class="math inline">\(\beta\)</span> to denote all the parameters of our model. When you implement softmax regression, it is usually convenient to represent <span class="math inline">\(\beta\)</span> as an <span class="math inline">\(n\)</span>-by-<span class="math inline">\(K\)</span> matrix obtained by concatenating <span class="math inline">\(\beta_1,\beta_2,\ldots ,\beta_K\)</span> into columns, so that <span class="math display">\[
+\beta = \left[\begin{array}{cccc}| &amp; | &amp; | &amp; | \\
+\beta_1 &amp; \beta_2 &amp; \cdots &amp; \beta_K \\
+| &amp; | &amp; | &amp; |
+\end{array}\right].
+\]</span></p>
+<p>We now describe the cost function that we’ll use for softmax regression. In the equation below, <span class="math inline">\(1\)</span> is the indicator function, so that <span class="math inline">\(1\)</span>(a true statement)=1, and <span class="math inline">\(1\)</span>(a false statement)=0. For example, 1(2+3 &gt; 4) evaluates to 1; whereas 1(1+1 == 5) evaluates to 0. Our cost function will be: <span class="math display">\[
+\begin{aligned}
+J(\beta) = - \left[ \sum_{i=1}^{m} \sum_{k=1}^{K}  1\left\{y_i = k\right\} \log \frac{\exp(\beta_k^T x_i)}{\sum_{j=1}^K \exp(\beta_k^T x_i)}\right]
+\end{aligned}
+\]</span></p>
+<p>Notice that this generalizes the logistic regression cost function, which could also have been written: <span class="math display">\[
+\begin{aligned}
+J(\beta) &amp;= - \left[ \sum_{i=1}^m   (1-y_i) \log (1-f(x\mid \beta)) + y_i \log f(x\mid \beta) \right] \\
+&amp;= - \left[ \sum_{i=1}^{m} \sum_{k=0}^{1} 1\left\{y_i = k\right\} \log p(y_i = k | x_i ; \beta) \right]\end{aligned}
+\]</span> The softmax cost function is similar, except that we now sum over the <span class="math inline">\(K\)</span> different possible values of the class label. Note also that in softmax regression, we have that <span class="math display">\[
+p(y_i = k | x_i ; \beta) = \frac{\exp(\beta_k^T x_i)}{\sum_{j=1}^K \exp(\beta_k^T x_i) }.
+\]</span></p>
+<p>Softmax regression has an unusual property that it has a redundant set of parameters. To explain what this means, suppose we take each of our parameter vectors <span class="math inline">\(\beta_j\)</span>, and subtract some fixed vector <span class="math inline">\(\psi\)</span>. Our model now estimates the class label probabilities as <span class="math display">\[
+\begin{aligned}
+p(y_i = k | x_i ; \beta)
+&amp;= \frac{\exp((\beta_k-\psi)^T x_i)}{\sum_{j=1}^K \exp( (\beta_j-\psi)^T x_i)}  \\
+&amp;= \frac{\exp(\beta_k^T x_i) \exp(-\psi^T x_i)}{\sum_{j=1}^K \exp(\beta_k^T x_i) \exp(-\psi^T x_i)} \\
+&amp;= \frac{\exp(\beta_k^T x_i)}{\sum_{j=1}^K \exp(\beta_k^T x_i)}.\end{aligned}
+\]</span> In other words, subtracting <span class="math inline">\(\psi\)</span> does not affect our model’ predictions at all! This shows that softmax regression’s parameters are redundant. More formally, we say that our softmax model is overparameterized, meaning that for any model we might fit to the data, there are multiple parameter settings that give rise to exactly the same model function <span class="math inline">\(f(x \mid \beta)\)</span> mapping from inputs <span class="math inline">\(x\)</span> to the predictions.</p>
+<p>Further, if the cost function <span class="math inline">\(J(\beta)\)</span> is minimized by some setting of the parameters <span class="math inline">\((\beta_1,\ldots,\beta_K)\)</span>, then it is also minimized by <span class="math inline">\((\beta_1-\psi,\ldots,\beta_K-\psi)\)</span> for any value of <span class="math inline">\(\psi\)</span>. Thus, the minimizer of <span class="math inline">\(J(\beta)\)</span> is not unique. Interestingly, <span class="math inline">\(J(\beta)\)</span> is still convex, and thus gradient descent will not run into local optima problems. But the Hessian is singular/non-invertible, which causes a straightforward implementation of Newton’s method to run into numerical problems. We can just set <span class="math inline">\(\psi\)</span> to <span class="math inline">\(\beta_i\)</span> and remove <span class="math inline">\(\beta_i\)</span>.</p>
+<div id="exm-LinkedIn" class="theorem example">
+<p><span class="theorem-title"><strong>Example 14.6 (LinkedIn Study)</strong></span> How to Become an Executive<span class="citation" data-cites="irwin2016a gan2016">(<a href="references.html#ref-irwin2016a" role="doc-biblioref">Irwin 2016</a>; <a href="references.html#ref-gan2016" role="doc-biblioref">Gan and Fritzler 2016</a>)</span>?</p>
+<p>Logistic regression was used to analyze the career paths of about <span class="math inline">\(459,000\)</span> LinkedIn members who worked at a <a href="http://www.vault.com/company-rankings/consulting/best-consulting-firms-prestige?sRankID=77">top 10 consultancy</a> between 1990 and 2010 and became a VP, CXO, or partner at a company with at least 200 employees. About <span class="math inline">\(64,000\)</span> members reached this milestone, <span class="math inline">\(\hat{p} = 0.1394\)</span>, conditional on making it into the database. The goals of the analysis were the following</p>
+<ol type="1">
+<li>Look at their profiles – educational background, gender, work experience, and career transitions.</li>
+<li>Build a predictive model of the probability of becoming an executive</li>
+<li>Provide a tool for analysis of “what if” scenarios. For example, if you are to get a master’s degree, how your jobs perspectives change because of that.</li>
+</ol>
+<p>Let’s build a logistic regression model with <span class="math inline">\(8\)</span> key features (a.k.a. covariates): <span class="math display">\[
+\log\left ( \frac{p}{1-p} \right ) = \beta_0 + \beta_1x_1 + \beta_2x_2 + ... + \beta_8x_8
+\]</span></p>
+<ol type="1">
+<li><p><span class="math inline">\(p\)</span>: Probability of “success” – reach VP/CXO/Partner seniority at a company with at least 200 employees.</p></li>
+<li><p>Features to predict the “success” probability: <span class="math inline">\(x_i (i=1,2,\ldots,8)\)</span>.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">Variable</th>
+<th style="text-align: center;">Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><span class="math inline">\(x_1\)</span></td>
+<td style="text-align: center;">Metro region: whether a member has worked in one of the top 10 largest cities in the U.S. or globally.</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span class="math inline">\(x_2\)</span></td>
+<td style="text-align: center;">Gender: Inferred from member names: ‘male’, or ‘female’</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span class="math inline">\(x_3\)</span></td>
+<td style="text-align: center;">Graduate education type: whether a member has an MBA from a top U.S. program / a non-top program / a top non-U.S. program / another advanced degree</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span class="math inline">\(x_4\)</span></td>
+<td style="text-align: center;">Undergraduate education type: whether a member has attended a school from the U.S. News national university rankings / a top 10 liberal arts college /a top 10 non-U.S. school</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span class="math inline">\(x_5\)</span></td>
+<td style="text-align: center;">Company count: # different companies in which a member has worked</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span class="math inline">\(x_6\)</span></td>
+<td style="text-align: center;">Function count: # different job functions in which a member has worked</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><span class="math inline">\(x_7\)</span></td>
+<td style="text-align: center;">Industry sector count: # different industries in which a member has worked</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span class="math inline">\(x_8\)</span></td>
+<td style="text-align: center;">Years of experience: # years of work experience, including years in consulting, for a member.</td>
+</tr>
+</tbody>
+</table></li>
+</ol>
+<p>The following estimated <span class="math inline">\(\hat\beta\)</span>s of features were obtained. With a sample size of 456,000 thy are measured rather accurately. Recall, given each location/education choice in the “Choice and Impact” is a unit change in the feature.</p>
+<ol type="1">
+<li>Location: <span style="color: blue">Metro region</span>: 0.28</li>
+<li>Personal: <span style="color: blue">Gender(Male)</span>: 0.31</li>
+<li>Education: <span style="color: blue">Graduate education type</span>: 1.16, <span style="color: blue">Undergraduate education type</span>: 0.22</li>
+<li>Work Experience: <span style="color: blue">Company count</span>: 0.14, <span style="color: blue">Function count</span>: 0.26, <span style="color: blue">Industry sector count</span>: -0.22, <span style="color: blue">Years of experience</span>: 0.09</li>
+</ol>
+<p>Here are three main findings</p>
+<ol type="1">
+<li>Working across job functions, like marketing or finance, is good. Each additional job function provides a boost that, on average, is equal to three years of work experience. Switching industries has a slight negative impact. Learning curve? lost relationships?</li>
+<li>MBAs are worth the investment. But pedigree matters. <em>Top five program equivalent to <span class="math inline">\(13\)</span> years of work experience!!!</em></li>
+<li>Location matters. For example, NYC helps.</li>
+</ol>
+<p>We can also personalize the prediction for predict future possible future executives. For example, <span style="color: blue">Person A (p=6%)</span>: Male in Tulsa, Oklahoma, Undergraduate degree, 1 job function for 3 companies in 3 industries, 15-year experience.</p>
+<p><span style="color: blue">Person B (p=15%)</span>: Male in London, Undergraduate degree from top international school, Non-MBA Master, 2 different job functions for 2 companies in 2 industries, 15-year experience.</p>
+<p><span style="color: blue">Person C (p=63%)</span>: Female in New York City, Top undergraduate program, Top MBA program, 4 different job functions for 4 companies in 1 industry, 15-year experience.</p>
+<p>Let’s re-design Person B.</p>
+<p><span style="color: blue">Person B (p=15%)</span>: Male in London, Undergraduate degree from top international school, Non-MBA Master, 2 different job functions for 2 companies in 2 industries, 15-year experience.</p>
+<ol type="1">
+<li>Work in one industry rather than two. Increase <span class="math inline">\(3\)</span>%</li>
+<li>Undergrad from top <span class="math inline">\(10\)</span> US program rather than top international school. <span class="math inline">\(3\)</span>%</li>
+<li>Worked for <span class="math inline">\(4\)</span> companies rather than <span class="math inline">\(2\)</span>. Another <span class="math inline">\(4\)</span>%</li>
+<li>Move from London to NYC. <span class="math inline">\(4\)</span>%</li>
+<li>Four job functions rather than two. <span class="math inline">\(8\)</span>%. A <span class="math inline">\(1.5\)</span>x effect.</li>
+<li>Worked for <span class="math inline">\(10\)</span> more years. <span class="math inline">\(15\)</span>%. A <span class="math inline">\(2\)</span>X effect.</li>
+</ol>
+<p>Choices and Impact (Person B) are shown below <img src="../fig/choice.png" id="fig-choice" class="img-fluid" style="width:100.0%" alt="Choices and Impact (Person B)"></p>
+</div>
+</section>
+<section id="imbalanced-data" class="level2" data-number="14.4">
+<h2 data-number="14.4" class="anchored" data-anchor-id="imbalanced-data"><span class="header-section-number">14.4</span> Imbalanced Data</h2>
+<p>Often, you have much more observations with a specific label, such a sample is called imbalanced. You should avoid using accuracy as a metric to choose a model. Say, you have a binary classification problem with 95% of samples labeled as 1. Then a naive classifier that assigns label 1 for each input will be 95% accurate. An ROC curve and area under the curve (AUC) metric derived from it should be used. Alternatively, you can use F1 sore, which combines precision and recall <span class="math display">\[
+F1 = 2\dfrac{\mathrm{precision} \times \mathrm{recall}}{\mathrm{precision} + \mathrm{recall}}
+\]</span></p>
+<p>A modeler should consider synthetically generating more samples of class with small number of observation, e.g.&nbsp;bootstrap or using a generative model or subsampling observations with major label if data set is large enough.</p>
+<section id="kernel-trick" class="level3" data-number="14.4.1">
+<h3 data-number="14.4.1" class="anchored" data-anchor-id="kernel-trick"><span class="header-section-number">14.4.1</span> Kernel Trick</h3>
+<p>Kernel trick is a method of using a linear classifier to solve a non-linear problem. The idea is to map the data into a higher dimensional space, where it becomes linearly separable. The kernel trick is to use a kernel function <span class="math inline">\(K(x_i,x_j)\)</span> to calculate the inner product of two vectors in the higher dimensional space without explicitly calculating the mapping <span class="math inline">\(\phi(x_i)\)</span> and <span class="math inline">\(\phi(x_j)\)</span>. The kernel function is defined as <span class="math inline">\(K(x_i,x_j) = \phi(x_i)^T\phi(x_j)\)</span>. The most popular kernel functions are polynomial kernel <span class="math inline">\(K(x_i,x_j) = (x_i^Tx_j)^d\)</span> and Gaussian kernel <span class="math inline">\(K(x_i,x_j) = \exp(-\gamma||x_i-x_j||^2)\)</span>. The kernel trick is used in Support Vector Machines (SVM) and Gaussian Processes (GP).</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">gencircledata</span>(<span class="at">numSamples=</span><span class="dv">200</span>, <span class="at">radius=</span><span class="dv">1</span>, <span class="at">noise=</span><span class="fl">0.001</span>)</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(d[,<span class="dv">2</span>], <span class="at">col=</span>d[,<span class="dv">3</span>], <span class="at">pch=</span><span class="dv">19</span>, <span class="at">xlab=</span><span class="st">"x"</span>, <span class="at">ylab=</span><span class="st">"y"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-gan2016" class="csl-entry" role="listitem">
+Gan, Link, and Alan Fritzler. 2016. <span>“How to Become an Executive.”</span>
+</div>
+<div id="ref-irwin2016a" class="csl-entry" role="listitem">
+Irwin, Neil. 2016. <span>“How to <span>Become</span> a <span>C</span>.<span>E</span>.<span>O</span>.? <span>The Quickest Path Is</span> a <span>Winding One</span>.”</span> <em>The New York Times</em>, September.
+</div>
+</div>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../qmd/12-glm.html" class="pagination-link" aria-label="Linear and Multiple Regression">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Linear and Multiple Regression</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../qmd/14-theoryai.html" class="pagination-link" aria-label="Theory of AI">
+        <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Theory of AI</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
