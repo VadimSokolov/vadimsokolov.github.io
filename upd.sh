@@ -12,5 +12,5 @@
 quarto render courses/664.qmd
 git pull
 git add .
-git commit -m "update"
+git commit -m "website update"
 git push
