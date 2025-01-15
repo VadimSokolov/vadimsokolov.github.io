@@ -132,7 +132,7 @@
 
 <section id="title-slide" class="quarto-title-block center">
   <h1 class="title">Bayes AI</h1>
-  <p class="subtitle">Unit 6: Stochastic Processes</p>
+  <p class="subtitle">Unit 6: Markov Chain Monte Carlo</p>
 
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
@@ -143,8 +143,258 @@ Vadim Sokolov <br> George Mason University <br> Spring 2025
 </div>
 
 </section>
-<section class="slide level2">
-
+<section id="mcmc-simulation" class="slide level2">
+<h2>MCMC Simulation</h2>
+<p>Suppose that <span class="math inline">\(X \sim F_X ( x )\)</span> and let <span class="math inline">\(Y = g (X)\)</span>.</p>
+<p>How do we find <span class="math inline">\(F_Y ( y )\)</span> and <span class="math inline">\(f_Y ( y )\)</span> ?</p>
+<ul>
+<li>von Neumann</li>
+</ul>
+<p>Given a uniform <span class="math inline">\(U\)</span>, how do we find <span class="math inline">\(X= g(U)\)</span>?</p>
+<ul>
+<li>In the bivariate case <span class="math inline">\((X,Y) \rightarrow (U,V)\)</span>.</li>
+</ul>
+<p>We need to find <span class="math inline">\(f_{(U,V)} ( u , v )\)</span> from <span class="math inline">\(f_{X,Y}(x,y)\)</span></p>
+<ul>
+<li>Applications: Simulation, MCMC and PF.</li>
+</ul>
+</section>
+<section id="transformations" class="slide level2">
+<h2>Transformations</h2>
+<p>The cdf identity gives <span class="math display">\[
+F_Y ( y) = \mathbb{P} ( Y \leq y ) = \mathbb{P} ( g( X) \leq y )
+\]</span></p>
+<ul>
+<li>Hence if the function <span class="math inline">\(g ( \cdot )\)</span> is monotone we can invert to get</li>
+</ul>
+<p><span class="math display">\[
+F_Y ( y ) = \int_{ g( x) \leq y } f_X ( x ) dx
+\]</span></p>
+<ul>
+<li>If <span class="math inline">\(g\)</span> is increasing <span class="math inline">\(F_Y ( y ) = P( X \leq g^{-1} ( y ) ) = F_X ( g^{-1} ( y ) )\)</span></li>
+</ul>
+<p>If <span class="math inline">\(g\)</span> is decreasing <span class="math inline">\(F_Y ( y ) = P( X \geq g^{-1} ( y ) ) = 1 - F_X ( g^{-1} ( y ) )\)</span></p>
+</section>
+<section id="transformation-identity" class="slide level2 scrollable">
+<h2>Transformation Identity</h2>
+<ol type="1">
+<li>Theorem 1: Let <span class="math inline">\(X\)</span> have pdf <span class="math inline">\(f_X ( x)\)</span> and let <span class="math inline">\(Y=g(X)\)</span>. Then if <span class="math inline">\(g\)</span> is a monotone function we have</li>
+</ol>
+<p><span class="math display">\[
+f_Y ( y) = f_X ( g^{-1} ( y ) ) \left  | \frac{ d}{dy}  g^{-1} ( y ) \right |
+\]</span> There’s also a multivariate version of this that we’ll see later.</p>
+<ul>
+<li><p>Suppose <span class="math inline">\(X\)</span> is a continuous rv, what’s the pdf for <span class="math inline">\(Y = X^2\)</span>?</p></li>
+<li><p>Let <span class="math inline">\(X \sim N ( 0 ,1 )\)</span>, what’s the pdf for <span class="math inline">\(Y = X^2\)</span>?</p></li>
+</ul>
+</section>
+<section id="probability-integral-transform" class="slide level2">
+<h2>Probability Integral Transform</h2>
+<p>theorem Suppose that <span class="math inline">\(U \sim U[0,1]\)</span>, then for any continuous distribution function <span class="math inline">\(F\)</span>, the random variable <span class="math inline">\(X= F^{-1} (U)\)</span> has distribution function <span class="math inline">\(F\)</span>.</p>
+<ul>
+<li>Remember that for <span class="math inline">\(u \in [0,1]\)</span>, <span class="math inline">\(\mathbb{P} \left ( U \leq u \right ) = u\)</span>, so we have</li>
+</ul>
+<p><span class="math display">\[
+\mathbb{P} \left (X \leq x \right )= \mathbb{P} \left ( F^{-1} (U) \leq x \right )= \mathbb{P} \left ( U \leq F(x) \right )=F(x)
+\]</span> Hence, <span class="math inline">\(X = F_X^{-1}(U)\)</span>.</p>
+</section>
+<section id="normal" class="slide level2">
+<h2>Normal</h2>
+<p>Sometimes thare are short-cut formulas to generate random draws</p>
+<p>Normal <span class="math inline">\(N(0,I_2)\)</span>: <span class="math inline">\(x_1,x_2\)</span> uniform on <span class="math inline">\([0,1]\)</span> then <span class="math display">\[
+\begin{aligned}
+y_1 = &amp; \sqrt{-2\log x_1}\cos(2\pi x_2)\\
+y_2 = &amp; \sqrt{-2\log x_1}\sin(2\pi x_2)
+\end{aligned}
+\]</span></p>
+</section>
+<section id="simulation-and-transformations" class="slide level2">
+<h2>Simulation and Transformations</h2>
+<p>An important application is how to transform multiple random variables?</p>
+<ul>
+<li>Suppose that we have random variables:</li>
+</ul>
+<p><span class="math display">\[
+( X , Y ) \sim  f_{ X , Y} ( x , y )
+\]</span> A transformation of interest given by: <span class="math display">\[
+U = g ( X , Y )
+\; \; {\rm and} \; \;
+V = h ( X , Y )
+\]</span></p>
+<ul>
+<li>The problem is how to compute <span class="math inline">\(f_{ U , V } ( u , v )\)</span> ? Jacobian</li>
+</ul>
+<p><span class="math display">\[
+J = \frac{ \partial ( x , y ) }{ \partial ( u , v ) }  = \left |  \begin{array}{cc}
+\frac{ \partial x }{ \partial u} &amp; \frac{ \partial x }{ \partial v} \\
+\frac{ \partial y }{ \partial u} &amp; \frac{ \partial y }{ \partial v}
+\end{array} \right |
+\]</span></p>
+</section>
+<section id="bivariate-change-of-variable" class="slide level2">
+<h2>Bivariate Change of Variable</h2>
+<ul>
+<li><em>Theorem:</em> (change of variable)</li>
+</ul>
+<p><span class="math display">\[
+f_{ U , V } ( u , v ) = f_{ X , Y} ( h_1 ( u , v )  , h_2 ( u , v ) )
+\left |  \frac{ \partial ( x , y ) }{ \partial ( u , v ) } \right |
+\]</span> The last term is the Jacobian.</p>
+<p>This can be calculated in two ways.</p>
+<p><span class="math display">\[
+\left |  \frac{ \partial ( x , y ) }{ \partial ( u , v ) } \right | =
+1 / \left |  \frac{ \partial ( u , v ) }{ \partial ( x , y ) } \right |
+\]</span></p>
+<ul>
+<li>So we don’t always need the inverse transformation <span class="math inline">\(( x , y ) = ( g^{-1} ( u , v )  , h^{-1} ( u , v ) )\)</span></li>
+</ul>
+</section>
+<section id="inequalities-and-identities" class="slide level2 scrollable">
+<h2>Inequalities and Identities</h2>
+<ol type="1">
+<li>Markov</li>
+</ol>
+<p><span class="math display">\[
+\mathbb{P} \left ( g( X ) \geq c \right ) \leq \frac{ \mathbb{E} ( g(X) ) }{c }
+\; \; {\rm  where} \; \;   g( X) \geq 0
+\]</span></p>
+<ol start="2" type="1">
+<li>Chebyshev</li>
+</ol>
+<p><span class="math display">\[
+\mathbb{P} \left ( | X - \mu | \geq c \right ) \leq \frac{ Var(X) }{c^2 }
+\]</span></p>
+<ol start="3" type="1">
+<li>Jensen</li>
+</ol>
+<p><span class="math display">\[
+\mathbb{E} \left ( \phi ( X ) \right ) \leq \phi \left ( \mathbb{E}( X ) \right )
+\]</span></p>
+<ol start="4" type="1">
+<li>Cauchy-Schwarz <span class="math display">\[
+corr (X,Y) \leq 1
+\]</span></li>
+</ol>
+<p>Chebyshev follows from Markov. Mike Steele and Cauchy-Schwarz.</p>
+</section>
+<section id="markov-inequality" class="slide level2">
+<h2>Markov Inequality</h2>
+<p>Let <span class="math inline">\(f\)</span> be non-decreasing <span class="math display">\[
+\begin{aligned}
+P ( Z &gt; t ) &amp;= P ( f(Z) \geq f(t) ) \\
+&amp; = E \left (  \mathbb{I}  ( f( Z) \geq f(t )  ) \right ) \\
+&amp; \leq E \left (  \mathbb{I}  ( f( Z) \geq f(t ) )  \frac{f(Z)}{f(t) }  \right ) \\
+&amp; =  E\left  (  \frac{f(Z)}{f(t) }  \right )
+\end{aligned}
+\]</span></p>
+</section>
+<section id="concentration-inequalities" class="slide level2">
+<h2>Concentration Inequalities</h2>
+<p>Law of Large Numbers <span class="math display">\[
+\lim_{ n \rightarrow \infty } \mathbb{P} \left ( | Z - E(Z) | &gt; n \epsilon  \right ) = 0 \; \; \forall \epsilon &gt; 0
+\]</span></p>
+<p>Central Limt Theorem (CLT) <span class="math display">\[
+\lim_{ n \rightarrow \infty } \mathbb{P} \left ( n^{- 1/2} ( | Z - E(Z) |  ) &gt;  \epsilon  \right ) = \Phi ( x )
+\]</span></p>
+<p>Posterior Concentration</p>
+</section>
+<section id="hoeffding-and-bernstein" class="slide level2">
+<h2>Hoeffding and Bernstein</h2>
+<p>Let <span class="math inline">\(Z= \sum_{i=1}^n X_i\)</span>.</p>
+<p>Hoeffding <span class="math display">\[
+P ( Z &gt; E(Z) +  t ) \leq \exp \left  ( - \frac{ t^2}{2n} \right )
+\]</span></p>
+<p>Bernstein <span class="math display">\[
+P ( Z &gt; E(Z) +  t ) \leq \exp  \left ( - \frac{ t^2}{ 2 ( Var(Z) + t/3 ) } \right )
+\]</span> Large Deviations (Varadhan)</p>
+</section>
+<section id="special-distributions" class="slide level2 scrollable">
+<h2>Special Distributions</h2>
+<p>See <em>Common Distributions</em></p>
+<ol type="1">
+<li><p>Bernoulli and Binomial</p></li>
+<li><p>Hypergeometric</p></li>
+<li><p>Poisson</p></li>
+<li><p>Negative Binomial</p></li>
+<li><p>Normal Distribution</p></li>
+<li><p>Gamma Distribution</p></li>
+<li><p>Beta Distribution</p></li>
+<li><p>Multinomial Distribution</p></li>
+<li><p>Bivariate Normal Distribution</p></li>
+<li><p>Wishart Distribution</p></li>
+</ol>
+<p><span class="math inline">\(\ldots\)</span></p>
+</section>
+<section id="example-markov-dependence" class="slide level2">
+<h2>Example: Markov Dependence</h2>
+<ul>
+<li>We can always factor a joint distribution as</li>
+</ul>
+<p><span class="math display">\[
+p( X_n , X_{n-1} , \ldots , X_1 )  = p( X_n | X_{n-1} , \ldots , X_1 ) \ldots p( X_2 | X_1 ) p( X_1 )
+\]</span></p>
+<p>example - A process has the <em>Markov Property</em> if</p>
+<p><span class="math display">\[
+p( X_n | X_{n-1} , \ldots , X_1 ) = p( X_n | X_{n-1} )
+\]</span></p>
+<ul>
+<li>Only the current history matter when determining the probabilities.</li>
+</ul>
+<p>:</p>
+</section>
+<section id="a-real-world-probability-model-hidden-markov-models" class="slide level2">
+<h2>A real world probability model: Hidden Markov Models</h2>
+<p>Are stock returns a random walk?</p>
+<p>Hidden Markov Models (Baum-Welch, Viterbi)</p>
+<ul>
+<li>Daily returns on the SP500 stock market index.</li>
+</ul>
+<p>Build a hidden Markov model to predict the ups and downs.</p>
+<ul>
+<li><p>Suppose that stock market returns on the next four days are <span class="math inline">\(X_1 , \ldots , X_4\)</span>.</p></li>
+<li><p>Let’s empirical determine conditionals and marginals</p></li>
+</ul>
+</section>
+<section id="sp500-data" class="slide level2">
+<h2>SP500 Data</h2>
+<p>Marginal and Bivariate Distributions</p>
+<ul>
+<li>Empirically, what do we get? Daily returns from <span class="math inline">\(1948-2007\)</span>.</li>
+</ul>
+<p>center <span class="math inline">\(x\)</span> Down Up —————- ——- ——- <span class="math inline">\(P( X_i ) = x\)</span> 0.474 0.526</p>
+<ul>
+<li>Finding <span class="math inline">\(p( X_2 | X_1 )\)</span> is twice as much computational effort: counting <span class="math inline">\(UU,UD,DU,DD\)</span> transitions.</li>
+</ul>
+<p>center <span class="math inline">\(X_i\)</span> Down Up —————— ——- ——- <span class="math inline">\(X_{i-1} = Down\)</span> 0.519 0.481 <span class="math inline">\(X_{i-1} = Up\)</span> 0.433 0.567</p>
+</section>
+<section id="conditioned-on-two-days" class="slide level2">
+<h2>Conditioned on two days</h2>
+<ul>
+<li>Let’s do <span class="math inline">\(p( X_3 | X_2 , X_1 )\)</span></li>
+</ul>
+<p>center <span class="math inline">\(X_{i-2}\)</span> <span class="math inline">\(X_{i-1}\)</span> Down Up ———– ———– ——- ——- Down Down 0.501 0.499 Down Up 0.412 0.588 Up Down 0.539 0.461 Up Up 0.449 0.551</p>
+<ul>
+<li>We could do the distribution <span class="math inline">\(p( X_2 , X_3 | X_1 )\)</span>. This is a joint, marginal and conditional distribution all at the same time.</li>
+</ul>
+<p><em>Joint</em> because more than one variable <span class="math inline">\(( X_2 , X_3 )\)</span>, <em>marginal</em> because it ignores <span class="math inline">\(X_4\)</span> and <em>conditional</em> because its given <span class="math inline">\(X_1\)</span>.</p>
+</section>
+<section id="joint-probabilities" class="slide level2">
+<h2>Joint Probabilities</h2>
+<ul>
+<li><p>Under Markov dependence <span class="math display">\[
+\begin{aligned}
+P( UUD ) &amp; = p( X_1 = U) p( X_2 = U | X_1 = U) p( X_3 | X_2 = U , X_1 = U ) \\
+&amp; = ( 0.526 ) ( 0.567 ) ( 0.433)
+\end{aligned}
+\]</span></p></li>
+<li><p>Under independence we would have got <span class="math display">\[
+\begin{aligned}
+P(UUD) &amp; = P( X_1 = U) p( X_2 = U) p( X_3 = D ) \\
+&amp; = (.526)(.526)(.474) \\
+&amp; = 0.131
+\end{aligned}
+\]</span></p></li>
+</ul>
 
 
 </section>
