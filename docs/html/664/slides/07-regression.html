@@ -190,6 +190,9 @@
       margin-right: 0; 
     }
   </style>
+  <script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+  <script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+  <link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 </head>
 <body class="quarto-light">
   <div class="reveal">
@@ -211,34 +214,1454 @@
 <h2>Bayesian Regression</h2>
 <p><span class="math display">\[
 y_i \sim D(f(\eta_i),\theta)
-\]</span> - <span class="math inline">\(f\)</span>: inverse of the link funciton - <span class="math inline">\(\eta_i\)</span>: linear predictor - <span class="math inline">\(D\)</span>: distribution of the response variable (family) <span class="math display">\[
+\]</span></p>
+<ul>
+<li><span class="math inline">\(f\)</span>: inverse of the link function</li>
+<li><span class="math inline">\(\eta_i\)</span>: linear predictor</li>
+<li><span class="math inline">\(D\)</span>: distribution of the response variable (family) <span class="math display">\[
 \eta = X\beta + Zu
-\]</span> - <span class="math inline">\(\beta,u,\theta\)</span>: model parameters; <span class="math inline">\(\beta\)</span> - fixed effects, <span class="math inline">\(u\)</span> - random effects</p>
+\]</span></li>
+<li><span class="math inline">\(\beta,u,\theta\)</span>: model parameters; <span class="math inline">\(\beta\)</span> - fixed effects, <span class="math inline">\(u\)</span> - random effects</li>
+</ul>
 </section>
-<section id="random-intercepts-model" class="slide level2">
-<h2>Random Intercepts Model</h2>
-<p>We measure <span class="math inline">\(Y_{ij}\)</span>, subject <span class="math inline">\(i\)</span>, time <span class="math inline">\(j\)</span>. Want to model <span class="math display">\[
-\mu_{ij} = E(Y_{ij}\mid X_{ij},b_i);  ~g(\mu_{ij})= \beta_0 + b_i + \beta_1 X_{ij}
-\]</span> - <span class="math inline">\(b_i\)</span>: random intercepts (subject-specific) - <span class="math inline">\(X_{ij}\)</span>: covariates - <span class="math inline">\(g()\)</span>: link function - <span class="math inline">\(\beta_0,\beta_1\)</span>: fixed effects</p>
+<section id="the-problem---predicting-a-continuous-outcome" class="slide level2">
+<h2>The Problem - Predicting a Continuous Outcome</h2>
+<ul>
+<li>We have data: <span class="math inline">\((x_1, y_1), (x_2, y_2), \ldots, (x_n, y_n)\)</span></li>
+<li><span class="math inline">\(x_i\)</span> represents a set of features (predictors, independent variables). Could be a vector (e.g., <span class="math inline">\(x_i = [age, weight, height]\)</span>).</li>
+<li><span class="math inline">\(y_i\)</span> is a continuous target variable (dependent variable, response). We want to predict <span class="math inline">\(y\)</span> given <span class="math inline">\(x\)</span>.</li>
+<li><strong>Example:</strong> Predicting house price (<span class="math inline">\(y\)</span>) based on size, location, number of bedrooms (<span class="math inline">\(x\)</span>).</li>
+</ul>
 </section>
-<section id="random-intercepts-model-1" class="slide level2">
-<h2>Random Intercepts Model</h2>
-<p>Priors: <span class="math display">\[
-\beta_i \sim N(0,10^2)\\
-\]</span> <span class="math display">\[
-b_i \sim N(0,\tau^2); ~ \tau \sim IG(1,0.02)
-\]</span> The likelihood is <span class="math display">\[
-\prod_{ij} p(Y_{ij}\mid \mu_{ij})
+<section id="the-linear-regression-model-review" class="slide level2">
+<h2>The Linear Regression Model (Review)</h2>
+<ul>
+<li><p>We assume a <em>linear</em> relationship between <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span>:</p>
+<p><span class="math display">\[
+  y_i = \beta_0 + \beta_1x_{i1} + \beta_2x_{i2} + \ldots + \beta_px_{ip} + \epsilon_i
+  \]</span></p>
+<ul>
+<li><span class="math inline">\(\beta_0, \beta_1, \ldots, \beta_p\)</span> are the <em>coefficients</em> (parameters) we need to estimate. <span class="math inline">\(\beta_0\)</span> is the intercept.</li>
+<li><span class="math inline">\(x_{ij}\)</span> is the <span class="math inline">\(j\)</span>-th feature of the <span class="math inline">\(i\)</span>-th data point.</li>
+<li><span class="math inline">\(\epsilon_i\)</span> is the error term, assumed to be normally distributed: <span class="math inline">\(\epsilon_i \sim N(0, \sigma^2)\)</span></li>
+<li><span class="math inline">\(\sigma^2\)</span> is the variance of the error (noise).</li>
+</ul></li>
+<li><p>In matrix form: <span class="math inline">\(y = X\beta + \epsilon\)</span></p></li>
+</ul>
+</section>
+<section id="from-frequentist-to-bayesian" class="slide level2">
+<h2>From Frequentist to Bayesian</h2>
+<ul>
+<li><strong>Frequentist Approach (e.g., Ordinary Least Squares):</strong>
+<ul>
+<li>Find the <em>single best</em> set of coefficients (<span class="math inline">\(\beta\)</span>) that minimize the sum of squared errors.</li>
+<li>Coefficients (<span class="math inline">\(\beta\)</span>) are treated as fixed, unknown constants.</li>
+</ul></li>
+<li><strong>Bayesian Approach:</strong>
+<ul>
+<li>Treat the coefficients (<span class="math inline">\(\beta\)</span>) and the variance (<span class="math inline">\(\sigma^2\)</span>) as <em>random variables</em>.</li>
+<li>We define <em>prior distributions</em> for <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\sigma^2\)</span>, representing our initial beliefs.</li>
+<li>We use <em>Bayes’ Theorem</em> to update these beliefs based on the data.</li>
+<li>We obtain <em>posterior distributions</em> for <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\sigma^2\)</span>, representing our updated beliefs.</li>
+</ul></li>
+</ul>
+</section>
+<section id="bayes-theorem---the-core" class="slide level2">
+<h2>Bayes’ Theorem - The Core</h2>
+<ul>
+<li><p>Bayes’ Theorem tells us how to update our beliefs:</p>
+<p><span class="math display">\[
+  P(\theta | Data) = [ P(Data | \theta)P(\theta) ] / P(Data)
+  \]</span></p>
+<ul>
+<li><span class="math inline">\(P(\theta | Data):\)</span> Posterior distribution - Our updated belief about the parameters () <em>after</em> seeing the data. This is what we want!</li>
+<li><span class="math inline">\(P(Data | \theta):\)</span> Likelihood function - The probability of observing the data <em>given</em> specific parameter values.</li>
+<li><span class="math inline">\(P(\theta):\)</span> Prior distribution - Our initial belief about the parameters <em>before</em> seeing the data.</li>
+<li><span class="math inline">\(P(Data):\)</span> Evidence (marginal likelihood) - The probability of the data (a normalizing constant). Often difficult to compute directly.</li>
+</ul></li>
+</ul>
+</section>
+<section id="bayesian-linear-regression---example" class="slide level2 smaller">
+<h2>Bayesian Linear Regression - Example</h2>
+<ul>
+<li><strong>Likelihood:</strong> <span class="math inline">\(P(Data | \beta, \sigma^2)\)</span>
+<ul>
+<li>Since <span class="math inline">\(y = X\beta + \epsilon\)</span> and <span class="math inline">\(\epsilon \sim N(0, \sigma^2)\)</span>:</li>
+<li><span class="math inline">\(y_i | \beta, \sigma^2 \sim N(X_i\beta, \sigma^2)\)</span> (The data is normally distributed around the predicted value.)</li>
+<li>The likelihood function is the product of these normal distributions for all data points.</li>
+</ul></li>
+<li><strong>Priors:</strong> <span class="math inline">\(P(\beta, \sigma^2)\)</span> (Often factored as <span class="math inline">\(P(\beta)P(\sigma^2)\)</span> - assuming prior independence)
+<ul>
+<li><strong>For <span class="math inline">\(\beta\)</span> (coefficients):</strong>
+<ul>
+<li>Common choice: <em>Normal prior</em>: <span class="math inline">\(\beta \sim N(μ_0, Σ_0)\)</span>
+<ul>
+<li><span class="math inline">\(μ_0\)</span>: Prior mean (vector). Often set to 0 (no prior preference for any particular coefficient value).</li>
+<li><span class="math inline">\(Σ_0\)</span>: Prior covariance matrix. Controls the prior uncertainty. A diagonal matrix with large values means high uncertainty (a “weak” prior).</li>
+</ul></li>
+</ul></li>
+<li><strong>For <span class="math inline">\(\sigma^2\)</span> (variance):</strong>
+<ul>
+<li>Common choice: <em>Inverse Gamma prior</em>: <span class="math inline">\(\sigma^2 \sim InvGamma(a, b)\)</span>
+<ul>
+<li><span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span> are hyperparameters controlling the shape and scale of the distribution. Carefully chosen to be <em>non-informative</em> or <em>weakly informative</em>.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="the-posterior-distribution" class="slide level2">
+<h2>The Posterior Distribution</h2>
+<ul>
+<li><p>Applying Bayes’ Theorem:</p>
+<p><span class="math display">\[
+  P(\beta, \sigma^2 | Data) \propto P(Data | \beta, \sigma^2)P(\beta)P(\sigma^2)
+  \]</span></p></li>
+<li><p>The posterior is <em>proportional</em> to the product of the likelihood and the priors.</p></li>
+<li><p><strong>Crucially:</strong> For certain choices of priors (like the Normal prior for <span class="math inline">\(\beta\)</span> and Inverse Gamma for <span class="math inline">\(\sigma^2\)</span>), the posterior has a <em>known form</em> (conjugate priors). This makes calculations easier. In other cases, we use approximation techniques.</p></li>
+</ul>
+</section>
+<section id="inference-and-prediction" class="slide level2">
+<h2>Inference and Prediction</h2>
+<ul>
+<li><strong>Inference:</strong> We’re interested in the posterior distribution <span class="math inline">\(P(\beta, \sigma^2 | Data)\)</span>. This tells us:
+<ul>
+<li>The most likely values of the coefficients (<span class="math inline">\(\beta\)</span>).</li>
+<li>The uncertainty associated with these estimates (captured by the spread of the posterior). The uncertainty in the noise variance (<span class="math inline">\(\sigma^2\)</span>).</li>
+</ul></li>
+<li><strong>Prediction:</strong> Given a new input <span class="math inline">\(x^*\)</span>, we want to predict the corresponding output <span class="math inline">\(y^*\)</span>.
+<ul>
+<li><p>We use the <em>posterior predictive distribution</em>: <span class="math inline">\(P(y^* | x^*, Data)\)</span></p></li>
+<li><p>This distribution integrates over the posterior distribution of the parameters:</p>
+<p><span class="math display">\[
+  P(y^* | x^*, Data) = ∫ P(y^* | x^*, \beta, \sigma^2)P(\beta, \sigma^2 | Data) d\beta d\sigma^2
+  \]</span></p></li>
+<li><p>This gives us a <em>distribution</em> over possible values of <span class="math inline">\(y^*\)</span>, not just a single point estimate. This captures the uncertainty in our prediction.</p></li>
+</ul></li>
+</ul>
+</section>
+<section id="advantages-of-bayesian-linear-regression" class="slide level2">
+<h2>Advantages of Bayesian Linear Regression</h2>
+<ul>
+<li><strong>Uncertainty Quantification:</strong> Provides a full probability distribution over the parameters and predictions, not just point estimates. This is crucial for decision-making.</li>
+<li><strong>Incorporation of Prior Knowledge:</strong> Allows us to incorporate prior beliefs about the parameters. This can be helpful when data is scarce or when we have expert knowledge.</li>
+<li><strong>Regularization:</strong> The prior acts as a natural regularizer, preventing overfitting (especially with informative priors). Similar in effect to ridge regression or lasso.</li>
+<li><strong>Model Comparison:</strong> Bayesian methods provide a framework for comparing different models (e.g., different sets of features) using the evidence (marginal likelihood).</li>
+</ul>
+</section>
+<section id="disadvantages-and-challenges" class="slide level2">
+<h2>Disadvantages and Challenges</h2>
+<ul>
+<li><strong>Computational Complexity:</strong> Calculating the posterior (especially the evidence) can be computationally expensive, especially for complex models and large datasets. Approximation techniques like Markov Chain Monte Carlo (MCMC) are often required.</li>
+<li><strong>Prior Specification:</strong> Choosing appropriate priors can be challenging. Poorly chosen priors can lead to biased results. Sensitivity analysis (checking how the results change with different priors) is important.</li>
+<li><strong>Interpretation:</strong> While uncertainty quantification is a strength, interpreting posterior distributions can sometimes be less intuitive than interpreting point estimates.</li>
+</ul>
+</section>
+<section id="bodyfat-example" class="slide level2">
+<h2>bodyfat example</h2>
+<ul>
+<li>Body fat is hard to measure</li>
+<li>Can be predicted from abdominal circumference?</li>
+<li>Use The data set bodyfat can be found from the library BAS.</li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a></a>bodyfat <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"data/bodyfat.csv"</span>)</span>
+<span id="cb1-2"><a></a>bodyfat[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>,<span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">8</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>  Bodyfat Abdomen
+1    12.3    85.2
+2     6.1    83.0
+3    25.3    87.9
+4    10.4    86.4
+5    28.7   100.0</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a></a><span class="fu">plot</span>(bodyfat<span class="sc">$</span>Abdomen,bodyfat<span class="sc">$</span>Bodyfat,<span class="at">pch=</span><span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-1-1.png" width="960" class="r-stretch"></section>
+<section id="classical-linear-regression" class="slide level2">
+<h2>Classical Linear Regression</h2>
+<p><span class="math display">\[
+y_i = \alpha + \beta x_i + \epsilon_i, \quad i = 1,\cdots, 252.
 \]</span></p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a></a>bodyfat.lm <span class="ot">=</span> <span class="fu">lm</span>(Bodyfat <span class="sc">~</span> Abdomen, <span class="at">data =</span> bodyfat)</span>
+<span id="cb4-2"><a></a><span class="fu">summary</span>(bodyfat.lm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Bodyfat ~ Abdomen, data = bodyfat)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-19.0160  -3.7557   0.0554   3.4215  12.9007 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) -39.28018    2.66034  -14.77   &lt;2e-16 ***
+Abdomen       0.63130    0.02855   22.11   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 4.877 on 250 degrees of freedom
+Multiple R-squared:  0.6617,    Adjusted R-squared:  0.6603 
+F-statistic: 488.9 on 1 and 250 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
 </section>
-<section id="random-intercepts-model-2" class="slide level2">
-<h2>Random Intercepts Model</h2>
-<p>In case of linear regression, the likelihood is <span class="math display">\[
-\prod_{ij} N(\mu_{ij},\sigma^2)
-\]</span> <span class="math display">\[
-\mu_{ij} = \beta_0 + b_i + \beta_1 X_{ij}
+<section id="classical-linear-regression-1" class="slide level2">
+<h2>Classical Linear Regression</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a></a><span class="fu">plot</span>(bodyfat<span class="sc">$</span>Abdomen, bodyfat<span class="sc">$</span>Bodyfat, <span class="at">pch=</span><span class="dv">16</span>)</span>
+<span id="cb6-2"><a></a><span class="fu">abline</span>(bodyfat.lm, <span class="at">col=</span><span class="st">"red"</span>, <span class="at">lwd=</span><span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-3-1.png" width="960" class="r-stretch"></section>
+<section id="bayesian-simple-linear-regression-using-the-reference-prior" class="slide level2 smaller">
+<h2>Bayesian Simple Linear Regression Using the Reference Prior</h2>
+<p>Likelihood: <span class="math display">\[
+Y_i~|~x_i, \alpha, \beta,\sigma^2~ \sim~ \textsf{Normal}(\alpha + \beta x_i, \sigma^2),\qquad i = 1,\cdots, n.
+\]</span> Priors: <span class="math display">\[
+p(\alpha,\beta \mid \sigma^2) \propto 1, \quad p(\sigma^2) \propto 1/\sigma^2.
+\]</span> Posterior: <span class="math display">\[
+\beta~|~y_1,\cdots,y_n ~\sim~ \textsf{t}\left(n-2,\ \hat{\beta},\ \frac{\hat{\sigma}^2}{\text{S}_{xx}}\right) = \textsf{t}\left(n-2,\  \hat{\beta},\ (\text{se}_{\beta})^2\right)
+\]</span> <span class="math inline">\(\hat{\beta}\)</span> and <span class="math inline">\(\hat{\beta},\ (\text{se}_{\beta})^2\)</span> are MLE estimates! For derivation, see Section 6.1.4 of <a href="https://statswithr.github.io/book/">An Introduction to Bayesian Thinking</a></p>
+<p>The Bayesian posterior credible intervals for <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\beta\)</span> under the reference prior, are numerically equivalent to the confidence intervals from the classical frequentist OLS analysis!</p>
+</section>
+<section id="plot" class="slide level2">
+<h2>Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a></a>ind <span class="ot">=</span> <span class="fu">order</span>(bodyfat<span class="sc">$</span>Abdomen)</span>
+<span id="cb7-2"><a></a>x <span class="ot">=</span> bodyfat<span class="sc">$</span>Abdomen[ind]</span>
+<span id="cb7-3"><a></a>df <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">Abdomen =</span> x)</span>
+<span id="cb7-4"><a></a>ymean <span class="ot">=</span> <span class="fu">predict</span>(bodyfat.lm, <span class="at">newdata =</span> df, <span class="at">interval =</span> <span class="st">"confidence"</span>)</span>
+<span id="cb7-5"><a></a>ypred <span class="ot">=</span> <span class="fu">predict</span>(bodyfat.lm, <span class="at">newdata =</span> df, <span class="at">interval =</span> <span class="st">"prediction"</span>)</span>
+<span id="cb7-6"><a></a><span class="fu">plot</span>(bodyfat<span class="sc">$</span>Abdomen, bodyfat<span class="sc">$</span>Bodyfat, <span class="at">pch=</span><span class="dv">16</span>)</span>
+<span id="cb7-7"><a></a><span class="fu">lines</span>(x, ymean[,<span class="dv">1</span>], <span class="at">col=</span><span class="st">"red"</span>, <span class="at">lwd=</span><span class="dv">3</span>)</span>
+<span id="cb7-8"><a></a><span class="fu">lines</span>(x, ymean[,<span class="dv">2</span>], <span class="at">col=</span><span class="st">"grey"</span>, <span class="at">lty=</span><span class="dv">2</span>)</span>
+<span id="cb7-9"><a></a><span class="fu">lines</span>(x, ymean[,<span class="dv">3</span>], <span class="at">col=</span><span class="st">"grey"</span>, <span class="at">lty=</span><span class="dv">2</span>)</span>
+<span id="cb7-10"><a></a><span class="fu">lines</span>(x, ypred[,<span class="dv">2</span>], <span class="at">col=</span><span class="st">"blue"</span>, <span class="at">lty=</span><span class="dv">2</span>)</span>
+<span id="cb7-11"><a></a><span class="fu">lines</span>(x, ypred[,<span class="dv">3</span>], <span class="at">col=</span><span class="st">"blue"</span>, <span class="at">lty=</span><span class="dv">2</span>)</span>
+<span id="cb7-12"><a></a>labels <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"Data"</span>, <span class="st">"Mean"</span>, <span class="st">"Confidence"</span>, <span class="st">"Prediction"</span>)</span>
+<span id="cb7-13"><a></a><span class="fu">legend</span>(<span class="st">"topleft"</span>, <span class="at">legend =</span> labels, <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"black"</span>, <span class="st">"red"</span>, <span class="st">"grey"</span>, <span class="st">"blue"</span>), <span class="at">lty =</span> <span class="fu">c</span>(<span class="cn">NA</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">2</span>), <span class="at">lwd =</span> <span class="fu">c</span>(<span class="cn">NA</span>, <span class="dv">3</span>, <span class="dv">1</span>, <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-4-1.png" width="960" class="r-stretch"></section>
+<section id="informative-priors" class="slide level2">
+<h2>Informative Priors</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a></a><span class="fu">library</span>(brms)</span>
+<span id="cb8-2"><a></a>priors <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb8-3"><a></a>  <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>), <span class="at">class =</span> <span class="st">"b"</span>),       <span class="co"># Prior for coefficients (slope)</span></span>
+<span id="cb8-4"><a></a>  <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">25</span>), <span class="at">class =</span> <span class="st">"Intercept"</span>), <span class="co"># Prior for the intercept</span></span>
+<span id="cb8-5"><a></a>  <span class="fu">prior</span>(<span class="fu">student_t</span>(<span class="dv">3</span>, <span class="dv">0</span>, <span class="dv">100</span>), <span class="at">class =</span> <span class="st">"sigma"</span>) <span class="co"># Prior for the residual standard deviation</span></span>
+<span id="cb8-6"><a></a>)</span>
+<span id="cb8-7"><a></a>bodyfat.brms <span class="ot">=</span> <span class="fu">brm</span>(Bodyfat <span class="sc">~</span> Abdomen, <span class="at">data =</span> bodyfat,<span class="at">family =</span> <span class="fu">gaussian</span>(),<span class="at">prior =</span> priors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 1).
+Chain 1: 
+Chain 1: Gradient evaluation took 4e-05 seconds
+Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.4 seconds.
+Chain 1: Adjust your expectations accordingly!
+Chain 1: 
+Chain 1: 
+Chain 1: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 1: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 1: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 1: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 1: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 1: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 1: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 1: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 1: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 1: 
+Chain 1:  Elapsed Time: 0.018 seconds (Warm-up)
+Chain 1:                0.011 seconds (Sampling)
+Chain 1:                0.029 seconds (Total)
+Chain 1: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 2).
+Chain 2: 
+Chain 2: Gradient evaluation took 2e-06 seconds
+Chain 2: 1000 transitions using 10 leapfrog steps per transition would take 0.02 seconds.
+Chain 2: Adjust your expectations accordingly!
+Chain 2: 
+Chain 2: 
+Chain 2: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 2: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 2: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 2: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 2: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 2: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 2: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 2: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 2: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 2: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 2: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 2: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 2: 
+Chain 2:  Elapsed Time: 0.017 seconds (Warm-up)
+Chain 2:                0.011 seconds (Sampling)
+Chain 2:                0.028 seconds (Total)
+Chain 2: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 3).
+Chain 3: 
+Chain 3: Gradient evaluation took 2e-06 seconds
+Chain 3: 1000 transitions using 10 leapfrog steps per transition would take 0.02 seconds.
+Chain 3: Adjust your expectations accordingly!
+Chain 3: 
+Chain 3: 
+Chain 3: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 3: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 3: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 3: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 3: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 3: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 3: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 3: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 3: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 3: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 3: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 3: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 3: 
+Chain 3:  Elapsed Time: 0.018 seconds (Warm-up)
+Chain 3:                0.013 seconds (Sampling)
+Chain 3:                0.031 seconds (Total)
+Chain 3: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 4).
+Chain 4: 
+Chain 4: Gradient evaluation took 2e-06 seconds
+Chain 4: 1000 transitions using 10 leapfrog steps per transition would take 0.02 seconds.
+Chain 4: Adjust your expectations accordingly!
+Chain 4: 
+Chain 4: 
+Chain 4: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 4: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 4: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 4: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 4: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 4: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 4: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 4: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 4: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 4: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 4: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 4: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 4: 
+Chain 4:  Elapsed Time: 0.018 seconds (Warm-up)
+Chain 4:                0.013 seconds (Sampling)
+Chain 4:                0.031 seconds (Total)
+Chain 4: </code></pre>
+</div>
+</div>
+</section>
+<section id="summary" class="slide level2">
+<h2>Summary</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a></a><span class="fu">summary</span>(bodyfat.brms)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code> Family: gaussian 
+  Links: mu = identity; sigma = identity 
+Formula: Bodyfat ~ Abdomen 
+   Data: bodyfat (Number of observations: 252) 
+  Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+         total post-warmup draws = 4000
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept   -39.29      2.66   -44.44   -34.12 1.00     3977     2351
+Abdomen       0.63      0.03     0.58     0.69 1.00     3917     2357
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sigma     4.90      0.22     4.50     5.37 1.00     4097     2440
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+</div>
+</div>
+</section>
+<section id="plot-1" class="slide level2">
+<h2>Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a></a><span class="fu">pp_check</span>(bodyfat.brms, <span class="at">ndraws =</span> <span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-6-1.png" width="960" class="r-stretch"></section>
+<section id="plot-all-parameters" class="slide level2">
+<h2>Plot all parameters</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a></a><span class="fu">plot</span>(bodyfat.brms)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-7-1.png" width="960" class="r-stretch"></section>
+<section id="plot-predictions" class="slide level2">
+<h2>Plot Predictions</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a></a>new_data <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">Abdomen =</span> x)</span>
+<span id="cb14-2"><a></a>predictions <span class="ot">=</span> <span class="fu">posterior_predict</span>(bodyfat.brms, <span class="at">newdata =</span> new_data)</span>
+<span id="cb14-3"><a></a>quntiles <span class="ot">=</span> <span class="fu">apply</span>(predictions, <span class="dv">2</span>, <span class="cf">function</span>(x) <span class="fu">quantile</span>(x, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.5</span>,<span class="fl">0.975</span>)))</span>
+<span id="cb14-4"><a></a><span class="fu">plot</span>(bodyfat<span class="sc">$</span>Abdomen, bodyfat<span class="sc">$</span>Bodyfat, <span class="at">pch=</span><span class="dv">16</span>)</span>
+<span id="cb14-5"><a></a><span class="fu">lines</span>(x, quntiles[<span class="dv">1</span>,], <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb14-6"><a></a><span class="fu">lines</span>(x, quntiles[<span class="dv">3</span>,], <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb14-7"><a></a><span class="fu">lines</span>(x, quntiles[<span class="dv">2</span>,], <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lwd =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-8-1.png" width="960" class="r-stretch"></section>
+<section id="small-data-example" class="slide level2">
+<h2>Small Data Example</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a></a><span class="fu">set.seed</span>(<span class="dv">7</span>)</span>
+<span id="cb15-2"><a></a>true_intercept <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb15-3"><a></a>true_slope <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb15-4"><a></a>true_sigma <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb15-5"><a></a></span>
+<span id="cb15-6"><a></a><span class="co"># Number of data points (intentionally small)</span></span>
+<span id="cb15-7"><a></a>n_data <span class="ot">&lt;-</span> <span class="dv">15</span></span>
+<span id="cb15-8"><a></a></span>
+<span id="cb15-9"><a></a><span class="co"># Generate predictor (x)</span></span>
+<span id="cb15-10"><a></a>x <span class="ot">&lt;-</span> <span class="fu">runif</span>(n_data, <span class="at">min =</span> <span class="sc">-</span><span class="dv">5</span>, <span class="at">max =</span> <span class="dv">5</span>)</span>
+<span id="cb15-11"><a></a></span>
+<span id="cb15-12"><a></a><span class="co"># Generate outcome (y) with noise</span></span>
+<span id="cb15-13"><a></a>y <span class="ot">&lt;-</span> true_intercept <span class="sc">+</span> true_slope <span class="sc">*</span> x <span class="sc">+</span> <span class="fu">rnorm</span>(n_data, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> true_sigma)</span>
+<span id="cb15-14"><a></a></span>
+<span id="cb15-15"><a></a><span class="co"># Combine into a data frame</span></span>
+<span id="cb15-16"><a></a>sim_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x =</span> x, <span class="at">y =</span> y)</span>
+<span id="cb15-17"><a></a><span class="fu">plot</span>(x, y, <span class="at">pch =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-9-1.png" width="960" class="r-stretch"></section>
+<section id="classical-linear-regression-2" class="slide level2">
+<h2>Classical Linear Regression</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a></a>ols_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> x, <span class="at">data =</span> sim_data)</span>
+<span id="cb16-2"><a></a><span class="fu">summary</span>(ols_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = y ~ x, data = sim_data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-6.0837 -1.5346 -0.8869  1.9904  4.4709 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)   3.5984     0.7468   4.818 0.000336 ***
+x             1.6563     0.2350   7.047 8.71e-06 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2.795 on 13 degrees of freedom
+Multiple R-squared:  0.7925,    Adjusted R-squared:  0.7766 
+F-statistic: 49.66 on 1 and 13 DF,  p-value: 8.712e-06</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a></a>x_vals <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fu">min</span>(sim_data<span class="sc">$</span>x), <span class="fu">max</span>(sim_data<span class="sc">$</span>x), <span class="at">length.out =</span> <span class="dv">100</span>)</span>
+<span id="cb18-2"><a></a></span>
+<span id="cb18-3"><a></a><span class="co"># Get OLS predictions</span></span>
+<span id="cb18-4"><a></a>ols_predictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(ols_model, <span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="at">x =</span> x_vals), <span class="at">interval =</span> <span class="st">"confidence"</span>)</span>
+<span id="cb18-5"><a></a>ols_predictions <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(ols_predictions) <span class="co"># Convert to data frame</span></span>
+<span id="cb18-6"><a></a>ols_predictions<span class="sc">$</span>x <span class="ot">&lt;-</span> x_vals</span>
+<span id="cb18-7"><a></a><span class="fu">plot</span>(x, y, <span class="at">pch =</span> <span class="dv">16</span>)</span>
+<span id="cb18-8"><a></a><span class="fu">lines</span>(x_vals,ols_predictions<span class="sc">$</span>fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/simols-1.png" width="960" class="r-stretch"></section>
+<section id="bayesian-linear-regression" class="slide level2">
+<h2>Bayesian Linear Regression</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a></a>priors <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb19-2"><a></a>  <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">5</span>, <span class="dv">1</span>), <span class="at">class =</span> <span class="st">"Intercept"</span>),  <span class="co"># Prior for intercept</span></span>
+<span id="cb19-3"><a></a>  <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">2</span>, <span class="dv">1</span>), <span class="at">class =</span> <span class="st">"b"</span>),       <span class="co"># Prior for slope</span></span>
+<span id="cb19-4"><a></a>  <span class="fu">prior</span>(<span class="fu">student_t</span>(<span class="dv">3</span>, <span class="dv">0</span>, <span class="dv">5</span>), <span class="at">class =</span> <span class="st">"sigma"</span>) <span class="co"># Prior for sigma (wider than the true value)</span></span>
+<span id="cb19-5"><a></a>)</span>
+<span id="cb19-6"><a></a></span>
+<span id="cb19-7"><a></a><span class="co"># Fit the Bayesian model using brms</span></span>
+<span id="cb19-8"><a></a>bayes_model <span class="ot">&lt;-</span> <span class="fu">brm</span>(y <span class="sc">~</span> x,<span class="at">data =</span> sim_data,<span class="at">family =</span> <span class="fu">gaussian</span>(),<span class="at">prior =</span> priors,<span class="at">seed =</span> <span class="dv">123</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 1).
+Chain 1: 
+Chain 1: Gradient evaluation took 3.4e-05 seconds
+Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.34 seconds.
+Chain 1: Adjust your expectations accordingly!
+Chain 1: 
+Chain 1: 
+Chain 1: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 1: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 1: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 1: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 1: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 1: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 1: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 1: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 1: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 1: 
+Chain 1:  Elapsed Time: 0.014 seconds (Warm-up)
+Chain 1:                0.01 seconds (Sampling)
+Chain 1:                0.024 seconds (Total)
+Chain 1: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 2).
+Chain 2: 
+Chain 2: Gradient evaluation took 2e-06 seconds
+Chain 2: 1000 transitions using 10 leapfrog steps per transition would take 0.02 seconds.
+Chain 2: Adjust your expectations accordingly!
+Chain 2: 
+Chain 2: 
+Chain 2: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 2: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 2: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 2: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 2: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 2: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 2: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 2: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 2: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 2: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 2: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 2: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 2: 
+Chain 2:  Elapsed Time: 0.013 seconds (Warm-up)
+Chain 2:                0.011 seconds (Sampling)
+Chain 2:                0.024 seconds (Total)
+Chain 2: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 3).
+Chain 3: 
+Chain 3: Gradient evaluation took 2e-06 seconds
+Chain 3: 1000 transitions using 10 leapfrog steps per transition would take 0.02 seconds.
+Chain 3: Adjust your expectations accordingly!
+Chain 3: 
+Chain 3: 
+Chain 3: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 3: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 3: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 3: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 3: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 3: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 3: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 3: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 3: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 3: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 3: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 3: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 3: 
+Chain 3:  Elapsed Time: 0.015 seconds (Warm-up)
+Chain 3:                0.012 seconds (Sampling)
+Chain 3:                0.027 seconds (Total)
+Chain 3: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 4).
+Chain 4: 
+Chain 4: Gradient evaluation took 2e-06 seconds
+Chain 4: 1000 transitions using 10 leapfrog steps per transition would take 0.02 seconds.
+Chain 4: Adjust your expectations accordingly!
+Chain 4: 
+Chain 4: 
+Chain 4: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 4: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 4: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 4: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 4: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 4: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 4: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 4: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 4: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 4: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 4: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 4: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 4: 
+Chain 4:  Elapsed Time: 0.015 seconds (Warm-up)
+Chain 4:                0.01 seconds (Sampling)
+Chain 4:                0.025 seconds (Total)
+Chain 4: </code></pre>
+</div>
+</div>
+</section>
+<section id="summary-1" class="slide level2">
+<h2>Summary</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a></a><span class="fu">summary</span>(bayes_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code> Family: gaussian 
+  Links: mu = identity; sigma = identity 
+Formula: y ~ x 
+   Data: sim_data (Number of observations: 15) 
+  Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+         total post-warmup draws = 4000
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept     4.71      0.73     3.36     6.20 1.00     2856     2479
+x             1.68      0.26     1.16     2.21 1.00     2984     2130
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sigma     3.22      0.72     2.17     5.00 1.00     2474     2322
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+</div>
+</div>
+</section>
+<section id="plot-2" class="slide level2">
+<h2>Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb23-2"><a></a>bayes_estimates <span class="ot">&lt;-</span> <span class="fu">summary</span>(bayes_model)<span class="sc">$</span>fixed</span>
+<span id="cb23-3"><a></a><span class="fu">print</span>(<span class="st">"Bayesian Estimates:"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Bayesian Estimates:"</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a></a><span class="fu">print</span>(bayes_estimates)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>          Estimate Est.Error l-95% CI u-95% CI     Rhat Bulk_ESS Tail_ESS
+Intercept 4.712777 0.7325443 3.358504 6.198919 1.001263 2855.809 2478.723
+x         1.680288 0.2634961 1.161723 2.207987 1.001100 2984.003 2129.753</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a></a><span class="co"># Get Bayesian predictions (posterior draws of the expected value, epred)</span></span>
+<span id="cb27-2"><a></a>bayes_predictions <span class="ot">&lt;-</span> <span class="fu">posterior_epred</span>(bayes_model, <span class="at">newdata =</span> <span class="fu">data.frame</span>(<span class="at">x =</span> x_vals))</span>
+<span id="cb27-3"><a></a>quntiles <span class="ot">=</span> <span class="fu">apply</span>(bayes_predictions, <span class="dv">2</span>, <span class="cf">function</span>(x) <span class="fu">quantile</span>(x, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.5</span>,<span class="fl">0.975</span>)))</span>
+<span id="cb27-4"><a></a>bayes_pred_summary<span class="ot">=</span> <span class="fu">as.data.frame</span>(<span class="fu">t</span>(quntiles)) <span class="co">#col.names=c("lwr","med","upr")</span></span>
+<span id="cb27-5"><a></a><span class="fu">colnames</span>(bayes_pred_summary) <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"lower"</span>,<span class="st">"med"</span>,<span class="st">"upper"</span>)</span>
+<span id="cb27-6"><a></a>bayes_pred_summary<span class="sc">$</span>x <span class="ot">&lt;-</span> x_vals</span>
+<span id="cb27-7"><a></a></span>
+<span id="cb27-8"><a></a><span class="co"># Plot the data, OLS fit, and Bayesian fit</span></span>
+<span id="cb27-9"><a></a><span class="fu">ggplot</span>(sim_data) <span class="sc">+</span></span>
+<span id="cb27-10"><a></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> y),<span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb27-11"><a></a>  <span class="co"># True regression line (for comparison)</span></span>
+<span id="cb27-12"><a></a>  <span class="fu">geom_abline</span>(<span class="at">intercept =</span> true_intercept, <span class="at">slope =</span> true_slope, <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb27-13"><a></a>  <span class="co"># OLS regression line and confidence interval</span></span>
+<span id="cb27-14"><a></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> ols_predictions, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> fit), <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb27-15"><a></a>  <span class="fu">geom_ribbon</span>(<span class="at">data =</span> ols_predictions, <span class="fu">aes</span>(<span class="at">x=</span>x, <span class="at">ymin =</span> lwr, <span class="at">ymax =</span> upr), <span class="at">fill =</span> <span class="st">"red"</span>, <span class="at">alpha =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb27-16"><a></a>  <span class="co"># Bayesian regression line and credible interval</span></span>
+<span id="cb27-17"><a></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> bayes_pred_summary, <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> med), <span class="at">color =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
+<span id="cb27-18"><a></a>  <span class="fu">geom_ribbon</span>(<span class="at">data =</span> bayes_pred_summary, <span class="fu">aes</span>(<span class="at">x=</span>x, <span class="at">ymin =</span> lower, <span class="at">ymax =</span> upper), <span class="at">fill =</span> <span class="st">"blue"</span>, <span class="at">alpha =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb27-19"><a></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Bayesian vs. OLS Regression (Small Sample Size)"</span>,</span>
+<span id="cb27-20"><a></a>       <span class="at">x =</span> <span class="st">"Predictor (x)"</span>,</span>
+<span id="cb27-21"><a></a>       <span class="at">y =</span> <span class="st">"Outcome (y)"</span>) <span class="sc">+</span></span>
+<span id="cb27-22"><a></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/simplot-1.png" width="960" class="r-stretch"></section>
+<section id="sparsity-inducing-prior" class="slide level2">
+<h2>Sparsity Inducing Prior</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a></a><span class="co"># Simulate data with some true coefficients and some noise</span></span>
+<span id="cb28-2"><a></a><span class="fu">set.seed</span>(<span class="dv">7</span>)  <span class="co"># For reproducibility</span></span>
+<span id="cb28-3"><a></a>n <span class="ot">&lt;-</span> <span class="dv">100</span>        <span class="co"># Number of observations</span></span>
+<span id="cb28-4"><a></a>p <span class="ot">&lt;-</span> <span class="dv">20</span>         <span class="co"># Number of predictors (some relevant, some not)</span></span>
+<span id="cb28-5"><a></a>true_beta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">5</span>, <span class="sc">-</span><span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>) <span class="co"># Only first 3 are truly non-zero</span></span>
+<span id="cb28-6"><a></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n <span class="sc">*</span> p), n, p)</span>
+<span id="cb28-7"><a></a>y <span class="ot">&lt;-</span> X <span class="sc">%*%</span> true_beta <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, <span class="dv">5</span>) <span class="co"># Adding noise</span></span>
+<span id="cb28-8"><a></a><span class="co"># Fit a standard linear regression (OLS)</span></span>
+<span id="cb28-9"><a></a>ols_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> X<span class="dv">-1</span>)</span>
+<span id="cb28-10"><a></a></span>
+<span id="cb28-11"><a></a><span class="co"># Fit a Bayesian linear regression with shrinkage (using the 'BAS' package)</span></span>
+<span id="cb28-12"><a></a><span class="co"># Install if you don't have it: install.packages("BAS")</span></span>
+<span id="cb28-13"><a></a><span class="fu">library</span>(BAS)</span>
+<span id="cb28-14"><a></a></span>
+<span id="cb28-15"><a></a><span class="co"># Define prior (we'll use a g-prior which is common for shrinkage)</span></span>
+<span id="cb28-16"><a></a><span class="co"># 'gprior' is common for shrinkage</span></span>
+<span id="cb28-17"><a></a><span class="co"># 'bic' is another option that often works well</span></span>
+<span id="cb28-18"><a></a><span class="co"># 'hyper-g' is another good choice</span></span>
+<span id="cb28-19"><a></a>bas_model <span class="ot">&lt;-</span> <span class="fu">bas.lm</span>(y <span class="sc">~</span> X<span class="dv">-1</span>, <span class="at">prior =</span> <span class="st">"g-prior"</span>, <span class="at">modelprior =</span> <span class="fu">uniform</span>())</span>
+<span id="cb28-20"><a></a></span>
+<span id="cb28-21"><a></a><span class="co"># Examine coefficients</span></span>
+<span id="cb28-22"><a></a>ols_coef <span class="ot">&lt;-</span> <span class="fu">coef</span>(ols_model)</span>
+<span id="cb28-23"><a></a>bas_coef <span class="ot">&lt;-</span> <span class="fu">coefficients</span>(bas_model) <span class="co"># These are *posterior means*</span></span>
+<span id="cb28-24"><a></a></span>
+<span id="cb28-25"><a></a><span class="co"># Plot the coefficients to visualize shrinkage</span></span>
+<span id="cb28-26"><a></a><span class="fu">plot</span>(<span class="dv">1</span><span class="sc">:</span>p, true_beta, <span class="at">type =</span> <span class="st">"h"</span>, <span class="at">ylab =</span> <span class="st">"Coefficient Value"</span>, <span class="at">xlab =</span> <span class="st">"Predictor"</span>, <span class="at">main =</span> <span class="st">"True Coefficients"</span>)</span>
+<span id="cb28-27"><a></a><span class="fu">points</span>(<span class="dv">1</span><span class="sc">:</span>p, ols_coef, <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">pch =</span> <span class="dv">16</span>) <span class="co"># OLS</span></span>
+<span id="cb28-28"><a></a><span class="fu">points</span>(<span class="dv">1</span><span class="sc">:</span>p, bas_coef<span class="sc">$</span>postmean, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">pch =</span> <span class="dv">16</span>) <span class="co"># Bayesian</span></span>
+<span id="cb28-29"><a></a><span class="fu">abline</span>(<span class="at">h =</span> <span class="dv">0</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb28-30"><a></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"True"</span>, <span class="st">"OLS"</span>, <span class="st">"Bayesian"</span>), <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"black"</span>, <span class="st">"red"</span>, <span class="st">"blue"</span>), <span class="at">pch =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/sparsityprior-1.png" width="960" class="r-stretch"></section>
+<section id="what-are-random-intercepts-models" class="slide level2">
+<h2>What are Random Intercepts Models?</h2>
+<ul>
+<li>Extension of Linear Regression: Deals with <em>clustered</em> or <em>hierarchical</em> data.</li>
+<li>Clustered Data: Observations are grouped within clusters (e.g., students within schools, patients within hospitals, measurements over time within individuals).</li>
+<li>Problem with Standard Regression: Ignores the clustering, leading to:
+<ul>
+<li>Underestimated standard errors (and thus, inflated Type I error rates - false positives).</li>
+<li>Incorrect conclusions about the significance of predictors.</li>
+</ul></li>
+<li>Random Intercepts: Assume each cluster has its own <em>intercept</em>, which is drawn from a distribution (usually normal). This accounts for between-cluster variability.</li>
+</ul>
+</section>
+<section id="the-model-equation" class="slide level2">
+<h2>The Model Equation</h2>
+<ul>
+<li><p>Level 1 (Individual Level):</p>
+<p><span class="math display">\[
+  y_{ij} = \beta_{0j} + \beta_1x_{ij} + \epsilon_{ij}
+  \]</span></p>
+<ul>
+<li><span class="math inline">\(y_{ij}\)</span>: Outcome for individual <span class="math inline">\(i\)</span> in cluster <span class="math inline">\(j\)</span>.</li>
+<li><span class="math inline">\(x_{ij}\)</span>: Predictor for individual <span class="math inline">\(i\)</span> in cluster <span class="math inline">\(j\)</span>.</li>
+<li><span class="math inline">\(\beta_{0j}\)</span>: Intercept for cluster <span class="math inline">\(j\)</span>.</li>
+<li><span class="math inline">\(\beta_1\)</span>: Effect of <span class="math inline">\(x\)</span> (assumed to be <em>fixed</em> - the same across all clusters).</li>
+<li><span class="math inline">\(\epsilon_{ij}\)</span>: Individual-level error, <span class="math inline">\(\epsilon_{ij} \sim N(0, \sigma^2_e)\)</span>.</li>
+</ul></li>
+</ul>
+</section>
+<section id="level-2-cluster-level" class="slide level2">
+<h2>Level 2 (Cluster Level)</h2>
+<p><span class="math display">\[
+\beta_{0j} = \gamma + u_{j}
 \]</span></p>
+<ul>
+<li><p><span class="math inline">\(\gamma\)</span>: Overall average intercept.</p></li>
+<li><p><span class="math inline">\(u_{j}\)</span>: Random effect (deviation) of cluster <span class="math inline">\(j\)</span>’s intercept from the overall average, <span class="math inline">\(u_{j} \sim N(0, \sigma^2_u)\)</span>.</p></li>
+<li><p><strong>Combined Equation:</strong></p>
+<p><span class="math display">\[
+  y_{ij} = (\gamma+ u_{j}) + \beta_1x_{ij}  + \epsilon_{ij}
+  \]</span></p></li>
+</ul>
 </section>
+<section id="key-parameters-interpretation" class="slide level2">
+<h2>Key Parameters &amp; Interpretation</h2>
+<ul>
+<li><span class="math inline">\(\gamma\)</span> (Fixed Intercept): The average outcome when the predictor <span class="math inline">\(x\)</span> is zero (and across all clusters).</li>
+<li><span class="math inline">\(\beta_1\)</span> (Fixed Slope): The change in the outcome for a one-unit increase in <span class="math inline">\(x\)</span>, <em>within</em> any given cluster.</li>
+<li><span class="math inline">\(\sigma^2_u\)</span> (Random Intercept Variance): The variance of the cluster-specific intercepts. Indicates the amount of between-cluster variability. A larger <span class="math inline">\(\sigma^2_u\)</span> means more variation between clusters.</li>
+<li><span class="math inline">\(\sigma^2_e\)</span> (Residual Variance): The variance of the individual-level errors. Indicates within-cluster variability.</li>
+<li>Intraclass Correlation Coefficient (ICC):
+<ul>
+<li><span class="math inline">\(ICC = \sigma^2_u / (\sigma^2_u + \sigma^2_e)\)</span></li>
+<li>Represents the proportion of total variance that is due to between-cluster differences. Ranges from 0 to 1. Higher ICC means more clustering.</li>
+</ul></li>
+</ul>
+</section>
+<section id="example-student-test-scores-in-schools" class="slide level2">
+<h2>Example: Student Test Scores in Schools</h2>
+<ul>
+<li><strong>Data:</strong> We have data on student test scores (<span class="math inline">\(score\)</span>) and a student-level predictor (e.g., hours of study, <span class="math inline">\(studyhours\)</span>). Students are nested within schools.</li>
+<li><strong>Research Question:</strong> Does the number of study hours predict test scores, accounting for the fact that students are clustered within schools?</li>
+<li><strong>Model:</strong>
+<ul>
+<li><span class="math inline">\(score_{ij} = \gamma + \beta_1(studyhours)_{ij} + u_{j} + \epsilon_{ij}\)</span></li>
+<li><span class="math inline">\(u_{j} \sim N(0, \sigma^2_u)\)</span></li>
+<li><span class="math inline">\(\epsilon_{ij} \sim N(0, \sigma^2_e)\)</span></li>
+</ul></li>
+</ul>
+</section>
+<section id="r-demonstration---setup-and-data" class="slide level2">
+<h2>R Demonstration - Setup and Data</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a></a><span class="co"># Install and load necessary packages</span></span>
+<span id="cb29-2"><a></a><span class="fu">library</span>(lme4)</span>
+<span id="cb29-3"><a></a><span class="fu">library</span>(lmerTest)</span>
+<span id="cb29-4"><a></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb29-5"><a></a></span>
+<span id="cb29-6"><a></a><span class="co"># Create some simulated data (for reproducibility)</span></span>
+<span id="cb29-7"><a></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb29-8"><a></a>n_schools <span class="ot">&lt;-</span> <span class="dv">30</span>  <span class="co"># Number of schools</span></span>
+<span id="cb29-9"><a></a>n_students_per_school <span class="ot">&lt;-</span> <span class="dv">20</span> <span class="co"># Students per school</span></span>
+<span id="cb29-10"><a></a>n_total <span class="ot">&lt;-</span> n_schools <span class="sc">*</span> n_students_per_school</span>
+<span id="cb29-11"><a></a></span>
+<span id="cb29-12"><a></a>school_effects <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_schools, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">2</span>) <span class="co"># School random effects</span></span>
+<span id="cb29-13"><a></a>student_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb29-14"><a></a>  <span class="at">school_id =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_schools, <span class="at">each =</span> n_students_per_school),</span>
+<span id="cb29-15"><a></a>  <span class="at">studyhours =</span> <span class="fu">rnorm</span>(n_total, <span class="at">mean =</span> <span class="dv">10</span>, <span class="at">sd =</span> <span class="dv">3</span>),</span>
+<span id="cb29-16"><a></a>  <span class="at">error =</span> <span class="fu">rnorm</span>(n_total, <span class="at">mean=</span><span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">1</span>)</span>
+<span id="cb29-17"><a></a>)</span>
+<span id="cb29-18"><a></a></span>
+<span id="cb29-19"><a></a><span class="co"># Generate scores based on the model</span></span>
+<span id="cb29-20"><a></a>student_data<span class="sc">$</span>score <span class="ot">&lt;-</span> <span class="dv">50</span> <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> student_data<span class="sc">$</span>studyhours <span class="sc">+</span></span>
+<span id="cb29-21"><a></a>                     school_effects[student_data<span class="sc">$</span>school_id] <span class="sc">+</span> student_data<span class="sc">$</span>error</span>
+<span id="cb29-22"><a></a><span class="fu">head</span>(student_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>  school_id studyhours      error    score
+1         1  11.279393 -0.6785031 65.11963
+2         1   9.114786 -1.8555717 60.69566
+3         1  12.685377  0.5332594 68.44037
+4         1  12.634400  0.3102303 68.14088
+5         1  12.464743 -1.3538343 66.22233
+6         1  12.065921 -1.9429564 65.03497</code></pre>
+</div>
+</div>
+</section>
+<section id="plot-3" class="slide level2">
+<h2>Plot</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a></a><span class="co"># Plot the data and use school_id for color and add a linear model to fit the data for each school</span></span>
+<span id="cb31-2"><a></a><span class="fu">ggplot</span>(student_data, <span class="fu">aes</span>(<span class="at">x =</span> studyhours, <span class="at">y =</span> score, <span class="at">color =</span> <span class="fu">as.factor</span>(school_id))) <span class="sc">+</span></span>
+<span id="cb31-3"><a></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb31-4"><a></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb31-5"><a></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-11-1.png" width="960" class="r-stretch"></section>
+<section id="r-demonstration---fit-the-model" class="slide level2">
+<h2>R Demonstration - Fit the Model</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a></a><span class="co"># Fit the random intercepts model using lmer()</span></span>
+<span id="cb32-2"><a></a>model <span class="ot">&lt;-</span> <span class="fu">lmer</span>(score <span class="sc">~</span> studyhours <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> school_id), <span class="at">data =</span> student_data)</span>
+<span id="cb32-3"><a></a></span>
+<span id="cb32-4"><a></a><span class="co"># View the model summary</span></span>
+<span id="cb32-5"><a></a><span class="fu">summary</span>(model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Linear mixed model fit by REML. t-tests use Satterthwaite's method [
+lmerModLmerTest]
+Formula: score ~ studyhours + (1 | school_id)
+   Data: student_data
+
+REML criterion at convergence: 1846.4
+
+Scaled residuals: 
+     Min       1Q   Median       3Q      Max 
+-2.71647 -0.68621  0.01679  0.64918  2.99847 
+
+Random effects:
+ Groups    Name        Variance Std.Dev.
+ school_id (Intercept) 3.845    1.961   
+ Residual              1.014    1.007   
+Number of obs: 600, groups:  school_id, 30
+
+Fixed effects:
+             Estimate Std. Error        df t value Pr(&gt;|t|)    
+(Intercept)  49.84593    0.38800  38.91559   128.5   &lt;2e-16 ***
+studyhours    1.50785    0.01432 569.50545   105.3   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Correlation of Fixed Effects:
+           (Intr)
+studyhours -0.371</code></pre>
+</div>
+</div>
+</section>
+<section id="r-demonstration---interpreting-the-output" class="slide level2">
+<h2>R Demonstration - Interpreting the Output</h2>
+<ul>
+<li><strong>Fixed Effects:</strong>
+<ul>
+<li>Intercept <span class="math inline">\((\gamma)\)</span>: Estimated average score when <span class="math inline">\(studyhours\)</span> is 0.</li>
+<li>studyhours <span class="math inline">\((\beta_1)\)</span>: Estimated increase in score for each additional hour of study. The p-value indicates if this effect is statistically significant.</li>
+</ul></li>
+<li><strong>Random Effects:</strong>
+<ul>
+<li>Variance (school_id) <span class="math inline">\(\sigma^2_u\)</span>: Estimated variance of the school-specific intercepts.</li>
+<li>Variance (Residual) <span class="math inline">\(\sigma^2_e\)</span>: Estimated variance of the individual-level errors.</li>
+</ul></li>
+</ul>
+</section>
+<section id="icc-calculation" class="slide level2">
+<h2>ICC Calculation*</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a></a><span class="fu">VarCorr</span>(model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> Groups    Name        Std.Dev.
+ school_id (Intercept) 1.9609  
+ Residual              1.0072  </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a></a>sigma2u <span class="ot">&lt;-</span> <span class="fl">2.384</span>   <span class="co">#From the output of VarCorr(model), school_id variance</span></span>
+<span id="cb36-2"><a></a>sigma2e <span class="ot">&lt;-</span> <span class="fl">0.962</span>   <span class="co">#From the output of VarCorr(model), residual variance</span></span>
+<span id="cb36-3"><a></a>icc <span class="ot">&lt;-</span> sigma2u <span class="sc">/</span> (sigma2u <span class="sc">+</span> sigma2e)</span>
+<span id="cb36-4"><a></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"ICC:"</span>, <span class="fu">round</span>(icc, <span class="dv">3</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "ICC: 0.712"</code></pre>
+</div>
+</div>
+</section>
+<section id="r-demonstration---visualizing-the-model" class="slide level2">
+<h2>R Demonstration - Visualizing the Model</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a></a><span class="co"># Get predicted values for each student</span></span>
+<span id="cb38-2"><a></a>student_data<span class="sc">$</span>predicted <span class="ot">&lt;-</span> <span class="fu">predict</span>(model)</span>
+<span id="cb38-3"><a></a></span>
+<span id="cb38-4"><a></a><span class="co"># Plot observed vs. predicted values, colored by school</span></span>
+<span id="cb38-5"><a></a><span class="fu">ggplot</span>(student_data, <span class="fu">aes</span>(<span class="at">x =</span> score, <span class="at">y =</span> predicted, <span class="at">color =</span> <span class="fu">factor</span>(school_id))) <span class="sc">+</span></span>
+<span id="cb38-6"><a></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb38-7"><a></a>  <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">slope =</span> <span class="dv">1</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span>  <span class="co"># Add a diagonal line</span></span>
+<span id="cb38-8"><a></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Observed vs. Predicted Scores"</span>,</span>
+<span id="cb38-9"><a></a>       <span class="at">x =</span> <span class="st">"Observed Score"</span>,</span>
+<span id="cb38-10"><a></a>       <span class="at">y =</span> <span class="st">"Predicted Score"</span>,</span>
+<span id="cb38-11"><a></a>       <span class="at">color =</span> <span class="st">"School ID"</span>) <span class="sc">+</span></span>
+<span id="cb38-12"><a></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
+<span id="cb38-13"><a></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)  <span class="co">#remove legend because too many schools</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/lmeviz-1.png" width="960" class="r-stretch"></section>
+<section id="plot-random-intercepts-for-each-school" class="slide level2">
+<h2>Plot random intercepts for each school</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a></a><span class="fu">plot</span>(school_effects,<span class="fu">ranef</span>(model)<span class="sc">$</span>school_id[,<span class="dv">1</span>], <span class="at">pch=</span><span class="dv">16</span>, <span class="at">xlab=</span><span class="st">"True school effect"</span>, <span class="at">ylab=</span><span class="st">"Estimated school effect"</span>)</span>
+<span id="cb39-2"><a></a><span class="fu">abline</span>(<span class="at">a=</span><span class="dv">0</span>,<span class="at">b=</span><span class="dv">1</span>,<span class="at">col=</span><span class="st">"red"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-14-1.png" width="960" class="r-stretch"></section>
+<section id="plot-random-intercepts-for-each-school-1" class="slide level2">
+<h2>Plot random intercepts for each school</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a></a>ranef_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">ranef</span>(model)<span class="sc">$</span>school_id)</span>
+<span id="cb40-2"><a></a>ranef_df<span class="sc">$</span>school_id <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(ranef_df)</span>
+<span id="cb40-3"><a></a></span>
+<span id="cb40-4"><a></a><span class="fu">ggplot</span>(ranef_df, <span class="fu">aes</span>(<span class="at">x =</span> school_id, <span class="at">y =</span> <span class="st">`</span><span class="at">(Intercept)</span><span class="st">`</span>)) <span class="sc">+</span></span>
+<span id="cb40-5"><a></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb40-6"><a></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb40-7"><a></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Random Intercepts by School"</span>,</span>
+<span id="cb40-8"><a></a>       <span class="at">x =</span> <span class="st">"School ID"</span>,</span>
+<span id="cb40-9"><a></a>       <span class="at">y =</span> <span class="st">"Random Intercept (Deviation from Overall Mean)"</span>) <span class="sc">+</span></span>
+<span id="cb40-10"><a></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/lmeviz1-1.png" width="960" class="r-stretch"></section>
+<section id="comparing-to-a-simple-linear-model" class="slide level2">
+<h2>Comparing to a Simple Linear Model</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a></a><span class="co"># Fit a simple linear regression (ignoring clustering)</span></span>
+<span id="cb41-2"><a></a>simple_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(score <span class="sc">~</span> studyhours, <span class="at">data =</span> student_data)</span>
+<span id="cb41-3"><a></a><span class="co"># summary(simple_model) </span></span>
+<span id="cb41-4"><a></a></span>
+<span id="cb41-5"><a></a><span class="co"># Compare standard errors</span></span>
+<span id="cb41-6"><a></a><span class="fu">coef</span>(<span class="fu">summary</span>(model))  <span class="co"># Random intercepts model</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>             Estimate Std. Error        df  t value     Pr(&gt;|t|)
+(Intercept) 49.845931 0.38799971  38.91559 128.4690 9.116905e-53
+studyhours   1.507846 0.01431791 569.50545 105.3119 0.000000e+00</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a></a><span class="fu">coef</span>(<span class="fu">summary</span>(simple_model)) <span class="co"># Simple linear model</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>            Estimate Std. Error  t value      Pr(&gt;|t|)
+(Intercept) 50.10072 0.31835002 157.3762  0.000000e+00
+studyhours   1.48248 0.03043469  48.7102 2.579971e-210</code></pre>
+</div>
+</div>
+<ul>
+<li>Notice how the standard error for <span class="math inline">\(studyhours\)</span> is <em>smaller</em> in the simple linear model. This is because it doesn’t account for the clustering, leading to an overestimation of the precision of the estimate.</li>
+</ul>
+</section>
+<section id="model-extensions-and-considerations" class="slide level2">
+<h2>Model Extensions and Considerations</h2>
+<ul>
+<li><strong>Random Slopes:</strong> Allow the <em>effect</em> of <span class="math inline">\(studyhours\)</span> to vary across schools (not just the intercept). This is done by adding <span class="math inline">\((studyhours | school_id)\)</span> to the <span class="math inline">\(lmer\)</span> formula.</li>
+<li><strong>Crossed Random Effects:</strong> When observations have multiple sources of clustering (e.g., students nested within schools AND neighborhoods).</li>
+<li><strong>More Complex Models:</strong> Can include multiple predictors at both the individual and cluster levels.</li>
+<li><strong>Model Selection:</strong> Use AIC, BIC, or likelihood ratio tests to compare different models (e.g., with and without random intercepts, with and without random slopes).</li>
+<li><strong>Assumptions:</strong> Linearity, normality of residuals and random effects, independence of errors (within clusters, after accounting for the random effects), homoscedasticity. Check these assumptions using diagnostic plots.</li>
+<li><strong>Software:</strong> <span class="math inline">\(lme4\)</span> is the most common R package. Other options include <span class="math inline">\(nlme\)</span>, <span class="math inline">\(brms\)</span> (for Bayesian mixed models), and <span class="math inline">\(glmmTMB\)</span>.</li>
+</ul>
+</section>
+<section id="sweet-spot-for-bayesian-regression" class="slide level2">
+<h2>Sweet Spot For Bayesian Regression</h2>
+<ul>
+<li>When you have a good prior knowledge about the parameters (e.g.&nbsp;from previous studies, expert opinion, etc.)</li>
+<li>When you want to quantify uncertainty in your estimates</li>
+<li>When you know that many of the predictors are not important (sparsity)</li>
+<li>When dealing with small sample sizes</li>
+<li>Hierarchical data (e.g.&nbsp;students within schools, patients within hospitals)
+<ul>
+<li>Modeling nested relationships</li>
+<li>Sharing Information Across Groups</li>
+<li>When you want to compare multiple models</li>
+</ul></li>
+</ul>
+</section>
+<section id="examples-where-bayesian-regression-is-useful" class="slide level2">
+<h2>Examples where Bayesian Regression is Useful</h2>
+<ul>
+<li>Medical Trials: Incorporating prior knowledge about treatment effects.</li>
+<li>Marketing: Predicting customer behavior with sparse data.</li>
+<li>Educational studies: Analyzing student performance within classrooms and schools, while accounting for variations in teacher effectiveness and school resources.</li>
+<li>Social sciences: Examining individual behavior within different communities or regions, while accounting for contextual factors and cultural differences.</li>
+<li>Ecology: Modeling species populations within different habitats or ecosystems, while considering environmental variations and species interactions</li>
+</ul>
+</section>
+<section>
+<section id="bayesian-additive-regression-trees-bart" class="title-slide slide level1 center">
+<h1>Bayesian Additive Regression Trees (BART)</h1>
+
+</section>
+<section id="core-ideas-of-bart" class="slide level2">
+<h2>Core Ideas of BART</h2>
+<ul>
+<li>BART is a non-parametric Bayesian model used for both regression and classification.<br>
+</li>
+<li>Its core idea is to represent a complex relationship between predictors (<span class="math inline">\(X\)</span>) and a response variable (<span class="math inline">\(Y\)</span>) as a <em>sum of many simple regression trees</em>.<br>
+</li>
+<li>Each tree is a “weak learner.” It’s typically a small decision tree, often with only a - - Ensemble Power: The <em>sum</em> of the predictions from many of these weak learners creates a powerful and flexible model. This is similar in spirit to boosted trees (like XGBoost or LightGBM), but BART’s Bayesian nature provides important advantages.</li>
+</ul>
+</section>
+<section id="the-model" class="slide level2 smaller">
+<h2>The Model</h2>
+<p><span class="math display">\[
+Y_i = f(X_i) + \epsilon_i
+f(X_i) = \sum_{j=1}^m g(X_i; T_j, M_j)
+\epsilon_i ~ N(0, \sigma^2)
+\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(f(X_i)\)</span> is the overall prediction function, which is the sum of the tree predictions.</li>
+<li><span class="math inline">\(\epsilon_i\)</span> is the error term, assumed to be normally distributed with mean 0 and variance <span class="math inline">\(\sigma^2\)</span>.</li>
+<li><span class="math inline">\(m\)</span> is the number of trees in the ensemble (a crucial hyperparameter).</li>
+<li><span class="math inline">\(g(X_i; T_j, M_j)\)</span> is the prediction from the j-th tree.
+<ul>
+<li><span class="math inline">\(T_j\)</span> represents the <em>tree structure</em> (the splitting rules). It defines the splits based on the predictor variables and their values.</li>
+<li><span class="math inline">\(M_j = {\mu_{1j}, \mu_{2j}, ..., \mu_{b_j j}}\)</span> represents the set of <em>terminal node parameters</em> (the “leaf values”) for the j-th tree. <span class="math inline">\(b_j\)</span> is the number of terminal nodes (leaves) in tree <span class="math inline">\(T_j\)</span>. Each leaf gets assigned a constant value (), which is the prediction for any observation that falls into that leaf.</li>
+</ul></li>
+</ul>
+</section>
+<section id="diagram" class="slide level2">
+<h2>Diagram</h2>
+<div class="cell" data-reveal="true" data-layout-align="default">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode numberSource default number-lines code-with-copy"><code class="sourceCode default"><span id="cb45-1"><a></a>graph TB</span>
+<span id="cb45-2"><a></a>    subgraph Input</span>
+<span id="cb45-3"><a></a>        X[Predictors]</span>
+<span id="cb45-4"><a></a>    end</span>
+<span id="cb45-5"><a></a>    subgraph BARTModel</span>
+<span id="cb45-6"><a></a>        Tree1((Tree 1)) --&gt; Sum</span>
+<span id="cb45-7"><a></a>        Tree2((Tree 2)) --&gt; Sum</span>
+<span id="cb45-8"><a></a>        TreeM((Tree M)) --&gt; Sum</span>
+<span id="cb45-9"><a></a>        Sum[Sum of Trees]</span>
+<span id="cb45-10"><a></a>    end</span>
+<span id="cb45-11"><a></a>    subgraph Output</span>
+<span id="cb45-12"><a></a>        fX["f(X) - Prediction"]</span>
+<span id="cb45-13"><a></a>    end</span>
+<span id="cb45-14"><a></a>Input --&gt; BARTModel</span>
+<span id="cb45-15"><a></a>BARTModel --&gt; Output</span>
+<span id="cb45-16"><a></a>fX --&gt; Y["Y= f(X) + ε"]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<p></p><figure class=""><p></p>
+<div>
+<pre class="mermaid mermaid-js">graph TB
+    subgraph Input
+        X[Predictors]
+    end
+    subgraph BARTModel
+        Tree1((Tree 1)) --&gt; Sum
+        Tree2((Tree 2)) --&gt; Sum
+        TreeM((Tree M)) --&gt; Sum
+        Sum[Sum of Trees]
+    end
+    subgraph Output
+        fX["f(X) - Prediction"]
+    end
+Input --&gt; BARTModel
+BARTModel --&gt; Output
+fX --&gt; Y["Y= f(X) + ε"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="single-node" class="slide level2">
+<h2>Single Node</h2>
+<p><em>Example of a single tree (<span class="math inline">\(T_j\)</span>):</em></p>
+<div class="cell" data-reveal="true" data-fig-width="12" data-layout-align="default">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode numberSource default number-lines code-with-copy"><code class="sourceCode default"><span id="cb46-1"><a></a>graph TD</span>
+<span id="cb46-2"><a></a>    A[X1 &lt; 3] --&gt; B{Yes};</span>
+<span id="cb46-3"><a></a>    A --&gt; C{No};</span>
+<span id="cb46-4"><a></a>    B --&gt; D[X2 &gt; 7];</span>
+<span id="cb46-5"><a></a>    C --&gt; E[X2 &gt; 7];</span>
+<span id="cb46-6"><a></a>    D --&gt; F("$$\mu_1$$");</span>
+<span id="cb46-7"><a></a>    D --&gt; G("$$\mu2$$");</span>
+<span id="cb46-8"><a></a>    E --&gt; H("$$\mu3$$");</span>
+<span id="cb46-9"><a></a>    E --&gt; I("$$\mu4$$");</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<p></p><figure class=""><p></p>
+<div>
+<pre class="mermaid mermaid-js">graph TD
+    A[X1 &lt; 3] --&gt; B{Yes};
+    A --&gt; C{No};
+    B --&gt; D[X2 &gt; 7];
+    C --&gt; E[X2 &gt; 7];
+    D --&gt; F("$$\mu_1$$");
+    D --&gt; G("$$\mu2$$");
+    E --&gt; H("$$\mu3$$");
+    E --&gt; I("$$\mu4$$");
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="bayesian-priors-the-bayesian-part" class="slide level2 smaller">
+<h2>Bayesian Priors (The Bayesian Part)</h2>
+<ul>
+<li><strong>Prior on Tree Structure (<span class="math inline">\(T_j\)</span>):</strong> prefer <em>smaller trees</em>: regularization and prevents overfitting. The prior for node splitting and choosing a particular predictor variable for splitting.<br>
+</li>
+<li><strong>Prior on Leaf Parameters (<span class="math inline">\(M_j\)</span>):</strong> A common choice is a normal prior: <span class="math display">\[
+  \mu_{kj} ~ N(0, \sigma_\mu^2)
+  \]</span> Prior 0: the trees are encouraged to make small “corrections” rather than large jumps.</li>
+<li><strong>Prior on Error Variance (^2):</strong> An inverse-gamma prior is often used: <span class="math display">\[
+  \sigma^2 ~ InverseGamma(\nu/2, \nu\lambda/2)
+  \]</span>
+<ul>
+<li><span class="math inline">\(\nu\)</span> (degrees of freedom) and <span class="math inline">\(\lambda\)</span> (scale) are hyperparameters. This prior allows the model to learn the appropriate level of noise in the data.</li>
+</ul></li>
+</ul>
+</section>
+<section id="inference-mcmc" class="slide level2">
+<h2>Inference (MCMC)</h2>
+<ul>
+<li>Because of the complex structure and the priors, we can’t directly calculate the posterior distribution of the parameters <span class="math inline">\((T_j, M_j, \sigma^2)\)</span>.<br>
+</li>
+<li>Instead, BART uses Markov Chain Monte Carlo (MCMC) methods, specifically a Metropolis-within-Gibbs sampler, to draw samples from the posterior distribution.</li>
+</ul>
+<p>The MCMC algorithm iteratively updates: <span class="math inline">\(T_j\)</span> and <span class="math inline">\(M_j\)</span></p>
+</section>
+<section id="iterative-updates" class="slide level2 smaller scrollable">
+<h2>Iterative Updates</h2>
+<ol type="1">
+<li><strong>Each Tree (T_j and M_j):</strong> For each tree, the algorithm proposes changes to the tree structure (growing, pruning, changing splitting rules) and the leaf values. These proposals are accepted or rejected based on how well they improve the fit to the data, <em>given the current state of all the other trees</em>. This is the “backfitting” part of BART – each tree is adjusted to account for the predictions of the other trees.</li>
+<li><strong>The Error Variance (^2):</strong> The error variance is updated based on the residuals (the difference between the observed <span class="math inline">\(Y\)</span> values and the current model predictions).</li>
+</ol>
+<p>The result of the MCMC process is a collection of samples from the posterior distribution of the model parameters.</p>
+</section>
+<section id="example-in-r-bart-package" class="slide level2">
+<h2>Example in R (BART package)</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a></a><span class="co"># Install the BART package if you haven't already</span></span>
+<span id="cb47-2"><a></a><span class="co"># install.packages("BART")</span></span>
+<span id="cb47-3"><a></a><span class="fu">library</span>(BART)</span>
+<span id="cb47-4"><a></a><span class="fu">library</span>(MASS) <span class="co">#For Boston Housing</span></span>
+<span id="cb47-5"><a></a></span>
+<span id="cb47-6"><a></a><span class="co"># Load the Boston Housing dataset</span></span>
+<span id="cb47-7"><a></a><span class="fu">data</span>(Boston)</span>
+<span id="cb47-8"><a></a>X <span class="ot">&lt;-</span> Boston[, <span class="sc">-</span><span class="dv">14</span>]  <span class="co"># Predictors (all columns except 'medv')</span></span>
+<span id="cb47-9"><a></a>Y <span class="ot">&lt;-</span> Boston[, <span class="dv">14</span>]   <span class="co"># Response variable ('medv' - median house value)</span></span>
+<span id="cb47-10"><a></a></span>
+<span id="cb47-11"><a></a><span class="co"># Fit the BART model</span></span>
+<span id="cb47-12"><a></a><span class="co">#  - ntree: Number of trees (m in the formulas)</span></span>
+<span id="cb47-13"><a></a><span class="co">#  - ndpost: Number of posterior samples to keep (after burn-in)</span></span>
+<span id="cb47-14"><a></a><span class="co">#  - nskip: Number of burn-in iterations to discard</span></span>
+<span id="cb47-15"><a></a>bart_model <span class="ot">&lt;-</span> <span class="fu">gbart</span>(<span class="at">x.train =</span> X, <span class="at">y.train =</span> Y, <span class="at">ntree =</span> <span class="dv">50</span>, <span class="at">ndpost =</span> <span class="dv">1000</span>, <span class="at">nskip =</span> <span class="dv">500</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>*****Calling gbart: type=1
+*****Data:
+data:n,p,np: 506, 13, 0
+y1,yn: 1.467194, -10.632806
+x1,x[n*p]: 0.006320, 7.880000
+*****Number of Trees: 50
+*****Number of Cut Points: 100 ... 100
+*****burn,nd,thin: 500,1000,1
+*****Prior:beta,alpha,tau,nu,lambda,offset: 2,0.95,1.59099,3,4.38629,22.5328
+*****sigma: 4.745298
+*****w (weights): 1.000000 ... 1.000000
+*****Dirichlet:sparse,theta,omega,a,b,rho,augment: 0,0,1,0.5,1,13,0
+*****printevery: 100
+
+MCMC
+done 0 (out of 1500)
+done 100 (out of 1500)
+done 200 (out of 1500)
+done 300 (out of 1500)
+done 400 (out of 1500)
+done 500 (out of 1500)
+done 600 (out of 1500)
+done 700 (out of 1500)
+done 800 (out of 1500)
+done 900 (out of 1500)
+done 1000 (out of 1500)
+done 1100 (out of 1500)
+done 1200 (out of 1500)
+done 1300 (out of 1500)
+done 1400 (out of 1500)
+time: 1s
+trcnt,tecnt: 1000,0</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a></a><span class="co"># Make predictions on the training data (or you could use a separate test set)</span></span>
+<span id="cb49-2"><a></a>predictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(bart_model, <span class="at">newdata =</span> X)  <span class="co"># This returns a matrix: rows=observations, cols=posterior samples</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>*****In main of C++ for bart prediction
+tc (threadcount): 1
+number of bart draws: 1000
+number of trees in bart sum: 50
+number of x columns: 13
+from x,np,p: 13, 506
+***using serial code</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a></a><span class="co"># Calculate the mean prediction for each observation</span></span>
+<span id="cb51-2"><a></a>mean_predictions <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(predictions)</span>
+<span id="cb51-3"><a></a></span>
+<span id="cb51-4"><a></a><span class="co"># Calculate 95% credible intervals</span></span>
+<span id="cb51-5"><a></a>credible_intervals <span class="ot">&lt;-</span> <span class="fu">apply</span>(predictions, <span class="dv">2</span>, quantile, <span class="at">probs =</span> <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="example-in-r-bart-package-1" class="slide level2">
+<h2>Example in R (BART package)</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a></a><span class="co"># Plot predictions vs. actual values (with credible intervals)</span></span>
+<span id="cb52-2"><a></a><span class="fu">plot</span>(Y, mean_predictions, <span class="at">main =</span> <span class="st">"BART Predictions vs. Actual Values"</span>,</span>
+<span id="cb52-3"><a></a>     <span class="at">xlab =</span> <span class="st">"Actual Median House Value"</span>, <span class="at">ylab =</span> <span class="st">"Predicted Median House Value"</span>,<span class="at">pch=</span><span class="dv">16</span>, <span class="at">cex=</span><span class="fl">0.5</span>)</span>
+<span id="cb52-4"><a></a><span class="fu">segments</span>(Y, credible_intervals[<span class="dv">1</span>, ], Y, credible_intervals[<span class="dv">2</span>, ], <span class="at">col =</span> <span class="st">"gray"</span>)</span>
+<span id="cb52-5"><a></a><span class="fu">abline</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">col =</span> <span class="st">"red"</span>)  <span class="co"># Add a y=x line for reference</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-19-1.png" width="960" class="r-stretch"></section>
+<section id="example-in-r-bart-package-2" class="slide level2">
+<h2>Example in R (BART package)</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a></a><span class="co"># Variable Importance</span></span>
+<span id="cb53-2"><a></a>var_importance <span class="ot">&lt;-</span> bart_model<span class="sc">$</span>varcount  <span class="co"># Number of times each variable was used for splitting</span></span>
+<span id="cb53-3"><a></a>var_importance_mean <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(var_importance)</span>
+<span id="cb53-4"><a></a><span class="fu">barplot</span>(var_importance_mean, <span class="at">names.arg =</span> <span class="fu">colnames</span>(X), <span class="at">las =</span> <span class="dv">2</span>,</span>
+<span id="cb53-5"><a></a>        <span class="at">main =</span> <span class="st">"Variable Importance"</span>, <span class="at">ylab =</span> <span class="st">"Mean Split Count"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-20-1.png" width="960" class="r-stretch"></section>
+<section id="example-in-r-bart-package-3" class="slide level2">
+<h2>Example in R (BART package)</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a></a><span class="co"># Check convergence (trace plots - should look like "fuzzy caterpillars")</span></span>
+<span id="cb54-2"><a></a><span class="fu">plot</span>(bart_model<span class="sc">$</span>sigma, <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">main =</span> <span class="st">"Trace Plot of Sigma"</span>) <span class="co">#sigma plot</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+
+</div>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-21-1.png" width="960" class="r-stretch"></section>
+<section id="example-in-r-bart-package-4" class="slide level2">
+<h2>Example in R (BART package)</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a></a><span class="co"># Example for prediction with new data</span></span>
+<span id="cb55-2"><a></a>new_data <span class="ot">&lt;-</span> X[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>,] <span class="co"># Lets pretend these are five new datapoints</span></span>
+<span id="cb55-3"><a></a>new_predictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(bart_model, <span class="at">newdata =</span> new_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>*****In main of C++ for bart prediction
+tc (threadcount): 1
+number of bart draws: 1000
+number of trees in bart sum: 50
+number of x columns: 13
+from x,np,p: 13, 5
+***using serial code</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a></a>new_mean_predictions <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(new_predictions)</span>
+<span id="cb57-2"><a></a>new_credible_intervals <span class="ot">&lt;-</span> <span class="fu">apply</span>(new_predictions, <span class="dv">2</span>, quantile, <span class="at">probs =</span> <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
+<span id="cb57-3"><a></a><span class="fu">print</span>(new_mean_predictions) <span class="co">#print mean prediction for new data</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 23.27826 21.08262 33.92599 33.88669 34.63011</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a></a><span class="fu">print</span>(new_credible_intervals) <span class="co"># print the CI for new data</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>          [,1]     [,2]     [,3]     [,4]     [,5]
+2.5%  20.57538 18.51734 31.90270 31.40777 32.50151
+97.5% 25.87818 22.85859 35.95392 36.70508 36.66815</code></pre>
+</div>
+</div>
+</section>
+<section id="key-advantages-of-bart" class="slide level2">
+<h2>Key Advantages of BART</h2>
+<ul>
+<li><strong>Flexibility:</strong> Can capture complex non-linear relationships and interactions between predictors.</li>
+<li><strong>Regularization:</strong> The Bayesian priors and the sum-of-trees structure provide built-in regularization, reducing the risk of overfitting.</li>
+<li><strong>Uncertainty Quantification:</strong> Provides credible intervals, giving a measure of uncertainty in the predictions.</li>
+<li><strong>Variable Importance:</strong> Provides a natural way to assess the importance of different predictors.</li>
+<li><strong>Good Default Performance:</strong> Often performs well with minimal tuning of hyperparameters (although tuning can further improve performance).</li>
+</ul>
+</section>
+<section id="disadvantages-and-considerations" class="slide level2">
+<h2>Disadvantages and Considerations**</h2>
+<ul>
+<li><strong>Computational Cost:</strong> MCMC sampling can be computationally expensive, especially for large datasets and a large number of trees.</li>
+<li><strong>Interpretability:</strong> While variable importance is helpful, the complex ensemble of trees can be difficult to interpret directly (compared to, say, a linear regression model). Partial dependence plots can help.</li>
+<li><strong>Hyperparameter Tuning:</strong> While BART often works well with defaults, tuning <span class="math inline">\(ntree\)</span>, <span class="math inline">\(ndpost\)</span>, <span class="math inline">\(nskip\)</span>, and the prior parameters can further improve performance. Cross-validation is recommended for this. The <span class="math inline">\(BART\)</span> package provides functions for this.</li>
+<li><strong>Missing data</strong>: Handling missing data in BART could require imputation strategies before modelling.</li>
+</ul>
+</section>
+<section id="mcmc-training-process" class="slide level2">
+<h2>MCMC Training Process</h2>
+<div class="cell" data-reveal="true" data-layout-align="default">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode numberSource default number-lines code-with-copy"><code class="sourceCode default"><span id="cb61-1"><a></a>graph LR</span>
+<span id="cb61-2"><a></a>    subgraph TrainingData</span>
+<span id="cb61-3"><a></a>        X_train[Training Predictors]</span>
+<span id="cb61-4"><a></a>        Y_train[Training Response]</span>
+<span id="cb61-5"><a></a>    end</span>
+<span id="cb61-6"><a></a>    subgraph BARTModel</span>
+<span id="cb61-7"><a></a>        Trees["Multiple Trees (Tj, Mj)"]</span>
+<span id="cb61-8"><a></a>    end</span>
+<span id="cb61-9"><a></a>     subgraph MCMC</span>
+<span id="cb61-10"><a></a>        MCMCIterations[MCMC Samples of Trees]</span>
+<span id="cb61-11"><a></a>    end</span>
+<span id="cb61-12"><a></a>    subgraph NewData</span>
+<span id="cb61-13"><a></a>        X_new[New Predictors]</span>
+<span id="cb61-14"><a></a>    end</span>
+<span id="cb61-15"><a></a>    subgraph Prediction</span>
+<span id="cb61-16"><a></a>        Predictions[Multiple Predictions]</span>
+<span id="cb61-17"><a></a>        MeanPrediction[Mean Prediction]</span>
+<span id="cb61-18"><a></a>        CredibleIntervals[Credible Intervals]</span>
+<span id="cb61-19"><a></a>    end</span>
+<span id="cb61-20"><a></a></span>
+<span id="cb61-21"><a></a>    TrainingData --&gt; BARTModel</span>
+<span id="cb61-22"><a></a>    BARTModel --&gt; MCMCIterations</span>
+<span id="cb61-23"><a></a>    X_new --&gt; MCMCIterations</span>
+<span id="cb61-24"><a></a>    MCMCIterations --&gt; Predictions</span>
+<span id="cb61-25"><a></a>    Predictions --&gt; MeanPrediction</span>
+<span id="cb61-26"><a></a>    Predictions --&gt; CredibleIntervals</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<p></p><figure class=""><p></p>
+<div>
+<pre class="mermaid mermaid-js">graph LR
+    subgraph TrainingData
+        X_train[Training Predictors]
+        Y_train[Training Response]
+    end
+    subgraph BARTModel
+        Trees["Multiple Trees (Tj, Mj)"]
+    end
+     subgraph MCMC
+        MCMCIterations[MCMC Samples of Trees]
+    end
+    subgraph NewData
+        X_new[New Predictors]
+    end
+    subgraph Prediction
+        Predictions[Multiple Predictions]
+        MeanPrediction[Mean Prediction]
+        CredibleIntervals[Credible Intervals]
+    end
+
+    TrainingData --&gt; BARTModel
+    BARTModel --&gt; MCMCIterations
+    X_new --&gt; MCMCIterations
+    MCMCIterations --&gt; Predictions
+    Predictions --&gt; MeanPrediction
+    Predictions --&gt; CredibleIntervals
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section></section>
 <section>
 <section id="temporal-data-filtering-event-detection-pandemics" class="title-slide slide level1 center">
 <h1>Temporal Data: Filtering, Event Detection, Pandemics</h1>
@@ -512,7 +1935,7 @@ f(x) = (2 \pi)^{-k/2} |\Sigma|^{-1/2}\exp^{-0.5(x-\mu)^T\Sigma^{-1}(x-\mu)}
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a></a><span class="fu">curve</span>(<span class="fu">exp</span>(<span class="sc">-</span>x<span class="sc">*</span>x),<span class="sc">-</span><span class="dv">2</span>,<span class="dv">2</span>, <span class="at">bty=</span><span class="st">"newdataframe &lt;- na.omit(dataframe)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a></a><span class="fu">curve</span>(<span class="fu">exp</span>(<span class="sc">-</span>x<span class="sc">*</span>x),<span class="sc">-</span><span class="dv">2</span>,<span class="dv">2</span>, <span class="at">bty=</span><span class="st">"newdataframe &lt;- na.omit(dataframe)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 
 </div>
@@ -1192,46 +2615,46 @@ x_t &amp; = x_{t-1} + w_t  \; , {\rm where} \; w_t \sim N(0,0.5)\end{aligned}
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a></a><span class="fu">set.seed</span>(<span class="dv">8</span>)</span>
-<span id="cb2-2"><a></a><span class="co"># MC sample size</span></span>
-<span id="cb2-3"><a></a>N <span class="ot">=</span> <span class="dv">1000</span></span>
-<span id="cb2-4"><a></a></span>
-<span id="cb2-5"><a></a><span class="co">#Posterior at time t=0 p(x[0]|y[0])=N(1,10)</span></span>
-<span id="cb2-6"><a></a>x <span class="ot">=</span> <span class="fu">rnorm</span>(N,<span class="dv">1</span>,<span class="fu">sqrt</span>(<span class="dv">10</span>))</span>
-<span id="cb2-7"><a></a><span class="fu">hist</span>(x,<span class="at">main=</span><span class="st">"Pr(x[0]|y[0])"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a></a><span class="fu">set.seed</span>(<span class="dv">8</span>)</span>
+<span id="cb63-2"><a></a><span class="co"># MC sample size</span></span>
+<span id="cb63-3"><a></a>N <span class="ot">=</span> <span class="dv">1000</span></span>
+<span id="cb63-4"><a></a></span>
+<span id="cb63-5"><a></a><span class="co">#Posterior at time t=0 p(x[0]|y[0])=N(1,10)</span></span>
+<span id="cb63-6"><a></a>x <span class="ot">=</span> <span class="fu">rnorm</span>(N,<span class="dv">1</span>,<span class="fu">sqrt</span>(<span class="dv">10</span>))</span>
+<span id="cb63-7"><a></a><span class="fu">hist</span>(x,<span class="at">main=</span><span class="st">"Pr(x[0]|y[0])"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure>
-<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-1-1.png" width="960"></p>
+<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-24-1.png" width="960"></p>
 </figure>
 </div>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a></a><span class="co">#Obtain draws from prior p(x[1]|y[0])</span></span>
-<span id="cb3-2"><a></a>x1 <span class="ot">=</span> x <span class="sc">+</span> <span class="fu">rnorm</span>(N,<span class="dv">0</span>,<span class="fu">sqrt</span>(<span class="fl">0.5</span>))</span>
-<span id="cb3-3"><a></a><span class="fu">hist</span>(x1,<span class="at">main=</span><span class="st">"Pr(x[1]|y[0])"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a></a><span class="co">#Obtain draws from prior p(x[1]|y[0])</span></span>
+<span id="cb64-2"><a></a>x1 <span class="ot">=</span> x <span class="sc">+</span> <span class="fu">rnorm</span>(N,<span class="dv">0</span>,<span class="fu">sqrt</span>(<span class="fl">0.5</span>))</span>
+<span id="cb64-3"><a></a><span class="fu">hist</span>(x1,<span class="at">main=</span><span class="st">"Pr(x[1]|y[0])"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure>
-<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-1-2.png" width="960"></p>
+<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-24-2.png" width="960"></p>
 </figure>
 </div>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a></a><span class="co">#Likelihood function p(y[1]|x[1])</span></span>
-<span id="cb4-2"><a></a>y1  <span class="ot">=</span> <span class="dv">5</span></span>
-<span id="cb4-3"><a></a>ths <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">30</span>,<span class="dv">30</span>,<span class="at">length=</span><span class="dv">1000</span>)</span>
-<span id="cb4-4"><a></a><span class="fu">plot</span>(ths,<span class="fu">dnorm</span>(y1,ths<span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span>ths<span class="sc">^</span><span class="dv">2</span>),<span class="dv">1</span>),<span class="at">type=</span><span class="st">"l"</span>,<span class="at">xlab=</span><span class="st">""</span>,<span class="at">ylab=</span><span class="st">""</span>)</span>
-<span id="cb4-5"><a></a><span class="fu">title</span>(<span class="fu">paste</span>(<span class="st">"p(y[1]="</span>,y1,<span class="st">"|x[1])"</span>,<span class="at">sep=</span><span class="st">""</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a></a><span class="co">#Likelihood function p(y[1]|x[1])</span></span>
+<span id="cb65-2"><a></a>y1  <span class="ot">=</span> <span class="dv">5</span></span>
+<span id="cb65-3"><a></a>ths <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">30</span>,<span class="dv">30</span>,<span class="at">length=</span><span class="dv">1000</span>)</span>
+<span id="cb65-4"><a></a><span class="fu">plot</span>(ths,<span class="fu">dnorm</span>(y1,ths<span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span>ths<span class="sc">^</span><span class="dv">2</span>),<span class="dv">1</span>),<span class="at">type=</span><span class="st">"l"</span>,<span class="at">xlab=</span><span class="st">""</span>,<span class="at">ylab=</span><span class="st">""</span>)</span>
+<span id="cb65-5"><a></a><span class="fu">title</span>(<span class="fu">paste</span>(<span class="st">"p(y[1]="</span>,y1,<span class="st">"|x[1])"</span>,<span class="at">sep=</span><span class="st">""</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure>
-<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-1-3.png" width="960"></p>
+<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-24-3.png" width="960"></p>
 </figure>
 </div>
 </div>
@@ -1247,30 +2670,30 @@ x_t &amp; = x_{t-1} + w_t  \; , {\rm where} \; w_t \sim N(0,0.5)\end{aligned}
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a></a><span class="co"># Computing resampling weights</span></span>
-<span id="cb5-2"><a></a>w <span class="ot">=</span> <span class="fu">dnorm</span>(y1,x1<span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span>x1<span class="sc">^</span><span class="dv">2</span>),<span class="dv">1</span>)</span>
-<span id="cb5-3"><a></a><span class="co"># Resample to obtain draws from p(x[1]|y[1])</span></span>
-<span id="cb5-4"><a></a>k <span class="ot">=</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span>N,<span class="at">size=</span>N,<span class="at">replace=</span><span class="cn">TRUE</span>,<span class="at">prob=</span>w)</span>
-<span id="cb5-5"><a></a>x <span class="ot">=</span> x1[k]</span>
-<span id="cb5-6"><a></a><span class="fu">hist</span>(x,<span class="at">main=</span><span class="st">"Pr(x[1]|y[1])"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a></a><span class="co"># Computing resampling weights</span></span>
+<span id="cb66-2"><a></a>w <span class="ot">=</span> <span class="fu">dnorm</span>(y1,x1<span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span>x1<span class="sc">^</span><span class="dv">2</span>),<span class="dv">1</span>)</span>
+<span id="cb66-3"><a></a><span class="co"># Resample to obtain draws from p(x[1]|y[1])</span></span>
+<span id="cb66-4"><a></a>k <span class="ot">=</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span>N,<span class="at">size=</span>N,<span class="at">replace=</span><span class="cn">TRUE</span>,<span class="at">prob=</span>w)</span>
+<span id="cb66-5"><a></a>x <span class="ot">=</span> x1[k]</span>
+<span id="cb66-6"><a></a><span class="fu">hist</span>(x,<span class="at">main=</span><span class="st">"Pr(x[1]|y[1])"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure>
-<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-2-1.png" width="960"></p>
+<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-25-1.png" width="960"></p>
 </figure>
 </div>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a></a><span class="co">#Obtain draws from prior p(x[2]|y[1])</span></span>
-<span id="cb6-2"><a></a>x2 <span class="ot">=</span> x <span class="sc">+</span> <span class="fu">rnorm</span>(N,<span class="dv">0</span>,<span class="fu">sqrt</span>(<span class="fl">0.5</span>))</span>
-<span id="cb6-3"><a></a><span class="fu">hist</span>(x2,<span class="at">main=</span><span class="st">"Pr(x[2]|y[1])"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a></a><span class="co">#Obtain draws from prior p(x[2]|y[1])</span></span>
+<span id="cb67-2"><a></a>x2 <span class="ot">=</span> x <span class="sc">+</span> <span class="fu">rnorm</span>(N,<span class="dv">0</span>,<span class="fu">sqrt</span>(<span class="fl">0.5</span>))</span>
+<span id="cb67-3"><a></a><span class="fu">hist</span>(x2,<span class="at">main=</span><span class="st">"Pr(x[2]|y[1])"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure>
-<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-2-2.png" width="960"></p>
+<p><img data-src="07-regression_files/figure-revealjs/unnamed-chunk-25-2.png" width="960"></p>
 </figure>
 </div>
 </div>
@@ -1303,17 +2726,17 @@ y_t = x_t + v_t \; \; {\rm and} \; \; x_t = \alpha + \beta x_{t-1} + w_t
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a></a>T1<span class="ot">=</span><span class="dv">50</span>; alpha<span class="ot">=</span><span class="sc">-</span><span class="fl">0.01</span>; beta<span class="ot">=</span><span class="fl">0.98</span>; sW<span class="ot">=</span><span class="fl">0.1</span>; sV<span class="ot">=</span><span class="fl">0.25</span>; W<span class="ot">=</span>sW<span class="sc">^</span><span class="dv">2</span>; V<span class="ot">=</span>sV<span class="sc">^</span><span class="dv">2</span></span>
-<span id="cb7-2"><a></a></span>
-<span id="cb7-3"><a></a>y <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">2</span><span class="sc">*</span>T1)</span>
-<span id="cb7-4"><a></a>ht <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">2</span><span class="sc">*</span>T1)</span>
-<span id="cb7-5"><a></a></span>
-<span id="cb7-6"><a></a><span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>(<span class="dv">2</span><span class="sc">*</span>T1)){</span>
-<span id="cb7-7"><a></a>    ht[t] <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">1</span>,alpha<span class="sc">+</span>beta<span class="sc">*</span>ht[t<span class="dv">-1</span>],sW)</span>
-<span id="cb7-8"><a></a>    y[t] <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">1</span>,ht[t],sV)</span>
-<span id="cb7-9"><a></a>}</span>
-<span id="cb7-10"><a></a>ht <span class="ot">=</span> ht[(T1<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(<span class="dv">2</span><span class="sc">*</span>T1)]</span>
-<span id="cb7-11"><a></a>y <span class="ot">=</span> y[(T1<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(<span class="dv">2</span><span class="sc">*</span>T1)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a></a>T1<span class="ot">=</span><span class="dv">50</span>; alpha<span class="ot">=</span><span class="sc">-</span><span class="fl">0.01</span>; beta<span class="ot">=</span><span class="fl">0.98</span>; sW<span class="ot">=</span><span class="fl">0.1</span>; sV<span class="ot">=</span><span class="fl">0.25</span>; W<span class="ot">=</span>sW<span class="sc">^</span><span class="dv">2</span>; V<span class="ot">=</span>sV<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb68-2"><a></a></span>
+<span id="cb68-3"><a></a>y <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">2</span><span class="sc">*</span>T1)</span>
+<span id="cb68-4"><a></a>ht <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,<span class="dv">2</span><span class="sc">*</span>T1)</span>
+<span id="cb68-5"><a></a></span>
+<span id="cb68-6"><a></a><span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>(<span class="dv">2</span><span class="sc">*</span>T1)){</span>
+<span id="cb68-7"><a></a>    ht[t] <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">1</span>,alpha<span class="sc">+</span>beta<span class="sc">*</span>ht[t<span class="dv">-1</span>],sW)</span>
+<span id="cb68-8"><a></a>    y[t] <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">1</span>,ht[t],sV)</span>
+<span id="cb68-9"><a></a>}</span>
+<span id="cb68-10"><a></a>ht <span class="ot">=</span> ht[(T1<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(<span class="dv">2</span><span class="sc">*</span>T1)]</span>
+<span id="cb68-11"><a></a>y <span class="ot">=</span> y[(T1<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>(<span class="dv">2</span><span class="sc">*</span>T1)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -1323,18 +2746,18 @@ y_t = x_t + v_t \; \; {\rm and} \; \; x_t = \alpha + \beta x_{t-1} + w_t
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a></a>m<span class="ot">=</span><span class="fu">rep</span>(<span class="dv">0</span>,T1);C<span class="ot">=</span><span class="fu">rep</span>(<span class="dv">0</span>,T1); m0<span class="ot">=</span><span class="dv">0</span>; C0<span class="ot">=</span><span class="dv">100</span></span>
-<span id="cb8-2"><a></a></span>
-<span id="cb8-3"><a></a>R <span class="ot">=</span> C0<span class="sc">+</span>W; Q <span class="ot">=</span> R<span class="sc">+</span>V; A <span class="ot">=</span> R<span class="sc">/</span>Q</span>
-<span id="cb8-4"><a></a>m[<span class="dv">1</span>] <span class="ot">=</span> m0<span class="sc">+</span>A<span class="sc">*</span>(y[<span class="dv">1</span>]<span class="sc">-</span>m0); C[<span class="dv">1</span>] <span class="ot">=</span> R<span class="sc">-</span>A<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>Q</span>
-<span id="cb8-5"><a></a></span>
-<span id="cb8-6"><a></a><span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>T1){</span>
-<span id="cb8-7"><a></a>    R    <span class="ot">=</span> C[t<span class="dv">-1</span>]<span class="sc">+</span>W</span>
-<span id="cb8-8"><a></a>    Q    <span class="ot">=</span> R<span class="sc">+</span>V</span>
-<span id="cb8-9"><a></a>    A    <span class="ot">=</span> R<span class="sc">/</span>Q</span>
-<span id="cb8-10"><a></a>    m[t] <span class="ot">=</span> m[t<span class="dv">-1</span>]<span class="sc">+</span>A<span class="sc">*</span>(y[t]<span class="sc">-</span>m[t<span class="dv">-1</span>])</span>
-<span id="cb8-11"><a></a>    C[t] <span class="ot">=</span> R<span class="sc">-</span>A<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>Q</span>
-<span id="cb8-12"><a></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a></a>m<span class="ot">=</span><span class="fu">rep</span>(<span class="dv">0</span>,T1);C<span class="ot">=</span><span class="fu">rep</span>(<span class="dv">0</span>,T1); m0<span class="ot">=</span><span class="dv">0</span>; C0<span class="ot">=</span><span class="dv">100</span></span>
+<span id="cb69-2"><a></a></span>
+<span id="cb69-3"><a></a>R <span class="ot">=</span> C0<span class="sc">+</span>W; Q <span class="ot">=</span> R<span class="sc">+</span>V; A <span class="ot">=</span> R<span class="sc">/</span>Q</span>
+<span id="cb69-4"><a></a>m[<span class="dv">1</span>] <span class="ot">=</span> m0<span class="sc">+</span>A<span class="sc">*</span>(y[<span class="dv">1</span>]<span class="sc">-</span>m0); C[<span class="dv">1</span>] <span class="ot">=</span> R<span class="sc">-</span>A<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>Q</span>
+<span id="cb69-5"><a></a></span>
+<span id="cb69-6"><a></a><span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>T1){</span>
+<span id="cb69-7"><a></a>    R    <span class="ot">=</span> C[t<span class="dv">-1</span>]<span class="sc">+</span>W</span>
+<span id="cb69-8"><a></a>    Q    <span class="ot">=</span> R<span class="sc">+</span>V</span>
+<span id="cb69-9"><a></a>    A    <span class="ot">=</span> R<span class="sc">/</span>Q</span>
+<span id="cb69-10"><a></a>    m[t] <span class="ot">=</span> m[t<span class="dv">-1</span>]<span class="sc">+</span>A<span class="sc">*</span>(y[t]<span class="sc">-</span>m[t<span class="dv">-1</span>])</span>
+<span id="cb69-11"><a></a>    C[t] <span class="ot">=</span> R<span class="sc">-</span>A<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>Q</span>
+<span id="cb69-12"><a></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -1343,48 +2766,48 @@ y_t = x_t + v_t \; \; {\rm and} \; \; x_t = \alpha + \beta x_{t-1} + w_t
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a></a><span class="fu">plot</span>(y,<span class="at">type=</span><span class="st">"b"</span>,<span class="at">col=</span><span class="st">"blue"</span>,<span class="at">xlab=</span><span class="st">"Time"</span>,<span class="at">ylab=</span><span class="st">"y_t"</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">bty=</span><span class="st">'n'</span>)</span>
-<span id="cb9-2"><a></a><span class="fu">lines</span>(m,<span class="at">col=</span><span class="st">"red"</span>)</span>
-<span id="cb9-3"><a></a><span class="fu">lines</span>(m<span class="sc">+</span><span class="dv">2</span><span class="sc">*</span><span class="fu">sqrt</span>(C),<span class="at">col=</span><span class="st">"grey"</span>,<span class="at">lty=</span><span class="dv">2</span>)</span>
-<span id="cb9-4"><a></a><span class="fu">lines</span>(m<span class="dv">-2</span><span class="sc">*</span><span class="fu">sqrt</span>(C),<span class="at">col=</span><span class="st">"grey"</span>,<span class="at">lty=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a></a><span class="fu">plot</span>(y,<span class="at">type=</span><span class="st">"b"</span>,<span class="at">col=</span><span class="st">"blue"</span>,<span class="at">xlab=</span><span class="st">"Time"</span>,<span class="at">ylab=</span><span class="st">"y_t"</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">bty=</span><span class="st">'n'</span>)</span>
+<span id="cb70-2"><a></a><span class="fu">lines</span>(m,<span class="at">col=</span><span class="st">"red"</span>)</span>
+<span id="cb70-3"><a></a><span class="fu">lines</span>(m<span class="sc">+</span><span class="dv">2</span><span class="sc">*</span><span class="fu">sqrt</span>(C),<span class="at">col=</span><span class="st">"grey"</span>,<span class="at">lty=</span><span class="dv">2</span>)</span>
+<span id="cb70-4"><a></a><span class="fu">lines</span>(m<span class="dv">-2</span><span class="sc">*</span><span class="fu">sqrt</span>(C),<span class="at">col=</span><span class="st">"grey"</span>,<span class="at">lty=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 
 </div>
-<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-3-1.png" width="960" class="r-stretch"></section>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-26-1.png" width="960" class="r-stretch"></section>
 <section id="bootstrap-filter" class="slide level2">
 <h2>Bootstrap Filter</h2>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a></a>M <span class="ot">=</span> <span class="dv">1000</span></span>
-<span id="cb10-2"><a></a>h <span class="ot">=</span> <span class="fu">rnorm</span>(M,m0,<span class="fu">sqrt</span>(C0))</span>
-<span id="cb10-3"><a></a>hs <span class="ot">=</span> <span class="cn">NULL</span></span>
-<span id="cb10-4"><a></a></span>
-<span id="cb10-5"><a></a><span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>T1){</span>
-<span id="cb10-6"><a></a>    h1 <span class="ot">=</span> <span class="fu">rnorm</span>(M,alpha<span class="sc">+</span>beta<span class="sc">*</span>h,sW)</span>
-<span id="cb10-7"><a></a>    w  <span class="ot">=</span> <span class="fu">dnorm</span>(y[t],h1,sV)</span>
-<span id="cb10-8"><a></a>    w  <span class="ot">=</span> w<span class="sc">/</span><span class="fu">sum</span>(w)</span>
-<span id="cb10-9"><a></a>    h  <span class="ot">=</span> <span class="fu">sample</span>(h1,<span class="at">size=</span>M,<span class="at">replace=</span>T,<span class="at">prob=</span>w)</span>
-<span id="cb10-10"><a></a>    hs <span class="ot">=</span> <span class="fu">cbind</span>(hs,h)</span>
-<span id="cb10-11"><a></a>}</span>
-<span id="cb10-12"><a></a><span class="co"># Quantiles</span></span>
-<span id="cb10-13"><a></a>q025 <span class="ot">=</span> <span class="cf">function</span>(x){<span class="fu">quantile</span>(x,<span class="fl">0.025</span>)}</span>
-<span id="cb10-14"><a></a>q975 <span class="ot">=</span> <span class="cf">function</span>(x){<span class="fu">quantile</span>(x,<span class="fl">0.975</span>)}</span>
-<span id="cb10-15"><a></a>h025 <span class="ot">=</span> <span class="fu">apply</span>(hs,<span class="dv">2</span>,q025)</span>
-<span id="cb10-16"><a></a>h975 <span class="ot">=</span> <span class="fu">apply</span>(hs,<span class="dv">2</span>,q975)</span>
-<span id="cb10-17"><a></a>sd   <span class="ot">=</span> <span class="fu">sqrt</span>(<span class="fu">apply</span>(hs,<span class="dv">2</span>,var))</span>
-<span id="cb10-18"><a></a>m <span class="ot">=</span> <span class="fu">colMeans</span>(hs)</span>
-<span id="cb10-19"><a></a><span class="fu">plot</span>(y,<span class="at">type=</span><span class="st">"b"</span>,<span class="at">col=</span><span class="st">"blue"</span>,<span class="at">xlab=</span><span class="st">"Time"</span>,<span class="at">ylab=</span><span class="st">"y_t"</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">bty=</span><span class="st">'n'</span>)</span>
-<span id="cb10-20"><a></a><span class="fu">lines</span>(m,<span class="at">col=</span><span class="st">"red"</span>)</span>
-<span id="cb10-21"><a></a><span class="fu">lines</span>(h025,<span class="at">col=</span><span class="st">"grey"</span>,<span class="at">lty=</span><span class="dv">2</span>)</span>
-<span id="cb10-22"><a></a><span class="fu">lines</span>(h975,<span class="at">col=</span><span class="st">"grey"</span>,<span class="at">lty=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a></a>M <span class="ot">=</span> <span class="dv">1000</span></span>
+<span id="cb71-2"><a></a>h <span class="ot">=</span> <span class="fu">rnorm</span>(M,m0,<span class="fu">sqrt</span>(C0))</span>
+<span id="cb71-3"><a></a>hs <span class="ot">=</span> <span class="cn">NULL</span></span>
+<span id="cb71-4"><a></a></span>
+<span id="cb71-5"><a></a><span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>T1){</span>
+<span id="cb71-6"><a></a>    h1 <span class="ot">=</span> <span class="fu">rnorm</span>(M,alpha<span class="sc">+</span>beta<span class="sc">*</span>h,sW)</span>
+<span id="cb71-7"><a></a>    w  <span class="ot">=</span> <span class="fu">dnorm</span>(y[t],h1,sV)</span>
+<span id="cb71-8"><a></a>    w  <span class="ot">=</span> w<span class="sc">/</span><span class="fu">sum</span>(w)</span>
+<span id="cb71-9"><a></a>    h  <span class="ot">=</span> <span class="fu">sample</span>(h1,<span class="at">size=</span>M,<span class="at">replace=</span>T,<span class="at">prob=</span>w)</span>
+<span id="cb71-10"><a></a>    hs <span class="ot">=</span> <span class="fu">cbind</span>(hs,h)</span>
+<span id="cb71-11"><a></a>}</span>
+<span id="cb71-12"><a></a><span class="co"># Quantiles</span></span>
+<span id="cb71-13"><a></a>q025 <span class="ot">=</span> <span class="cf">function</span>(x){<span class="fu">quantile</span>(x,<span class="fl">0.025</span>)}</span>
+<span id="cb71-14"><a></a>q975 <span class="ot">=</span> <span class="cf">function</span>(x){<span class="fu">quantile</span>(x,<span class="fl">0.975</span>)}</span>
+<span id="cb71-15"><a></a>h025 <span class="ot">=</span> <span class="fu">apply</span>(hs,<span class="dv">2</span>,q025)</span>
+<span id="cb71-16"><a></a>h975 <span class="ot">=</span> <span class="fu">apply</span>(hs,<span class="dv">2</span>,q975)</span>
+<span id="cb71-17"><a></a>sd   <span class="ot">=</span> <span class="fu">sqrt</span>(<span class="fu">apply</span>(hs,<span class="dv">2</span>,var))</span>
+<span id="cb71-18"><a></a>m <span class="ot">=</span> <span class="fu">colMeans</span>(hs)</span>
+<span id="cb71-19"><a></a><span class="fu">plot</span>(y,<span class="at">type=</span><span class="st">"b"</span>,<span class="at">col=</span><span class="st">"blue"</span>,<span class="at">xlab=</span><span class="st">"Time"</span>,<span class="at">ylab=</span><span class="st">"y_t"</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">bty=</span><span class="st">'n'</span>)</span>
+<span id="cb71-20"><a></a><span class="fu">lines</span>(m,<span class="at">col=</span><span class="st">"red"</span>)</span>
+<span id="cb71-21"><a></a><span class="fu">lines</span>(h025,<span class="at">col=</span><span class="st">"grey"</span>,<span class="at">lty=</span><span class="dv">2</span>)</span>
+<span id="cb71-22"><a></a><span class="fu">lines</span>(h975,<span class="at">col=</span><span class="st">"grey"</span>,<span class="at">lty=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 
 </div>
 <!-- ## DLM Filtering
 
 ![](fig/pl-DLM2.svg) -->
-<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-4-1.png" width="960" class="r-stretch"></section>
+<img data-src="07-regression_files/figure-revealjs/unnamed-chunk-27-1.png" width="960" class="r-stretch"></section>
 <section id="streaming-data-how-do-parameter-distributions-change-in-time" class="slide level2">
 <h2>Streaming Data: How do Parameter Distributions change in Time?</h2>
 <div>
@@ -1850,7 +3273,7 @@ F_{\alpha_t} = \left\{
         // The "normal" size of the presentation, aspect ratio will be preserved
         // when the presentation is scaled to fit different resolutions. Can be
         // specified using percentage units.
-        width: 1226,
+        width: 1300,
 
         height: 920,
 
