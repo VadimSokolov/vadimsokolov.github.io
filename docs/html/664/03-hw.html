@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.40">
+<meta name="generator" content="quarto-1.6.37">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -63,10 +63,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="03-hw_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="03-hw_files/libs/quarto-html/anchor.min.js"></script>
 <link href="03-hw_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="03-hw_files/libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="03-hw_files/libs/quarto-html/quarto-syntax-highlighting-29e2c20b02301cfff04dc8050bf30c7e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="03-hw_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="03-hw_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="03-hw_files/libs/bootstrap/bootstrap-973236bd072d72a04ee9cd82dcc9cb29.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="03-hw_files/libs/bootstrap/bootstrap-e19dc0c07aeef78048e587c3f1edba7a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -145,6 +145,104 @@ window.Quarto = {
 <li>Find the posterior mean and standard deviation of <span class="math inline">\(\Lambda\)</span>.</li>
 <li>Discuss what your results mean in terms of traffic on this motorway.</li>
 </ol>
+<p><strong>Solution</strong>:</p>
+<ol type="a">
+<li>A Poisson distribution is a good model to consider for the arrival counts because:
+<ul>
+<li>The data consist of counts of discrete events.</li>
+<li>It seems reasonable that the events would be independent.</li>
+<li>It seems reasonable that the rate of occurrence would remain constant over the 4+ minutes that the sample was taken.</li>
+</ul></li>
+</ol>
+<p>These are reasons to consider a Poisson distribution, but we still need to investigate how well a Poisson distribution fits the observations. We will do this by comparing the sample frequencies with Poisson probability mass function. To do this, we need to estimate the mean of the distribution. We calculate the sample mean by summing these observations (40 total cars passing) and dividing by the number of intervals (21), to obtain an estimated arrival rate of about 1.9 cars per 15 second time interval.</p>
+<p>Next, we use the Poisson probability mass function <span class="math inline">\(f(x|\Lambda=1.9) = e^{−1.9} (1.9)^x / x!\)</span> to estimate the probability of each number of cars in a single interval, and multiply by 21 to find the expected number of times each value occurs (Note: for the 5 or more entry, we use <span class="math inline">\(1-F(4|\Lambda=1.9)\)</span>, or 1 minus the Poisson cdf at 4. The probability of more than 5 cars in 15 seconds is very small.) The expected counts are:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">cars=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">5</span>,<span class="at">sample=</span><span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">7</span>,<span class="dv">3</span>,<span class="dv">3</span>,<span class="dv">0</span>),<span class="at">expected=</span><span class="fu">c</span>(<span class="dv">21</span><span class="sc">*</span><span class="fu">dpois</span>(<span class="dv">0</span><span class="sc">:</span><span class="dv">4</span>,<span class="fl">1.9</span>),<span class="fu">ppois</span>(<span class="dv">4</span>,<span class="fl">1.9</span>)))</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(d)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  cars sample expected
+1    0      3     3.14
+2    1      5     5.97
+3    2      7     5.67
+4    3      3     3.59
+5    4      3     1.71
+6    5      0     0.96</code></pre>
+</div>
+</div>
+<p>The values in this table seem to show fairly good agreement. We can do a visual inspection by drawing a bar chart, shown below. The bar chart shows good agreement between the empirical and the Poisson probabilities.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(<span class="at">height =</span> <span class="fu">t</span>(<span class="fu">as.matrix</span>(d[,<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>])),<span class="at">beside=</span><span class="cn">TRUE</span>,<span class="at">legend=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can also perform a Pearson chi-square test (this is not required). The test statistic is calculated as: <span class="math display">\[
+\chi^2 =\sum_i (Y_i −E_i)^2/E_i
+\]</span> where <span class="math inline">\(Y_i\)</span> is the observed count for i cars passing, and <span class="math inline">\(E_i\)</span> is the expected number of instances of i cars passing in a sample of size 21. The chi-square test should not be applied when counts are very small. A common (and conservative) rule of thumb is to avoid using the chi-square test if any cell has an expected count less than 5. Other less conservative rules have been proposed.4 We will combine the last two categories to increase the expected count to 2.37. To find the expected counts in this last category, we assign it probability 1 minus the cdf at x=3, and multiply by 21. The observed and expected counts are:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(((d<span class="sc">$</span>sample<span class="sc">-</span>d<span class="sc">$</span>expected)<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span>d<span class="sc">$</span>expected)[<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>]) <span class="sc">+</span> (<span class="dv">3</span><span class="fl">-2.65</span>)<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span><span class="fl">2.65</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.62</code></pre>
+</div>
+</div>
+<p>Next, we find the degrees of freedom, n – p -1, where n is the number of categories and p is the number of parameters estimated. We have 5 categories, and we estimated the mean of the Poisson distribution, so the degrees of freedom are 5 - 1 - 1, or 3. Therefore, we compare our test statistic 0.616 against the critical value of the chi-square distribution with 3 degrees of freedom. The 95th percentile for the chi- square distribution with 3 degrees of freedom is 7.8.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qchisq</span>(<span class="fl">0.95</span>,<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 7.8</code></pre>
+</div>
+</div>
+<p>Some students have tried a Q-Q plot of the Poisson quantiles against the data quantiles. Because there are only 4 distinct values in the sample, the plot shows most of the dots on top of each other. Comparing empirical and theoretical frequencies to is much more informative for discrete distributions with very few values.</p>
+<p>We can also compare the sample mean and sample variance of the observations, recalling that the mean and variance of the Poisson distribution are the same. The sample mean of the observations is 1.90 and the sample variance is 1.59. The standard deviation of the sample mean is approximately equal to the sample standard deviation divided by the square root of the sample size, or <span class="math inline">\(\sqrt{1.59/21} = 0.275\)</span>. Therefore, the CI is</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fl">1.90</span> <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>,<span class="dv">1</span>)<span class="sc">*</span><span class="fl">0.275</span><span class="sc">*</span><span class="fu">qt</span>(<span class="fl">0.975</span>,<span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.3 2.5</code></pre>
+</div>
+</div>
+<p>The observations seem consistent with the hypothesis that the mean and standard deviation are equal.</p>
+<p>You did not need to do everything described in this solution. If you gave a thoughtful argument for whether the Poisson distribution was a good model, and if you used the data in a reasonable way to evaluate the fit of the distribution, you would receive credit for this problem.</p>
+<ol start="2" type="a">
+<li>To find the posterior distribution, we calculate the Poisson likelihood at each of the 20 lambda values, and multiply by the prior probability of 1/20. Then we divide each of these values by their sum. The formula is: <span class="math display">\[
+p(\lambda|X) = \frac{f(X|\lambda)g(\lambda)}{\sum_{i=1}^{20} f(X|\lambda_i)g(\lambda_i)}
+\]</span> We use the constant prior of <span class="math inline">\(g(\lambda) = 1/20\)</span> factors out of both the numerator and denominator, so it is unnecessary to include it. In fact, when the prior distribution is uniform, the posterior distribution is the same as the normalized likelihood.</li>
+</ol>
+<p>The posterior pmf is shown in the plot below.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">=</span> <span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">4</span>,<span class="fl">0.2</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>likelihood<span class="ot">=</span><span class="cf">function</span>(lambda) <span class="fu">prod</span>(<span class="fu">dpois</span>(cnt,lambda))</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>l <span class="ot">=</span> <span class="fu">sapply</span>(lambda,likelihood)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>posterior <span class="ot">=</span> l<span class="sc">/</span><span class="fu">sum</span>(l)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(posterior,<span class="at">names.arg=</span>lambda,<span class="at">xlab=</span><span class="st">"lambda"</span>,<span class="at">ylab=</span><span class="st">"posterior probability"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<ol start="3" type="a">
+<li></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>m <span class="ot">=</span> <span class="fu">sum</span>(posterior<span class="sc">*</span>lambda)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(m)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(<span class="fu">sum</span>(posterior<span class="sc">*</span>(lambda<span class="sc">-</span>m)<span class="sc">^</span><span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.3</code></pre>
+</div>
+</div>
+<ol start="4" type="a">
+<li>From this analysis, we see that a Poisson distribution provides a good model for counts of cars passing by this point on the roadway. The rate is approximately 2 cars per 15 seconds. There is uncertainty about this rate. There is a 95% chance the rate is less than or equal to 2.4, and there is about a 98% probability that the rate lies between 1.4 and 2.6 cars per second. If we gathered more data, we would gain more information about the rate, which would narrow the range of uncertainty.</li>
+</ol>
 </div>
 <div id="exr-" class="theorem exercise">
 <p><span class="theorem-title"><strong>Exercise 2 (Car Count Part 2)</strong></span> This problem continues analysis of the automobile traffic data. As before, assume that counts of cars per 15-second interval are independent and identically distributed Poisson random variables with unknown mean <span class="math inline">\(\Lambda\)</span>.</p>
@@ -154,6 +252,177 @@ window.Quarto = {
 <li>Find a 95% symmetric tail area posterior credible interval for <span class="math inline">\(\Lambda\)</span>. Find a 95% symmetric tail area posterior credible interval for <span class="math inline">\(\theta\)</span>, the mean time between vehicle arrivals.</li>
 <li>Find the predictive distribution for the number of cars passing in the next minute. Name the family of distributions and the parameters of the predictive distribution. Find the mean and standard deviation of the predictive distribution. Find the probability that more than 10 cars will pass in the next minute. (Hint: one minute is four 15-second time intervals.)</li>
 </ol>
+<p><strong>Solution</strong>:</p>
+<ol type="a">
+<li>We observed 40 cars passing in <span class="math inline">\(n\)</span>=21 15-second intervals.</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(cnt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 40</code></pre>
+</div>
+</div>
+<p>The posterior distribution is a gamma distribution with shape 1 + 40 = 41</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">+</span><span class="fu">sum</span>(cnt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 41</code></pre>
+</div>
+</div>
+<p>and scale</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">=</span> <span class="fu">length</span>(cnt)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">/</span>(<span class="fl">1e-6</span> <span class="sc">+</span> n)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.048</code></pre>
+</div>
+</div>
+<p>The posterior distribution is <span class="math display">\[
+\Lambda|X \sim \text{Gamma}(41,0.04761905)
+\]</span></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">curve</span>(<span class="fu">dgamma</span>(x,<span class="at">shape=</span><span class="dv">41</span>,<span class="at">scale=</span><span class="fl">0.04761905</span>),<span class="at">from=</span><span class="dv">0</span>,<span class="at">to=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<ol start="2" type="a">
+<li>The posterior mean is 41/21=1.952, and the posterior standard deviation is <span class="math inline">\(\sqrt{41}/21 = 0.304\)</span>. Let’s compare</li>
+</ol>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>mean</th>
+<th>sd</th>
+<th>mode</th>
+<th>median</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Discretized</td>
+<td>1.95</td>
+<td>0.305</td>
+<td>2</td>
+<td>2</td>
+<td>[1.4, 2.6]</td>
+</tr>
+<tr class="even">
+<td>Continuous</td>
+<td>1.95</td>
+<td>0.305</td>
+<td>1.9</td>
+<td>1.94</td>
+<td>[1.40, 2.59]</td>
+</tr>
+</tbody>
+</table>
+<p>These values are almost identical. The slight differences in the median and mode are clearly artifacts of discretization. The discretized analysis gives a good approximation to the continuous analysis.</p>
+<ol start="3" type="a">
+<li>The 95% symmetric tail area posterior credible interval for <span class="math inline">\(\Lambda\)</span> is</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qgamma</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),<span class="at">shape=</span><span class="dv">41</span>,<span class="at">scale=</span><span class="fl">0.04761905</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.4 2.6</code></pre>
+</div>
+</div>
+<p>and for <span class="math inline">\(\Theta\)</span> is</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">/</span><span class="fu">qgamma</span>(<span class="fu">c</span>(<span class="fl">0.975</span>,<span class="fl">0.025</span>),<span class="at">shape=</span><span class="dv">41</span>,<span class="at">scale=</span><span class="fl">0.04761905</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.39 0.71</code></pre>
+</div>
+</div>
+<ol start="4" type="a">
+<li>The Poisson / Gamma predictive distribution is a negative binomial distribution. For this problem, we predict the number of cars in the next four time periods (1 minute is four 15-second blocks). The predictive distribution is negative binomial with the parameters:</li>
+</ol>
+<ul>
+<li>size a= 41</li>
+<li>prob p = 1/(1+4b) = 1/(1+4/21) = 0.84</li>
+</ul>
+<p>The mean is <span class="math inline">\(nab = 4\cdot 41\cdot 0.84 = 7.81\)</span> and standard deviation of the predictive distribution is <span class="math display">\[
+\sqrt{na \dfrac{1-p}{p^2}} = \sqrt{4\cdot 41 \cdot \dfrac{1-0.84}{0.84^2}} = 2.83
+\]</span> The probabilities, as computed by the R <code>dnbinom</code> function, are shown in the table. Results from the Poisson probability mass function with mean <span class="math inline">\(4ab = 7.81\)</span> are shown for comparison.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>k <span class="ot">=</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">20</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">dnbinom</span>(k,<span class="at">size=</span><span class="dv">41</span>,<span class="at">prob=</span><span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="dv">4</span><span class="sc">/</span><span class="dv">21</span>))</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> p<span class="sc">/</span><span class="fu">sum</span>(p)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">round</span>(p,<span class="dv">3</span>)</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">c</span>(p,<span class="dv">1</span><span class="sc">-</span><span class="fu">sum</span>(p))</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>poisson <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">dpois</span>(k,<span class="fl">7.81</span>),<span class="dv">3</span>)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>poisson <span class="ot">=</span> <span class="fu">c</span>(poisson,<span class="dv">1</span><span class="sc">-</span><span class="fu">sum</span>(poisson))</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">cbind</span>(k,p,poisson)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in cbind(k, p, poisson): number of rows of result is not a multiple of
+vector length (arg 1)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(d)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       k      p poisson
+ [1,]  0  0.001   0.000
+ [2,]  1  0.005   0.003
+ [3,]  2  0.017   0.012
+ [4,]  3  0.040   0.032
+ [5,]  4  0.070   0.063
+ [6,]  5  0.101   0.098
+ [7,]  6  0.124   0.128
+ [8,]  7  0.133   0.143
+ [9,]  8  0.127   0.139
+[10,]  9  0.111   0.121
+[11,] 10  0.089   0.094
+[12,] 11  0.066   0.067
+[13,] 12  0.046   0.044
+[14,] 13  0.030   0.026
+[15,] 14  0.018   0.015
+[16,] 15  0.011   0.008
+[17,] 16  0.006   0.004
+[18,] 17  0.003   0.002
+[19,] 18  0.002   0.001
+[20,] 19  0.001   0.000
+[21,] 20  0.000   0.000
+[22,]  0 -0.001   0.000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(<span class="fu">t</span>(d[,<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>]),<span class="at">beside=</span><span class="cn">TRUE</span>,<span class="at">names.arg=</span>d[,<span class="dv">1</span>],<span class="at">xlab=</span><span class="st">"k"</span>,<span class="at">ylab=</span><span class="st">"probability"</span>)</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>,<span class="fu">c</span>(<span class="st">"negative binomial"</span>,<span class="st">"poisson"</span>),<span class="at">fill=</span><span class="fu">c</span>(<span class="st">"black"</span>,<span class="st">"white"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The difference between the Bayesian predictive distribution and the Poisson distribution using a point estimate of the rate is even more pronounced if we predict for the next 21 time periods (5 1⁄4 minutes). This was not required, but is interesting to examine. Again, the distribution is negative binomial with: size <span class="math inline">\(a = 41\)</span>, and probability <span class="math inline">\(p = 1/(1 + 21b) = 0.5\)</span></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>k <span class="ot">=</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">65</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">dnbinom</span>(k,<span class="at">size=</span><span class="dv">41</span>,<span class="at">prob=</span><span class="fl">0.5</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> p<span class="sc">/</span><span class="fu">sum</span>(p)</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">c</span>(p,<span class="dv">1</span><span class="sc">-</span><span class="fu">sum</span>(p))</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>poisson <span class="ot">=</span> <span class="fu">dpois</span>(k,<span class="dv">21</span><span class="sc">*</span><span class="dv">41</span><span class="sc">/</span><span class="dv">21</span>)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>poisson <span class="ot">=</span> <span class="fu">c</span>(poisson,<span class="dv">1</span><span class="sc">-</span><span class="fu">sum</span>(poisson))</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">cbind</span>(k,p,poisson)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in cbind(k, p, poisson): number of rows of result is not a multiple of
+vector length (arg 1)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(<span class="fu">t</span>(d[,<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>]),<span class="at">beside=</span><span class="cn">TRUE</span>,<span class="at">names.arg=</span>d[,<span class="dv">1</span>],<span class="at">xlab=</span><span class="st">"k"</span>,<span class="at">ylab=</span><span class="st">"probability"</span>)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>,<span class="fu">c</span>(<span class="st">"negative binomial"</span>,<span class="st">"poisson"</span>),<span class="at">fill=</span><span class="fu">c</span>(<span class="st">"black"</span>,<span class="st">"white"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>To summarize, the predictive distribution is negative binomial with size <span class="math inline">\(a = 41\)</span>, and probability <span class="math inline">\(p = 1/(1 + nb)\)</span> where <span class="math inline">\(n\)</span> is the number of periods into the future we are predicting. The uncertainty in <span class="math inline">\(\Lambda\)</span> makes the predictive distribution more spread out than the Poisson distribution with the same mean. When n=1, the Poisson and negative binomial probabilities are very similar. The differences become more pronounced as we try to predict further into the future.</p>
 </div>
 <div id="exr-" class="theorem exercise">
 <p><span class="theorem-title"><strong>Exercise 3 (Lung disease)</strong></span> Chronic obstructive pulmonary disease (COPD) is a common lung disease characterized by difficulty in breathing. A substantial proportion of COPD patients admitted to emergency medical facilities are released as outpatients. A randomized, double-blind, placebo-controlled study examined the incidence of relapse in COPD patients released as outpatients as a function of whether the patients received treatment with corticosteroids. A total of 147 patients were enrolled in the study and were randomly assigned to treatment or placebo group on discharge from an emergency facility. Seven patients were lost from the study prior to follow-up. For the remaining 140 patients, the table below summarizes the primary outcome of the study, relapse within 30 days of discharge.</p>
@@ -197,6 +466,151 @@ window.Quarto = {
 <li>Let <span class="math inline">\(Y_1\)</span> and <span class="math inline">\(Y_2\)</span> be the number of patients who relapse in the treatment and placebo groups, respectively. Assume <span class="math inline">\(Y_1\)</span> and <span class="math inline">\(Y_2\)</span> are independent Binomial(70,<span class="math inline">\(\theta_i\)</span> ) distributions, for <span class="math inline">\(i=1,2\)</span>. Assume <span class="math inline">\(\theta_1\)</span> and <span class="math inline">\(\theta_2\)</span> have independent Beta prior distributions with shape parameters 1⁄2 and 1⁄2 (this is the Jeffreys prior distribution). Find the joint posterior distribution for <span class="math inline">\(\theta_1\)</span> and <span class="math inline">\(\theta_2\)</span>. Name the distribution type and its hyperparameters.</li>
 <li>Generate 5000 random pairs <span class="math inline">\((\theta_1, \theta_2)\)</span>, <span class="math inline">\(k=1,\ldots,5000\)</span> from the joint posterior distribution. Use this random sample to estimate the posterior probability that the rate of relapse is lower for treatment than for placebo. Discuss your results.</li>
 </ol>
+<p><strong>Solution</strong>:</p>
+<ol type="a">
+<li>The prior distribution for each condition is <span class="math inline">\(Beta(1/2,1/2)\)</span>. Therefore, the posterior distributions for <span class="math inline">\(\theta_1\)</span> and <span class="math inline">\(\theta_2\)</span> are Beta distributions with parameters and quantiles as shown below.</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Study results</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>k.trt<span class="ot">=</span><span class="dv">19</span>    <span class="co"># Number of relapses in treatment group</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>n.trt<span class="ot">=</span><span class="dv">70</span>    <span class="co"># Number of patients in treatment group</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>k.ctl<span class="ot">=</span><span class="dv">30</span>    <span class="co"># Number of relapses in control group</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>n.ctl<span class="ot">=</span><span class="dv">70</span>    <span class="co"># Number of patients in control group</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="co">#Prior hyperparameters</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>alpha<span class="fl">.0</span> <span class="ot">=</span><span class="fl">0.5</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>beta<span class="fl">.0</span><span class="ot">=</span><span class="fl">0.5</span></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a><span class="co"># The joint posterior distribution is the product of two independent beta</span></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a><span class="co"># distributions with posterior hyperparameters as shown below</span></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>alpha.trt<span class="ot">=</span>alpha<span class="fl">.0</span> <span class="sc">+</span> k.trt</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>beta.trt<span class="ot">=</span>beta<span class="fl">.0</span> <span class="sc">+</span> n.trt<span class="sc">-</span>k.trt</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>alpha.ctl<span class="ot">=</span>alpha<span class="fl">.0</span> <span class="sc">+</span> k.ctl</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>beta.ctl<span class="ot">=</span>beta<span class="fl">.0</span> <span class="sc">+</span> n.ctl<span class="sc">-</span>k.ctl</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior credible intervals</span></span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>trt.intrv<span class="ot">=</span><span class="fu">qbeta</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),alpha.trt,beta.trt)</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>ctl.intrv<span class="ot">=</span><span class="fu">qbeta</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),alpha.ctl,beta.ctl)</span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">treatment=</span><span class="fu">c</span>(alpha.trt,beta.trt,trt.intrv), <span class="at">control=</span><span class="fu">c</span>(alpha.ctl,beta.ctl,ctl.intrv), <span class="at">row.names=</span><span class="fu">c</span>(<span class="st">"alpha"</span>,<span class="st">"beta"</span>,<span class="st">"2.5%"</span>,<span class="st">"97.5%"</span>))</span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">t</span>(d))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">alpha</th>
+<th style="text-align: right;">beta</th>
+<th style="text-align: right;">2.5%</th>
+<th style="text-align: right;">97.5%</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">treatment</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">0.18</td>
+<td style="text-align: right;">0.38</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">control</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">0.55</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>It is important to remember that the joint density or mass function is a function of all the random variables. Because <span class="math inline">\(\theta_1\)</span> and <span class="math inline">\(\theta_2\)</span> are independent and the <span class="math inline">\(Y_i\)</span> are independent conditional on the <span class="math inline">\(\theta_i\)</span>, the two posterior distributions are independent. We can see this by writing out the joint distribution of the parameters and observations: <span class="math display">\[
+Bin(x_1|\theta_1,70)Bin(x_2|\theta_2,70)Be(\theta_1|1,1)Be(\theta_2|1,1) = {70 \choose 19}\theta_1^{19}(1-\theta_1)^{51}{70 \choose 30}\theta_2^{30}(1-\theta_2)^{40}
+\]</span> This is proportional to the product of two Beta density functions, the first with parameters (19.5,51.5), and the second with parameters (30.5,40.5).</p>
+<p>Conditional on the observations, <span class="math inline">\(\theta_1\)</span> and <span class="math inline">\(\theta_2\)</span> are independent Beta random variables. The marginal distribution of <span class="math inline">\(\theta_1\)</span> is Beta(19.5, 51.5) and the marginal distribution of <span class="math inline">\(\theta_1\)</span> is Beta(30.5, 40.5).</p>
+<p>The joint density function is the product of the individual density functions (remember that if <span class="math inline">\(n\)</span> is an integer, <span class="math inline">\(n! = \Gamma(n+1))\)</span> and <span class="math inline">\(B(\alpha, \beta) = \Gamma(\alpha)\Gamma(\beta)/\Gamma(\alpha+\beta)\)</span> <span class="math display">\[
+Be(\theta_1|20,52)Be(\theta_2\mid 31,41) = \dfrac{\Gamma(20+52)}{\Gamma(20)\Gamma(52)}\theta_1^{19}(1-\theta_1)^{51}\dfrac{\Gamma(31+41)}{\Gamma(31)\Gamma(41)}\theta_2^{30}(1-\theta_2)^{40}
+\]</span> A plot of the two posterior density functions is shown below. The 95% credible intervals are shown on the plot as vertical lines</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">curve</span>(<span class="fu">dbeta</span>(x,<span class="fl">19.5</span>,<span class="fl">51.5</span>),<span class="dv">0</span>,<span class="fl">0.6</span>,<span class="at">ylab=</span><span class="st">"Density"</span>,<span class="at">lty=</span><span class="dv">2</span>,<span class="at">ylim=</span><span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">8</span>))</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">curve</span>(<span class="fu">dbeta</span>(x,<span class="fl">30.5</span>,<span class="fl">40.5</span>),<span class="dv">0</span>,<span class="fl">0.6</span>,<span class="at">add=</span><span class="cn">TRUE</span>)</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v=</span>trt.intrv,<span class="at">lty=</span><span class="dv">2</span>, <span class="at">lwd=</span><span class="fl">0.5</span>)</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v=</span>ctl.intrv,<span class="at">lty=</span><span class="dv">2</span>, <span class="at">lwd=</span><span class="fl">0.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>To visualize the joint density function of <span class="math inline">\(\theta_1\)</span> and <span class="math inline">\(\theta_2\)</span>, we can do a surface or contour plot (you were not required to do this). The joint density function is a function of two variables, <span class="math inline">\(\theta_1\)</span> and <span class="math inline">\(\theta_2\)</span>. To visualize the joint density function, we need either a surface plot or a contour plot (you were not required to do this). A surface plot is shown below.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>gs<span class="ot">&lt;-</span><span class="dv">200</span>        <span class="co"># grid size</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>theta.t<span class="ot">&lt;-</span><span class="fu">seq</span>(<span class="fl">0.25</span>,<span class="fl">0.6</span>,<span class="at">length=</span>gs)   <span class="co"># treatment mean</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>theta.c<span class="ot">&lt;-</span><span class="fu">seq</span>(<span class="fl">0.1</span>,<span class="fl">0.45</span> ,<span class="at">length=</span>gs)  <span class="co"># control mean</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>dens<span class="ot">&lt;-</span><span class="fu">matrix</span>(<span class="dv">0</span>,gs,gs)             <span class="co"># density function</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>gs) {</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  dens[i,]<span class="ot">=</span><span class="fu">dbeta</span>(theta.t[i],alpha.trt,beta.trt) <span class="sc">*</span> <span class="fu">dbeta</span>(theta.c,alpha.ctl,beta.ctl)</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Perspective plot</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a><span class="fu">persp</span>(theta.t,theta.c,dens,<span class="at">theta=</span><span class="dv">30</span>,<span class="at">phi=</span><span class="dv">5</span>,<span class="at">xlab=</span><span class="st">"Treatment Relapse Prob"</span>,</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>      <span class="at">ylab=</span><span class="st">"Control Relapse Prob"</span>,<span class="at">zlab=</span><span class="st">"Probability Density"</span>,</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">xlim=</span>theta.t[<span class="fu">c</span>(<span class="dv">1</span>,gs)] ,<span class="at">ylim=</span>theta.c[<span class="fu">c</span>(<span class="dv">1</span>,gs)],</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">main=</span><span class="st">"3D Plot of Joint Density for Treatment and Control Relapse Probs"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The posterior mean relapse probability for the treatment group is 19.5/71x100% = 27.5%. A 95% symmetric tail area credible interval is [17.8%, 38.3%]. The posterior mean relapse probability for the control group is 30.5/71x100% = 43.0%. A 95% symmetric tail area credible interval is [31.7%, 54.5%].</p>
+<p>About 1⁄4 of the treatment patients relapsed, whereas almost half the control patients relapsed. Most of the posterior density function for the treatment group lies below most of the posterior density function for the control group, but the 95% credible intervals for the two parameters overlap somewhat (you were not required to compute credible intervals). While this analysis suggests that treatment lowers the relapse probability, it does not provide a statistical basis for concluding that it does.</p>
+<ol start="2" type="a">
+<li>The joint posterior distribution is Beta(19.5,51.5)Beta(30.5, 40.5). That is, <span class="math inline">\(\theta_1\)</span> and <span class="math inline">\(\theta_2\)</span> are independent Beta random variables with shape parameters as given in the table above. To sample from this joint distribution, we can draw 5000 random samples from each of these Beta distributions</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">92</span>) <span class="co"># Kuzy</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>nsample<span class="ot">=</span><span class="dv">5000</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>contr <span class="ot">=</span> <span class="fu">rbeta</span>(nsample,<span class="fl">19.5</span>,<span class="fl">51.5</span>)</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>treat <span class="ot">=</span> <span class="fu">rbeta</span>(nsample,<span class="fl">30.5</span>,<span class="fl">40.5</span>)</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>diff<span class="ot">=</span>treat<span class="sc">-</span>contr     <span class="co"># Estimate of difference in relapse probs</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>efficacious <span class="ot">=</span> diff<span class="sc">&gt;</span><span class="dv">0</span>  <span class="co"># If treat &gt; control</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>prob.efficacious<span class="ot">=</span><span class="fu">sum</span>(efficacious)<span class="sc">/</span>nsample</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>sd.probefficacious <span class="ot">=</span> <span class="fu">sd</span>(efficacious)<span class="sc">/</span><span class="fu">sqrt</span>(nsample)</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a><span class="co">#Posterior quantiles, mean and standard deviation of the difference in </span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a><span class="co">#relapse rates between treatment and control</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(diff,<span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.5</span>,<span class="fl">0.95</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   5%   50%   95% 
+0.021 0.156 0.287 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(diff)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.15</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(diff)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.08</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Density Function for Difference in Treatment and Control Relapse Probabilities</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">density</span>(diff),<span class="at">main=</span><span class="st">"Kernel Density Estimator"</span>,<span class="at">xlab=</span><span class="st">"Difference in Treatment and Control Probabilities"</span>,<span class="at">ylab=</span><span class="st">"Posterior Probability Density"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The analysis above provides evidence that there is a lower relapse probability in the treatment than in the control group. We estimate a 97.2% probability that the treatment has a lower relapse probability. The mean of the posterior distribution of the difference in relapse probabilities is approximately 0.155, and an approximate 90% credible interval for the difference in relapse rates is [0.021, 0.287].</p>
 </div>
 <div id="exr-" class="theorem exercise">
 <p><span class="theorem-title"><strong>Exercise 4 (Normal-Normal)</strong></span> Concentrations of the pollutants aldrin and hexachlorobenzene (HCB) in nanograms per liter were measured in ten surface water samples, ten mid-depth water samples, and ten bottom samples from the Wolf River in Tennessee. The samples were taken downstream from an abandoned dump site previously used by the pesticide industry. The full data set can be found at http://www.biostat.umn.edu/~lynn/iid/wolf.river.dat. For this problem, we consider only HCB measurements taken at the bottom and the surface. The question of interest is whether the distribution of HCB concentration depends on the depth at which the measurement was taken. The data for this problem are given below.</p>
@@ -262,6 +676,355 @@ g(\theta_s,\theta_b ,\rho_s,\rho_b ) = g(\theta_s,\rho_s)g(\theta_b ,\rho_b) \pr
 <li>Use direct Monte Carlo to estimate the predictive distribution for the difference in the two sample means for 10 future surface and bottom samples. Plot a kernel density estimator for the density function for the difference in means. Find a 95% credible interval for the difference in the two sample means. Repeat for future samples of 40 surface and 40 bottom observations. Comment on your results.</li>
 <li>Repeat part e, but use a model in which the standard deviation is known and equal to the sample standard deviation, and the depth-specific means <span class="math inline">\(\theta_s\)</span> and <span class="math inline">\(\theta_b\)</span> have a uniform prior distribution. Compare the 95% credible intervals for the future sample means for the known and unknown standard deviation models. Discuss.</li>
 </ol>
+<p><strong>Solution</strong>:</p>
+<ol type="a">
+<li>The joint posterior distribution for the parameters <span class="math inline">\((\theta_s,\theta_b,\rho_s,\rho_b)\)</span> is the product of an improper prior density for the surface parameters times an improper prior density for the bottom parameters. The joint posterior density is proportional to the joint prior density times the surface and bottom likelihood functions: <span class="math display">\[
+g(\theta_s,\theta_b ,\rho_s,\rho_b \mid x_s,x_b) \propto g(\theta_s,\rho_s)g(\theta_b ,\rho_b) g(x_s \mid \theta_s,\rho_s)g(x_b \mid \theta_b,\rho_b)
+\]</span></li>
+</ol>
+<p>The first two factors are proportional to the posterior density of the surface parameters; the second two factors are proportional to the posterior density of the bottom parameters. Therefore, the surface and bottom parameters are independent given the data with joint posterior density: <span class="math display">\[
+g(\theta_s,\theta_b ,\rho_s,\rho_b \mid x_s,x_b) \propto g(\theta_s,\rho_s \mid x_s)g(\theta_b ,\rho_b \mid x_b)
+\]</span> We will calculate the posterior distributions for the surface and bottom parameters in turn.</p>
+<p>The prior density for the surface parameters is <span class="math inline">\(g(\theta_s,\rho_s) \propto \rho_s^{-1}\)</span></p>
+<p>This is the limit of the density function for a normal-gamma conjugate prior distribution. We use the Normal-Normal-Gamma update rules. The prior is given by <span class="math display">\[
+g(\theta,\rho \mid \nu,\mu,a,b) = \sqrt{\frac{\nu\rho}{2\pi}} \exp\left(-\frac{\nu\rho}{2}(\theta-\mu)^2\right) \frac{b^a}{\Gamma(a)}\rho^{a-1}e^{-b\rho}
+\]</span></p>
+<p>For prior parameters <span class="math inline">\(\mu_0 =0 ,\, \nu=0,\, \alpha=-0.5 ,\, \beta=0\)</span>, the posterior values are <span class="math display">\[
+\frac{\nu\mu_0+n\bar{x}}{\nu+n} ,\, \nu+n,\, \alpha+\frac{n}{2},
+\beta + \tfrac{1}{2} \sum_{i=1}^n (x_i - \bar{x})^2 + \frac{n\nu}{\nu+n}\frac{(\bar{x}-\mu_0)^2}{2}
+\]</span> Pluggin-in our values <span class="math inline">\(n=10\)</span> and <span class="math inline">\(\bar{x}=4.8\)</span>, we get the posterior values for the Surface <span class="math display">\[
+\mu^* = \frac{0+10*4.8}{0+10} = 4.8 ,\, \nu^* = 0+10=10,\, \alpha^* = -0.5+\frac{10}{2} = 4.5, \, \beta^* = 0 + \tfrac{1}{2} \sum_{i=1}^{10} (x_i - 4.8)^2 = 1.794
+\]</span></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>s <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">3.74</span>,<span class="fl">4.61</span>,<span class="fl">4.00</span>,<span class="fl">4.67</span>,<span class="fl">4.87</span>,<span class="fl">5.12</span>,<span class="fl">4.52</span>,<span class="fl">5.29</span>,<span class="fl">5.74</span>,<span class="fl">5.48</span>)</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>b <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">5.44</span>,<span class="fl">6.88</span>,<span class="fl">5.37</span>,<span class="fl">5.44</span>,<span class="fl">5.03</span>,<span class="fl">6.48</span>,<span class="fl">3.89</span>,<span class="fl">5.85</span>,<span class="fl">6.85</span>,<span class="fl">7.16</span>)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">mean</span>(s))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">mean</span>(b))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fl">0.5</span><span class="sc">*</span><span class="fu">sum</span>((s <span class="sc">-</span> <span class="fu">mean</span>(s))<span class="sc">^</span><span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fl">0.5</span><span class="sc">*</span><span class="fu">sum</span>((b <span class="sc">-</span> <span class="fu">mean</span>(b))<span class="sc">^</span><span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.6</code></pre>
+</div>
+</div>
+<p>Similar calculations for the bottom parameters give us the posterior values <span class="math display">\[
+\mu^*=\frac{0+10*5.84}{0+10} = 5.84,~ \nu^* = 0+10=10,\, \alpha^* = -0.5+\frac{10}{2} = 4.5, \, \beta^* = 0 + \tfrac{1}{2} \sum_{i=1}^{10} (x_i - 5.84)^2 = 4.627
+\]</span></p>
+<p>To summarise, we have:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;"><span class="math inline">\(\mu^*\)</span></th>
+<th style="text-align: left;"><span class="math inline">\(\nu^*\)</span></th>
+<th style="text-align: left;"><span class="math inline">\(\alpha^*\)</span></th>
+<th style="text-align: left;"><span class="math inline">\(\beta^*\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">surface</td>
+<td style="text-align: left;">4.8</td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">4.5</td>
+<td style="text-align: left;">1.794</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bottom</td>
+<td style="text-align: left;">5.84</td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">4.5</td>
+<td style="text-align: left;">4.627</td>
+</tr>
+</tbody>
+</table>
+<p>The marginal distribution for <span class="math inline">\(\theta_s\)</span> is nonstandard <span class="math inline">\(t\)</span> with center 4.80, spread <span class="math inline">\(1/\sqrt{\nu^*\alpha^*/\beta^*} = 0.20\)</span>, and degrees of freedom 9. The marginal distribution for <span class="math inline">\(\theta_s\)</span> is nonstandard <span class="math inline">\(t\)</span> with center 5.84, spread <span class="math inline">\(1/\sqrt{\nu^*\alpha^*/\beta^*} = 0.32\)</span>, and degrees of freedom 9. Using the quantiles of the t distribution</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qgamma</span>(<span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>),<span class="fl">4.5</span>,<span class="fl">1.794</span>) <span class="co"># marginal posterior for \rho_s</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.93 4.72</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qgamma</span>(<span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>),<span class="fl">4.5</span>,<span class="fl">4.627</span>) <span class="co"># marginal posterior for \rho_b</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.36 1.83</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fl">4.8</span> <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>,<span class="dv">1</span>)<span class="sc">*</span><span class="fl">1.833</span><span class="sc">*</span>(<span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">10</span><span class="sc">*</span><span class="fl">4.5</span><span class="sc">/</span><span class="fl">1.794</span>)) <span class="co"># marginal posterior for \theta_s</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.4 5.2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="fl">5.84</span> <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>,<span class="dv">1</span>)<span class="sc">*</span><span class="fl">1.833</span><span class="sc">*</span>(<span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">10</span><span class="sc">*</span><span class="fl">4.5</span><span class="sc">/</span><span class="fl">4.627</span>)) <span class="co"># marginal posterior for \theta_b</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.3 6.4</code></pre>
+</div>
+</div>
+<ol start="2" type="a">
+<li></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">92</span>) <span class="co"># Kuzy</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Direct Monte Carlo</span></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>numsim<span class="ot">=</span><span class="dv">5000</span></span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>rhos<span class="ot">=</span><span class="fu">rgamma</span>(numsim,<span class="fl">4.5</span>,<span class="fl">1.794</span>)</span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>rhob<span class="ot">=</span><span class="fu">rgamma</span>(numsim,<span class="fl">4.5</span>,<span class="fl">4.627</span>)</span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>thetas<span class="ot">=</span><span class="fu">rnorm</span>(numsim,<span class="fl">4.8</span>,<span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">10</span><span class="sc">*</span>rhos))</span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a>thetab<span class="ot">=</span><span class="fu">rnorm</span>(numsim,<span class="fl">5.84</span>,<span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">10</span><span class="sc">*</span>rhob))</span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-10"><a href="#cb63-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Monte Carlo quantiles</span></span>
+<span id="cb63-11"><a href="#cb63-11" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(rhos,<span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  5%  95% 
+0.92 4.70 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(rhob,<span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  5%  95% 
+0.36 1.84 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(thetas,<span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 5% 95% 
+4.4 5.2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(thetab,<span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 5% 95% 
+5.3 6.4 </code></pre>
+</div>
+</div>
+<ol start="3" type="a">
+<li></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate probability that bottom concentration is larger</span></span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(thetab<span class="sc">&gt;</span>thetas)<span class="sc">/</span>numsim        <span class="co"># Estimated prob bottom mean is larger</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.99</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(thetab<span class="sc">&gt;</span>thetas)<span class="sc">/</span><span class="fu">sqrt</span>(numsim)   <span class="co"># Standard error of estimate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.0014</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(thetab<span class="sc">-</span>thetas, <span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>))  <span class="co"># 90% credible interval</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  5%  95% 
+0.36 1.73 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate probability that bottom  precision is smaller</span></span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(rhob<span class="sc">&gt;</span>rhos)<span class="sc">/</span>numsim        <span class="co"># Estimated prob bottom precision is larger</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.088</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(rhob<span class="sc">&gt;</span>rhos)<span class="sc">/</span><span class="fu">sqrt</span>(numsim)   <span class="co"># Standard error of estimate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.004</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(rhob<span class="sc">-</span>rhos, <span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>))  <span class="co"># 90% credible interval</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   5%   95% 
+-3.84  0.28 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate probability that bottom standard deviation is larger</span></span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>sigmab<span class="ot">=</span><span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(rhob)         <span class="co"># bottom standard deviation</span></span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>sigmas<span class="ot">=</span><span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(rhos)         <span class="co"># surfact standard deviation</span></span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(sigmab<span class="sc">&gt;</span>sigmas)<span class="sc">/</span>numsim    <span class="co"># Estimated prob bottom std dev is larger</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.91</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(sigmab<span class="sc">&gt;</span>sigmas)<span class="sc">/</span><span class="fu">sqrt</span>(numsim)   <span class="co"># Standard error of estimate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.004</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(sigmab<span class="sc">-</span>sigmas, <span class="fu">c</span>(<span class="fl">0.05</span>,<span class="fl">0.95</span>))  <span class="co"># 90% credible interval</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  5%  95% 
+-0.1  1.0 </code></pre>
+</div>
+</div>
+<ol start="4" type="a">
+<li>The results provide strong evidence that the mean HCB concentration in the bottom samples is larger than the mean HCB concentration in the surface samples. There is also evidence that the surface concentrations may have less variation around the mean than the bottom observations, but because of the small sample size, more evidence is needed to make a definitive assessment of whether the standard deviations are different. The p-value is 0.93 for the surface observations and 0.53 for the bottom observations, which does not reject the hypothesis of normality. Therefore, it seems reasonable to proceed with the assumption that the observations are normally distributed.</li>
+</ol>
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qqnorm</span>(s,<span class="at">main=</span><span class="st">"Normal Q-Q Plot for Surface Data"</span>); <span class="fu">qqline</span>(s)</span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a><span class="fu">qqnorm</span>(b,<span class="at">main=</span><span class="st">"Normal Q-Q Plot for Bottom Data"</span>); <span class="fu">qqline</span>(b)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-26-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</div>
+<ol start="5" type="a">
+<li>The posterior-predictive for the sample mean for Normal-Gamma of size <span class="math inline">\(m\)</span> is <span class="math inline">\(t\)</span> distribution with mean <span class="math inline">\(\mu^*\)</span> and spread <span class="math display">\[
+\dfrac{1}{\sqrt{\dfrac{\nu^*m}{\nu^*+m}\alpha^*/\beta^*}}
+\]</span> and degrees of freedom <span class="math inline">\(m-1\)</span>. For <span class="math inline">\(m=10\)</span> and the posterior parameters of the surface data, we have spread <span class="math display">\[
+\dfrac{1}{\sqrt{\dfrac{10*10}{10+10}*4.5/1.794}} = 0.28
+\]</span></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>ss10 <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">100</span><span class="sc">/</span><span class="dv">20</span><span class="sc">*</span><span class="fl">4.5</span><span class="sc">/</span><span class="fl">1.794</span>)</span>
+<span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Spread for surface data with m=10: %.2f"</span>,ss10)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Spread for surface data with m=10: 0.28"</code></pre>
+</div>
+</div>
+<p>for <span class="math inline">\(m=40\)</span>, we have spread</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>ss40 <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">400</span><span class="sc">/</span><span class="dv">50</span><span class="sc">*</span><span class="fl">4.5</span><span class="sc">/</span><span class="fl">1.794</span>)</span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Spread for surface data with m=40: %.2f"</span>,ss40)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Spread for surface data with m=40: 0.22"</code></pre>
+</div>
+</div>
+<p>For the bottom data, we have spread</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>sb10 <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">100</span><span class="sc">/</span><span class="dv">20</span><span class="sc">*</span><span class="fl">4.5</span><span class="sc">/</span><span class="fl">4.627</span>)</span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Spread for bottom data with m=10: %.2f"</span>,sb10)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Spread for bottom data with m=10: 0.45"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>sb40 <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">400</span><span class="sc">/</span><span class="dv">50</span><span class="sc">*</span><span class="fl">4.5</span><span class="sc">/</span><span class="fl">4.627</span>)</span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Spread for bottom data with m=40: %.2f"</span>,sb40)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Spread for bottom data with m=40: 0.36"</code></pre>
+</div>
+</div>
+<p>Now we can calculate 95% credible intervals for the sample mean of each future sample</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb98"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="fl">4.8</span><span class="sc">+</span>ss10<span class="sc">*</span><span class="fu">qt</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),<span class="dv">9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.2 5.4</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a><span class="fl">4.8</span><span class="sc">+</span>ss40<span class="sc">*</span><span class="fu">qt</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),<span class="dv">9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.3 5.3</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fl">5.839</span><span class="sc">+</span>sb40<span class="sc">*</span><span class="fu">qt</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),<span class="dv">9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.0 6.7</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a><span class="fl">5.839</span><span class="sc">+</span>sb10<span class="sc">*</span><span class="fu">qt</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),<span class="dv">9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.8 6.9</code></pre>
+</div>
+</div>
+<p>As we would expect, the intervals for m=40 are entirely contained within the intervals for m=10, and the intervals for the posterior mean (computed above) lie entirely within the intervals for the corresponding sample means. This is because the posterior mean intervals include uncertainty only about the surface and bottom mean, whereas the intervals in this assignment include uncertainty about both the true means and the observations. The sample mean for 40 observations has less uncertainty than the sample mean for 10 observations. The intervals for surface and bottom sample means overlap more for m=10 than for m=40, and both have more overlap than the posterior mean intervals.</p>
+<ol start="6" type="a">
+<li>We do this two different ways and verify that they give the same results to within sampling error. First draw samples of Theta and Rho, draw ssize observations, compute the sample mean, and average.</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">92</span>) <span class="co"># Kuzy</span></span>
+<span id="cb106-2"><a href="#cb106-2" aria-hidden="true" tabindex="-1"></a>numsim<span class="ot">=</span><span class="dv">10000</span></span>
+<span id="cb106-3"><a href="#cb106-3" aria-hidden="true" tabindex="-1"></a>ssize<span class="ot">=</span><span class="dv">10</span></span>
+<span id="cb106-4"><a href="#cb106-4" aria-hidden="true" tabindex="-1"></a>rhob<span class="ot">=</span><span class="fu">rgamma</span>(numsim,<span class="fl">4.5</span>,<span class="fl">4.627</span>) <span class="co"># sample b precision</span></span>
+<span id="cb106-5"><a href="#cb106-5" aria-hidden="true" tabindex="-1"></a>thetab<span class="ot">=</span><span class="fu">rnorm</span>(numsim,<span class="fl">5.84</span>,<span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">10</span><span class="sc">*</span>rhob))     <span class="co"># sample b precision</span></span>
+<span id="cb106-6"><a href="#cb106-6" aria-hidden="true" tabindex="-1"></a>rhos<span class="ot">=</span><span class="fu">rgamma</span>(numsim,<span class="fl">4.5</span>,<span class="fl">1.794</span>) <span class="co"># sample s mean</span></span>
+<span id="cb106-7"><a href="#cb106-7" aria-hidden="true" tabindex="-1"></a>thetas<span class="ot">=</span><span class="fu">rnorm</span>(numsim,<span class="fl">4.8</span>,<span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(<span class="dv">10</span><span class="sc">*</span>rhos))     <span class="co"># sample surface mean</span></span>
+<span id="cb106-8"><a href="#cb106-8" aria-hidden="true" tabindex="-1"></a>diff <span class="ot">=</span> <span class="dv">0</span>     <span class="co"># Difference in sample means - initialize to 0</span></span>
+<span id="cb106-9"><a href="#cb106-9" aria-hidden="true" tabindex="-1"></a>dd<span class="ot">=</span><span class="dv">0</span></span>
+<span id="cb106-10"><a href="#cb106-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>ssize) {</span>
+<span id="cb106-11"><a href="#cb106-11" aria-hidden="true" tabindex="-1"></a>  diff <span class="ot">=</span> diff <span class="sc">+</span> </span>
+<span id="cb106-12"><a href="#cb106-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rnorm</span>(numsim,thetab,<span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(rhob)) <span class="sc">-</span>    <span class="co"># sample bottom observation</span></span>
+<span id="cb106-13"><a href="#cb106-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rnorm</span>(numsim,thetas,<span class="dv">1</span><span class="sc">/</span><span class="fu">sqrt</span>(rhos))      <span class="co"># sample surface observation and subtrace</span></span>
+<span id="cb106-14"><a href="#cb106-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb106-15"><a href="#cb106-15" aria-hidden="true" tabindex="-1"></a>diff <span class="ot">=</span> diff <span class="sc">/</span> ssize    <span class="co"># Calculate average - divide sum by number of observations</span></span>
+<span id="cb106-16"><a href="#cb106-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb106-17"><a href="#cb106-17" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(diff, <span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>))   <span class="co"># quantiles</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 2.5% 97.5% 
+-0.16  2.23 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb108"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">density</span>(diff),              <span class="co"># kernel density plot</span></span>
+<span id="cb108-2"><a href="#cb108-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">main=</span><span class="fu">paste</span>(<span class="st">"Density for Difference in Sample Means for m ="</span>,ssize))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can also sample from the t distribution (need two independent samples one for surface and one for bottom)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb109"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a>diff1 <span class="ot">=</span> <span class="fl">5.84</span> <span class="sc">+</span> <span class="fu">rt</span>(numsim,<span class="dv">2</span><span class="sc">*</span><span class="fl">4.5</span>)<span class="sc">*</span>ss10 <span class="sc">-</span></span>
+<span id="cb109-2"><a href="#cb109-2" aria-hidden="true" tabindex="-1"></a>  <span class="fl">4.8</span> <span class="sc">+</span> <span class="fu">rt</span>(numsim,<span class="dv">2</span><span class="sc">*</span><span class="fl">4.5</span>)<span class="sc">*</span>sb10 </span>
+<span id="cb109-3"><a href="#cb109-3" aria-hidden="true" tabindex="-1"></a><span class="fu">quantile</span>(diff1,<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>))  <span class="co"># Compare with quantiles from full sampling method</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 2.5% 97.5% 
+-0.17  2.23 </code></pre>
+</div>
+</div>
+<ol start="7" type="a">
+<li></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb111"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb111-1"><a href="#cb111-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Known standard deviation model</span></span>
+<span id="cb111-2"><a href="#cb111-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb111-3"><a href="#cb111-3" aria-hidden="true" tabindex="-1"></a>mu0<span class="ot">=</span><span class="dv">0</span>           <span class="co"># prior mean for theta is 0</span></span>
+<span id="cb111-4"><a href="#cb111-4" aria-hidden="true" tabindex="-1"></a>tau0<span class="ot">=</span><span class="cn">Inf</span>        <span class="co"># prior SD of theta is infinite</span></span>
+<span id="cb111-5"><a href="#cb111-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb111-6"><a href="#cb111-6" aria-hidden="true" tabindex="-1"></a>sigmas <span class="ot">=</span> <span class="fu">sd</span>(s) <span class="co"># observation SD is assumed known and equal to sample SD</span></span>
+<span id="cb111-7"><a href="#cb111-7" aria-hidden="true" tabindex="-1"></a>sigmab <span class="ot">=</span> <span class="fu">sd</span>(b) <span class="co"># observation SD is assumed known and equal to sample SD</span></span>
+<span id="cb111-8"><a href="#cb111-8" aria-hidden="true" tabindex="-1"></a>n<span class="ot">=</span><span class="dv">10</span></span>
+<span id="cb111-9"><a href="#cb111-9" aria-hidden="true" tabindex="-1"></a>mus.star <span class="ot">=</span>      <span class="co"># Posterior mean for surface</span></span>
+<span id="cb111-10"><a href="#cb111-10" aria-hidden="true" tabindex="-1"></a>  (mu0<span class="sc">/</span>tau0<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">sum</span>(s)<span class="sc">/</span>sigmas<span class="sc">^</span><span class="dv">2</span>)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">/</span>tau0<span class="sc">^</span><span class="dv">2</span><span class="sc">+</span>n<span class="sc">/</span>sigmas<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb111-11"><a href="#cb111-11" aria-hidden="true" tabindex="-1"></a>taus.star <span class="ot">=</span>     <span class="co"># Posterior SD of surface mean</span></span>
+<span id="cb111-12"><a href="#cb111-12" aria-hidden="true" tabindex="-1"></a>  (<span class="dv">1</span><span class="sc">/</span>tau0<span class="sc">^</span><span class="dv">2</span><span class="sc">+</span>n<span class="sc">/</span>sigmas<span class="sc">^</span><span class="dv">2</span>)<span class="sc">^</span>(<span class="sc">-</span><span class="dv">1</span><span class="sc">/</span><span class="dv">2</span>)</span>
+<span id="cb111-13"><a href="#cb111-13" aria-hidden="true" tabindex="-1"></a>mub.star <span class="ot">=</span>      <span class="co"># Posterior mean for bottom</span></span>
+<span id="cb111-14"><a href="#cb111-14" aria-hidden="true" tabindex="-1"></a>  (mu0<span class="sc">/</span>tau0<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">sum</span>(b)<span class="sc">/</span>sigmab<span class="sc">^</span><span class="dv">2</span>)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">/</span>tau0<span class="sc">^</span><span class="dv">2</span><span class="sc">+</span>n<span class="sc">/</span>sigmab<span class="sc">^</span><span class="dv">2</span>)  </span>
+<span id="cb111-15"><a href="#cb111-15" aria-hidden="true" tabindex="-1"></a>taub.star <span class="ot">=</span>     <span class="co"># Posterior SD of surface mean</span></span>
+<span id="cb111-16"><a href="#cb111-16" aria-hidden="true" tabindex="-1"></a>  (<span class="dv">1</span><span class="sc">/</span>tau0<span class="sc">^</span><span class="dv">2</span><span class="sc">+</span>n<span class="sc">/</span>sigmab<span class="sc">^</span><span class="dv">2</span>)<span class="sc">^</span>(<span class="sc">-</span><span class="dv">1</span><span class="sc">/</span><span class="dv">2</span>)</span>
+<span id="cb111-17"><a href="#cb111-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb111-18"><a href="#cb111-18" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Posterior mean for surface: %.2f"</span>,mus.star)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Posterior mean for surface: 4.80"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb113"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb113-1"><a href="#cb113-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Posterior mean for bottom: %.2f"</span>,mub.star)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Posterior mean for bottom: 5.84"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb115"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb115-1"><a href="#cb115-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predictive intervals</span></span>
+<span id="cb115-2"><a href="#cb115-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb115-3"><a href="#cb115-3" aria-hidden="true" tabindex="-1"></a><span class="fu">qnorm</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),    <span class="co"># Surface, sample size 10</span></span>
+<span id="cb115-4"><a href="#cb115-4" aria-hidden="true" tabindex="-1"></a>      mus.star,<span class="fu">sqrt</span>(taus.star<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> sigmas<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span><span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.3 5.4</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb117"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qnorm</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),    <span class="co"># Surface, sample size 40</span></span>
+<span id="cb117-2"><a href="#cb117-2" aria-hidden="true" tabindex="-1"></a>      mus.star,<span class="fu">sqrt</span>(taus.star<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> sigmas<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span><span class="dv">40</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4.4 5.2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb119"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qnorm</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),    <span class="co"># Surface, sample size 10</span></span>
+<span id="cb119-2"><a href="#cb119-2" aria-hidden="true" tabindex="-1"></a>      mub.star,<span class="fu">sqrt</span>(taub.star<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> sigmab<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span><span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.0 6.7</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb121"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb121-1"><a href="#cb121-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qnorm</span>(<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>),    <span class="co"># Surface, sample size 40</span></span>
+<span id="cb121-2"><a href="#cb121-2" aria-hidden="true" tabindex="-1"></a>      mub.star,<span class="fu">sqrt</span>(taub.star<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> sigmab<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span><span class="dv">40</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.1 6.5</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb123"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb123-1"><a href="#cb123-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Kernel density plot</span></span>
+<span id="cb123-2"><a href="#cb123-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">density</span>(diff),<span class="at">main=</span><span class="fu">paste</span>(<span class="st">"Density for Difference in Sample Means"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03-hw_files/figure-html/unnamed-chunk-33-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 </div>
 
 </main>
