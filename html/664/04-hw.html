@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -112,9 +146,108 @@ y_t \sim &amp;N(\mu,\tau^{-1})\\
 \]</span></p>
 <p>Use formulas for full conditional distributions and implement the Gibbs sampler. The data <span class="math inline">\(y\)</span> is in the file <a href="https://www.dropbox.com/scl/fi/l3ao8lnfj4hwhqzjitahv/MCMCexampleData.txt?rlkey=ht4a6har3ctvphtj6o1xlggm9&amp;dl=1">MCMCexampleData.txt</a>.</p>
 <p>Plot samples from the joint distribution over <span class="math inline">\((\mu,\tau)\)</span> on a scatter plot. Plot histograms for marginal <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\tau\)</span> (marginal distributions).</p>
+<strong>Solution</strong>: First we write the joint distribution of <span class="math inline">\((y,\tau,\mu)\)</span> as <span class="math display">\[\begin{align*}
+p(y,\tau,\mu) &amp;= p(y|\tau,\mu) p(\mu) p(\tau)\\
+&amp;=\left(\prod_{i=1}^{n} \frac{\sqrt{\tau}}{\sqrt{2\pi}} e^{-\frac{\tau}{2}(y_i-\mu)^2} \right) \frac{1}{\sqrt{2\pi}} e^{-\frac{1}{2}\mu^2} \frac{1}{\Gamma(2)} \tau e^{-\tau}
+\end{align*}\]</span> Therefore, <span class="math display">\[\begin{align*}
+p(\mu|\tau,y) &amp;= \frac{p(y,\tau,\mu)}{p(\tau,y)}\\
+&amp;\propto \left(\prod_{i=1}^{n} e^{-\frac{\tau}{2}(y_i-\mu)^2} \right) e^{-\frac{1}{2}\mu^2}\\
+&amp;\propto  e^{-\frac{\tau n+1}{2}\mu^2 + \tau n\bar{y}\mu}\\
+&amp;\sim N\left(\frac{\tau n \bar{y}}{1+\tau n}, \frac{1}{1+\tau n}\right)\\
+p(\tau|\mu, y) &amp;= \frac{p(y,\tau,\mu)}{p(\mu,y)}\\
+&amp;\propto \left(\prod_{i=1}^{n} \sqrt{\tau}e^{-\frac{\tau}{2}(y_i-\mu)^2} \right) \tau e^{-\tau}\\
+&amp;= \tau^{1+n/2} e^{-(1+\sum_{i=1}^{n}(y_i-\mu)^2/2)\tau}\\
+&amp;\sim \mathrm{Gamma}\left(2+\frac{n}{2}, 1+\frac{1}{2}\sum_{i=1}^{n}(y_i-\mu)^2\right)
+\end{align*}\]</span>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">read.table</span>(<span class="st">"https://www.dropbox.com/scl/fi/l3ao8lnfj4hwhqzjitahv/MCMCexampleData.txt?rlkey=ht4a6har3ctvphtj6o1xlggm9&amp;dl=1"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">as.matrix</span>(d))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>ybar <span class="ot">=</span> <span class="fu">mean</span>(y)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>m <span class="ot">=</span> <span class="dv">10000</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,m)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>tau <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,m)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>mu[<span class="dv">1</span>] <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>tau[<span class="dv">1</span>] <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>m){</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  mu[i] <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">1</span>,tau[i<span class="dv">-1</span>]<span class="sc">*</span><span class="fu">sum</span>(y)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">length</span>(y)<span class="sc">*</span>tau[i<span class="dv">-1</span>]),<span class="fu">sqrt</span>(<span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">length</span>(y)<span class="sc">*</span>tau[i<span class="dv">-1</span>])))</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  tau[i] <span class="ot">=</span> <span class="fu">rgamma</span>(<span class="dv">1</span>,<span class="dv">2</span><span class="sc">+</span><span class="fu">length</span>(y)<span class="sc">/</span><span class="dv">2</span>,<span class="dv">1</span><span class="sc">+</span><span class="fu">sum</span>((y<span class="sc">-</span>mu[i])<span class="sc">^</span><span class="dv">2</span>)<span class="sc">/</span><span class="dv">2</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(mu,<span class="at">main=</span><span class="st">"Histogram of mu"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04-hw_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(tau,<span class="at">main=</span><span class="st">"Histogram of tau"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04-hw_files/figure-html/unnamed-chunk-1-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(mu,tau,<span class="at">main=</span><span class="st">"Scatterplot of mu and tau"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04-hw_files/figure-html/unnamed-chunk-1-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 </div>
 <div id="exr-" class="theorem exercise">
 <p><span class="theorem-title"><strong>Exercise 2 (Metropolis Hastings for Marketing Mix Model)</strong></span> Estimate parameters for the same MMM model using the Metropolis-Hastings algorithm. Assume the same state-space representation as in the previous exercise. Implement the Metropolis-Hastings algorithm for the posterior <span class="math inline">\(\mu,\tau | y\)</span>. Use normal proposal distributions for both parameters. How size of the variance of your proposal distribution affects the convergence of the algorithm?</p>
+<p><strong>Solution</strong>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">read.table</span>(<span class="st">"https://www.dropbox.com/scl/fi/l3ao8lnfj4hwhqzjitahv/MCMCexampleData.txt?rlkey=ht4a6har3ctvphtj6o1xlggm9&amp;dl=1"</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">as.matrix</span>(d))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ybar <span class="ot">=</span> <span class="fu">mean</span>(y)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Metropolis-Hastings</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>m <span class="ot">=</span> <span class="dv">10000</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,m)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>tau <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>,m)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>mu[<span class="dv">1</span>] <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>tau[<span class="dv">1</span>] <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>m){</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  mu.prop <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">1</span>,mu[i<span class="dv">-1</span>],<span class="fl">0.1</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  tau.prop <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">1</span>,tau[i<span class="dv">-1</span>],<span class="fl">0.1</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">runif</span>(<span class="dv">1</span>) <span class="sc">&lt;</span> <span class="fu">exp</span>(<span class="fu">sum</span>(<span class="fu">dnorm</span>(y,mu.prop,<span class="fu">sqrt</span>(<span class="dv">1</span><span class="sc">/</span>tau.prop),<span class="at">log=</span><span class="cn">TRUE</span>))<span class="sc">-</span><span class="fu">sum</span>(<span class="fu">dnorm</span>(y,mu[i<span class="dv">-1</span>],<span class="fu">sqrt</span>(<span class="dv">1</span><span class="sc">/</span>tau[i<span class="dv">-1</span>]),<span class="at">log=</span><span class="cn">TRUE</span>)))){</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    mu[i] <span class="ot">=</span> mu.prop</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    tau[i] <span class="ot">=</span> tau.prop</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    mu[i] <span class="ot">=</span> mu[i<span class="dv">-1</span>]</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    tau[i] <span class="ot">=</span> tau[i<span class="dv">-1</span>]</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(mu,<span class="at">main=</span><span class="st">"Histogram of mu"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04-hw_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(tau,<span class="at">main=</span><span class="st">"Histogram of tau"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04-hw_files/figure-html/unnamed-chunk-2-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(mu,tau,<span class="at">main=</span><span class="st">"Scatterplot of mu and tau"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04-hw_files/figure-html/unnamed-chunk-2-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 </div>
 
 </main>
