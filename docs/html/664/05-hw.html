@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -153,6 +187,228 @@ window.Quarto = {
 <li>The fourth feeder had the highest bird count and the first feeder had the lowest bird count. Use your Monte Carlo sample to estimate the posterior probability that the first feeder has a smaller mean bird count than the fourth feeder. Explain how you obtained your estimate.</li>
 <li>Discuss your results.</li>
 </ol>
+<p><strong>Solution</strong>:</p>
+<ol type="a">
+<li>A plate diagram for this problem is shown below: <img src="https://cdn.mathpix.com/cropped/2025_03_25_c624fa98898366c581aeg-1.jpg?height=603&amp;width=624&amp;top_left_y=1544&amp;top_left_x=1230" class="img-fluid"></li>
+</ol>
+<p>Gibbs sampling on this model can be done as follows:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>birdcounts<span class="ot">=</span><span class="fu">c</span>(<span class="dv">11</span>,<span class="dv">22</span>,<span class="dv">13</span>,<span class="dv">24</span>,<span class="dv">19</span>,<span class="dv">16</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#Gibbs sample</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(coda)        <span class="co"># MCMC diagnostics</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: coda</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>numSim <span class="ot">&lt;-</span> <span class="dv">10000</span>   <span class="co"># number of Monte Carlo samples</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Set up discretized grid of prior virtual mean and prior virtual shape</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>gridsize<span class="ot">=</span><span class="dv">200</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>mGrid <span class="ot">=</span> <span class="fu">seq</span>(<span class="at">from=</span><span class="dv">5</span>,<span class="at">to=</span><span class="dv">40</span>,<span class="at">length=</span>gridsize)    <span class="co"># prior dist for mean of Gamma dist</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>mPrior <span class="ot">=</span> <span class="fu">array</span>(<span class="dv">1</span><span class="sc">/</span>gridsize,gridsize)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>aGrid<span class="ot">=</span><span class="fu">seq</span>(<span class="at">from=</span><span class="dv">1</span>,<span class="at">to=</span><span class="dv">50</span>,<span class="at">length=</span>gridsize)  <span class="co"># prior dist for shape of Gamma dist</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>aPrior<span class="ot">=</span><span class="fu">dgamma</span>(aGrid,<span class="at">shape=</span><span class="dv">1</span>,<span class="at">scale=</span><span class="dv">5</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>aPrior<span class="ot">=</span>aPrior<span class="sc">/</span><span class="fu">sum</span>(aPrior)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Initialize <span class="math inline">\(m^{(0)}\)</span> and <span class="math inline">\(\alpha^{(0)}\)</span>. Any initial values will do, but I used the empirical Bayes estimates <span class="math inline">\(m^{(0)}=17.3\)</span> (average of the observations) and <span class="math inline">\(\alpha^{(0)}=10.48\)</span> (square of mean of observations divided by variance of observations). I did not initialize the <span class="math inline">\(\lambda_{i}\)</span> because they are sampled before they are needed.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Empirical Bayes estimates of mean and shape</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>meb <span class="ot">=</span> <span class="fu">mean</span>(birdcounts)     <span class="co"># initial guess at mean</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ab2 <span class="ot">=</span> <span class="fu">var</span>(birdcounts)      <span class="co"># estimate of variance = alpha * beta^2 </span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>aeb <span class="ot">=</span> meb<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span>ab2            <span class="co"># initial guess at shape = mean^2 / variance</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize Gibbs sampler with empirical Bayes estimates</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># (Initial value can be any value. An alternative would be to sample</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># randomly from the prior distribution)</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>mPrev<span class="ot">=</span>meb</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>aPrev<span class="ot">=</span>aeb</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>bPrev<span class="ot">=</span>mPrev<span class="sc">/</span>aPrev</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>lambdaMC <span class="ot">&lt;-</span> <span class="fu">array</span>(<span class="dv">0</span>, <span class="at">dim=</span><span class="fu">c</span>(numSim,<span class="fu">length</span>(birdcounts)))    <span class="co"># Allocate space for Gibbs sample </span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>aMC<span class="ot">=</span>mMC<span class="ot">=</span><span class="cn">NULL</span>      <span class="co"># Variable to hold mean and shape</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We use conjugacy to calculate the posterior shape <span class="math inline">\(\alpha_{i}^{*}=\left(\alpha^{(k-1)}+ Y_{i} \right)\)</span> for the <span class="math inline">\(i^{\text {th }}\)</span> feeder, <span class="math inline">\(\beta_{i}^{*}=\left(m^{(k-1)} / \alpha_{i}^{(k-1)}\right)^{-1}\)</span> for the <span class="math inline">\(i^{\text {th }}\)</span> feeder. Then we simulate <span class="math inline">\(\lambda_{i}{ }^{(k)}\)</span> from a gamma distribution with shape <span class="math inline">\(\alpha_{i}^{*}\)</span> and scale <span class="math inline">\(\beta_{i}^{*}\)</span>.</p>
+<p>Next, <span class="math inline">\(p(m\mid \alpha^{(k-1)},\lambda_{1}{k},\ldots\lambda_{6}{k})\)</span> is the prior times likelihood for each possible value of <span class="math inline">\(m\)</span>. Because the prior is uniform, this is the product of the six Gamma likelihoods. Then divide by sum of prior times likelihood.</p>
+<p>To find <span class="math inline">\(p(\alpha \mid m^{(k)}, \lambda_{1}^{(k)},\ldots, \lambda_{6}^{(k)})\)</span> find the prior times likelihood for each possible value of <span class="math inline">\(\alpha\)</span> and normalize to sum to 1. The result of this process is the requested sample.</p>
+<p>Now sample, for <span class="math inline">\(k=1, \ldots, 10,000\)</span> :</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Gibbs sampler</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>numSim) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Sample lambdas</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  alpha1 <span class="ot">&lt;-</span> aPrev <span class="sc">+</span> birdcounts   <span class="co"># posterior alpha</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  beta1 <span class="ot">&lt;-</span> (<span class="dv">1</span><span class="sc">/</span>bPrev <span class="sc">+</span> <span class="dv">1</span>)<span class="sc">^-</span><span class="dv">1</span>       <span class="co"># posterior beta</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  lambdaMC[k,] <span class="ot">&lt;-</span> <span class="fu">rgamma</span>(<span class="fu">length</span>(birdcounts),alpha1,<span class="at">scale=</span>beta1)  <span class="co"># simulate new lambdas</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Sample means</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  mLik <span class="ot">&lt;-</span> <span class="dv">1</span>   <span class="co"># Initialize likelihood for mean</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(birdcounts)) {</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    mLik <span class="ot">&lt;-</span> mLik<span class="sc">*</span><span class="fu">dgamma</span>(lambdaMC[k,j],<span class="at">shape=</span>aPrev,<span class="at">scale=</span>mGrid<span class="sc">/</span>aPrev)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  mPost <span class="ot">&lt;-</span> mPrior<span class="sc">*</span>mLik<span class="sc">/</span><span class="fu">sum</span>(mPrior<span class="sc">*</span>mLik)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  mMC[k] <span class="ot">&lt;-</span> <span class="fu">sample</span>(mGrid,<span class="dv">1</span>,<span class="at">prob=</span>mPost)  <span class="co"># sample value of mean</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  aLik <span class="ot">&lt;-</span> <span class="dv">1</span>    <span class="co"># Initialize likelihood for shape</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(birdcounts)) {</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    aLik <span class="ot">&lt;-</span> aLik<span class="sc">*</span><span class="fu">dgamma</span>(lambdaMC[k,j],<span class="at">shape=</span>aGrid,<span class="at">scale=</span>mMC[k]<span class="sc">/</span>aGrid)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  aPost <span class="ot">&lt;-</span> aPrior<span class="sc">*</span>aLik<span class="sc">/</span><span class="fu">sum</span>(aPrior<span class="sc">*</span>aLik)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  aMC[k] <span class="ot">&lt;-</span> <span class="fu">sample</span>(aGrid,<span class="dv">1</span>,<span class="at">prob=</span>aPost)   <span class="co"># sample value of shape</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  aPrev <span class="ot">=</span> aMC[k]          <span class="co"># Set prior shape for next round</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  bPrev <span class="ot">=</span> mMC[k]<span class="sc">/</span>aMC[k]   <span class="co"># Calculate prior scale for next round</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The table below shows credible intervals calculated from the raw Gibbs samples and credible intervals from a thinned sample with interval 3 (that is, only every third sample is kept). The intervals are almost the same. Due to sampling variation, the intervals will be different each time the sampler is run but your results should be similar.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Credible intervals (using full sample)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>ci <span class="ot">=</span> <span class="cf">function</span>(<span class="at">thin=</span>None) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  int<span class="ot">=</span><span class="fu">matrix</span>(<span class="at">nrow=</span><span class="fu">length</span>(birdcounts)<span class="sc">+</span><span class="dv">2</span>,<span class="at">ncol=</span><span class="dv">2</span>)  <span class="co"># Store credible intervals</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(birdcounts)) {</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    int[i,]<span class="ot">=</span><span class="fu">quantile</span>(lambdaMC[thin,i],<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>))</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Credible intervals for alpha and m</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  int[<span class="dv">7</span>,] <span class="ot">=</span> <span class="fu">quantile</span>(aMC,<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>))</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  int[<span class="dv">8</span>,] <span class="ot">=</span> <span class="fu">quantile</span>(mMC,<span class="fu">c</span>(<span class="fl">0.025</span>,<span class="fl">0.975</span>))</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>(int) <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"lambda"</span>,<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>), <span class="st">"alpha"</span>, <span class="st">"m"</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">round</span>(int,<span class="dv">2</span>))</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">ci</span>(birdcounts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          [,1]  [,2]
+lambda 1  9.94 15.81
+lambda 2 12.91 30.58
+lambda 3  9.96 16.64
+lambda 4 15.79 22.63
+lambda 5 13.24 26.25
+lambda 6 11.89 16.61
+alpha     2.23 24.64
+m        12.74 26.99</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Then the sample and redo the intervals</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>thinlag<span class="ot">=</span><span class="dv">3</span>   <span class="co"># Keep every 3rd observation</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>thin<span class="ot">=</span><span class="fu">seq</span>(<span class="at">from=</span>thinlag,<span class="at">to=</span>numSim,<span class="at">by=</span>thinlag)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ci</span>(thin)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          [,1]  [,2]
+lambda 1  7.56 20.31
+lambda 2 13.81 28.68
+lambda 3  8.92 21.44
+lambda 4 14.85 30.85
+lambda 5 12.33 26.61
+lambda 6 10.56 24.21
+alpha     2.23 24.64
+m        12.74 26.99</code></pre>
+</div>
+</div>
+<p>In general, thinning increases the variance of the estimator (because we are throwing away information), but has other advantages: (1) it reduces data storage; (2) it reduces computation for any post-processing of the Monte Carlo samples; (3) it allows use of data processing methods intended for independent and identically distributed data, without having to adjust for the correlation.</p>
+<p>It is also common to discard a burn-in sample when doing MCMC. I did not require either thinning or discarding a burnin sample.</p>
+<ol start="2" type="a">
+<li>The effective sample sizes for my simulation are shown in the table below. Yours should be similar.</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">effectiveSize</span>(aMC)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    var1 
+5452.101 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">effectiveSize</span>(mMC)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    var1 
+5570.226 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">effectiveSize</span>(lambdaMC)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    var1     var2     var3     var4     var5     var6 
+7617.457 7531.583 7905.405 7322.114 8699.652 7916.725 </code></pre>
+</div>
+</div>
+<p>As usually happens, the higher level hyperparameters have smaller effective sample sizes. All effective sample sizes are large enough for good estimates of the posterior distribution.</p>
+<ol start="3" type="a">
+<li>The traceplots below show a stationary chain. It looks stable from the very beginning, which justifies not discarding a burnin sample. I also plotted autocorrelation functions. They show some autocorrelation, mostly disappearing by lag 3 or 4 . (That is why I chose a thinning interval of 3 .)</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">4</span>))</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">traceplot</span>(<span class="fu">as.mcmc</span>(mMC),<span class="at">main=</span><span class="st">"Traceplot for m"</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">acf</span>(mMC,<span class="at">main=</span><span class="st">"ACF for m"</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">traceplot</span>(<span class="fu">as.mcmc</span>(aMC),<span class="at">main=</span><span class="st">"Traceplot for alpha"</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">acf</span>(aMC,<span class="at">main=</span><span class="st">"ACF for alpha"</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(birdcounts)) {</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">traceplot</span>(<span class="fu">as.mcmc</span>(lambdaMC[,i]),<span class="at">main=</span><span class="fu">paste</span>(<span class="st">"Traceplot for Lambda"</span>,i))</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">acf</span>(lambdaMC[,i],<span class="at">main=</span><span class="fu">paste</span>(<span class="st">"ACF for Lambda"</span>,i,<span class="at">sep=</span><span class="st">""</span>))</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05-hw_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05-hw_files/figure-html/unnamed-chunk-6-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<ol start="4" type="a">
+<li>To estimate the probability that the fourth feeder has higher mean than the first feeder, we count the number of times, out of our sample of 10,000 , that the fourth sampled mean <span class="math inline">\(\lambda_{4}{ }^{(k)}\)</span> is larger than the first sampled mean <span class="math inline">\(\lambda_{1}{ }^{(k)}\)</span>. In a run that I did, this happened 9634 times, giving an estimate of <span class="math inline">\(96.3 \%\)</span> as the probability that the first feeder had a smaller mean than the fourth.</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate probability that 4th feeder has higher mean than first feeder</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(lambdaMC[,<span class="dv">4</span>]<span class="sc">&gt;</span>lambdaMC[,<span class="dv">1</span>])<span class="sc">/</span>numSim</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.9626</code></pre>
+</div>
+</div>
+<ol start="5" type="a">
+<li>To summarize the results, the Gibbs sample is reasonably stationary with autocorrelation that disappears after about lag 3. The effective sample sizes are high enough for reasonably accurate estimates of the posterior distribution. All the intervals overlap, but there is fairly strong evidence that the feeders have different mean arrival rates. A caterpillar plot of Gibbs sampling intervals and kernel density plots of the five density functions are shown below. I used 40,000 samples to get more accurate intervals and smoother density functions. We can see the shrinkage of the five estimates toward the overall grand mean. These plots allow us to</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>feederColors <span class="ot">=</span> <span class="fu">rainbow</span>(<span class="fu">length</span>(birdcounts))</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot posterior intervals and show shrinkage</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))    <span class="co"># back to single plot</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>gibbsMean <span class="ot">&lt;-</span> <span class="fu">colSums</span>(lambdaMC)<span class="sc">/</span>numSim</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(birdcounts,gibbsMean,<span class="at">xlab=</span><span class="st">" Counts"</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab=</span><span class="st">"Posterior Credible Interval"</span>,</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>     <span class="at">main=</span><span class="st">"Caterpillar Plot for Bird Feeding Data"</span>,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlim=</span><span class="fu">c</span>(<span class="dv">5</span>,<span class="dv">35</span>), <span class="at">ylim=</span><span class="fu">c</span>(<span class="dv">5</span>,<span class="dv">40</span>), <span class="at">pch=</span><span class="dv">20</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(<span class="fu">c</span>(<span class="dv">5</span>,<span class="dv">35</span>),<span class="fu">c</span>(<span class="dv">5</span>,<span class="dv">35</span>))     <span class="co"># diagonal line y = x</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>th025 <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>th975 <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(birdcounts)) {</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>  th025[i]<span class="ot">&lt;-</span><span class="fu">quantile</span>(lambdaMC[,i],<span class="fl">0.025</span>)</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>  th975[i]<span class="ot">&lt;-</span><span class="fu">quantile</span>(lambdaMC[,i],<span class="fl">0.975</span>)</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lines</span>(<span class="fu">c</span>(birdcounts[i],birdcounts[i]),</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">c</span>(th025[i],th975[i]),<span class="at">col=</span>feederColors[i])  <span class="co"># Gibbs intervals</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>legend.names<span class="ot">=</span><span class="fu">paste</span>(<span class="st">"Feeder"</span>,<span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(birdcounts))</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="dv">6</span>,<span class="dv">40</span>, legend.names, </span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>       <span class="at">col=</span>feederColors,<span class="at">lty=</span><span class="fu">rep</span>(<span class="dv">1</span>,<span class="fu">length</span>(birdcounts)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05-hw_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>A kernel density plot of the difference between the means of the fourth and the first feeder shows clearly that, althought the credible intervals overlap, most of the probability mass of the difference is larger than zero. The reason that there is so much overlap in the intervals even though there is a high probability that the means are different is due to correlation - both of the feeder means depend on <span class="math inline">\(m\)</span> and will vary together.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot kernel density estimator of difference</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">density</span>(lambdaMC[,<span class="dv">4</span>]<span class="sc">-</span>lambdaMC[,<span class="dv">1</span>]),</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">main=</span><span class="st">"Difference in Means of 4th and 1st Feeders"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="05-hw_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>These results will be similar, but not exactly the same, if this process is repeated. I ran the sampler several times with 40000 samples, and the results had less variation.</p>
 </div>
 
 </main>
