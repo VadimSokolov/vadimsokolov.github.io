@@ -5444,5 +5444,75 @@
     "title": "Bayes AI",
     "section": "More Direct Approaches",
     "text": "More Direct Approaches\n\nEvaluating Approximate Inference in Bayesian Deep Learning\nWhat Are Bayesian Neural Network Posteriors Really Like?"
+  },
+  {
+    "objectID": "08-dl.html#mean-field-variational-inference",
+    "href": "08-dl.html#mean-field-variational-inference",
+    "title": "Bayes AI",
+    "section": "Mean Field Variational Inference",
+    "text": "Mean Field Variational Inference\n\nApproximate Bayesian inference for deep learning models.\nThis approach offers a computationally efficient method to capture uncertainty in deep neural networks while maintaining scalability.\n\nGiven data \\(\\mathcal{D}\\), the posterior distribution over parameters \\(\\boldsymbol{\\theta}\\) is given by:\n\\[ p(\\boldsymbol{\\theta}|\\mathcal{D}) = \\frac{p(\\mathcal{D}|\\boldsymbol{\\theta})p(\\boldsymbol{\\theta})}{p(\\mathcal{D})} \\]"
+  },
+  {
+    "objectID": "08-dl.html#mean-field-variational-inference-1",
+    "href": "08-dl.html#mean-field-variational-inference-1",
+    "title": "Bayes AI",
+    "section": "Mean Field Variational Inference",
+    "text": "Mean Field Variational Inference\n\nApproximates the complex posterior distribution with a simpler, tractable distribution by minimizing the Kullback-Leibler (KL) divergence between them.\nThis is equivalent to maximizing the Evidence Lower Bound (ELBO), defined as:\n\n\\[\n\\text{ELBO}(q) = \\int q(z) \\log p(x,z) - q(z) \\log q(z) dz\n\\]\nwhere \\(q(z)\\) is the variational approximation to the true posterior \\(p(z|x)\\)\nAssume that the variational family is fully factorized. For latent variables \\(Z = \\{Z_1, \\ldots, Z_n\\}\\) and observed variables \\(X = \\{X_1, \\ldots, X_n\\}\\), the mean field approximation takes the form:\n\\[\np(z|x) \\approx \\prod_{i=1}^{n} q_i(z_i)\n\\]\nlatent variables is independent!"
+  },
+  {
+    "objectID": "08-dl.html#application-to-bayesian-neural-networks",
+    "href": "08-dl.html#application-to-bayesian-neural-networks",
+    "title": "Bayes AI",
+    "section": "Application to Bayesian Neural Networks",
+    "text": "Application to Bayesian Neural Networks\nMean Field in Neural Network Context\nWhen applying mean field variational inference to neural networks, we typically assume independence between all weight parameters:\n\\[ q(\\boldsymbol{\\theta}) = \\prod_{i=1}^{|\\boldsymbol{\\theta}|} q_i(\\theta_i) \\]\nEach weight distribution is commonly modeled as a Gaussian:\n\\[ q_i(\\theta_i) = \\mathcal{N}(\\theta_i|\\mu_i, \\sigma_i^2) \\]\nThe variational parameters \\(\\phi = \\{\\mu_i, \\sigma_i\\}\\) are optimized to maximize the ELBO[2][4].\nPractical Implementation\nIn practice, implementing mean field variational inference for BNNs involves:\n\nSpecifying a prior distribution over weights (often Gaussian)\nDefining a likelihood function (typically Gaussian for regression tasks)\nParameterizing the variational distribution as factorized Gaussians\nOptimizing the ELBO using stochastic gradient techniques\n\nFor example, in regression tasks, we might assume a Gaussian likelihood:\n\\[ p(\\mathcal{D}|\\boldsymbol{\\theta}) = \\prod_{n}\\mathcal{N}(y_n|f(x_n,\\boldsymbol{\\theta}), \\sigma^2_{\\text{noise}}) \\]\nAnd independent Gaussian priors over parameters:\n\\[ p(\\boldsymbol{\\theta}) = \\mathcal{N}(\\boldsymbol{\\theta}|\\boldsymbol{0}, \\sigma_p^2\\mathbf{I}) \\]\nWhere \\(\\sigma_p\\) is a hyperparameter controlling the prior variance[2]."
+  },
+  {
+    "objectID": "08-dl.html#limitations-and-challenges",
+    "href": "08-dl.html#limitations-and-challenges",
+    "title": "Bayes AI",
+    "section": "Limitations and Challenges",
+    "text": "Limitations and Challenges\nThe Independence Assumption\nThe core limitation of mean field approximation is its assumption of independence between parameters. In neural networks, weights are often highly correlated in the true posterior, making the mean field approximation potentially inaccurate. As David MacKay noted, “The diagonal approximation is no good because of the strong posterior correlations in the parameters”[8].\nWidth-Dependent Pathologies\nRecent research has uncovered concerning properties of mean field variational inference in wide neural networks. For fully-connected BNNs with odd activation functions and Gaussian likelihood, the optimal mean field variational posterior predictive distribution converges to the prior predictive distribution as network width increases. In essence, wide mean field BNNs may completely ignore the data[6][7].\nThis phenomenon is particularly concerning because it suggests that as models become larger, variational inference with mean field approximation might become less effective rather than more powerful[6].\nIn-Between Uncertainty\nAnother limitation occurs in single-layer networks’ ability to represent uncertainty between observed data points. Specifically, the variance of the function expressed by a single-layer mean field network between two points cannot exceed the sum of variances at those points, limiting the network’s ability to express high uncertainty in regions between observed data clusters[4]."
+  },
+  {
+    "objectID": "08-dl.html#recent-developments-and-research-findings",
+    "href": "08-dl.html#recent-developments-and-research-findings",
+    "title": "Bayes AI",
+    "section": "Recent Developments and Research Findings",
+    "text": "Recent Developments and Research Findings\nDepth vs. Mean Field Limitations\nInterestingly, recent research suggests that deeper networks may avoid some of the pathologies that affect single-layer networks. Theorem 3 from Foong et al. establishes that deeper mean field networks do not have the same limitations regarding “in-between” uncertainty that single-layer networks do[4].\nThis finding suggests that increasing depth, rather than width, might be a more effective strategy when using mean field approximation in BNNs.\nScale and Approximation Quality\nContrary to traditional wisdom, some recent work suggests that “The bigger your model, the easier it is to be approximately Bayesian.” This counterintuitive finding implies that mean field approximations might actually work better with larger models, though this remains an active area of research[8].\nRelationship with Activation Functions\nThe convergence of the mean field posterior to the prior in wide networks appears to depend on the choice of activation function. Specifically, this phenomenon has been demonstrated for odd activation functions (such as tanh or sigmoid centered at zero). The optimal approximate posterior need not converge to the prior if the activation function is not odd, suggesting that careful choice of activation function might mitigate some limitations[6][7]."
+  },
+  {
+    "objectID": "08-dl.html#conclusion",
+    "href": "08-dl.html#conclusion",
+    "title": "Bayes AI",
+    "section": "Conclusion",
+    "text": "Conclusion\nMean field variational inference represents a computationally efficient approach to approximate Bayesian inference in deep learning. By assuming independence between parameters, it enables scalable uncertainty quantification in neural networks. However, this assumption comes with significant limitations, particularly in wide networks with odd activation functions.\nRecent research has revealed both concerning pathologies and potential mitigating strategies, such as increasing network depth rather than width. The interplay between network architecture, activation functions, and the quality of mean field approximation remains an active and important area of research in Bayesian deep learning.\nAs the field progresses, we may see hybrid approaches that maintain the computational efficiency of mean field methods while addressing their limitations in capturing parameter correlations. Understanding the theoretical foundations and practical implications of mean field approximation is crucial for anyone seeking to apply Bayesian methods to deep learni"
+  },
+  {
+    "objectID": "08-dl.html#coordinate-ascent-algorithm",
+    "href": "08-dl.html#coordinate-ascent-algorithm",
+    "title": "Bayes AI",
+    "section": "Coordinate Ascent Algorithm",
+    "text": "Coordinate Ascent Algorithm\n\\[\nq_j(z_j) \\propto \\exp(E_{z_{i\\neq j} \\sim q_{i\\neq j}}[\\log p(z_j|x, z_{i\\neq j})])\n\\]\nWhen applying mean field variational inference to neural networks, we typically assume independence between all weight parameters:\n\\[\nq(\\boldsymbol{\\theta}) = \\prod_{i=1}^{|\\boldsymbol{\\theta}|} q_i(\\theta_i)\n\\]\nEach weight distribution is commonly modeled as a Gaussian:\n\\[\nq_i(\\theta_i) = \\mathcal{N}(\\theta_i|\\mu_i, \\sigma_i^2)\n\\]\nThe variational parameters \\(\\phi = \\{\\mu_i, \\sigma_i\\}\\) are optimized to maximize the ELBO[2][4]."
+  },
+  {
+    "objectID": "08-dl.html#practical-implementation",
+    "href": "08-dl.html#practical-implementation",
+    "title": "Bayes AI",
+    "section": "Practical Implementation",
+    "text": "Practical Implementation\nIn practice, implementing mean field variational inference for BNNs involves:\n\nSpecifying a prior distribution over weights (often Gaussian)\nDefining a likelihood function (typically Gaussian for regression tasks)\nParameterizing the variational distribution as factorized Gaussians\nOptimizing the ELBO using stochastic gradient techniques\n\nFor example, in regression tasks, we might assume a Gaussian likelihood:\n\\[ p(\\mathcal{D}|\\boldsymbol{\\theta}) = \\prod_{n}\\mathcal{N}(y_n|f(x_n,\\boldsymbol{\\theta}), \\sigma^2_{\\text{noise}}) \\]\nAnd independent Gaussian priors over parameters:\n\\[ p(\\boldsymbol{\\theta}) = \\mathcal{N}(\\boldsymbol{\\theta}|\\boldsymbol{0}, \\sigma_p^2\\mathbf{I}) \\]\nWhere \\(\\sigma_p\\) is a hyperparameter controlling the prior variance[2].\nIn-between uncertainty is an issue!"
+  },
+  {
+    "objectID": "08-dl.html#stochastic-gradient-markov-chain-monte-carlo-sgmcmc",
+    "href": "08-dl.html#stochastic-gradient-markov-chain-monte-carlo-sgmcmc",
+    "title": "Bayes AI",
+    "section": "Stochastic-gradient Markov chain Monte Carlo (SGMCMC)",
+    "text": "Stochastic-gradient Markov chain Monte Carlo (SGMCMC)\n\nStochastic gradient Markov chain Monte Carlo\nParameter Expanded Stochastic Gradient Markov Chain Monte Carlo\n\nUse mini-batches of data and Langevin dynamics for efficient exploration!\nAt each iteration, SGLD updates the model parameters using: \\[\n\\theta_{t+1} = \\theta_t + \\frac{\\epsilon_t}{2} \\nabla_\\theta \\log p(\\theta_t | \\text{data}) + \\eta_t\n\\] where: - \\[\\epsilon_t\\] is the step size, - \\[\\nabla_\\theta \\log p(\\theta_t | \\text{data})\\] is the gradient of the log-posterior (often estimated using a mini-batch of data, like in SGD), - \\[\\eta_t \\sim \\mathcal{N}(0, \\epsilon_t)\\] is Gaussian noise[1][2][3][5]."
+  },
+  {
+    "objectID": "08-dl.html#other-approaches",
+    "href": "08-dl.html#other-approaches",
+    "title": "Bayes AI",
+    "section": "Other Approaches",
+    "text": "Other Approaches\n\nEvaluating Approximate Inference in Bayesian Deep Learning\nWhat Are Bayesian Neural Network Posteriors Really Like?"
   }
 ]

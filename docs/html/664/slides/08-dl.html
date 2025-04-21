@@ -1317,6 +1317,100 @@ z\triangleq T^{-1}(\theta),\qquad \pi(z) = \pi(\theta) \left| \frac{\partial T}{
 </div>
 </div>
 </section>
+<section id="distributional-reinforcement-learning" class="slide level2">
+<h2>Distributional Reinforcement Learning</h2>
+<p>Reading list:</p>
+<ul>
+<li><a href="https://arxiv.org/abs/1710.10044">Distributional Reinforcement Learning with Quantile Regression</a></li>
+<li>Book on <a href="https://www.distributional-rl.org">Distributional Reinforcement Learning</a></li>
+<li><a href="https://ewrl.wordpress.com/wp-content/uploads/2018/10/distributional_rl.pdf">Slides</a>, <a href="https://cs.uwaterloo.ca/~ppoupart/teaching/cs885-fall22/slides/cs885-lecture9.pdf">Slides</a></li>
+</ul>
+</section>
+<section id="mixture-density-networks-mdns" class="slide level2">
+<h2>Mixture Density Networks (MDNs)</h2>
+<p>Mixture model head: Outputs parameters for: - Means (<span class="math inline">\(\mu_1,...,\mu_M\)</span>) - Variances (<span class="math inline">\(\sigma_1^2,...,\sigma_M^2\)</span>) - Mixing coefficients (<span class="math inline">\(\pi_1,...,\pi_M\)</span>)</p>
+<p><span class="math display">\[
+p(y\mid x) = \sum_{m=1}^M \pi_m \mathcal{N}(y\mid \mu_m, \sigma_m^2)
+\]</span></p>
+<p>Loss function: <span class="math display">\[
+L(\theta) = -\frac{1}{N}\sum_{i=1}^N \log p(y_i\mid x_i, \theta)
+\]</span> where <span class="math inline">\(\theta\)</span> are the parameters of the model.</p>
+<p><a href="https://www.dropbox.com/scl/fi/0p99rehqdoo866nc4jxqv/mdn-nn.ipynb?rlkey=34uab15kxqm0y7xokl2shk00w&amp;dl=0">mdn-nn.ipynb</a></p>
+</section>
+<section id="mean-field-variational-inference" class="slide level2">
+<h2>Mean Field Variational Inference</h2>
+<ul>
+<li>Approximate Bayesian inference for deep learning models.</li>
+<li>This approach offers a computationally efficient method to capture uncertainty in deep neural networks while maintaining scalability.</li>
+</ul>
+<p>Given data <span class="math inline">\(\mathcal{D}\)</span>, the posterior distribution over parameters <span class="math inline">\(\boldsymbol{\theta}\)</span> is given by:</p>
+<p><span class="math display">\[ p(\boldsymbol{\theta}|\mathcal{D}) = \frac{p(\mathcal{D}|\boldsymbol{\theta})p(\boldsymbol{\theta})}{p(\mathcal{D})} \]</span></p>
+</section>
+<section id="mean-field-variational-inference-1" class="slide level2">
+<h2>Mean Field Variational Inference</h2>
+<ul>
+<li>Approximates the complex posterior distribution with a simpler, tractable distribution by minimizing the Kullback-Leibler (KL) divergence between them.</li>
+<li>This is equivalent to maximizing the Evidence Lower Bound (ELBO), defined as:</li>
+</ul>
+<p><span class="math display">\[
+\text{ELBO}(q) = \int q(z) \log p(x,z) - q(z) \log q(z) dz
+\]</span></p>
+<p>where <span class="math inline">\(q(z)\)</span> is the variational approximation to the true posterior <span class="math inline">\(p(z|x)\)</span></p>
+<p>Assume that the variational family is fully factorized. For latent variables <span class="math inline">\(Z = \{Z_1, \ldots, Z_n\}\)</span> and observed variables <span class="math inline">\(X = \{X_1, \ldots, X_n\}\)</span>, the mean field approximation takes the form:</p>
+<p><span class="math display">\[
+p(z|x) \approx \prod_{i=1}^{n} q_i(z_i)
+\]</span></p>
+<p>latent variables is independent!</p>
+</section>
+<section id="coordinate-ascent-algorithm" class="slide level2">
+<h2>Coordinate Ascent Algorithm</h2>
+<p><span class="math display">\[
+q_j(z_j) \propto \exp(E_{z_{i\neq j} \sim q_{i\neq j}}[\log p(z_j|x, z_{i\neq j})])
+\]</span></p>
+<p>When applying mean field variational inference to neural networks, we typically assume independence between all weight parameters:</p>
+<p><span class="math display">\[
+q(\boldsymbol{\theta}) = \prod_{i=1}^{|\boldsymbol{\theta}|} q_i(\theta_i)
+\]</span></p>
+<p>Each weight distribution is commonly modeled as a Gaussian:</p>
+<p><span class="math display">\[
+q_i(\theta_i) = \mathcal{N}(\theta_i|\mu_i, \sigma_i^2)
+\]</span></p>
+<p>The variational parameters <span class="math inline">\(\phi = \{\mu_i, \sigma_i\}\)</span> are optimized to maximize the ELBO[2][4].</p>
+</section>
+<section id="practical-implementation" class="slide level2 smaller scrollable">
+<h2>Practical Implementation</h2>
+<p>In practice, implementing mean field variational inference for BNNs involves:</p>
+<ol type="1">
+<li>Specifying a prior distribution over weights (often Gaussian)</li>
+<li>Defining a likelihood function (typically Gaussian for regression tasks)</li>
+<li>Parameterizing the variational distribution as factorized Gaussians</li>
+<li>Optimizing the ELBO using stochastic gradient techniques</li>
+</ol>
+<p>For example, in regression tasks, we might assume a Gaussian likelihood:</p>
+<p><span class="math display">\[ p(\mathcal{D}|\boldsymbol{\theta}) = \prod_{n}\mathcal{N}(y_n|f(x_n,\boldsymbol{\theta}), \sigma^2_{\text{noise}}) \]</span></p>
+<p>And independent Gaussian priors over parameters:</p>
+<p><span class="math display">\[ p(\boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{\theta}|\boldsymbol{0}, \sigma_p^2\mathbf{I}) \]</span></p>
+<p>Where <span class="math inline">\(\sigma_p\)</span> is a hyperparameter controlling the prior variance[2].</p>
+<p>In-between uncertainty is an <a href="http://krasserm.github.io/2019/03/14/bayesian-neural-networks/">issue</a>!</p>
+</section>
+<section id="stochastic-gradient-markov-chain-monte-carlo-sgmcmc" class="slide level2">
+<h2>Stochastic-gradient Markov chain Monte Carlo (SGMCMC)</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/1907.06986">Stochastic gradient Markov chain Monte Carlo</a></li>
+<li><a href="https://openreview.net/forum?id=exgLs4snap">Parameter Expanded Stochastic Gradient Markov Chain Monte Carlo</a></li>
+</ul>
+<p>Use mini-batches of data and Langevin dynamics for efficient exploration!</p>
+<p>At each iteration, SGLD updates the model parameters using: <span class="math display">\[
+\theta_{t+1} = \theta_t + \frac{\epsilon_t}{2} \nabla_\theta \log p(\theta_t | \text{data}) + \eta_t
+\]</span> where: - <span class="math display">\[\epsilon_t\]</span> is the step size, - <span class="math display">\[\nabla_\theta \log p(\theta_t | \text{data})\]</span> is the gradient of the log-posterior (often estimated using a mini-batch of data, like in SGD), - <span class="math display">\[\eta_t \sim \mathcal{N}(0, \epsilon_t)\]</span> is Gaussian noise[1][2][3][5].</p>
+</section>
+<section id="other-approaches" class="slide level2">
+<h2>Other Approaches</h2>
+<ul>
+<li><a href="https://proceedings.mlr.press/v176/wilson22a/wilson22a.pdf">Evaluating Approximate Inference in Bayesian Deep Learning</a></li>
+<li><a href="http://proceedings.mlr.press/v139/izmailov21a/izmailov21a.pdf">What Are Bayesian Neural Network Posteriors Really Like?</a></li>
+</ul>
+</section>
 <section id="some-applications-of-bayes-approaches-in-llms" class="slide level2">
 <h2>Some Applications of Bayes Approaches in LLMs</h2>
 <ul>
@@ -1346,33 +1440,6 @@ z\triangleq T^{-1}(\theta),\qquad \pi(z) = \pi(\theta) \left| \frac{\partial T}{
 <!-- https://icml.cc/media/icml-2019/Slides/4534.pdf -->
 <!-- https://storage.googleapis.com/deepmind-media/Era-of-Experience%20/The%20Era%20of%20Experience%20Paper.pdf -->
 <!-- https://papers.nips.cc/paper_files/paper/2012/file/35051070e572e47d2c26c241ab88307f-Paper.pdf -->
-</section>
-<section id="distributional-reinforcement-learning" class="slide level2">
-<h2>Distributional Reinforcement Learning</h2>
-<p>Reading list:</p>
-<ul>
-<li><a href="https://arxiv.org/abs/1710.10044">Distributional Reinforcement Learning with Quantile Regression</a></li>
-<li>Book on <a href="https://www.distributional-rl.org">Distributional Reinforcement Learning</a></li>
-<li><a href="https://ewrl.wordpress.com/wp-content/uploads/2018/10/distributional_rl.pdf">Slides</a>, <a href="https://cs.uwaterloo.ca/~ppoupart/teaching/cs885-fall22/slides/cs885-lecture9.pdf">Slides</a></li>
-</ul>
-</section>
-<section id="mixture-density-networks-mdns" class="slide level2">
-<h2>Mixture Density Networks (MDNs)</h2>
-<p>Mixture model head: Outputs parameters for: - Means (<span class="math inline">\(\mu_1,...,\mu_M\)</span>) - Variances (<span class="math inline">\(\sigma_1^2,...,\sigma_M^2\)</span>) - Mixing coefficients (<span class="math inline">\(\pi_1,...,\pi_M\)</span>)</p>
-<p><span class="math display">\[
-p(y\mid x) = \sum_{m=1}^M \pi_m \mathcal{N}(y\mid \mu_m, \sigma_m^2)
-\]</span></p>
-<p>Loss function: <span class="math display">\[
-L(\theta) = -\frac{1}{N}\sum_{i=1}^N \log p(y_i\mid x_i, \theta)
-\]</span> where <span class="math inline">\(\theta\)</span> are the parameters of the model.</p>
-<p><a href="https://www.dropbox.com/scl/fi/0p99rehqdoo866nc4jxqv/mdn-nn.ipynb?rlkey=34uab15kxqm0y7xokl2shk00w&amp;dl=0">mdn-nn.ipynb</a></p>
-</section>
-<section id="more-direct-approaches" class="slide level2">
-<h2>More Direct Approaches</h2>
-<ul>
-<li><a href="https://proceedings.mlr.press/v176/wilson22a/wilson22a.pdf">Evaluating Approximate Inference in Bayesian Deep Learning</a></li>
-<li><a href="http://proceedings.mlr.press/v139/izmailov21a/izmailov21a.pdf">What Are Bayesian Neural Network Posteriors Really Like?</a></li>
-</ul>
 
 
 </section></section>
