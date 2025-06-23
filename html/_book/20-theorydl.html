@@ -20,7 +20,27 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -83,6 +103,35 @@ ul.task-list li input[type="checkbox"] {
 \]</span></p>
 </div>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 
 
@@ -274,7 +323,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19-dl.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">19-dl.html</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Deep Learners</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -361,8 +410,371 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<p>This chapter explores the theoretical foundations of deep learning through the lens of multivariate function approximation, beginning with ridge functions as fundamental building blocks. Ridge functions, which take the form <span class="math inline">\(f(x) = g(w^Tx)\)</span>, represent one of the simplest forms of nonlinear multivariate functions by combining a single linear projection with a univariate nonlinear transformation. Their key geometric property—remaining constant along directions orthogonal to the projection vector <span class="math inline">\(w\)</span>—makes them particularly useful for high-dimensional approximation. The chapter then introduces projection pursuit regression, which approximates complex input-output relationships using linear combinations of ridge functions, demonstrating how these mathematical constructs provide the groundwork for modern deep learning approaches.</p>
+<p>The chapter culminates with the Kolmogorov Superposition Theorem (KST), a profound result that shows any real-valued continuous function can be represented as a sum of compositions of single-variable functions. This theorem provides a theoretical framework for understanding how complex multivariate functions can be decomposed into simpler, more manageable components—a principle that underlies the architecture of modern neural networks. The discussion raises important questions about the trade-off between computational power and mathematical efficiency in machine learning, challenging whether superior performance can be achieved through mathematically elegant representations rather than brute-force computational approaches.</p>
+<section id="ridge-and-projection-pursuit-regression" class="level2" data-number="20.1">
+<h2 data-number="20.1" class="anchored" data-anchor-id="ridge-and-projection-pursuit-regression"><span class="header-section-number">20.1</span> Ridge and Projection Pursuit Regression</h2>
+<p>To understand the significance of this trade-off, we consider ridge functions, which represent a fundamental building block in multivariate analysis. Since our ultimate goal is to model arbitrary multivariate functions <span class="math inline">\(f\)</span>, we need a way to reduce dimensionality while preserving the ability to capture nonlinear relationships. Ridge functions accomplish this by representing one of the simplest forms of nonlinear multivariate functions, requiring only a single linear projection and a univariate nonlinear transformation. Formally, a ridge function <span class="math inline">\(f: \mathbb{R}^n \rightarrow \mathbb{R}\)</span> takes the form <span class="math inline">\(f(x) = g(w^Tx)\)</span>, where <span class="math inline">\(g\)</span> is a univariate function and <span class="math inline">\(x,w \in \mathbb{R}^n\)</span>. The non-zero vector <span class="math inline">\(w\)</span> is called the direction. The term “ridge” reflects a key geometric property: the function remains constant along any direction orthogonal to <span class="math inline">\(w\)</span>. Specifically, for any direction <span class="math inline">\(u\)</span> such that <span class="math inline">\(w^Tu = 0\)</span>, we have</p>
+<p><span class="math display">\[
+f(x+u) = g(w^T(x+u)) = g(w^Tx) = f(x)
+\]</span></p>
+<p>This structural simplicity makes ridge functions particularly useful as building blocks for high-dimensional approximation.</p>
+<p>Ridge functions play a central role in high-dimensional statistical analysis. For example, projection pursuit regression approximates input-output relations using a linear combination of ridge functions <span class="citation" data-cites="friedman1981projection">Friedman and Stuetzle (<a href="references.html#ref-friedman1981projection" role="doc-biblioref">1981</a>)</span>,huber1985proje:</p>
+<p><span class="math display">\[
+\phi(x) = \sum_{i=1}^{p}g_i(w_i^Tx),
+\]</span></p>
+<p>where both the directions <span class="math inline">\(w_i\)</span> and functions <span class="math inline">\(g_i\)</span> are variables and <span class="math inline">\(w_i^Tx\)</span> are one-dimensional projections of the input vector. The vector <span class="math inline">\(w_i^Tx\)</span> is a projection of the input vector <span class="math inline">\(x\)</span> onto a one-dimensional space and <span class="math inline">\(g_i(w_i^Tx)\)</span> can be though as a feature calculated from data. <span class="citation" data-cites="diaconis1984nonlinear">Diaconis and Shahshahani (<a href="references.html#ref-diaconis1984nonlinear" role="doc-biblioref">1984</a>)</span> use nonlinear functions of linear combinations, laying important groundwork for deep learning.</p>
+<p>The landscape of modern machine learning has been shaped by the exponential growth in computational power, particularly through advances in GPU technology and frameworks like PyTorch. While Moore’s Law has continued to drive hardware improvements and CUDA algorithms have revolutionized our ability to process vast amounts of internet data, we pose the following question: can we achieve superior performance through mathematically efficient representations of multivariate functions rather than raw computational power?</p>
+<p>A fundamental challenge in machine learning lies in effectively handling high-dimensional input-output relationships. This challenge manifests itself in two distinct but related tasks. First, one task is to construct a “look-up” table (dictionary) for fast search and retrieval of input-output examples. This is an encoding and can be thought of as a data compression problem. Second, and perhaps more importantly, we must develop prediction rules that can generalize beyond these examples to handle arbitrary inputs.</p>
+<p>More formally, we seek to find a good predictor function <span class="math inline">\(f(x)\)</span> that maps an input <span class="math inline">\(x\)</span> to its output prediction <span class="math inline">\(y\)</span>. In practice, the input <span class="math inline">\(x\)</span> is typically a high-dimensional vector:</p>
+<p><span class="math display">\[
+y = f ( x )  \; \; {\rm where}  \; \; x =  ( x_1 , \ldots , x_d )
+\]</span></p>
+<p>Given a training dataset <span class="math inline">\((y_i,x_i)_{i=1}^N\)</span> of example input-output pairs, our goal is to train a model, i.e.&nbsp;to find the function <span class="math inline">\(f\)</span>. The key question is: <em>how do we represent a multivariate function so as to obtain a desirable <span class="math inline">\(f\)</span>?</em></p>
+</section>
+<section id="kolmogorov-superposition-theorem-kst" class="level2" data-number="20.2">
+<h2 data-number="20.2" class="anchored" data-anchor-id="kolmogorov-superposition-theorem-kst"><span class="header-section-number">20.2</span> Kolmogorov Superposition Theorem (KST)</h2>
+<p>Kolmogorov demonstrated that any real-valued continuous function <span class="math inline">\(f(\mathbf{x})\)</span> defined on <span class="math inline">\(E^n\)</span> can be represented as a convolution of two single variable functions:</p>
+<p><span class="math display">\[
+f(x_1,\ldots,x_n) = \sum_{q=1}^{2n+1} g_q\left(\phi_q(x_1,\ldots,x_n)\right)
+\]</span></p>
+<p>where <span class="math inline">\(g_q\)</span> are continuous single-variable functions defined on <span class="math inline">\(\phi_q(E^n)\)</span>. Kolmogorov further showed that the <span class="math inline">\(\phi_q\)</span> functions can be decomposed into sums of single-variable functions:</p>
+<p><span class="math display">\[
+\phi_q(x_1,\ldots,x_n) = \sum_{i=1}^n \psi_{q,i}(x_i)
+\]</span></p>
+<p>This result is known as Kolmogorov representation theorem <span class="citation" data-cites="kolmogorov1956representation">Kolmogorov (<a href="references.html#ref-kolmogorov1956representation" role="doc-biblioref">1956</a>)</span> and is often written in the following form:</p>
+<p><span class="math display">\[
+f(x_1,\ldots,x_n) = \sum_{q=1}^{2n+1} g_q\left(\sum_{i=1}^n \psi_{q,i}(x_i)\right)
+\]</span></p>
+<p>The theorem has seen several refinements over time, the inner functions could be Hölder continuous and Lipschitz continuous, though this required modifications to both the outer and inner functions.</p>
+<p>The inner functions <span class="math inline">\(\Psi_q\)</span> partition the input space into distinct regions, and the outer function, <span class="math inline">\(g\)</span>, must be constructed to provide the correct output values across the regions that the inner function defines. The outer function, <span class="math inline">\(g\)</span>, can be determined via a computationally intensive process of averaging. For each input configuration, the inner functions <span class="math inline">\(\Psi_q\)</span> generate a unique encoding, and <span class="math inline">\(g\)</span> must map this encoding to the appropriate value of <span class="math inline">\(f(x)\)</span>. This creates a dictionary-like structure that associates each region with its corresponding output value. Köppen made significant contributions by correcting Sprecher’s original proof of this construction process, with improvements to the computational algorithm later suggested by <span class="citation" data-cites="actor2018computation">Actor (<a href="references.html#ref-actor2018computation" role="doc-biblioref">2018</a>)</span> and <span class="citation" data-cites="demb2021note">Demb and Sprecher (<a href="references.html#ref-demb2021note" role="doc-biblioref">2021</a>)</span>. Braun further enhanced the understanding by providing precise definitions of the shift parameters <span class="math inline">\(\delta_k\)</span> and characterizing the topological structure induced by <span class="math inline">\(\Psi_q\)</span>.</p>
+<p>A fundamental trade-off in KST exists between function smoothness and dimensionality. The inner functions <span class="math inline">\(\psi_{p,q}\)</span> can be chosen from two different function spaces, each offering distinct advantages. The first option is to use functions from <span class="math inline">\(C^1([0,1])\)</span>, but this limits the network’s ability to handle higher dimensions effectively. The second option is to relax the smoothness requirement to Hölder continuous functions (<span class="math inline">\(\psi_{p,q} \in \text{Holder}_\alpha([0,1])\)</span>), which satisfy the inequality <span class="math inline">\(|\psi(x) - \psi(y)| &lt; |x-y|^\alpha\)</span>. These functions are less smooth, but this “roughness” enables better approximation in higher dimensions.</p>
+<section id="kolmogorov-arnold-networks" class="level3" data-number="20.2.1">
+<h3 data-number="20.2.1" class="anchored" data-anchor-id="kolmogorov-arnold-networks"><span class="header-section-number">20.2.1</span> Kolmogorov-Arnold Networks</h3>
+<p>A significant development has been the emergence of Kolmogorov-Arnold Networks (KANs). The key innovation of KANs is their use of learnable functions rather than weights on the network edges. This replaces traditional linear weights with univariate functions, typically parametrized by splines, enhancing both representational capacity and interpretability.</p>
+<p>There is a practical connection between KST and neural networks by showing that any KAN can be constructed as a 3-layer MLP. Consider a KST in the form of sums of functions, a two layer model:</p>
+<p><span class="math display">\[
+f( x_1 , \ldots , x_d ) = f( x) = ( g \circ \psi ) (x )
+\]</span></p>
+<p>Then KAN not only a superposition of functions but also a particular case of a tree of discrete Urysohn operators:</p>
+<p><span class="math display">\[
+U(x_1 , \ldots , x_d ) = \sum_{j=1}^d g_j (x_j )
+\]</span></p>
+<p>This insight leads to a fast scalable algorithm that avoids back-propagation, applicable to any GAM model, using a projection descent method with a Newton-Kacmarz scheme.</p>
+</section>
+</section>
+<section id="kolmogorov-generalized-additive-models-k-gam" class="level2" data-number="20.3">
+<h2 data-number="20.3" class="anchored" data-anchor-id="kolmogorov-generalized-additive-models-k-gam"><span class="header-section-number">20.3</span> Kolmogorov Generalized Additive Models (K-GAM)</h2>
+<p>Rather than using learnable functions as network nodes activations, Polson Sokolov directly use KST representation. This is a 2-layer network with a non-differentiable inner function. The network’s architecture can be expressed as:</p>
+<p><span class="math display">\[
+f(x_1,\ldots,x_d) = \sum_{q=0}^{2d} g_q(z_q)
+\]</span></p>
+<p>where the inner layer performs an embedding from <span class="math inline">\([0,1]^d\)</span> to <span class="math inline">\(\mathbb{R}^{2d+1}\)</span> via:</p>
+<p><span class="math display">\[
+z_q = \eta_q ( x_1 , \ldots , x_d ) = \sum_{p=1}^ d \lambda_p \psi  ( x_p + q a )
+\]</span></p>
+<p>Here, <span class="math inline">\(\lambda_p = \sum_{r=1}^\infty \gamma^{-(p-1)\beta(r)}\)</span> is a <span class="math inline">\(p\)</span>-adic expansion with <span class="math inline">\(\beta(r) = (n^r-1)/(n-1)\)</span> and <span class="math inline">\(\gamma \geq d+2\)</span> with <span class="math inline">\(a = (\gamma(\gamma-1))^{-1}\)</span>.</p>
+<p>The Köppen function <span class="math inline">\(\psi\)</span> is defined through a recursive limit:</p>
+<p><span class="math display">\[
+\psi(x) = \lim_{k \rightarrow \infty} \psi_k\left(\sum_{l=1}^{k}i_l\gamma^{-l}\right)
+\]</span></p>
+<p>where each <span class="math inline">\(x \in [0,1]\)</span> has the representation:</p>
+<p><span class="math display">\[
+x = \sum_{l=1}^{\infty}i_l\gamma^{-l} = \lim_{k \rightarrow \infty} \left(\sum_{l=1}^{k}i_l\gamma^{-l}\right)
+\]</span></p>
+<p>and <span class="math inline">\(\psi_k\)</span> is defined recursively as:</p>
+<p><span class="math display">\[
+\psi_k =
+\begin{cases}
+    d, &amp; d \in D_1\\
+    \psi_{k-1}(d-i_k\gamma^{-k}) + i_k\gamma^{-\beta_n(k)}, &amp; d \in D_k,k&gt;1,i_k&lt;\gamma-1\\
+    \frac{1}{2}\left(\psi_k(d-\gamma^{-k}) + \psi_{k-1}(d+\gamma^{-k})\right), &amp; d \in D_k, k&gt;1, i_k = \gamma - 1
+\end{cases}
+\]</span></p>
+<p>The most striking aspect of KST is that it leads to a Generalized Additive Model (GAM) with fixed features that are independent of the target function <span class="math inline">\(f\)</span>. These features, determined by the Köppen function, provide universal topological information about the input space, effectively implementing a k-nearest neighbors structure that is inherent to the representation.</p>
+<p>This leads to the following architecture. Any deep learner can be represented as a GAM with feature engineering (topological information) given by features <span class="math inline">\(z_k\)</span> in the hidden layer:</p>
+<p><span class="math display">\[
+\begin{align*}
+y_i &amp;= \sum_{k=1}^{2n+1} g(z_k)\\
+z_k &amp;= \sum_{j=1}^n \lambda^k\psi(x_j + \epsilon k) + k
+\end{align*}
+\]</span></p>
+<p>where <span class="math inline">\(\psi\)</span> is a single activation function common to all nodes, and <span class="math inline">\(g\)</span> is a single outer function.</p>
+<p>One approach is to replace each <span class="math inline">\(\phi_j\)</span> with a single ReLU network <span class="math inline">\(g\)</span>:</p>
+<p><span class="math display">\[
+g(x) = \sum_{k=1}^K \beta_k\text{ReLU}(w_kx + b_k)
+\]</span></p>
+<p>where <span class="math inline">\(K\)</span> is the number of neurons.</p>
+<section id="kernel-smoothing-interpolation" class="level3" data-number="20.3.1">
+<h3 data-number="20.3.1" class="anchored" data-anchor-id="kernel-smoothing-interpolation"><span class="header-section-number">20.3.1</span> Kernel Smoothing: Interpolation</h3>
+<p>The theory of kernel methods was developed by Fredholm in the context of integral equations <span class="citation" data-cites="fredholm1903classe">Fredholm (<a href="references.html#ref-fredholm1903classe" role="doc-biblioref">1903</a>)</span>. The idea is to represent a function as a linear combination of basis functions, which are called kernels.</p>
+<p><span class="math display">\[
+f(x) = \int_{a}^{b} K(x,x')  d \mu (x') dx'  \; \; {\rm where} \; \; x = ( x_1 , \ldots , x_d )
+\]</span></p>
+<p>Here, the unknown function <span class="math inline">\(f(x)\)</span> is represented as a linear combination of kernels <span class="math inline">\(K(x,x')\)</span> with unknown coefficients <span class="math inline">\(\phi(x')\)</span>. The kernels are known, and the coefficients are unknown. The coefficients are found by solving the integral equation. The first work in this area was done by Abel who considered equations of the form above.</p>
+<p>Nowadays, we call those equations Volterra integral equations of the first kind. Integral equations typically arise in inverse problems. Their significance extends beyond their historical origins, as kernel methods have become instrumental in addressing one of the fundamental challenges in modern mathematics: the curse of dimensionality.</p>
+<p>Bartlett <span class="citation" data-cites="nadaraya1964estimating">Nadaraya (<a href="references.html#ref-nadaraya1964estimating" role="doc-biblioref">1964</a>)</span> and <span class="citation" data-cites="watson1964smooth">Watson (<a href="references.html#ref-watson1964smooth" role="doc-biblioref">1964</a>)</span> proposed the use of kernels to estimate the regression function. The idea is to estimate the regression function <span class="math inline">\(f(x)\)</span> at point <span class="math inline">\(x\)</span> by averaging the values of the response variable <span class="math inline">\(y_i\)</span> at points <span class="math inline">\(x_i\)</span> that are close to <span class="math inline">\(x\)</span>. The kernel is used to define the weights.</p>
+<p>The regression function is estimated as follows:</p>
+<p><span class="math display">\[
+\hat{f}(x) = \sum_{i=1}^n  y_i K(x,x_i)/ \sum_{i=1}^n K(x,x_i) ,
+\]</span></p>
+<p>where the kernel weights are normalized.</p>
+<p>Both Nadaraya and Watson considered the symmetric kernel <span class="math inline">\(K(x,x') = K(\|x'-x\|_2)\)</span>, where <span class="math inline">\(||\cdot||_2\)</span> is the Euclidean norm. The most popular kernel of that sort is the Gaussian kernel:</p>
+<p><span class="math display">\[
+K(x,x') = \exp\left( -\dfrac{\|x-x'\|_2^2}{2\sigma^2}\right).
+\]</span></p>
+<p>Alternatively, the 2-norm can be replaced by the inner-product: <span class="math inline">\(K(x,x')  =  \exp\left( x^Tx'/2\sigma^2\right)\)</span>.</p>
+<p>Kernel methods are supported by numerous generalization bounds which often take the form of inequalities that describe the performance limits of kernel-based estimators. A particularly important example is the Bayes risk for <span class="math inline">\(k\)</span>-nearest neighbors (<span class="math inline">\(k\)</span>-NN), which can be expressed in a kernel framework as:</p>
+<p><span class="math display">\[
+\hat{f} ( x) =  \sum_{i=1}^N w_i y_i        \; {\rm where} \; w_i := K( x_i , x ) /  \sum_{i=1}^N K( x_i ,x )   
+\]</span></p>
+<p><span class="math inline">\(k\)</span>-NN classifiers have been proven to converge to an error rate that is bounded in relation to the Bayes error rate, with the exact relationship depending on the number of classes. For binary classification, the asymptotic error rate of <span class="math inline">\(k\)</span>-NN is at most <span class="math inline">\(2R^*(1-R^*)\)</span>, where <span class="math inline">\(R^*\)</span> is the Bayes error rate. This theoretical bound suggests potential for improvement in practice. Cover and Hart proved that interpolated k-NN schemes are consistent estimators, meaning that their performance improves with increasing sample size.</p>
+</section>
+</section>
+<section id="transformers-as-kernel-smoothing" class="level2" data-number="20.4">
+<h2 data-number="20.4" class="anchored" data-anchor-id="transformers-as-kernel-smoothing"><span class="header-section-number">20.4</span> Transformers as Kernel Smoothing</h2>
+<p><span class="citation" data-cites="bahdanau2014neural">Bahdanau, Cho, and Bengio (<a href="references.html#ref-bahdanau2014neural" role="doc-biblioref">2014</a>)</span> proposed using kernel smoothing for sequence-to-sequence learning. This approach estimates the probability of the next word in the sequence using a so-called context vector, which is a weighted average of the vectors from the input sequence <span class="math inline">\(h_j\)</span>:</p>
+<p><span class="math display">\[
+c_i = \sum_{j=1}^n \alpha_{ij} h_j,
+\]</span></p>
+<p>where <span class="math inline">\(\alpha_{ij}\)</span> are the weights. The weights are defined by the kernel function:</p>
+<p><span class="math display">\[
+\alpha_{ij} = \dfrac{\exp\left( e_{ij}\right)}{\sum_{k=1}^n \exp\left( e_{ik}\right)}.
+\]</span></p>
+<p>Instead of using a traditional similarity measure like the 2-norm or inner product, the authors used a neural network to define the energy function <span class="math inline">\(e_{ij} = a(s_{i-1},h_j)\)</span>. This neural network measures the similarity between the last generated element of the output sequence <span class="math inline">\(s_{i-1}\)</span> and <span class="math inline">\(j\)</span>-th element of the input sequence <span class="math inline">\(h_j\)</span>. The resulting context vector is then used to predict the next word in the sequence.</p>
+<section id="transformer" class="level3" data-number="20.4.1">
+<h3 data-number="20.4.1" class="anchored" data-anchor-id="transformer"><span class="header-section-number">20.4.1</span> Transformer</h3>
+<p>Transformers have since become a main building block for various natural language processing (NLP) tasks and has been extended to other domains as well due to their effectiveness. The transformer architecture is primarily designed to handle sequential data, making it well-suited for tasks such as machine translation, language modeling, text generation, and more. It achieves state-of-the-art performance by leveraging a novel attention mechanism.</p>
+<p>The idea to use kernel smoothing for sequence to sequence was called “attention”, or cross-attention, by <span class="citation" data-cites="bahdanau2014neural">Bahdanau, Cho, and Bengio (<a href="references.html#ref-bahdanau2014neural" role="doc-biblioref">2014</a>)</span>. When used for self-supervised learning, it is called self-attention. When a sequence is mapped to a matrix <span class="math inline">\(M\)</span>, it is called multi-head attention. The concept of self-attention and attention for natural language processing was further developed by <span class="citation" data-cites="vaswani2023attention">Vaswani et al. (<a href="references.html#ref-vaswani2023attention" role="doc-biblioref">2023</a>)</span> who developed a smoothing method that they called the transformer.</p>
+<p>The transformer architecture revolves around a series of mathematical concepts and operations:</p>
+<ul>
+<li><strong>Embeddings</strong>: The input text is converted into vectors using embeddings. Each word (or token) is represented by a unique vector in a high-dimensional space.</li>
+<li><strong>Positional Encoding</strong>: Since transformers do not have a sense of sequence order (like RNNs do), positional encodings are added to the embeddings to provide information about the position of each word in the sequence.</li>
+<li><strong>Multi-Head Attention</strong>: The core of the transformer model. It enables the model to focus on different parts of the input sequence simultaneously. The attention mechanism is defined as: <span class="math display">\[ \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V \]</span> where <span class="math inline">\(Q\)</span>, <span class="math inline">\(K\)</span>, and <span class="math inline">\(V\)</span> are query, key, and value matrices respectively.</li>
+<li><strong>Query (Q), Key (K), and Value (V) Vectors</strong>: These are derived from the input embeddings. They represent different aspects of the input.</li>
+<li><strong>Scaled Dot-Product Attention</strong>: The attention mechanism calculates the dot product of the Query with all Keys, scales these values, and then applies a softmax function to determine the weights of the Values.</li>
+<li><strong>Multiple ‘Heads’</strong>: The model does this in parallel multiple times (multi-head), allowing it to capture different features from different representation subspaces.</li>
+<li><strong>Layer Normalization and Residual Connections</strong>: After each sub-layer in the encoder and decoder (like multi-head attention or the feed-forward layers), the transformer applies layer normalization and adds the output of the sub-layer to its input (residual connection). This helps in stabilizing the training of deep networks.</li>
+<li><strong>Feed-Forward Neural Networks</strong>: Each layer in the transformer contains a fully connected feed-forward network applied to each position separately and identically. It is defined as: <span class="math display">\[ \text{FFN}(x) = \max(0, xW_1 + b_1)W_2 + b_2 \]</span> where <span class="math inline">\(W_1\)</span>, <span class="math inline">\(W_2\)</span>, <span class="math inline">\(b_1\)</span>, and <span class="math inline">\(b_2\)</span> are learnable parameters.</li>
+<li><strong>Output Linear Layer and Softmax</strong>: The decoder’s final output passes through a linear layer followed by a softmax layer. This layer converts the decoder output into predicted next-token probabilities.</li>
+<li><strong>Training and Loss Function</strong>: Transformers are often trained using a variant of Cross-Entropy Loss to compare the predicted output with the actual output.</li>
+<li><strong>Masking</strong>: In the decoder, to prevent future tokens from being used in the prediction, a technique called ‘masking’ is applied.</li>
+<li><strong>Backpropagation and Optimization</strong>: The model’s parameters are adjusted through backpropagation and optimization algorithms like Adam.</li>
+</ul>
+<p>Later, <span class="citation" data-cites="lin2017structured">Lin et al. (<a href="references.html#ref-lin2017structured" role="doc-biblioref">2017</a>)</span> proposed using similar idea for self-supervised learning, where a sequence of words (sentence) is mapped to a single matrix:</p>
+<p><span class="math display">\[
+M = AH,
+\]</span></p>
+<p>where <span class="math inline">\(H\)</span> is the matrix representing an input sequence <span class="math inline">\(H = (h_1,\ldots,h_n)\)</span> and <span class="math inline">\(A\)</span> is the matrix of weights:</p>
+<p><span class="math display">\[
+A = \mathrm{softmax}\left(W_2\tanh\left(W_1H^T\right)\right).
+\]</span></p>
+<p>This allows to represent a sequence of words of any length <span class="math inline">\(n\)</span> using a “fixed size” <span class="math inline">\(r\times u\)</span> matrix <span class="math inline">\(M\)</span>, where <span class="math inline">\(u\)</span> is the dimension of a vector that represents an element of a sequence (word embedding) and <span class="math inline">\(r\)</span> is the hyper-parameter that defines the size of the matrix <span class="math inline">\(M\)</span>.</p>
+<p>The main advantage of using smoothing techniques (transformers) is that they are parallelizable. Current language models such as BERT, GPT, and T5 rely on this approach. Further, they also has been applied to computer vision and other domains. Its ability to capture long-range dependencies and its scalability have made it a powerful tool for a wide range of applications. See <span class="citation" data-cites="tsai2019transformer">Tsai et al. (<a href="references.html#ref-tsai2019transformer" role="doc-biblioref">2019</a>)</span> et al for further details.</p>
+</section>
+</section>
+<section id="application" class="level2" data-number="20.5">
+<h2 data-number="20.5" class="anchored" data-anchor-id="application"><span class="header-section-number">20.5</span> Application</h2>
+<section id="simulated-data" class="level3" data-number="20.5.1">
+<h3 data-number="20.5.1" class="anchored" data-anchor-id="simulated-data"><span class="header-section-number">20.5.1</span> Simulated Data</h3>
+<p>We also apply the K-GAM architecture to a simulated dataset to evaluate its performance on data with known structure and relationships. The dataset contains 100 observations generated from the following function:</p>
+<p><span class="math display">\[
+\begin{align*}
+    &amp;y = \mu(x) + \epsilon, \quad \epsilon \sim \mathcal{N}(0,1)\\
+         &amp;\mu(x) = 10\sin(\pi x_1 x_2) + 20(x_3-0.5)^2 + 10x_4 + 5x_5.
+\end{align*}
+\]</span></p>
+<p>The goal is to predict the function <span class="math inline">\(y(x)\)</span> based on the input <span class="math inline">\(x\)</span>. The dataset is often used as a benchmark dataset for regression algorithms due to its diverse mix of relationships (linear, quadratic, nonlinear, Gaussian random noise) between the input features and the target function.</p>
+<p>We use the Köppen function to transform the five-dimensional input into a set of 11 features (<span class="math inline">\(2d+1\)</span>). We then learn the outer function <span class="math inline">\(g\)</span> using a ReLU network. To thoroughly investigate the model’s capabilities, we implement two distinct approaches to learning the outer function. The first approach uses different <span class="math inline">\(g\)</span> functions for each feature, following the original KST formulation. This allows each function to specialize in capturing specific patterns, but might be more difficult to train and has more parameters. The second approach uses a single <span class="math inline">\(g\)</span> function for all features, as proposed by <span class="citation" data-cites="lorentz197613th">Lorentz (<a href="references.html#ref-lorentz197613th" role="doc-biblioref">1976</a>)</span>, providing a more unified and parameter-efficient representation.</p>
+<p>For the first model with multiple <span class="math inline">\(g_i\)</span> functions, the dimensions of each <span class="math inline">\(g_i\)</span> are as follows: <span class="math inline">\(W^0_i \in \mathbb{R}^{16\times 1}\)</span> and for <span class="math inline">\(j=1,\ldots,18\)</span>, <span class="math inline">\(W^j_i \in \mathbb{R}^{16\times 16}\)</span>.</p>
+<p>The next architecture, which used only one function <span class="math inline">\(g\)</span> for all features, maintains a similar structure to the multiple <span class="math inline">\(g\)</span> functions approach. The only difference is in the dimensionality of the inner layers: we increased the width from 16 to 200. This increased capacity allows the single function to learn more complex patterns and compensate for the constraint of using just one function instead of multiple specialized ones.</p>
+</section>
+<section id="training-rates" class="level3" data-number="20.5.2">
+<h3 data-number="20.5.2" class="anchored" data-anchor-id="training-rates"><span class="header-section-number">20.5.2</span> Training Rates</h3>
+<p>Consider the non-parametric condition regression, <span class="math inline">\(y_i= f (x_i) + \epsilon_i\)</span> where <span class="math inline">\(x_i = ( x_{1i} , \ldots , x_{di} )\)</span>. We wish to estimate <span class="math inline">\(f( x_1 , \ldots , x_d )\)</span> where <span class="math inline">\(x  = ( x_1 , \ldots , x_d ) \in [0,1]^d\)</span>. From a classical risk perspective, define</p>
+<p><span class="math display">\[
+R ( f , \hat{f}_N ) = E_{X,Y} \left ( \lVert  f - \hat{f}_N \rVert^2 \right )
+\]</span></p>
+<p>where <span class="math inline">\(\lVert . \rVert\)</span> denotes <span class="math inline">\(L^2 ( P_X)\)</span>-norm.</p>
+<p>Under standard assumptions, we have an optimal minimax rate <span class="math inline">\(\inf_{\hat{f}} \sup_f R( f , \hat{f}_N )\)</span> of <span class="math inline">\(O_p \left ( N^{- 2 \beta /( 2 \beta + d )} \right )\)</span> for <span class="math inline">\(\beta\)</span>-Hölder smooth functions <span class="math inline">\(f\)</span>. This rate still depends on the dimension <span class="math inline">\(d\)</span>, which can be problematic in high-dimensional settings. By restricting the class of functions, better rates can be obtained, including ones that do not depend on <span class="math inline">\(d\)</span>. In this sense, we avoid the curse of dimensionality. Common approaches include considering the class of linear superpositions (a.k.a. ridge functions) and projection pursuit models.</p>
+<p>Another asymptotic result comes from a posterior concentration property. Here, <span class="math inline">\(\hat{f}_N\)</span> is constructed as a regularized MAP (maximum a posteriori) estimator, which solves the optimization problem</p>
+<p><span class="math display">\[
+\hat{f}_N = \arg \min_{ \hat{f}_N } \frac{1}{N} \sum_{i=1}^N ( y_i - \hat{f}_N ( x_i )^2 + \phi ( \hat{f}_N )
+\]</span></p>
+<p>where <span class="math inline">\(\phi(\hat{f})\)</span> is a regularization term. Under appropriate conditions, the ensuing posterior distribution <span class="math inline">\(\Pi(f | x, y)\)</span> can be shown to concentrate around the true function at the minimax rate (up to a <span class="math inline">\(\log N\)</span> factor).</p>
+<p>A key result in the deep learning literature provides convergence rates for deep neural networks. Given a training dataset of input-output pairs <span class="math inline">\(( x_i , y_i)_{i=1}^N\)</span> from the model <span class="math inline">\(y = f(x) + \epsilon\)</span> where <span class="math inline">\(f\)</span> is a deep learner (i.e.&nbsp;superposition of functions</p>
+<p><span class="math display">\[
+f = g_L \circ \ldots g_1 \circ g_0
+\]</span></p>
+<p>where each <span class="math inline">\(g_i\)</span> is a <span class="math inline">\(\beta_i\)</span>-smooth Hölder function with <span class="math inline">\(d_i\)</span> variables, that is <span class="math inline">\(| g_i (x) -g_i (y) &lt; | x-y |^\beta\)</span>.</p>
+<p>Then, the estimator has optimal rate:</p>
+<p><span class="math display">\[
+O \left ( \max_{1\leq i \leq L } N^{- 2 \beta^* /( 2 \beta^* + d_i ) } \right )  \; {\rm where} \; \beta_i^* = \beta_i \prod_{l = i+1}^L \min ( \beta_l , 1 )
+\]</span></p>
+<p>This result can be applied to various function classes, including generalized additive models of the form</p>
+<p><span class="math display">\[
+f_0 ( x ) = h \left ( \sum_{p=1}^d f_{0,p} (x_p) \right )
+\]</span></p>
+<p>where <span class="math inline">\(g_0(z) = h(z)\)</span>, <span class="math inline">\(g_1 ( x_1 , \ldots , x_d ) = ( f_{01}(x_1) , \ldots , f_{0d} (x_d) )\)</span> and <span class="math inline">\(g_2 ( y_1 , \ldots , y_d ) = \sum_{i=1}^d y_i\)</span>. In this case, <span class="math inline">\(d_1 = d_2 = 1\)</span>, and assuming <span class="math inline">\(h\)</span> is Lipschitz, we get an optimal rate of <span class="math inline">\(O(N^{-1/3})\)</span>, which is independent of <span class="math inline">\(d\)</span>.</p>
+<p><span class="citation" data-cites="schmidt-hieber2021kolmogorov">Schmidt-Hieber (<a href="references.html#ref-schmidt-hieber2021kolmogorov" role="doc-biblioref">2021</a>)</span> show that deep ReLU networks also have optimal rate of <span class="math inline">\(O( N^{-1/3} )\)</span> for certain function classes. For <span class="math inline">\(3\)</span>-times differentiable (e.g.&nbsp;cubic B-splines ), <span class="citation" data-cites="coppejans2004kolmogorovs">Coppejans (<a href="references.html#ref-coppejans2004kolmogorovs" role="doc-biblioref">2004</a>)</span> finds a rate of <span class="math inline">\(O( N^{-3/7} ) = O( N^{-3/(2 \times 3 + 1) } )\)</span>. <span class="citation" data-cites="igelnik2003kolmogorovs">Igelnik and Parikh (<a href="references.html#ref-igelnik2003kolmogorovs" role="doc-biblioref">2003</a>)</span> finds a rate <span class="math inline">\(O( N^{-1} )\)</span> for Kolmogorov Spline Networks.</p>
+<p>Finally, it’s worth noting the relationship between expected risk and empirical risk. The expected risk, <span class="math inline">\(R\)</span>, is typically bounded by the empirical risk plus a term of order <span class="math inline">\(1/\sqrt{N}\)</span>:</p>
+<p><span class="math display">\[
+R(y, f^\star) \leq \frac{1}{N} \sum_{i=1}^N R(y_i, f^\star(x_i)) + O\left(\frac{\|f\|}{\sqrt{N}}\right)
+\]</span></p>
+<p>where <span class="math inline">\(f^\star\)</span> is the minimizer of the expected risk. However, in the case of interpolation, where the model perfectly fits the training data, the empirical risk term becomes zero, leaving only the <span class="math inline">\(O(1/\sqrt{N})\)</span> term.</p>
+</section>
+</section>
+<section id="general-latent-feature-model" class="level2" data-number="20.6">
+<h2 data-number="20.6" class="anchored" data-anchor-id="general-latent-feature-model"><span class="header-section-number">20.6</span> General latent feature model</h2>
+<p>Given a training data-set of input-output pairs <span class="math inline">\((\mathbf{X}_i , \mathbf{Y}_i )_{i=1}^N\)</span>, the goal is to find a prediction rule for a new output <span class="math inline">\(\mathbf{Y}_*\)</span> given a new input <span class="math inline">\(\mathbf{X}_*\)</span>. Let <span class="math inline">\(\mathbf{Z}\)</span> denote latent hidden features that are to be hand-coded or learned from the data and our nonlinear latent feature predictive model takes the form:</p>
+<p><span class="math display">\[
+\begin{align}
+\mathbf{Y}\mid \mathbf{Z} &amp; \sim p(\mathbf{Y} \mid \mathbf{Z} ) \label{eq:bry}\\
+\mathbf{Z} &amp;=\phi(\mathbf{X}) \label{eq:brf}
+\end{align}
+\]</span></p>
+<p>where <span class="math inline">\(\phi(\cdot)\)</span> is a data transformation that allows for relations between latent features <span class="math inline">\(\mathbf{Z} = \phi(\mathbf{X})\)</span> and <span class="math inline">\(\mathbf{Y}\)</span> to be modeled by a well-understood probabilistic model <span class="math inline">\(p\)</span>. Typically, <span class="math inline">\(\phi(\cdot)\)</span> will perform dimension reduction or dimension expansion and can be learned from data. It is worthwhile to emphasize that the top level of such a model is necessarily stochastic.</p>
+<p>As pointed out before, the basic problem of machine learning is to learn a predictive rule from observed pairs <span class="math inline">\((\mathbf{X},\mathbf{Y})\)</span>, <span class="math inline">\(\mathbf{Y}_{\star}  = F(\mathbf{X}_{\star} )\)</span> where <span class="math inline">\(F(\mathbf{X}_{\star} ) = \mathbb{E}\{\mathbf{Y} \mid  \phi(\mathbf{X}_{\star})\}\)</span>. Even though it is well known that deep learners are universal approximators, it is still an open area of research to understand why deep learners generalize well on out-of-sample predictions. One of the important factors for the success of deep learning approach is the ability to perform a non-linear dimensionality reduction.</p>
+<p>The purely statistical approach requires full specification of the conditional distribution <span class="math inline">\(p(\mathbf{Y} \mid \mathbf{X})\)</span> and then uses conditional probability via Bayes’ rule to perform inference. However, a fully Bayesian approach is often computationally prohibitive in high-dimensional feature space, without resorting to approximations or foregoing UQ. The alternative approach is to perform a data transformation or reduction on the data input <span class="math inline">\(\mathbf{X}\)</span>, such as performing a PCA or PCR first and then use a statistical approach on the transformed feature space. Deep learning methods can fit into this spectrum by viewing it as a non-linear PCA or PLS <span class="citation" data-cites="polson2021deep">N. Polson, Sokolov, and Xu (<a href="references.html#ref-polson2021deep" role="doc-biblioref">2021</a>)</span>,<span class="citation" data-cites="malthouse1997nonlinear">Malthouse, Mah, and Tamhane (<a href="references.html#ref-malthouse1997nonlinear" role="doc-biblioref">1997</a>)</span>. However, it possesses some unique properties not available for shallow models.</p>
+</section>
+<section id="deep-learning-expansions" class="level2" data-number="20.7">
+<h2 data-number="20.7" class="anchored" data-anchor-id="deep-learning-expansions"><span class="header-section-number">20.7</span> Deep Learning Expansions</h2>
+<p>Similar to a tree model that finds features (<em>aka</em> tree leaves) via recursive space partitioning, the deep learning model finds the regions by using hyperplanes at the first layer and combinations of hyperplanes in the further layers. The prediction rule is embedded into a parameterized deep learner, a composite of univariate semi-affine functions, denoted by <span class="math inline">\(F_{\mathbf{W}}\)</span> where <span class="math inline">\(\mathbf{W} = [\mathbf{W}^{(1)}, \ldots , \mathbf{W}^{(L)}]\)</span> represents the weights of each layer of the network. A deep learner takes the form of a composition of link functions:</p>
+<p><span class="math display">\[
+F_{\mathbf{W}} = f_L \circ f_{L-1} \circ \cdots \circ f_1  \; {\rm where} \; f_L = \sigma_L ( \mathbf{W}_L \phi (\mathbf{X}) + \mathbf{b}_L),
+\]</span></p>
+<p>where <span class="math inline">\(\sigma_L(\cdot)\)</span> is a univariate link or activation function. Specifically, let $^{(l)} $ denote the <span class="math inline">\(l^{th}\)</span> layer, and so <span class="math inline">\(\mathbf{X} = \mathbf{Z}^{(0)}\)</span>. The final output is the response <span class="math inline">\(\mathbf{Y}\)</span>, which can be numeric or categorical. A deep prediction rule is then <span class="math inline">\(\hat{\mathbf{Y}}(\mathbf{X}) = \mathbf{W}^{(L)} \mathbf{Z}^{(L)} + \mathbf{b}^{(L)}\)</span> where</p>
+<p><span class="math display">\[
+\begin{align*}
+\mathbf{Z}^{(L)} &amp; = f^{(L)} \left ( \mathbf{W}^{(L-1)} \mathbf{Z}^{(L-1)} + \mathbf{b}^{(L-1)} \right ),\\
+&amp; \ldots\\
+\mathbf{Z}^{(2)} &amp; = f^{(2)} \left ( \mathbf{W}^{(1)} \mathbf{Z}^{(1)} + \mathbf{b}^{(1)} \right ),\\
+\mathbf{Z}^{(1)} &amp; = f^{(1)} \left (\mathbf{W}^{(0)} \phi(\mathbf{X}) + \mathbf{b}^{(0)} \right ).
+\end{align*}
+\]</span></p>
+<p>It is often beneficial to replace the original input <span class="math inline">\(\mathbf{X}\)</span> with the features <span class="math inline">\(\mathbf{Z} = \phi(\mathbf{X})\)</span> of lower dimensionality when developing a predictive model for <span class="math inline">\(\mathbf{Y}\)</span>. For example, in the context of regressions, a lower variance prediction rule can be obtained in lower dimensional space. DL simply uses a composition or superposition of semi-affine filters (<em>aka</em> link functions), leading to a new framework for high-dimensional modeling in Section @ref(sec:merging).</p>
+<p>Deep learning can then be viewed as a feature engineering solution and one of finding nonlinear factors via supervised dimension reduction. A composition of hand-coded characteristics i.e.&nbsp;dimension expanding, with supervised learning of data filters i.e.&nbsp;dimension reduction. Advances in computation allow for massive data and gradients of high-dimensional nonlinear filters. Neural networks can be viewed from two perspectives: either as a flexible link function, as in a generalized linear model, or as a method to achieve dimensionality reduction, similar to sliced inverse regression or sufficient dimensionality reduction.</p>
+<p>One advantage of <em>depth</em> is that the hierarchical mixture allows the width of a given layer to be manageable. With a single layer (<em>e.g.</em>, kernel PCA/SVM) we need exponentially many more basis functions in that layer. Consider kernel PCA with say radial basis functions (RBF) kernels: technically there are infinitely many basis functions, but it cannot handle that many input dimensions. Presumably, a deep neural network allows a richer class of covariances that allows anisotropy and non-stationarity. In the end, this is reflected in the function realizations from a DNN. To see this, consider the deep GP models, which are infinite width limits of DNNs. There is a recursive formula connecting the covariance of layer <span class="math inline">\(k\)</span> to that of layer <span class="math inline">\(k+1\)</span>, but no closed form. The covariance function of the final hidden layer is probably very complicated and capable of expressing an arbitrary number of features, even if the covariances in each layer may be simple. The increase in dimensionality happens through the hierarchical mixture, rather than trying to do it all in one layer. From a statistical viewpoint, this is similar to the linear shallow wide projections introduced by <span class="citation" data-cites="wold1975soft">Wold (<a href="references.html#ref-wold1975soft" role="doc-biblioref">1975/ed</a>)</span> and the sufficient dimension reduction framework of <span class="citation" data-cites="cook2007fisher">Cook (<a href="references.html#ref-cook2007fisher" role="doc-biblioref">2007</a>)</span>.</p>
+<p>In the context of unsupervised learning, information in the marginal distribution, <span class="math inline">\(p(\mathbf{X})\)</span>, of the input space is used as opposed to the conditional distribution, <span class="math inline">\(p(\mathbf{X}\mid \mathbf{Y})\)</span>. Methods such as PCA (PCA), PCR (PCR), Reduced Rank Regression (RRR), Projection-Pursuit Regression (PPR) all fall into this category and PLS (PLS), Sliced Inverse Regression (SIR) are examples of supervised learning of features, see <span class="citation" data-cites="polson2017deep">N. G. Polson, Sokolov, et al. (<a href="references.html#ref-polson2017deep" role="doc-biblioref">2017</a>)</span> for further discussion.</p>
+<p>We first uncover the structure in the predictors relevant for modeling the output <span class="math inline">\(\mathbf{Y}\)</span>. The learned factors are denoted by <span class="math inline">\(F(\phi(\mathbf{X}))\)</span> and are constructed as a sequence of input filters. The predictive model is given by a probabilistic model of the form <span class="math inline">\(p(\mathbf{Y} \mid \mathbf{X}) \equiv p(\mathbf{Y} \mid F(\phi(\mathbf{X})))\)</span>. Here <span class="math inline">\(\phi: \mathbb{R}^p \mapsto \mathbb{R}^c,~c \gg p\)</span> initially expands the dimension of the input space by including terms such as interactions, dummy variables (<em>aka</em> one-hot encodings) and other nonlinear features of the input space deemed relevant. Then, <span class="math inline">\(F\)</span> reduces dimension of deep learning by projecting back with a univariate activation function into an affine space (<em>aka</em> regression). This framework also sheds light on how to build deep (skinny) architectures. Given <span class="math inline">\(n\)</span> data points, we split into <span class="math inline">\(L = 2^p\)</span> regions so that there is a <em>fixed</em> sample size within each bin. This process transforms <span class="math inline">\(\mathbf{X}\)</span> into many interpretable characteristics. This can lead to a huge number of predictors that can be easily dealt within the DL architecture, making the advantage of <em>depth</em> clear.</p>
+</section>
+<section id="sec:dim-exp" class="level2" data-number="20.8">
+<h2 data-number="20.8" class="anchored" data-anchor-id="sec:dim-exp"><span class="header-section-number">20.8</span> Dimensionality Expansion</h2>
+<p>First, we review ‘dimensionality expansions’: data transformation that transforms an input vector <span class="math inline">\(\mathbf{X}\)</span> into a higher dimensional vector <span class="math inline">\(\phi(\mathbf{X})\)</span>. One approach is to use hand-coded predictors. This expanded set can include terms such as interactions, dummy variables or nonlinear functional of the original predictors. The goal is to model the joint distribution of outputs and inputs, namely $p( , ()) $, where we allow our stochastic predictors.</p>
+<p><strong>Kernel Expansion:</strong> The kernel expansion idea is to enlarge the feature space via basis expansion. The basis is expanded using nonlinear transformations of the original inputs: <span class="math display">\[\phi(\mathbf{X}) = (\phi_1(\mathbf{X}),\phi_2(\mathbf{X}),\ldots,\phi_M(\mathbf{X}))\]</span> so that linear regression <span class="math inline">\(\hat{\mathbf{Y}} = \phi(\mathbf{X})^T\beta + \beta_0\)</span> or generalized linear model can be used to model the input-output relations. Here, the ‘kernel trick’ increases dimensionality, and allows hyperplane separation while avoiding an exponential increase in the computational complexity. The transformation <span class="math inline">\(\phi(\mathbf{x})\)</span> is specified via a kernel function <span class="math inline">\(K(\cdot, \cdot)\)</span> which calculates the dot product of feature mappings: <span class="math inline">\(K(\mathbf{x},\mathbf{x}') = \phi(\mathbf{x})^T\phi(\mathbf{x}').\)</span> By choosing a feature map <span class="math inline">\(\phi\)</span>, we implicitly choose a kernel function and, conversely, every positive semi-definite kernel matrix corresponds to a feature mapping <span class="math inline">\(\phi\)</span>. For example, when <span class="math inline">\(\mathbf{X}\in \mathbb{R}^2\)</span>, choosing <span class="math inline">\(K(\mathbf{X},\mathbf{X}') = (1+\mathbf{X}^T\mathbf{X}')^2\)</span> is equivalent to expanding the basis to <span class="math inline">\(\phi(\mathbf{X}) = (1,\sqrt{2}\mathbf{X}_1, \sqrt{2}\mathbf{X}_1, \mathbf{X}_1^2,\mathbf{X}_2^2,\sqrt{2}\mathbf{X}_1 \mathbf{X}_2)\)</span>.</p>
+<p><strong>Tree Expansion:</strong> Similar to kernels, we can think of trees as a technique for expanding a feature space. Each region in the input space defined by a terminating node of a tree corresponds to a new feature. Then, the predictive rule becomes very simple: identify in which region the new input is and use the average across observations or a majority voting rule from this region to calculate the prediction.</p>
+</section>
+<section id="sec:pca-pcr" class="level2" data-number="20.9">
+<h2 data-number="20.9" class="anchored" data-anchor-id="sec:pca-pcr"><span class="header-section-number">20.9</span> Dimensionality Reduction: PCA, PCR and PLS</h2>
+<p>Given input/predictors <span class="math inline">\(\mathbf{X}\)</span> and response <span class="math inline">\(\mathbf{Y}\)</span> and associated observed data <span class="math inline">\(\mathbf{X}\in {\mathbb{R}}^{n \times p}\)</span> and <span class="math inline">\(\mathbf{Y} \in {\mathbb{R}}^{n\times q}\)</span>, the goal is to find data transformations <span class="math inline">\((\mathbf{Y},\mathbf{X}) \mapsto \phi(\mathbf{Y},\mathbf{X})\)</span> so that modeling the transformed data becomes an easier task. In this paper, we consider several types of transformations and model non-linear relations.</p>
+<p>We start by reviewing the widely used singular value decomposition (SVD) which allows finding linear transformations to identify a lower dimensional representation of either <span class="math inline">\(\mathbf{X}\)</span>, by what is known as principal component analysis (PCA), or, when using both <span class="math inline">\(\mathbf{X}\)</span> and <span class="math inline">\(\mathbf{Y}\)</span>, known as partial least squares (PLS). First, start with the SVD decomposition of the input matrix: <span class="math inline">\(\mathbf{X} = \mathbf{U} \mathbf{D} \mathbf{W}^T\)</span>, which is full-rank if <span class="math inline">\(n &gt; p\)</span>. Here, $ = (d_1 , , d_p ) $ are the nonzero ordered singular values (<span class="math inline">\(d_1 \ge \ldots \ge d_p)\)</span> . The matrices <span class="math inline">\(\mathbf{U}\)</span> and <span class="math inline">\(\mathbf{W}\)</span> are orthogonal matrices of dimensions <span class="math inline">\(n\times p\)</span> and <span class="math inline">\(p \times p\)</span> with columns of <span class="math inline">\(\mathbf{U}\)</span> as the right singular vectors and columns of <span class="math inline">\(\mathbf{W}\)</span> as the left singular vectors, <span class="math inline">\(\mathbf{W}\)</span> can be also thought of as the matrix consisting of eigenvectors for <span class="math inline">\(\mathbf{S} = \mathbf{X}^T \mathbf{X}\)</span>. We can then transform the original first layer to an orthogonal regression, namely defining <span class="math inline">\(\mathbf{Z} = \mathbf{U}\mathbf{D}\)</span> whose columns are the principal components. For PCR, using <span class="math inline">\(\boldsymbol{\alpha} = \mathbf{W}^T \boldsymbol{\beta}\)</span>, we arrive at the corresponding OLS estimator <span class="math inline">\(\hat{\boldsymbol{\alpha}} = (\mathbf{Z}^T \mathbf{Z} )^{-1} \mathbf{Z}^T \mathbf{Y} = \mathbf{D}^{-1} \mathbf{U}^T \mathbf{y}\)</span>, and obtain <span class="math inline">\(\hat{y}_{pcr} = \sum_{j=1}^{K}\hat{\alpha}_j \mathbf{z}_j\)</span>, where <span class="math inline">\(\hat{\alpha}_j = \mathbf{z}_j^T \mathbf{y}/\mathbf{z}_j^T \mathbf{z}_j\)</span>, since <span class="math inline">\(\mathbf{z}_j\)</span>’s are orthogonal, and <span class="math inline">\(K \ll p\)</span> denotes the reduced dimension that captures a certain percentage of the total variability.</p>
+<p>PCR, as an unsupervised approach to dimension reduction, has a long history in statistics. Specifically, we first center and standardize <span class="math inline">\((\mathbf{Y}, \mathbf{X})\)</span>, followed by a singular value decomposition of <span class="math inline">\(\mathbf{V}: = \mathrm{ave} ( \mathbf{X} \mathbf{X}^T )  = \dfrac{1}{n}\sum_{i=1}^{n}\mathbf{X}_i\mathbf{X}_i^T\)</span> where <span class="math inline">\(\mathrm{ave}(\cdot)\)</span> denotes the empirical average. Then, we find the eigenvalues $e_j^2 $ and eigenvectors arranged in non-increasing order, so we can write:</p>
+<p><span class="math display">\[
+\mathbf{V} = \sum_{j=1}^p  e_j^2 {\mathbf{v}}_j {\mathbf{v}}_k^T .
+\]</span></p>
+<p>This leads to a sequence of regression models <span class="math inline">\((\hat Y_0, \ldots, \hat Y_K)\)</span> with $Y_0 $ being the overall mean:</p>
+<p><span class="math display">\[
+\hat{Y}_L = \sum_{l=0}^K (\mathrm{ave} ( \mathbf{W}_l^T \mathbf{X} ) / e_l^2 ) \mathbf{v}_l^T \mathbf{X}.
+\]</span></p>
+<p>Therefore, PCR finds features <span class="math inline">\(\{\mathbf{Z}_k\}_{k=0}^K = \{\mathbf{v}_k^T \mathbf{x}\}_{k=0}^K = \{\mathbf{f}_k \}_{k=0}^K\)</span>.</p>
+<p><strong>PLS and SVD Algorithm:</strong> Partial least squares, or PLS, is a related dimension reduction technique similar to PCR that first identifies a lower-dimensional set of features and then fits a linear model on this feature set, but PLS does this in a supervised fashion unlike PCR. In successive steps, PLS finds a reduced dimensional representation of <span class="math inline">\(\mathbf{X}\)</span> that is relevant for the response <span class="math inline">\(\mathbf{Y}\)</span>.</p>
+<p><strong>PCA and multivariate output:</strong> PCA requires us to compute a reduction of multivariate output <span class="math inline">\(\mathbf{Y}\)</span> using a singular value decomposition of <span class="math inline">\(\mathbf{Y}\)</span> by finding eigenvectors of <span class="math inline">\(\mathbf{Z} = \mathrm{ave}(\mathbf{Y}\mathbf{Y}^T)\)</span>. Then, the output is a linear combination of the singular vectors</p>
+<p><span class="math display">\[
+\mathbf{Y} = \mathbf{W}_1 \mathbf{Z}_1 + \cdots + \mathbf{W}_k \mathbf{Z}_k,
+\]</span></p>
+<p>where the weights <span class="math inline">\(\mathbf{W}_i\)</span> follow a Gaussian Process, <span class="math inline">\(\mathbf{W}\sim \mathrm{GP}(m,K)\)</span>. Hence, the method can be highly non-linear. This method is typically used when input variables come from a designed experiment. If the interpretability of factors is not important, and from a purely predictive point of view, PLS will lead to improved performance.</p>
+<p>In the light of the above, one can view deep learning models as non-stochastic hierarchical data transformations. The advantage is that we can learn deterministic data transformations before applying a stochastic model. This allows us to establish a connection between a result due to <span class="citation" data-cites="brillinger2012generalized">Brillinger (<a href="references.html#ref-brillinger2012generalized" role="doc-biblioref">2012</a>)</span> and the use of deep learning models to develop a unified framework for modeling complex high-dimensional data sets. The prediction rule can be viewed as interpolation. In high-dimensional spaces, one can mix-and-match the deterministic and stochastic data transformation rules.</p>
+</section>
+<section id="uncertainty-quantification" class="level2" data-number="20.10">
+<h2 data-number="20.10" class="anchored" data-anchor-id="uncertainty-quantification"><span class="header-section-number">20.10</span> Uncertainty Quantification</h2>
+<p>Our probabilistic model takes the form <span class="math inline">\(\mathbf{Y} \mid F \sim p(\mathbf{Y} \mid F )\)</span>, $F = g ( ) $, where <span class="math inline">\(\mathbf{Y}\)</span> is possibly a multivariate output matrix and <span class="math inline">\(\mathbf{X}\)</span> is a $n p $ matrix of input variables, and <span class="math inline">\(\mathbf{B} \mathbf{X}\)</span> performs dimension reduction. Here <span class="math inline">\(g = g_{\mathbf{W}, \mathbf{b}}\)</span> is a deep learner and the parameters <span class="math inline">\((\hat{\mathbf{W}} , \hat{\mathbf{b}} )\)</span> are estimated using traditional SGD methods. The key result, due to <span class="citation" data-cites="brillinger2012generalized">Brillinger (<a href="references.html#ref-brillinger2012generalized" role="doc-biblioref">2012</a>)</span> and <span class="citation" data-cites="naik2000partial">Naik and Tsai (<a href="references.html#ref-naik2000partial" role="doc-biblioref">2000</a>)</span> is that <span class="math inline">\(\hat{\mathbf{B}}\)</span> can be estimated consistently, up to a constant of proportionality, using PLS irrespective of the nonlinearity on <span class="math inline">\(g\)</span>. Even though <span class="citation" data-cites="brillinger2012generalized">Brillinger (<a href="references.html#ref-brillinger2012generalized" role="doc-biblioref">2012</a>)</span> assumes that input <span class="math inline">\(\mathbf{X}\)</span> is Gaussian in order to apply Stein’s lemma, this result generalizes to scale-mixtures of Gaussians. See also <span class="citation" data-cites="iwata2001recentered">Iwata (<a href="references.html#ref-iwata2001recentered" role="doc-biblioref">2001</a>)</span> who provides analytical derivation of the uncertainty intervals for ReLU and Probit nonlinear activation functions.</p>
+<p>The key insight here is that the lion’s share of the UQ can be done at the top layer that outputs <span class="math inline">\(\mathbf{Y}\)</span> as the uncertainty in the dimension reduction of the <span class="math inline">\(\mathbf{X}\)</span> space is much harder to quantify compared to quantifying the uncertainty for the prediction rule. By merging the two cultures, the probabilistic model on the first stage and deep learning on the subsequent stage, for the transformation of input data, we can obtain the best of both worlds.</p>
+<p>Given a specification of <span class="math inline">\(g\)</span>, the constant of proportionality can also be estimated consistently with <span class="math inline">\(\sqrt{n}\)</span>-asymptotics. Hence, to predict at a new level <span class="math inline">\(\mathbf{X}_{\star}\)</span>, we can use the predictive distribution to make a forecast and provide uncertainty bounds.</p>
+<p><span id="eq-pls-uq"><span class="math display">\[
+\begin{align*}
+    \mathbf{Y}_{\star}  &amp; \sim  p \left ( \mathbf{Y} \; \mid \;   g_{ \hat{\mathbf{W}}, \hat{\mathbf{b}}} ( \hat{\mathbf{B}}_{\mathrm{PLS}} \mathbf{X} )  \right )   \\
+    \hat{\mathbf{Y}}_* &amp;  =  \mathrm{E(\mathbf{Y}_* \mid \mathbf{F}_*)} = \mathrm{E}_{\mathbf{B} \mid \mathbf{X},\mathbf{Y}} \left(g(\hat{\mathbf{B}}_{\mathrm{PLS}}\mathbf{X}_*)\right),
+\end{align*}
+\tag{20.1}\]</span></span></p>
+<p>where <span class="math inline">\(\hat{\mathbf{B}}_{\mathrm{PLS}}\)</span> is given by the left-hand side of <a href="#eq-pls-uq" class="quarto-xref">Equation&nbsp;<span>20.1</span></a>.</p>
+<p>Notice that we can also incorporate uncertainty in the estimation of <span class="math inline">\(\mathbf{B}\)</span> via the posterior <span class="math inline">\(p(\mathbf{B} \mid \mathbf{X},\mathbf{Y})\)</span>. Furthermore, a result of <span class="citation" data-cites="iwata2001recentered">Iwata (<a href="references.html#ref-iwata2001recentered" role="doc-biblioref">2001</a>)</span> can be used to show that the posterior distribution is asymptotically normal. Hence, we can calculate the expectations analytically for activation functions, such as ReLU. As ReLU is convex, Jensen’s inequality <span class="math inline">\(g\left(\mathrm{E}(\mathbf{B} \mathbf{X})\right) \le \mathrm{E}\left(g(\mathbf{B} \mathbf{X})\right)\)</span> shows that ignoring parameter uncertainty leads to under-prediction.</p>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-actor2018computation" class="csl-entry" role="listitem">
+Actor, Jonas. 2018. <span>“Computation for the <span>Kolmogorov Superposition Theorem</span>.”</span> {{MS Thesis}}, Rice.
+</div>
+<div id="ref-bahdanau2014neural" class="csl-entry" role="listitem">
+Bahdanau, Dzmitry, Kyunghyun Cho, and Yoshua Bengio. 2014. <span>“Neural <span>Machine Translation</span> by <span>Jointly Learning</span> to <span>Align</span> and <span>Translate</span>.”</span> arXiv. <a href="https://arxiv.org/abs/1409.0473">https://arxiv.org/abs/1409.0473</a>.
+</div>
+<div id="ref-brillinger2012generalized" class="csl-entry" role="listitem">
+Brillinger, David R. 2012. <span>“A <span>Generalized Linear Model With</span> <span>‘<span>Gaussian</span>’</span> <span>Regressor Variables</span>.”</span> In <em>Selected <span>Works</span> of <span>David Brillinger</span></em>, edited by Peter Guttorp and David Brillinger, 589–606. Selected <span>Works</span> in <span>Probability</span> and <span>Statistics</span>. New York, NY: Springer.
+</div>
+<div id="ref-cook2007fisher" class="csl-entry" role="listitem">
+Cook, R. Dennis. 2007. <span>“Fisher Lecture: <span>Dimension</span> Reduction in Regression.”</span> <em>Statistical Science</em>, 1–26. <a href="https://www.jstor.org/stable/27645799">https://www.jstor.org/stable/27645799</a>.
+</div>
+<div id="ref-coppejans2004kolmogorovs" class="csl-entry" role="listitem">
+Coppejans, Mark. 2004. <span>“On <span>Kolmogorov</span>’s Representation of Functions of Several Variables by Functions of One Variable.”</span> <em>Journal of Econometrics</em> 123 (1): 1–31.
+</div>
+<div id="ref-demb2021note" class="csl-entry" role="listitem">
+Demb, Robert, and David Sprecher. 2021. <span>“A Note on Computing with <span>Kolmogorov Superpositions</span> Without Iterations.”</span> <em>Neural Networks</em> 144 (December): 438–42.
+</div>
+<div id="ref-diaconis1984nonlinear" class="csl-entry" role="listitem">
+Diaconis, Persi, and Mehrdad Shahshahani. 1984. <span>“On Nonlinear Functions of Linear Combinations.”</span> <em>SIAM Journal on Scientific and Statistical Computing</em> 5 (1): 175–91.
+</div>
+<div id="ref-fredholm1903classe" class="csl-entry" role="listitem">
+Fredholm, Ivar. 1903. <span>“Sur Une Classe d’<span>é</span>quations Fonctionnelles.”</span> <em>Acta Mathematica</em> 27 (none): 365–90.
+</div>
+<div id="ref-friedman1981projection" class="csl-entry" role="listitem">
+Friedman, Jerome H., and Werner Stuetzle. 1981. <span>“Projection <span>Pursuit Regression</span>.”</span> <em>Journal of the American Statistical Association</em> 76 (376): 817–23.
+</div>
+<div id="ref-igelnik2003kolmogorovs" class="csl-entry" role="listitem">
+Igelnik, B., and N. Parikh. 2003. <span>“Kolmogorov’s Spline Network.”</span> <em>IEEE Transactions on Neural Networks</em> 14 (4): 725–33.
+</div>
+<div id="ref-iwata2001recentered" class="csl-entry" role="listitem">
+Iwata, Shigeru. 2001. <span>“Recentered and <span>Rescaled Instrumental Variable Estimation</span> of <span>Tobit</span> and <span>Probit Models</span> with <span>Errors</span> in <span>Variables</span>.”</span> <em>Econometric Reviews</em> 20 (3): 319–35.
+</div>
+<div id="ref-kolmogorov1956representation" class="csl-entry" role="listitem">
+Kolmogorov, AN. 1956. <span>“On the Representation of Continuous Functions of Several Variables as Superpositions of Functions of Smaller Number of Variables.”</span> In <em>Soviet. <span>Math</span>. <span>Dokl</span></em>, 108:179–82.
+</div>
+<div id="ref-lin2017structured" class="csl-entry" role="listitem">
+Lin, Zhouhan, Minwei Feng, Cicero Nogueira dos Santos, Mo Yu, Bing Xiang, Bowen Zhou, and Yoshua Bengio. 2017. <span>“A <span class="nocase">Structured Self-attentive Sentence Embedding</span>.”</span> arXiv. <a href="https://arxiv.org/abs/1703.03130">https://arxiv.org/abs/1703.03130</a>.
+</div>
+<div id="ref-lorentz197613th" class="csl-entry" role="listitem">
+Lorentz, George G. 1976. <span>“The 13th Problem of <span>Hilbert</span>.”</span> In <em>Proceedings of <span>Symposia</span> in <span>Pure Mathematics</span></em>, 28:419–30. American Mathematical Society.
+</div>
+<div id="ref-malthouse1997nonlinear" class="csl-entry" role="listitem">
+Malthouse, Edward, Richard Mah, and Ajit Tamhane. 1997. <span>“Nonlinear <span>Partial Least Squares</span>.”</span> <em>Computers &amp; Chemical Engineering</em> 12 (April): 875–90.
+</div>
+<div id="ref-nadaraya1964estimating" class="csl-entry" role="listitem">
+Nadaraya, E. A. 1964. <span>“On <span>Estimating Regression</span>.”</span> <em>Theory of Probability &amp; Its Applications</em> 9 (1): 141–42.
+</div>
+<div id="ref-naik2000partial" class="csl-entry" role="listitem">
+Naik, Prasad, and Chih-Ling Tsai. 2000. <span>“Partial <span>Least Squares Estimator</span> for <span>Single-Index Models</span>.”</span> <em>Journal of the Royal Statistical Society. Series B (Statistical Methodology)</em> 62 (4): 763–71. <a href="https://www.jstor.org/stable/2680619">https://www.jstor.org/stable/2680619</a>.
+</div>
+<div id="ref-polson2017deep" class="csl-entry" role="listitem">
+Polson, Nicholas G, Vadim Sokolov, et al. 2017. <span>“Deep <span>Learning</span>: <span>A Bayesian Perspective</span>.”</span> <em>Bayesian Analysis</em> 12 (4): 1275–1304.
+</div>
+<div id="ref-polson2021deep" class="csl-entry" role="listitem">
+Polson, Nicholas, Vadim Sokolov, and Jianeng Xu. 2021. <span>“Deep <span>Learning Partial Least Squares</span>.”</span> <em>arXiv Preprint arXiv:2106.14085</em>. <a href="https://arxiv.org/abs/2106.14085">https://arxiv.org/abs/2106.14085</a>.
+</div>
+<div id="ref-schmidt-hieber2021kolmogorov" class="csl-entry" role="listitem">
+Schmidt-Hieber, Johannes. 2021. <span>“The <span>Kolmogorov</span>–<span>Arnold</span> Representation Theorem Revisited.”</span> <em>Neural Networks</em> 137 (May): 119–26.
+</div>
+<div id="ref-tsai2019transformer" class="csl-entry" role="listitem">
+Tsai, Yao-Hung Hubert, Shaojie Bai, Makoto Yamada, Louis-Philippe Morency, and Ruslan Salakhutdinov. 2019. <span>“Transformer <span>Dissection</span>: <span>A Unified Understanding</span> of <span>Transformer</span>’s <span>Attention</span> via the <span>Lens</span> of <span>Kernel</span>.”</span> arXiv. <a href="https://arxiv.org/abs/1908.11775">https://arxiv.org/abs/1908.11775</a>.
+</div>
+<div id="ref-vaswani2023attention" class="csl-entry" role="listitem">
+Vaswani, Ashish, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, and Illia Polosukhin. 2023. <span>“Attention <span>Is All You Need</span>.”</span> arXiv. <a href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.
+</div>
+<div id="ref-watson1964smooth" class="csl-entry" role="listitem">
+Watson, Geoffrey S. 1964. <span>“Smooth <span>Regression Analysis</span>.”</span> <em>Sankhy<span>ā</span>: The Indian Journal of Statistics, Series A (1961-2002)</em> 26 (4): 359–72. <a href="https://www.jstor.org/stable/25049340">https://www.jstor.org/stable/25049340</a>.
+</div>
+<div id="ref-wold1975soft" class="csl-entry" role="listitem">
+Wold, Herman. 1975/ed. <span>“Soft <span>Modelling</span> by <span>Latent Variables</span>: <span>The Non-Linear Iterative Partial Least Squares</span> (<span>NIPALS</span>) <span>Approach</span>.”</span> <em>Journal of Applied Probability</em> 12 (S1): 117–42.
+</div>
+</div>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -784,8 +1196,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./19-dl.html" class="pagination-link" aria-label="19-dl.html">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">19-dl.html</span></span>
+      <a href="./19-dl.html" class="pagination-link" aria-label="Deep Learners">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Deep Learners</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
