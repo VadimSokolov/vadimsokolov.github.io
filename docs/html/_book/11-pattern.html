@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>11&nbsp; Pattern Matching – Bayes, AI and Deep Learning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./12-theoryai.html" rel="next">
+<link href="./10-data.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-29e2c20b02301cfff04dc8050bf30c7e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-8f57c241cdbc1f937d718a8870719880.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+</head><body class="nav-sidebar floating fullcontent"><div class="hidden">
+<p><span class="math display">\[
+\newcommand{\prob}[1]{\operatorname{P}\left(#1\right)}
+\newcommand{\Var}[1]{\operatorname{Var}\left(#1\right)}
+\newcommand{\sd}[1]{\operatorname{sd}\left(#1\right)}
+\newcommand{\Cor}[1]{\operatorname{Corr}\left(#1\right)}
+\newcommand{\Cov}[1]{\operatorname{Cov}\left(#1\right)}
+\newcommand{\E}[1]{\operatorname{E}\left(#1\right)}
+\newcommand{\defeq}{\overset{\text{\tiny def}}{=}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\mini}{minimize}
+\]</span></p>
+</div>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+
+
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./10-data.html">AI</a></li><li class="breadcrumb-item"><a href="./11-pattern.html"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Pattern Matching</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Bayes, AI and Deep Learning</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00-intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Principles of Data Science</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Bayes</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-prob.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Probability and Uncertainty</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-bayes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Bayes Rule</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-bl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Bayesian Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-dec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Utility, Risk and Decisions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-ab.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">AB Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-hyp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Bayesian Hypothesis Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07-sp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Stochastic Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08-gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Gaussian Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09-rl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Reinforcement Learning</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Unreasonable Effectiveness of Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11-pattern.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Pattern Matching</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12-theoryai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Theory of AI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12-glm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Linear and Multiple Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13-logistic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Classification: Logistic Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15-rct.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Randomized Controlled Trials</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16-select.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Model Selection</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17-tree.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Tree Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18-forecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Forecasting</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Deep Learning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19-dl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Deep Learners</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20-theorydl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Theory of Deep Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21-nn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22-sgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24-qnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Quantile Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25-cnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Convolutional Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26-llm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Large Language Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27-robots.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Robotics</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ex.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Exercises</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./10-data.html">AI</a></li><li class="breadcrumb-item"><a href="./11-pattern.html"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Pattern Matching</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Pattern Matching</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>“<em>Prediction is very difficult, especially about the future.</em> Niels Bohr, Danish physicist and Nobel laureate”</p>
+<p>The history of data analysis is closely intertwined with the development of pattern matching techniques. The ability to identify and understand patterns in data has been crucial for scientific discoveries, technological advancements, and decision-making. From the early days of astronomy to modern machine learning, pattern matching has played a pivotal role in advancing our understanding of the world around us. This chapter explores the key concepts of pattern matching, its historical development, and its impact on data analysis.</p>
+<p>Data science involves two major steps, collection and cleaning of data and building a model or applying an algorithm. In this chapter we present the process of building predictive models. To illustrate the process think of your data as being generated by a black box on which a set of input variables <span class="math inline">\(x\)</span> go through the box and generate an output variable <span class="math inline">\(y\)</span>.</p>
+<section id="why-pattern-matching" class="level2" data-number="11.1">
+<h2 data-number="11.1" class="anchored" data-anchor-id="why-pattern-matching"><span class="header-section-number">11.1</span> Why Pattern Matching?</h2>
+<p>For Gauss, Laplace and many other scientist, the main problem was the problem of estimating parameters, while the relationship between the variables was known and was usually linear, like in the shape of the earth example of multiplicative, e.g.&nbsp;Newton’s second law <span class="math inline">\(F = ma\)</span>. However, in many cases, the relationship between the variables is unknown and cannot be described by a simple mathematical model. <span class="citation" data-cites="halevy2009unreasonable">Halevy, Norvig, and Pereira (<a href="references.html#ref-halevy2009unreasonable" role="doc-biblioref">2009</a>)</span> discuss the problem of human behavior and natural languages. Neither can be described by a simple mathematical model.</p>
+<p>This is case, the <strong>pattern matching</strong> approach is a way to use data to find those relations. In data analysis, pattern matching is the process of identifying recurring sequences, relationships, or structures within a dataset. It’s like looking for a specific puzzle piece within a larger picture. By recognizing these patterns, analysts can gain valuable insights into the data, uncover trends, make predictions, and ultimately improve decision-making. Sometimes initial pattern matching analysis leads to a scientific discovery. Consider a case of mammography and early pattern matching.</p>
+<div id="exm-mammography" class="theorem example">
+<p><span class="theorem-title"><strong>Example 11.1 (Mammography and Early Pattern Matching)</strong></span> The use of mammograms for breast cancer detection relied on <strong>simple pattern matching</strong> in its initial stages. Radiologists visually examined the X-ray images for specific patterns indicative of cancer, such as: dense areas of tissue appearing different from surrounding breast tissue (a.k.a masses) and small white spots of calcium deposits called microcalcifications. These patterns were associated with early-stage cancer and could be easily missed by visual inspection alone.</p>
+<p>Radiologists relied on their expertise and experience to identify these patterns and distinguish them from normal breast tissue variations. This process was subjective and prone to errors, particularly with subtle abnormalities or in dense breasts. Subtle abnormalities, especially in dense breasts, could be easily missed using visual assessment alone. Despite these limitations, pattern matching played a crucial role in the early detection of breast cancer, saving countless lives. It served as the foundation for mammography as a screening tool.</p>
+<p>Albert Solomon, a German surgeon, played a pivotal role in the early development of mammography (<span class="citation" data-cites="nicosia2023history">Nicosia et al. (<a href="references.html#ref-nicosia2023history" role="doc-biblioref">2023</a>)</span>). His most significant contribution was his 1913 monograph, “Beitr{"a}ge zur Pathologie und Klinik der Mammakarzinome” (Contributions to the Pathology and Clinic of Breast Cancers). In this work, he demonstrated the potential of X-ray imaging for studying breast disease. He pioneered the use of X-rays, he compared surgically removed breast tissue images with the actual tissue and was able to identify characteristic features of cancerous tumors, such as their size, shape, and borders. He was one of the first to recognize the association between small calcifications appearing on X-rays and breast cancer.</p>
+<p>Presence of calcium deposits is correlated with brest cancer and is still prevailing imaging biomarkers for its detection. Although discovery of the deposit-cancer asosciation induced scientific discoveries, the molecular mechanisms that leads to the formation of these calcium deposits, as well as the significance of their presence in human tissues, have not been completely understood (<span class="citation" data-cites="bonfiglio2021molecular">Bonfiglio et al. (<a href="references.html#ref-bonfiglio2021molecular" role="doc-biblioref">2021</a>)</span>).</p>
+</div>
+<section id="richard-feynman-on-pattern-matching-and-chess" class="level3" data-number="11.1.1">
+<h3 data-number="11.1.1" class="anchored" data-anchor-id="richard-feynman-on-pattern-matching-and-chess"><span class="header-section-number">11.1.1</span> Richard Feynman on Pattern Matching and Chess</h3>
+<p>Richard Feynman, the renowned physicist, was a strong advocate for the importance of pattern matching and its role in learning and problem-solving. He argued that in many scientific discoveries, start with pattern matching. He emphasized that experts in any field, whether it’s chess, science, or art, develop a strong ability to identify and understand relevant patterns in their respective domains.</p>
+<p>He often used the example of chess to illustrate this concept (<span class="citation" data-cites="feynmanfeynman">Feynman (<a href="references.html#ref-feynmanfeynman" role="doc-biblioref">n.d.</a>)</span>). Feynman argued that a skilled chess player doesn’t consciously calculate every possible move. Instead, they recognize patterns on the board and understand the potential consequences of their actions. For example, a chess player might recognize that having a knight in a certain position is advantageous and will lead to a favorable outcome. This ability to identify and understand patterns allows them to make quick and accurate decisions during the game. Through playing and analyzing chess games, players develop mental models that represent their understanding of the game’s rules, strategies, and potential patterns. These mental models allow them to anticipate their opponent’s moves and formulate effective responses.</p>
+<p>He emphasized that this skill could be transferred to other domains, such as scientific research, engineering, and even everyday problem-solving.</p>
+<p>Here is a quote from his interview</p>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Richard Feynman
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Let’s say a chess game. And you don’t know the rules of the game, but you’re allowed to look at the board from time to time, in a little corner, perhaps. And from these observations, you try to figure out what the rules are of the game, what [are] the rules of the pieces moving.</p>
+<p>You might discover after a bit, for example, that when there’s only one bishop around on the board, that the bishop maintains its color. Later on you might discover the law for the bishop is that it moves on a diagonal, which would explain the law that you understood before, that it maintains its color. And that would be analogous we discover one law and later find a deeper understanding of it.</p>
+<p>Ah, then things can happen–everything’s going good, you’ve got all the laws, it looks very good–and then all of a sudden some strange phenomenon occurs in some corner, so you begin to investigate that, to look for it. It’s castling–something you didn’t expect …..</p>
+<p>After you’ve noticed that the bishops maintain their color and that they go along on the diagonals and so on, for such a long time, and everybody knows that that’s true; then you suddenly discover one day in some chess game that the bishop doesn’t maintain its color, it changes its color. Only later do you discover the new possibility that the bishop is captured and that a pawn went all the way down to the queen’s end to produce a new bishop. That could happen, but you didn’t know it.</p>
+</div>
+</div>
+<p>In an interview on Artificial General Intelligence (AGI), he compares human and machine intelligence</p>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Richard Feynman
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>First of all, do they think like human beings? I would say no and I’ll explain in a minute why I say no. Second, for “whether they be more intelligent than human beings: to be a question, intelligence must first be defined. If you were to ask me are they better chess players than any human being? Possibly can be , yes ,”I’ll get you some day”. They’re better chess players than most human beings right now!</p>
+</div>
+</div>
+<p>By 1996, computers had become stronger than GMs. With the advent of deep neural networks in 2002, Stockfish15 is way stronger. A turning point on our understanding of AI algorithms was AlphaZero and Chess</p>
+<p>AlphaGo coupled with deep neural networks and Monte Carlo simulation provided a gold standard for chess. AlphaZero showed that neural networks can self-learn by competing against itself. Neural networks are used to pattern match and interpolate both the policy and value function. This implicitly performs “feature selection”. Whilst humans have heuristics for features in chess, such as control center, king safety and piece development, AlphaZero “learns” from experience. With a goal of maximizing the probability of winning, neural networks have a preference for initiative, speed and momentum and space over minor material such as pawns. Thus reviving the old school romantic chess play.</p>
+<p>Feynman discusses how machines show intelligence:</p>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Richard Feynman
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>With regard to the question of whether we can make it to think like [human beings], my opinion is based on the following idea: That we try to make these things work as efficiently as we can with the materials that we have. Materials are different than nerves, and so on. If we would like to make something that runs rapidly over the ground, then we could watch a cheetah running, and we could try to make a machine that runs like a cheetah. But, it’s easier to make a machine with wheels. With fast wheels or something that flies just above the ground in the air. When we make a bird, the airplanes don’t fly like a bird, they fly but they don’t fly like a bird, okay? They don’t flap their wings exactly, they have in front, another gadget that goes around, or the more modern airplane has a tube that you heat the air and squirt it out the back, a jet propulsion, a jet engine, has internal rotating fans and so on, and uses gasoline. It’s different, right?</p>
+<p>So, there’s no question that the later machines are not going to think like people think, in that sense. With regard to intelligence, I think it’s exactly the same way, for example they’re not going to do arithmetic the same way as we do arithmetic, but they’ll do it better.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="correlations" class="level2" data-number="11.2">
+<h2 data-number="11.2" class="anchored" data-anchor-id="correlations"><span class="header-section-number">11.2</span> Correlations</h2>
+<p>Arguable, the simplest form of pattern matching is correlation. Correlation is a statistical measure that quantifies the strength of the relationship between two variables. It is a measure of how closely two variables move in relation to each other. Correlation is often used to identify patterns in data and determine the strength of the relationship between two variables. It is a fundamental statistical concept that is widely used in various fields, including science, engineering, finance, and business.</p>
+<p>Let’s consider the correlation between returns on Google stock and S&amp;P 500 stock index. The correlation coefficient is a measure of the strength and direction of the linear relationship between two variables. It is a number between -1 and 1.</p>
+<div id="exm-googstock" class="theorem example">
+<p><span class="theorem-title"><strong>Example 11.2 (Google Stock Returns)</strong></span> <a href="#fig-googsp" class="quarto-xref">Figure&nbsp;<span>11.1</span></a> shows the scattershot of Google and S&amp;P 500 daily returns</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>goog <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/GOOG2019.csv"</span>) </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>rgoog <span class="ot">=</span> goog<span class="sc">$</span>Adj.Close[<span class="dv">2</span><span class="sc">:</span><span class="dv">251</span>]<span class="sc">/</span>goog<span class="sc">$</span>Adj.Close[<span class="dv">1</span><span class="sc">:</span><span class="dv">250</span>] <span class="sc">-</span> <span class="dv">1</span> </span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sp <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/SP2019.csv"</span>);   rsp <span class="ot">=</span> sp<span class="sc">$</span>Adj.Close[<span class="dv">2</span><span class="sc">:</span><span class="dv">251</span>]<span class="sc">/</span>sp<span class="sc">$</span>Adj.Close[<span class="dv">1</span><span class="sc">:</span><span class="dv">250</span>] <span class="sc">-</span> <span class="dv">1</span> </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(rgoog, rsp, <span class="at">col=</span><span class="st">"lightblue"</span>, <span class="at">pch=</span><span class="dv">21</span>, <span class="at">bg=</span><span class="st">"grey"</span>, <span class="at">xlab=</span><span class="st">"GOOG return"</span>, <span class="at">ylab=</span><span class="st">"SP500 return"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fig-googsp" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-googsp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="11-pattern_files/figure-html/fig-googsp-1.png" class="img-fluid figure-img" width="576">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-googsp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;11.1: Scattershot of Google and S&amp;P 500 daily returns
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s calculate the covariance and correlation between the daily returns of the Google stock and S&amp;P 500.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>var_goog <span class="ot">=</span> <span class="fu">mean</span>((rgoog <span class="sc">-</span> <span class="fu">mean</span>(rgoog))<span class="sc">^</span><span class="dv">2</span>) </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>var_sp <span class="ot">=</span> <span class="fu">mean</span>((rsp <span class="sc">-</span> <span class="fu">mean</span>(rsp))<span class="sc">^</span><span class="dv">2</span>) </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>cov <span class="ot">=</span> <span class="fu">mean</span>((rgoog <span class="sc">-</span> <span class="fu">mean</span>(rgoog))<span class="sc">*</span>(rsp <span class="sc">-</span> <span class="fu">mean</span>(rsp))); <span class="fu">print</span>(cov) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 8e-05</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>cor <span class="ot">=</span> cov<span class="sc">/</span>(<span class="fu">sqrt</span>(var_goog)<span class="sc">*</span><span class="fu">sqrt</span>(var_sp)); <span class="fu">print</span>(cor)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.67</code></pre>
+</div>
+</div>
+</div>
+</section>
+<section id="pattern-matching-to-data" class="level2" data-number="11.3">
+<h2 data-number="11.3" class="anchored" data-anchor-id="pattern-matching-to-data"><span class="header-section-number">11.3</span> Pattern Matching to Data</h2>
+<p>There are plenty of engineering applications. Given the availability of sensors, predictive maintenance became a widespread approach. By predicting when equipment is likely to fail, engineers can take proactive steps to prevent failures and reduce downtime. Another example is traffic forecasting, which is used by drivers and engineers to plan future road and bridge construction projects. Prediction and forecasting are also used in weather forecasting, resource management, and many other applications.</p>
+<p>Many problems in machine learning involve an output <span class="math inline">\(y_i\)</span> with <span class="math inline">\(x_i\)</span> a high-dimensional input variable. The objective function takes the form, with <span class="math inline">\(\theta=(\theta_1, \ldots,  \theta_p)\)</span>, <span class="math display">\[
+l(\theta) =\sum_{i=1}^n l(y_i, f_{\theta} (x_i)) +\lambda \sum_{j=1}^p \phi(\theta_j),
+\]</span> Deep learning constructs as a composition (rather than the traditional additive) of semi-affine functions. As such the optimization problem of training a deep learner involves a highly nonlinear objective function. Stochastic gradient descent (SGD) is a popular tool based on back-propagation (a.k.a. the chain rule). Our goal is to show how data augmentation techniques can be seamlessly applied in this context too and provide efficiency gains. The goal then is to find a <em>maximum a posteriori</em> (MAP) mode from a probabilistic model defined by the conditional distributions <span class="math display">\[\begin{align*}
+&amp;p(y | \theta)\propto \exp\{- l (y, f_{\theta}(x))\},\; \;  p(\theta)\propto \exp\{-\lambda\phi(\theta)\},\\
+&amp;p(\theta | y)=\frac{p(y | \theta)p(\theta)}{p(y)} \propto  \exp\{ l l(y, f_{\theta}(x))-\lambda \phi(\theta)\}.
+\end{align*}\]</span> Here <span class="math inline">\(p(\theta)\)</span> can be interpreted as a prior probability distribution and the log-prior as the regularization penalty.</p>
+<p>Traditional Modeling Culture uses statistical models with one-layer transformations - Generalized Linear Models (GLM)<br>
+<span class="math inline">\(y = f^{-1}(\beta^T x)\)</span></p>
+<ul>
+<li><p>Generalized Additive Models (GAM)<br>
+<span class="math inline">\(y = \beta_0 + f_1(x_1) + \dots + f_k(x_k)\)</span></p></li>
+<li><p>Principal Component Regression (PCR)<br>
+<span class="math inline">\(y = \beta^T (W x),\quad W \in \mathbb{R}^{k \times p},\quad k &lt; p\)</span></p></li>
+<li><p>Sliced Inverse Regression (SIR)<br>
+<span class="math inline">\(y = f(\beta_1^T x,\, \beta_2^T x,\, \ldots,\, \beta_k^T x,\, \epsilon)\)</span></p></li>
+</ul>
+<p>Deep Learning uses high dimensional multi-layer models.</p>
+<p>Let <span class="math inline">\((y,x)\)</span>-input-output pairs We wish to find map <span class="math inline">\(f\)</span> such that <span class="math display">\[\begin{align*}
+y &amp;= f ( x ) \\
+y &amp;=  f ( x_1 , \ldots , x _p )
+\end{align*}\]</span> Pattern matching (a.k.a. nonparametric regression!)</p>
+<p>Composite not additive functions!! We write superposition of univariate functions as <span class="math display">\[
+f = f_1 \circ \ldots \circ f_L   \; \; \text{versus}  \; \; f_1 +  \ldots + f_L
+\]</span> SGD: Stochastic Gradient Descent</p>
+<p>Back-propagation = Chain rule</p>
+<p>A typical prediction problem involves building a rule that maps observed inputs <span class="math inline">\(x\)</span> into the output <span class="math inline">\(y\)</span>. The inputs <span class="math inline">\(x\)</span> are often called predictors, features, or independent variables, while the output <span class="math inline">\(y\)</span> is often called the response or dependent variable. The goal is to find a predictive rule <span class="math display">\[
+y = f(x).
+\]</span></p>
+<p>The map <span class="math inline">\(f\)</span> can be viewed as a black box which describes how to find the output <span class="math inline">\(y\)</span> from the input <span class="math inline">\(x\)</span>. One of the key requirement of <span class="math inline">\(f\)</span> is that we should be able to efficiently find this function using an algorithm. In the simple case <span class="math inline">\(y\)</span> and <span class="math inline">\(x\)</span> are both univariate (scalars) and we can view the map as</p>
+<!-- https://www.mermaidchart.com/app/projects/ab5d5333-d1a5-42f8-ac1d-8e287a49d7b8/diagrams/30323a8e-087d-4321-b95e-7d89ad5d2f25/share/invite/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkb2N1bWVudElEIjoiMzAzMjNhOGUtMDg3ZC00MzIxLWI5NWUtN2Q4OWFkNWQyZjI1IiwiYWNjZXNzIjoiRWRpdCIsImlhdCI6MTc1MDIyMDU5MX0.v_80mJFFbUiW1E2oDBTokjAi0lJRFRnvAmN8MliRLL8 -->
+<p><img src="fig/xfy.svg" class="img-fluid"></p>
+<p>The goal of machine learning is to reconstruct this this map from observed data. In a multivariate setting <span class="math inline">\(x = (x_1,\ldots,x_p)\)</span> is a list of <span class="math inline">\(p\)</span> variables. This leads to a model of the form <span class="math inline">\(y = f(x_1,\ldots,x_p)\)</span>. There are a number of possible goals of analysis, such as estimation, inference or prediction. The main one being prediction.</p>
+<p>The <strong>prediction</strong> task is to calculate a response that corresponds to a new feature input variable. Example of af an inference is the task of establishing a <strong>causation</strong>, with the goal of extracting information about the nature of the black box association of the response variable to the input variables.</p>
+<p>In either case, the goal is to use data to find a pattern that we can exploit. The pattern will be ``statistical” in its nature. To uncover the pattern we use a training dataset, denoted by <span class="math display">\[
+D = (y_i,x_i)_{i=1}^n
+\]</span></p>
+<p>where <span class="math inline">\(x_i\)</span> is a set of <span class="math inline">\(p\)</span> predictors ans <span class="math inline">\(y_i\)</span> is response variable. Prediction problem is to use a training dataset <span class="math inline">\(D\)</span> to design a rule that can be used for predicting output values <span class="math inline">\(y\)</span> for new observations <span class="math inline">\(x\)</span>.</p>
+<p>Let <span class="math inline">\(f(x)\)</span> be predictor of <span class="math inline">\(y\)</span>, we will use notation <span class="math display">\[
+\hat{y} = f(x).
+\]</span></p>
+<p>To summarize, we will use the following notation.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(y\)</span></td>
+<td>output variable (response/outcome)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(x\)</span></td>
+<td>input variable (predictor/covariate/feature)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(f(x)\)</span></td>
+<td>predictive rule</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\hat y\)</span></td>
+<td>predicted output value</td>
+</tr>
+</tbody>
+</table>
+<p>We distinguish several types of input or output variables. First, <em>binary</em> variables that can only have two possible values, e.g.&nbsp;yes/no, left/right, 0/1, up/down, etc. A generalization of binary variable is a <em>categorical</em> variable that can take a fixed number of possible values, for example, marriage status. Additionally, some of the categorical variable can have a natural order to them, for example education level or salary range. Those variables are called <em>ordinal</em>. Lastly, the most common type of a variable is <em>quantitative</em> which is described by a real number.</p>
+<p>Depending on the type of the output variable, there are three types of prediction problems. When <span class="math inline">\(y\)</span> is binary <span class="math inline">\(y\in \{0,1\}\)</span> or <em>categorical</em>, <span class="math inline">\(y\in \{0,\ldots,K\}\)</span>, for <span class="math inline">\(K\)</span> possible categories, the prediction problem is called classification. When <span class="math inline">\(y\)</span> is any number <span class="math inline">\(y \in R\)</span>, this is known as a regression. Finally, when <span class="math inline">\(y\)</span> is ordinal, this problem known as ranking.</p>
+<p>There are several simple predictive rules we can use to predict the output variable <span class="math inline">\(y\)</span>. For example, in the case of regression problem, the simplest rule is to predict the average value of the output variable. This rule is called the <em>mean rule</em> and is defined as <span class="math display">\[
+f(x) = \bar{y} = \frac{1}{n} \sum_{i=1}^n y_i.
+\]</span></p>
+<p>Notice, this model does not depend on the input variable <span class="math inline">\(x\)</span> and will predict the same value for all observations. This rule is simple and easy to implement, but it is not very accurate. A more sophisticated rule is the <em>nearest neighbor rule</em>. This rule predicts the output value <span class="math inline">\(y\)</span> for a new observation <span class="math inline">\(x\)</span> by finding the closest observation in the training dataset and using its output value. The nearest neighbor rule is defined as <span class="math display">\[
+f(x) = y_{i^*},
+\]</span></p>
+<p>where <span class="math inline">\(i^* = \arg\min_{i=1,\ldots,n} \|x_i - x\|\)</span> is the index of the closest observation in the training dataset. These two models represent two extreme cases of predictive rules: the mean rule is “stubborn” (it always predicts the same value) and the nearest neighbor rule is “flexible” (can be very sensitive to small changes in the inputs). Using the language of statistics the mean rule is of high bias and low variance, while the nearest neighbor rule is of low bias and high variance. Although those two rules are simple, they sometimes lead to useful models that can be used in practice. Further, those two models represent a trade-off between accuracy and complexity (a.k.a bias-variance trade-off). We will discuss this trade-off in more detail in the later section.</p>
+<p>The mean model and nearest neighbor model belong to a class of so-called non-parametric models. The non-parametric models do not make explicit assumption about the form of the function <span class="math inline">\(f(x)\)</span>. In contrast, parametric models assume that the predictive rule <span class="math inline">\(f(x)\)</span> belongs to a specific family of functions and each function in this family is defined by setting values of the parameters.</p>
+</section>
+<section id="prediction-accuracy" class="level2" data-number="11.4">
+<h2 data-number="11.4" class="anchored" data-anchor-id="prediction-accuracy"><span class="header-section-number">11.4</span> Prediction Accuracy</h2>
+<p>After we fit our model and find the optimal value of the parameter <span class="math inline">\(\theta\)</span>, denoted by <span class="math inline">\(\hat \theta\)</span>, we need to evaluating the accuracy of a predictive model. It involves comparing the model’s predictions to actual outcomes. We can simply use the value of the loss function from the training step to evaluate model’s predictive power. However, this only tells us how well the model fits the training data. It doesn’t tell us how well the model will perform on unseen data. To evaluate the model’s performance on unseen data, we need to use a different approach.</p>
+<p>The most common approach is to split the data into training and test sets. The training set is used to train the model, while the test set is used to evaluate its performance. This approach is known as the train-test split. It is a simple and effective way to evaluate how well model predicts unseen for unseen inputs.</p>
+<p>Another approach is to use cross-validation. It involves splitting the data into smaller subsets and using them to train and test the model multiple times. When our sample size is small, this allows for a more robust estimate of the model’s performance than simply splitting the data into a single training and test set. For small data sets, simple train-test split approach will be sensitive to choice of test samples, thus the estimated predicted performance will be unstable (high variance). Cross-validation helps to reduce this variance by averaging the performance across multiple folds. This makes the performance estimate more robust and less sensitive to the choice of test samples.</p>
+<p>Cross-validation involves several steps:</p>
+<ol type="1">
+<li>Split the data: The data is randomly divided into <span class="math inline">\(k\)</span> equal-sized chunks (folds).</li>
+<li>Train and test the model: For each fold, the model is trained on <span class="math inline">\(k-1\)</span> folds and tested on the remaining fold. This process is repeated <span class="math inline">\(k\)</span> times, ensuring each fold is used for testing once.</li>
+<li>Evaluate the model: The performance of the model is evaluated on each fold using a chosen metric, such as accuracy, precision, recall, or F1 score.</li>
+<li>Report the average performance: The average of the performance metrics across all k folds is reported as the final estimate of the model’s performance.</li>
+</ol>
+<p>A common choice for <span class="math inline">\(k\)</span> is 5 or 10. When <span class="math inline">\(K=n\)</span>, this is known as leave-one-out cross-validation. This method can be computationally expensive but is less likely to overfit the data. Stratified cross-validation ensures that each fold contains approximately the same proportion of each class as in the entire dataset. This is important for imbalanced datasets where one class is significantly larger than the others.</p>
+<p>Notice, that cross-validation requires re-training the model multiple times, which can be computationally expensive. Thus, for large datasets, we typically prefer simple train-test split. However, for small datasets, cross-validation can provide a more robust estimate of the model’s performance.</p>
+<p>Either method is limited to evaluating the model’s performance on data that is available to the modeler. What if we start using our model on data that is different from the training and test sets? Unlike in physics, when a model represents a law that is universal, in data science, we are dealing with data that is generated by a process that is not necessarily universal. For example, if we are building a model to predict the price of a house, we can train and test the model on data from a specific city. However, if we start using the model to predict the price of a house in a different city, the model might not perform as well. This is because the data from the new city might be different from the data used to train and test the model. This is known as the problem of generalization. It refers to the ability of a model to perform well on data that is different from the training and test sets.</p>
+<section id="evaluation-metrics-for-regression" class="level3" data-number="11.4.1">
+<h3 data-number="11.4.1" class="anchored" data-anchor-id="evaluation-metrics-for-regression"><span class="header-section-number">11.4.1</span> Evaluation Metrics for Regression</h3>
+<p>There are several metrics that can be used to evaluate the performance of regression models. We can simply use the same function as we use for fitting the model, e.g.&nbsp;least squares <span class="math display">\[
+\text{MSE} = \dfrac{1}{m}\sum_{i=1}^n (y_i -\hat y_i)^2,
+\]</span> here <span class="math inline">\(\hat y_i\)</span> is the predicted value of the i-th data point by the model <span class="math inline">\(\hat y_i = f(x_i,\hat\theta)\)</span> and <span class="math inline">\(m\)</span> is the total number of data points used for the evaluation. This metric is called the <em>Mean Squared Error (MSE)</em>. It is the average squared difference between the actual and predicted values. Lower MSE indicates better model performance, as it means the model’s predictions are closer to the actual values.</p>
+<p>A slight variation of this metric is Root Mean Squared Error (RMSE). This is the square root of MSE and is also commonly used due to its units being the same as the target variable. <span class="math display">\[
+\text{RMSE} = \sqrt{\text{MSE}}.
+\]</span> However, MSE is sensitive to outliers, as it squares the errors, giving more weight to large errors. This can lead to misleading results when the data contains outliers.</p>
+<p><em>Median Absolute Error (MAE)</em> solves the sensetivity to the outliers problem. It is the median of the absolute errors, providing a more robust measure than MAE for skewed error distributions <span class="math display">\[
+\text{MAE} = \dfrac{1}{m}\sum_{i=1}^n |y_i -\hat y_i|.
+\]</span> A variation of it is the <em>Mean Absolute Percentage Error (MAPE)</em>, which is the mean of the absolute percentage errors <span class="math display">\[
+\text{MAPE} = \dfrac{1}{m}\sum_{i=1}^n \left | \dfrac{y_i -\hat y_i}{y_i} \right |.
+\]</span></p>
+<p>Alternative way to measure the predictive quility is to use the coefficient of determination, also known as the <em>R-squared</em> value, which measures the proportion of variance in the target variable that is explained by the model. Higher R-squared indicates better fit. However, R-squared can be misleading when comparing models with different numbers of features. R-squared is defined as follows <span class="math display">\[
+R^2 = 1 - \dfrac{\sum_{i=1}^n (y_i -\hat y_i)^2}{\sum_{i=1}^n (y_i -\bar y_i)^2},
+\]</span> where <span class="math inline">\(\bar y_i\)</span> is the mean of the target variable. R-squared is a relative measure of fit, so it can be used to compare different models. However, it is not an absolute measure of fit, so it cannot be used to determine whether a model is good or bad. It is also sensitive to the number of features in the model, so it cannot be used to compare models with different numbers of features.</p>
+<p>Finally, we can use graphics to evaluate the model’s performance. For example, we can scatterplot the actual and predicted values of the target variable to visually compare them. We can also plot the histogram of a boxplot of the residuals (errors) to see if they are normally distributed.</p>
+</section>
+<section id="evaluation-metrics-for-classification" class="level3" data-number="11.4.2">
+<h3 data-number="11.4.2" class="anchored" data-anchor-id="evaluation-metrics-for-classification"><span class="header-section-number">11.4.2</span> Evaluation Metrics for Classification</h3>
+<p><em>Accuracy</em> is the most fundamental metric used to evaluate models. It is defined as the ratio of the number of correct predictions to the total number of predictions. The formula is given by <span class="math display">\[\text{Accuracy} = \frac{\text{TP+TN}}{\text{TP+TN+FP+FN}},\]</span> where TP, TN, FP, and FN are the numbers of true positives, true negatives, false positives, and false negatives, respectively. However, it can be misleading for imbalanced datasets where one class is significantly larger than others. For example, if 95% of the data belongs to one class, a model that always predicts this class will be 95% accurate, even though it’s not very useful.</p>
+<p>A more comprehensive understanding of model performance can be achieved by calculaitng the sensitivity (a.k.a precision) and specificity (a.k.a. recall) as well as confusion matrix discussed in <a href="02-bayes.html#sec-Sensitivity" class="quarto-xref"><span>Section 2.4</span></a>. The confusion matrix is</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Actual/Predicted</th>
+<th>Positive</th>
+<th>Negative</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Positive</td>
+<td>TP</td>
+<td>FN</td>
+</tr>
+<tr class="even">
+<td>Negative</td>
+<td>FP</td>
+<td>TN</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Precision</strong> measures the proportion of positive predictions that are actually positive. It is useful for evaluating how good the model is at identifying true positives. <strong>Recall</strong> measures the proportion of actual positives that are correctly identified by the model. It is useful for evaluating how good the model is at not missing true positives.</p>
+<p>Then we can use those to calculate <strong>F1 Score</strong> which is is a harmonic mean of precision and recall, providing a balanced view of both metrics. Higher F1 score indicates better overall performance. If misclassifying certain instances is more costly than others, weighted metrics account for these different costs. For imbalanced datasets, metrics like F1 score or balanced accuracy are important to avoid misleading interpretations.</p>
+<p>Sometimes, we use multiple metrics to get a comprehensive assessment of the model’s performance. Additionally, consider comparing the model’s performance to a baseline model or other existing models for the same task. Sometimes, it is hard to beat a “coin flip” classification model, when the model predicts the class randomly with equal probability. In regression, a simple baseline model is <span class="math inline">\(f(x_i) = \bar y\)</span>, which is the mean of the target variable.</p>
+</section>
+<section id="some-examples-of-prediction-problems" class="level3" data-number="11.4.3">
+<h3 data-number="11.4.3" class="anchored" data-anchor-id="some-examples-of-prediction-problems"><span class="header-section-number">11.4.3</span> Some Examples of Prediction Problems</h3>
+<p>Prediction and forecasting is most frequent problem in data analysis and the most common approach to solve the prediction problem is via the pattern matching. Prediction and forecasting are two closely related concepts that are often used interchangeably. In business and engineering the main motivation for prediction and forecasting is to make better decisions. In science, the main motivation is to test and validate theories. Prediction and forecasting help to identify trends and patterns in historical data that would otherwise remain hidden. This allows analysts to make <em>informed decisions</em> about the future based on what they know about the past. By using prediction models, analysts can identify <em>potential risks and opportunities</em> that may lie ahead. This information can then be used to develop proactive strategies to mitigate risks and capitalize on opportunities. In many business applications the concern is improving efficiency of a system. For example to improve logistic chains and to optimally allocate resources, we need to forecast demand and supply and to predict the future prices of the resources. By predicting future sales, businesses can better plan their marketing and sales efforts. This can lead to increased sales and profitability. Prediction and forecasting can be used to identify and mitigate potential risks, such as financial losses, supply chain disruptions, and operational failures.</p>
+<div id="exm-election" class="theorem example">
+<p><span class="theorem-title"><strong>Example 11.3 (Obama Elections)</strong></span> Elections 2012: Bayes and Nate Silver</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plyr)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Source: "http://www.electoral-vote.com/evp2012/Pres/pres_polls.csv"</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>election<span class="fl">.2012</span> <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/pres_polls.csv"</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove a pollster: elect2012 &lt;- election.2012[!grepl('Rasmussen', election.2012$Pollster),]</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>elect2012 <span class="ot">&lt;-</span> election<span class="fl">.2012</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Aggregrate the data</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>elect2012 <span class="ot">&lt;-</span> <span class="fu">ddply</span>(elect2012, .(state), subset, Day <span class="sc">==</span> <span class="fu">max</span>(Day))</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>elect2012 <span class="ot">&lt;-</span> <span class="fu">ddply</span>(elect2012, .(state), summarise, <span class="at">R.pct =</span> <span class="fu">mean</span>(GOP), <span class="at">O.pct =</span> <span class="fu">mean</span>(Dem), <span class="at">EV =</span> <span class="fu">mean</span>(EV))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(elect2012[<span class="dv">1</span><span class="sc">:</span><span class="dv">25</span>,], <span class="at">caption =</span> <span class="st">"Election 2012 Data"</span>,<span class="at">longtable=</span><span class="cn">TRUE</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(elect2012[<span class="dv">26</span><span class="sc">:</span><span class="dv">51</span>,], <span class="at">caption =</span> <span class="st">"Election 2012 Data"</span>,<span class="at">longtable=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell quarto-layout-panel" data-null_prefix="true" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<table class="caption-top table table-sm table-striped small">
+<caption>Election 2012 Data</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">state</th>
+<th style="text-align: right;">R.pct</th>
+<th style="text-align: right;">O.pct</th>
+<th style="text-align: right;">EV</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Alabama</td>
+<td style="text-align: right;">61</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Alaska</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">42</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Arizona</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Arkansas</td>
+<td style="text-align: right;">61</td>
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">California</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">55</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Colorado</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">51</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Connecticut</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">D.C.</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">91</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Delaware</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Florida</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">29</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Georgia</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Hawaii</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">71</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Idaho</td>
+<td style="text-align: right;">65</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Illinois</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Indiana</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Iowa</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Kansas</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Kentucky</td>
+<td style="text-align: right;">61</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Louisiana</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Maine</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Maryland</td>
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">62</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Massachusetts</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">61</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Michigan</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Minnesota</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Mississippi</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">6</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<table class="caption-top table table-sm table-striped small">
+<caption>Election 2012 Data</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">state</th>
+<th style="text-align: right;">R.pct</th>
+<th style="text-align: right;">O.pct</th>
+<th style="text-align: right;">EV</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">26</td>
+<td style="text-align: left;">Missouri</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">27</td>
+<td style="text-align: left;">Montana</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">28</td>
+<td style="text-align: left;">Nebraska</td>
+<td style="text-align: right;">61</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">29</td>
+<td style="text-align: left;">Nevada</td>
+<td style="text-align: right;">46</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">30</td>
+<td style="text-align: left;">New Hampshire</td>
+<td style="text-align: right;">46</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">31</td>
+<td style="text-align: left;">New Jersey</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">32</td>
+<td style="text-align: left;">New Mexico</td>
+<td style="text-align: right;">43</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">33</td>
+<td style="text-align: left;">New York</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">63</td>
+<td style="text-align: right;">29</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">34</td>
+<td style="text-align: left;">North Carolina</td>
+<td style="text-align: right;">51</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">15</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">35</td>
+<td style="text-align: left;">North Dakota</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">36</td>
+<td style="text-align: left;">Ohio</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">37</td>
+<td style="text-align: left;">Oklahoma</td>
+<td style="text-align: right;">67</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">38</td>
+<td style="text-align: left;">Oregon</td>
+<td style="text-align: right;">43</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">39</td>
+<td style="text-align: left;">Pennsylvania</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">40</td>
+<td style="text-align: left;">Rhode Island</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">63</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">41</td>
+<td style="text-align: left;">South Carolina</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">42</td>
+<td style="text-align: left;">South Dakota</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">43</td>
+<td style="text-align: left;">Tennessee</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">44</td>
+<td style="text-align: left;">Texas</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">38</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">45</td>
+<td style="text-align: left;">Utah</td>
+<td style="text-align: right;">73</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">46</td>
+<td style="text-align: left;">Vermont</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">67</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">47</td>
+<td style="text-align: left;">Virginia</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">51</td>
+<td style="text-align: right;">13</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">48</td>
+<td style="text-align: left;">Washington</td>
+<td style="text-align: right;">42</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">49</td>
+<td style="text-align: left;">West Virginia</td>
+<td style="text-align: right;">62</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">50</td>
+<td style="text-align: left;">Wisconsin</td>
+<td style="text-align: right;">46</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">51</td>
+<td style="text-align: left;">Wyoming</td>
+<td style="text-align: right;">69</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">3</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>Run the Simulation and plot probabilities by state</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MCMCpack)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>prob.Obama <span class="ot">&lt;-</span> <span class="cf">function</span>(mydata) {</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    p <span class="ot">&lt;-</span> <span class="fu">rdirichlet</span>(<span class="dv">1000</span>, <span class="dv">500</span> <span class="sc">*</span> <span class="fu">c</span>(mydata<span class="sc">$</span>R.pct, mydata<span class="sc">$</span>O.pct, <span class="dv">100</span> <span class="sc">-</span> mydata<span class="sc">$</span>R.pct <span class="sc">-</span> </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        mydata<span class="sc">$</span>O.pct)<span class="sc">/</span><span class="dv">100</span> <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mean</span>(p[, <span class="dv">2</span>] <span class="sc">&gt;</span> p[, <span class="dv">1</span>])</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>win.probs <span class="ot">&lt;-</span> <span class="fu">ddply</span>(elect2012, .(state), prob.Obama)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>win.probs<span class="sc">$</span>Romney <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> win.probs<span class="sc">$</span>V1</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(win.probs)[<span class="dv">2</span>] <span class="ot">&lt;-</span> <span class="st">"Obama"</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>win.probs<span class="sc">$</span>EV <span class="ot">&lt;-</span> elect2012<span class="sc">$</span>EV</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>win.probs <span class="ot">&lt;-</span> win.probs[<span class="fu">order</span>(win.probs<span class="sc">$</span>EV), ]</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(win.probs) <span class="ot">&lt;-</span> win.probs<span class="sc">$</span>state</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(usmap)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_usmap</span>(<span class="at">data =</span> win.probs, <span class="at">values =</span> <span class="st">"Obama"</span>) <span class="sc">+</span> </span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_continuous</span>(<span class="at">low =</span> <span class="st">"red"</span>, <span class="at">high =</span> <span class="st">"blue"</span>, <span class="at">name =</span> <span class="st">"Obama Win Probability"</span>, <span class="at">label =</span> scales<span class="sc">::</span>comma) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"right"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="11-pattern_files/figure-html/obama-map-1.png" class="img-fluid figure-img" width="576"></p>
+<figcaption>Probabilities of Obama winning by state</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>We use those probabilities to simulate the probability of Obama winning the election. First, we calculate the probability of Obama having &gt;270 EV or more</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>sim.election <span class="ot">&lt;-</span> <span class="cf">function</span>(win.probs) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    winner <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="dv">51</span>, <span class="dv">1</span>, win.probs<span class="sc">$</span>Obama)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(win.probs<span class="sc">$</span>EV <span class="sc">*</span> winner)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>sim.EV <span class="ot">&lt;-</span> <span class="fu">replicate</span>(<span class="dv">10000</span>, <span class="fu">sim.election</span>(win.probs))</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>oprob <span class="ot">&lt;-</span> <span class="fu">sum</span>(sim.EV <span class="sc">&gt;=</span> <span class="dv">270</span>)<span class="sc">/</span><span class="fu">length</span>(sim.EV)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>oprob</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 0.97</code></pre>
+</div>
+</div>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lattice)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Lattice Graph</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">densityplot</span>(sim.EV, <span class="at">plot.points =</span> <span class="st">"rug"</span>, <span class="at">xlab =</span> <span class="st">"Electoral Votes for Obama"</span>, </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel =</span> <span class="cf">function</span>(x, ...) {</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">panel.densityplot</span>(x, ...)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">panel.abline</span>(<span class="at">v =</span> <span class="dv">270</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">panel.text</span>(<span class="at">x =</span> <span class="dv">285</span>, <span class="at">y =</span> <span class="fl">0.01</span>, <span class="st">"270 EV to Win"</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">panel.abline</span>(<span class="at">v =</span> <span class="dv">332</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">panel.text</span>(<span class="at">x =</span> <span class="dv">347</span>, <span class="at">y =</span> <span class="fl">0.01</span>, <span class="st">"Actual Obama"</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>}, <span class="at">main =</span> <span class="st">"Electoral College Results Probability"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="11-pattern_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Results of recent state polls in the 2008 United States Presidential Election between Barack Obama and John McCain.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Source: LearnBayes library</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 6</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>election<span class="fl">.2008</span> <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/election2008.csv"</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(election<span class="fl">.2008</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">attach</span>(election<span class="fl">.2008</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="do">##  Dirichlet simulation</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>prob.Obama <span class="ot">=</span> <span class="cf">function</span>(j)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a> {</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a> p<span class="ot">=</span><span class="fu">rdirichlet</span>(<span class="dv">5000</span>,<span class="dv">500</span><span class="sc">*</span><span class="fu">c</span>(M.pct[j],O.pct[j],<span class="dv">100</span><span class="sc">-</span>M.pct[j]<span class="sc">-</span>O.pct[j])<span class="sc">/</span><span class="dv">100</span><span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a> <span class="fu">mean</span>(p[,<span class="dv">2</span>]<span class="sc">&gt;</span>p[,<span class="dv">1</span>])</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a> }</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="do">## sapply function to compute Obama win prob for all states</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>Obama.win.probs<span class="ot">=</span><span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">51</span>,prob.Obama)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="do">##  sim.EV function</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>sim.election <span class="ot">=</span> <span class="cf">function</span>()</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a> {</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a> winner <span class="ot">=</span> <span class="fu">rbinom</span>(<span class="dv">51</span>,<span class="dv">1</span>,Obama.win.probs)</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a> <span class="fu">sum</span>(EV<span class="sc">*</span>winner)</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a> }</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>sim.EV <span class="ot">=</span> <span class="fu">replicate</span>(<span class="dv">1000</span>,<span class="fu">sim.election</span>())</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="do">## histogram of simulated election</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(sim.EV,<span class="fu">min</span>(sim.EV)<span class="sc">:</span><span class="fu">max</span>(sim.EV),<span class="at">col=</span><span class="st">"blue"</span>,<span class="at">prob=</span>T)</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v=</span><span class="dv">365</span>,<span class="at">lwd=</span><span class="dv">3</span>)   <span class="co"># Obama received 365 votes</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">375</span>,<span class="dv">30</span>,<span class="st">"Actual </span><span class="sc">\n</span><span class="st"> Obama </span><span class="sc">\n</span><span class="st"> total"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="11-pattern_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<p>Here are a few important considerations when building predictive models:</p>
+<p><strong>1. Model Selection:</strong> Choosing the right model for the relationship between <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span> is crucial and involves navigating a fundamental trade-off between model complexity and generalization ability. If the chosen model is too simple (e.g., linear regression when the true relationship is polynomial), it might underfit the data and fail to capture important relationships, leading to high bias and poor performance on both training and test data. Conversely, a model that is too complex (e.g., high-degree polynomials or deep neural networks with insufficient data) might overfit the data by memorizing training examples rather than learning the underlying pattern, resulting in excellent training performance but poor generalization to unseen examples. This problem becomes even more complex when dealing with non-linear relationships, high-dimensional data, or noisy data, where the optimal model complexity is not immediately obvious and may require systematic experimentation with different model architectures, regularization techniques, and hyperparameter tuning to find the right balance between capturing the true signal while avoiding noise.</p>
+<p><strong>2. Overfitting and Underfitting:</strong> Overfitting occurs when the model fits the training data too closely, capturing not only the true underlying relationship but also random noise and idiosyncrasies specific to the training dataset. This phenomenon typically manifests when a model has too many parameters relative to the amount of training data available, allowing it to essentially “memorize” the training examples rather than learning the generalizable patterns. The model may achieve excellent performance metrics on the training data (low training error) but will perform poorly on new, unseen data (high generalization error). This is because the model has learned to recognize specific noise patterns in the training data that don’t exist in the broader population. Common signs of overfitting include a large gap between training and validation/test performance, or performance that improves on training data while degrading on validation data during training iterations.</p>
+<p>Underfitting occurs when the model is too simple and fails to capture the true relationship between x and y, often due to insufficient model complexity or inadequate training. This can happen when using a model that is inherently too simple for the problem at hand (e.g., linear regression for a highly non-linear relationship), when the model hasn’t been trained for enough iterations, or when regularization is applied too aggressively. Underfitting results in poor performance on both training and test data, as the model lacks the capacity to learn the underlying patterns in the data. The model essentially misses important features or relationships that are necessary for accurate predictions. Unlike overfitting, underfitting typically shows similar poor performance across training, validation, and test sets, indicating that the model is not capturing the signal in the data regardless of the dataset.</p>
+<p><strong>3. Data Quality and Quantity:</strong> The accuracy of predictions heavily relies on the quality and quantity of the available data. If the data is noisy, inaccurate, or incomplete, it can lead to misleading predictions. A sufficient amount of data is also crucial to ensure the model can learn the underlying relationship effectively. Insufficient data can result in underfitting and poor generalization.</p>
+<p>Data quality issues can manifest in various forms, including missing values, inconsistent formatting, labeling errors, and biased sampling. These problems are particularly acute in machine learning applications where large volumes of labeled data are required for training. To address these challenges, companies have emerged that specialize in data quality improvement and annotation services.</p>
+<p>Companies like Scale AI and Toloka provide platforms that help organizations improve data quality through human-in-the-loop annotation and validation processes. These platforms employ large networks of human annotators who can perform tasks such as image labeling, text classification, data validation, and quality control. Scale AI, for example, offers services for creating high-quality training datasets through human annotation, with built-in quality control mechanisms that include multiple annotators per task and consensus-based validation. Their platform can handle various data types including images, text, and video, making it suitable for computer vision, natural language processing, and other AI applications.</p>
+<p>Toloka, similarly, provides a crowdsourcing platform that connects businesses with a global network of contributors who can perform data labeling, content moderation, and quality assessment tasks. Their platform includes quality control features such as skill-based routing, where tasks are assigned to annotators based on their demonstrated expertise, and dynamic overlap, where multiple workers verify the same data to ensure accuracy.</p>
+<p>These platforms help address several key data quality challenges: they can identify and correct labeling errors through consensus mechanisms, handle missing data through targeted collection efforts, and ensure consistency in data formatting and annotation standards. By leveraging human expertise at scale, these services enable organizations to create more reliable training datasets, which in turn leads to better-performing machine learning models and more accurate predictions.</p>
+<p><strong>4. Model Explainability:</strong> In many applications, it is crucial to understand how the model arrives at its predictions. This is particularly important in areas like healthcare or finance, where transparency and interpretability are essential. Some models, particularly complex ones like deep neural networks, can be difficult to interpret, making it challenging to understand the rationale behind their predictions. However, modern machine learning has developed several techniques to address this challenge and make complex models more interpretable.</p>
+<p>The importance of explainability extends beyond mere curiosity about model behavior. In healthcare applications, doctors need to understand why a model recommended a particular diagnosis or treatment plan to make informed decisions and maintain trust in the system. A model that predicts a patient has a 90% chance of having cancer but cannot explain which symptoms or test results led to this conclusion would be of limited clinical value. Similarly, in financial services, regulators require explanations for credit decisions to ensure compliance with fair lending laws and to prevent discriminatory practices. When a loan application is denied, both the applicant and regulatory bodies need to understand the specific factors that influenced this decision.</p>
+<p>In legal and compliance contexts, explainability becomes a legal requirement. The European Union’s General Data Protection Regulation (GDPR) includes a “right to explanation” that allows individuals to request information about automated decisions that affect them. This has created a legal imperative for organizations to develop explainable AI systems. In criminal justice applications, where AI systems might be used for risk assessment or sentencing recommendations, the stakes are particularly high. Judges, lawyers, and defendants all need to understand how these systems arrive at their conclusions to ensure fair and just outcomes.</p>
+<p>One prominent approach is the use of interpretable surrogate models, such as LIME (Local Interpretable Model-agnostic Explanations) and SHAP (SHapley Additive exPlanations). These methods work by approximating the complex model’s behavior in the vicinity of a specific prediction using simpler, more interpretable models like linear regression or decision trees. LIME, for instance, creates local explanations by sampling points around the prediction of interest and fitting a linear model to explain the model’s behavior in that neighborhood. This allows us to understand which features contributed most to a particular prediction, even for complex models like deep neural networks.</p>
+<p>Another powerful technique is attention mechanisms, which have become increasingly popular in natural language processing and computer vision. Attention mechanisms allow models to “focus” on specific parts of the input when making predictions, providing a form of built-in interpretability. For example, in image classification tasks, attention maps can highlight which regions of an image the model is focusing on when making its prediction, making it easier to understand the model’s decision-making process.</p>
+<p>Gradient-based methods offer another approach to model interpretability. Techniques like Grad-CAM (Gradient-weighted Class Activation Mapping) use gradients to identify which parts of the input are most important for the model’s prediction. By computing the gradient of the model’s output with respect to the input features, these methods can create heatmaps that show which features or regions contributed most to the final prediction.</p>
+<p>For tree-based models like random forests and gradient boosting machines, built-in feature importance measures provide natural interpretability. These methods can rank features based on their contribution to the model’s predictive performance, offering insights into which variables are most important for making predictions.</p>
+<p>Model distillation techniques represent another approach, where a complex model (the teacher) is used to train a simpler, more interpretable model (the student) that mimics the teacher’s behavior. The student model, being simpler, is easier to interpret while maintaining much of the teacher’s predictive performance.</p>
+<p>Finally, counterfactual explanations provide a different type of interpretability by showing what changes to the input would be needed to change the model’s prediction. For example, if a loan application is rejected, a counterfactual explanation might show that the application would have been approved if the applicant’s income were $10,000 higher or if their credit score were 50 points better.</p>
+<p>These modern interpretability techniques have made it possible to understand and explain the behavior of even the most complex models, addressing the “black box” problem that has historically limited the adoption of advanced machine learning methods in critical applications where transparency is essential.</p>
+<p><strong>5. Computational Cost:</strong> Training and using prediction models can be computationally expensive, especially for complex models with large datasets. This can limit their applicability in resource-constrained environments. Finding a balance between model complexity, accuracy, and computational cost is critical for practical applications.</p>
+<p>The computational demands of machine learning models have been significantly addressed through the development of specialized hardware, particularly Graphics Processing Units (GPUs). Originally designed for rendering graphics in video games, GPUs have become essential for deep learning due to their parallel processing architecture. Unlike traditional Central Processing Units (CPUs) that process tasks sequentially, GPUs can perform thousands of mathematical operations simultaneously, making them ideal for the matrix multiplications and tensor operations that are fundamental to neural network training. This parallel processing capability has reduced training times from weeks to hours or even minutes for many deep learning models, democratizing access to advanced machine learning techniques.</p>
+<p>However, the computational cost challenge extends beyond just training to the deployment phase, where models need to run efficiently in production environments. This has led to the emergence of edge computing as a crucial solution. Edge computing involves processing data and running models closer to where the data is generated, rather than sending everything to centralized cloud servers. This approach offers several advantages for machine learning applications: reduced latency for real-time predictions, lower bandwidth costs by processing data locally, and improved privacy by keeping sensitive data on local devices.</p>
+<p>Edge computing is particularly important for applications requiring real-time decision making, such as autonomous vehicles, industrial IoT systems, and mobile applications. For example, a self-driving car cannot afford the latency of sending sensor data to a cloud server and waiting for predictions to return; it needs to process information and make decisions locally within milliseconds. Similarly, smart manufacturing systems use edge computing to monitor equipment and predict maintenance needs in real-time without the delays associated with cloud processing.</p>
+<p>Quantization and lower precision calculations have emerged as powerful techniques for reducing computational costs while maintaining model performance. Traditional neural networks use 32-bit floating-point numbers (FP32) for all calculations, which provides high precision but requires significant computational resources and memory. Quantization reduces the precision of these numbers, typically to 16-bit (FP16), 8-bit integers (INT8), or even 4-bit integers (INT4), dramatically reducing both memory usage and computational requirements. For example, converting from FP32 to INT8 can reduce memory usage by 75% and computational cost by 2-4x, while often maintaining acceptable accuracy levels. This is particularly valuable for deployment on edge devices with limited resources, such as smartphones, IoT devices, and embedded systems. Modern hardware, including specialized AI accelerators like Google’s Tensor Processing Units (TPUs) and NVIDIA’s Tensor Cores, are specifically designed to handle these lower precision calculations efficiently, further reducing the computational cost barrier.</p>
+<p>The trade-offs between computational cost and model performance are becoming increasingly sophisticated. Techniques like model pruning, which removes unnecessary connections from neural networks, can create smaller, faster models. Knowledge distillation allows large, complex models to transfer their knowledge to smaller, more efficient models that can run on resource-constrained devices.</p>
+<p>These developments have created a spectrum of deployment options, from powerful cloud-based systems that can run the most complex models to lightweight edge devices that can perform basic predictions locally. The choice depends on the specific requirements of the application, including latency requirements, accuracy needs, privacy concerns, and cost constraints. As hardware continues to improve and optimization techniques become more sophisticated, the computational cost barrier to deploying machine learning models continues to decrease, opening up new possibilities for AI applications in previously inaccessible domains.</p>
+<p><strong>6. Ethical Considerations:</strong> Predictions can have significant real-world consequences, raising ethical concerns about bias, fairness, and potential misuse. It is crucial to consider the potential harms and unintended consequences of predictions and implement safeguards to mitigate them.</p>
+<p>The ethical implications of predictive models have become increasingly prominent as these systems are deployed in critical domains such as healthcare, criminal justice, employment, and financial services. One of the most significant concerns is algorithmic bias, which can perpetuate or amplify existing societal inequalities. For example, facial recognition systems have been shown to have higher error rates for people of color, potentially leading to wrongful arrests or surveillance. Similarly, hiring algorithms trained on historical data may perpetuate gender or racial biases present in past hiring decisions, creating a feedback loop that reinforces discrimination.</p>
+<p>Fairness in machine learning has emerged as a critical research area, with multiple definitions and approaches to ensure equitable treatment across different demographic groups. Statistical parity, equalized odds, and individual fairness are among the various fairness metrics that can be applied depending on the specific context and requirements of the application. However, achieving fairness often involves trade-offs with model accuracy, and different fairness definitions may conflict with each other, requiring careful consideration of which definition is most appropriate for a given use case.</p>
+<p>The potential for misuse of predictive models is another significant concern. Models designed for legitimate purposes can be repurposed for harmful applications, such as using facial recognition for mass surveillance or employing predictive policing algorithms that disproportionately target certain communities. Additionally, the increasing sophistication of deepfake technology, which uses predictive models to generate realistic but fake images, videos, or audio, raises concerns about misinformation and manipulation.</p>
+<p>Privacy concerns arise when predictive models require access to sensitive personal data. The collection, storage, and processing of personal information for training and deploying these models can violate individual privacy rights and create risks of data breaches. Differential privacy techniques, which add carefully calibrated noise to data or model outputs, have emerged as a promising approach to protect individual privacy while maintaining model utility.</p>
+<p>Transparency and accountability are essential for addressing ethical concerns. Organizations deploying predictive models must be able to explain their decisions and be held accountable for any harms that result. This includes maintaining audit trails, implementing human oversight mechanisms, and establishing clear procedures for addressing complaints or errors. The concept of “algorithmic impact assessments” has been proposed as a framework for evaluating the potential social impacts of automated decision-making systems before deployment.</p>
+<p>Regulatory frameworks are evolving to address these ethical challenges. The European Union’s General Data Protection Regulation (GDPR) includes provisions for automated decision-making and profiling, while various jurisdictions are developing specific regulations for AI systems. These regulations often require transparency, human oversight, and the ability to contest automated decisions.</p>
+<p>Technical approaches to addressing ethical concerns include adversarial training to reduce bias, interpretability techniques to increase transparency, and robust testing procedures to identify potential harms before deployment. Regular monitoring and updating of deployed models is also crucial, as societal norms and legal requirements evolve over time.</p>
+<p>Addressing these challenges requires careful consideration of the specific problem, selection of appropriate techniques, and continuous evaluation and improvement of the prediction model. It also requires collaboration between technical experts, domain specialists, ethicists, and stakeholders to ensure that predictive models serve the public good while minimizing potential harms.</p>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bonfiglio2021molecular" class="csl-entry" role="listitem">
+Bonfiglio, Rita, Annarita Granaglia, Raffaella Giocondo, Manuel Scimeca, and Elena Bonanno. 2021. <span>“Molecular Aspects and Prognostic Significance of Microcalcifications in Human Pathology: <span>A</span> Narrative Review.”</span> <em>International Journal of Molecular Sciences</em> 22 (120).
+</div>
+<div id="ref-feynmanfeynman" class="csl-entry" role="listitem">
+Feynman, Richard. n.d. <span>“Feynman :: <span>Rules</span> of Chess.”</span>
+</div>
+<div id="ref-halevy2009unreasonable" class="csl-entry" role="listitem">
+Halevy, Alon, Peter Norvig, and Fernando Pereira. 2009. <span>“The Unreasonable Effectiveness of Data.”</span> <em>IEEE Intelligent Systems</em> 24 (2): 8–12.
+</div>
+<div id="ref-nicosia2023history" class="csl-entry" role="listitem">
+Nicosia, Luca, Giulia Gnocchi, Ilaria Gorini, Massimo Venturini, Federico Fontana, Filippo Pesapane, Ida Abiuso, et al. 2023. <span>“History of Mammography: <span>Analysis</span> of Breast Imaging Diagnostic Achievements over the Last Century.”</span> <em>Healthcare</em> 11 (1596).
+</div>
+</div>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./10-data.html" class="pagination-link" aria-label="Unreasonable Effectiveness of Data">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Unreasonable Effectiveness of Data</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./12-theoryai.html" class="pagination-link" aria-label="Theory of AI">
+        <span class="nav-page-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Theory of AI</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
