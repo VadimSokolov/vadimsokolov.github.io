@@ -1,0 +1,2259 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>16&nbsp; Model Selection – Bayes, AI and Deep Learning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./17-tree.html" rel="next">
+<link href="./15-rct.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-29e2c20b02301cfff04dc8050bf30c7e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-8f57c241cdbc1f937d718a8870719880.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+</head><body class="nav-sidebar floating fullcontent"><div class="hidden">
+<p><span class="math display">\[
+\newcommand{\prob}[1]{\operatorname{P}\left(#1\right)}
+\newcommand{\Var}[1]{\operatorname{Var}\left(#1\right)}
+\newcommand{\sd}[1]{\operatorname{sd}\left(#1\right)}
+\newcommand{\Cor}[1]{\operatorname{Corr}\left(#1\right)}
+\newcommand{\Cov}[1]{\operatorname{Cov}\left(#1\right)}
+\newcommand{\E}[1]{\operatorname{E}\left(#1\right)}
+\newcommand{\defeq}{\overset{\text{\tiny def}}{=}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\mini}{minimize}
+\]</span></p>
+</div>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+
+
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./10-data.html">AI</a></li><li class="breadcrumb-item"><a href="./16-select.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Model Selection</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Bayes, AI and Deep Learning</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00-intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Principles of Data Science</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Bayes</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-prob.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Probability and Uncertainty</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-bayes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Bayes Rule</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-bl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Bayesian Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-dec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Utility, Risk and Decisions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-ab.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">AB Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-hyp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Bayesian Hypothesis Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07-sp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Stochastic Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08-gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Gaussian Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09-rl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Reinforcement Learning</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Unreasonable Effectiveness of Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11-pattern.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Pattern Matching</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12-theoryai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Theory of AI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12-glm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Linear and Multiple Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13-logistic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Classification: Logistic Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15-rct.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Randomized Controlled Trials</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16-select.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Model Selection</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17-tree.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Tree Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18-forecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Forecasting</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Deep Learning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19-dl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Deep Learners</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20-theorydl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Theory of Deep Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21-nn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22-sgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24-qnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Quantile Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25-cnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Convolutional Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26-llm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Large Language Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27-robots.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Robotics</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ex.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Exercises</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./10-data.html">AI</a></li><li class="breadcrumb-item"><a href="./16-select.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Model Selection</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Model Selection</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p>“<em>When you have eliminated impossible, whatever remains, however improbable, must be the truth.</em>” - Sherlock Holmes</p>
+</blockquote>
+<p>What makes a good model? If the goal is prediction, then the model is as good as its prediction. The easiest way to visualize the quality of the prediction is to plot <span class="math inline">\(y\)</span> vs <span class="math inline">\(\hat y\)</span>. In the case of the linear regression model, the prediction interval is defined by <span class="math display">\[
+s\sqrt{1+\frac{1}{n}+\frac{(x-\bar x)^2}{\sum_{i=1}^n(x_i-\bar x)^2}}
+\]</span> where <span class="math inline">\(s\)</span> is the standard deviation of the residuals. The prediction interval is the confidence interval for the prediction. The prediction interval is wider than the confidence interval because it includes the uncertainty in the prediction.</p>
+<p>The bias-variance tradeoff is a fundamental property of statistical models. The bias is the difference between the expected value of the prediction and the true value <span class="math inline">\(y-\hat y\)</span>. The variance is the variance of the prediction. The bias-variance tradeoff says that the bias and variance are inversely related. A model with high bias has low variance and a model with low bias has high variance. The bias-variance tradeoff is a consequence of the fact that the expected value of the prediction is the sum of the bias and the variance.<br>
+<span class="math display">\[
+MSE = E(y-\hat y)^2 = E(y-\mathbb{E}(\hat y))^2 + E(\mathbb{E}(\hat y)-\hat y)^2
+\]</span> The bias-variance tradeoff is a consequence of the fact that the expected value of the prediction is the sum of the bias and the variance.</p>
+<section id="exploratory-data-analysis" class="level2" data-number="16.1">
+<h2 data-number="16.1" class="anchored" data-anchor-id="exploratory-data-analysis"><span class="header-section-number">16.1</span> Exploratory Data Analysis</h2>
+<p>Before deciding on a parametric model for a dataset. There are several tools that we use to choose the appropriate model. These include</p>
+<ol type="1">
+<li>Theoretical assumptions underlying the distribution (our prior knowledge about the data)</li>
+<li>Exploratory data analysis</li>
+<li>Formal goodness-of-fit tests</li>
+</ol>
+<p>The two most common tools for exploratory data analysis are Q-Q plot, scatter plots and bar plots/histograms.</p>
+<p>A Q-Q plot simply compares the quantiles of your data with the quantiles of a theoretical distribution (like normal, exponential, etc.). Quantile is the fraction (or percent) of points below the given value. That is, the <span class="math inline">\(i\)</span>-th quantile is the point <span class="math inline">\(x\)</span> for which <span class="math inline">\(i\)</span>% of the data lies below <span class="math inline">\(x\)</span>. On a Q-Q plot, if the two data sets come from a population with the same distribution, we should see the points forming a line that’s roughly straight. More precisely, if the two data sets <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span> come from the same distribution, then the points <span class="math inline">\((x_{(i)}, y_{(i)})\)</span> should lie roughly on the line <span class="math inline">\(y = x\)</span>. If <span class="math inline">\(y\)</span> comes from a distribution that’s linear in <span class="math inline">\(x\)</span>, then the points <span class="math inline">\((x_{(i)}, y_{(i)})\)</span> should lie roughly on a line, but not necessarily on the line <span class="math inline">\(y = x\)</span>.</p>
+<div id="exm-qqplot" class="theorem example">
+<p><span class="theorem-title"><strong>Example 16.1 (Normal Q-Q plot)</strong></span> <a href="#fig-qqplot" class="quarto-xref">Figure&nbsp;<span>16.1</span></a> shows the normal Q-Q plot for the Data on birth weights of babies born in a Brisbane hospital on December 18, 1997. The data set contains 44 records. A more detailed description of the data set can be found in <a href="https://rdrr.io/cran/UsingR/man/babyboom.html"><code>UsingR manual</code></a>.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>babyboom <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/babyboom.csv"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">qqnorm</span>(babyboom<span class="sc">$</span>wt)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">qqline</span>(babyboom<span class="sc">$</span>wt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fig-qqplot" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-qqplot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="16-select_files/figure-html/fig-qqplot-1.png" class="img-fluid figure-img" width="576">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-qqplot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.1: Normal Q-Q plot of baby weights
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Visually, the answer to answer the question “Are Birth Weights Normally Distributed?” is no. We can see that on the left side of the plot the points are below the line. This indicates that the data is skewed to the left. The data is not normally distributed.</p>
+<p>The Q-Q plots look different if we split the data based on the gender</p>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>g <span class="ot">=</span> babyboom <span class="sc">%&gt;%</span> <span class="fu">filter</span>(gender<span class="sc">==</span><span class="st">"girl"</span>) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(wt) </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>b <span class="ot">=</span> babyboom <span class="sc">%&gt;%</span> <span class="fu">filter</span>(gender<span class="sc">==</span><span class="st">"boy"</span>)  <span class="sc">%&gt;%</span> <span class="fu">pull</span>(wt) </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">qqnorm</span>(g); <span class="fu">qqline</span>(g)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">qqnorm</span>(b); <span class="fu">qqline</span>(b)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell quarto-layout-panel" data-null_prefix="true" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="16-select_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="576"></p>
+<figcaption>Girls</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="16-select_files/figure-html/unnamed-chunk-1-2.png" class="img-fluid figure-img" width="576"></p>
+<figcaption>Boys</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<p>Histogram of baby weights by gender</p>
+</div>
+</div>
+</div>
+<p>How about the times in hours between births of babies?</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>hr <span class="ot">=</span> <span class="fu">ceiling</span>(babyboom<span class="sc">$</span>running.time<span class="sc">/</span><span class="dv">60</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>BirthsByHour <span class="ot">=</span> <span class="fu">tabulate</span>(hr)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Number of hours with 0, 1, 2, 3, 4 births</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>ObservedCounts <span class="ot">=</span> <span class="fu">table</span>(BirthsByHour) </span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Average number of births per hour</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>BirthRate<span class="ot">=</span><span class="fu">sum</span>(BirthsByHour)<span class="sc">/</span><span class="dv">24</span>    </span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Expected counts for Poisson distribution</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>ExpectedCounts<span class="ot">=</span><span class="fu">dpois</span>(<span class="dv">0</span><span class="sc">:</span><span class="dv">4</span>,BirthRate)<span class="sc">*</span><span class="dv">24</span>    </span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co"># bind into matrix for plotting</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>ObsExp <span class="ot">&lt;-</span> <span class="fu">rbind</span>(ObservedCounts,ExpectedCounts) </span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(ObsExp,<span class="at">names=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">4</span>, <span class="at">beside=</span><span class="cn">TRUE</span>,<span class="at">legend=</span><span class="fu">c</span>(<span class="st">"Observed"</span>,<span class="st">"Expected"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="16-select_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>What about the Q-Q plot?</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># birth intervals</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>birthinterval<span class="ot">=</span><span class="fu">diff</span>(babyboom<span class="sc">$</span>running.time) </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a> <span class="co"># quantiles of standard exponential distribution (rate=1)   </span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>exponential.quantiles <span class="ot">=</span> <span class="fu">qexp</span>(<span class="fu">ppoints</span>(<span class="dv">43</span>)) </span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">qqplot</span>(exponential.quantiles, birthinterval)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>lmb<span class="ot">=</span><span class="fu">mean</span>(birthinterval)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(exponential.quantiles,exponential.quantiles<span class="sc">*</span>lmb) <span class="co"># Overlay a line</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="16-select_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Here</p>
+<ul>
+<li><code>ppoints</code> function computes the sequence of probability points</li>
+<li><code>qexp</code> function computes the quantiles of the exponential distribution</li>
+<li><code>diff</code> function computes the difference between consecutive elements of a vector</li>
+</ul>
+</div>
+</section>
+<section id="out-of-sample-performance" class="level2" data-number="16.2">
+<h2 data-number="16.2" class="anchored" data-anchor-id="out-of-sample-performance"><span class="header-section-number">16.2</span> Out of Sample Performance</h2>
+<p>A parametric model that we choose to fit to data is chosen from a family of functions. Then, we use optimization to find the best model from that family. To find the best model we either minimize empirical loss or maximize the likelihood. We also established, that when <span class="math inline">\(y \sim N(f(x\mid \beta),\sigma^2)\)</span> then mean squared error loss and negative log-likelihood are the same function. <span class="math display">\[
+\E{y | x} = f(\beta^Tx)
+\]</span></p>
+<p>For a regression model, an empirical loss measures a distance between fitted values and measurements and the goal is to minimize it. A typical choice of loss function for regression is <span class="math display">\[
+L (y,\hat y) =  \dfrac{1}{n}\sum_{i=1}^n |y_i -  f(\beta^Tx_i)|^p
+\]</span> When <span class="math inline">\(p=1\)</span> we have MAE (mean absolute error), <span class="math inline">\(p=2\)</span> we have MSE (mean squared error).</p>
+<p>Finding an appropriate family of functions is a major problem and is called <strong>model selection</strong> problem. For example, the choice of input variables to be included in the model is part of the model selection process. Model selection involves determining which predictors, interactions, or transformations should be included in the model to achieve the best balance between complexity and predictive accuracy. In practice, we often encounter several models for the same dataset that perform nearly identically, making the selection process challenging.</p>
+<p>It is important to note that a good model is not necessarily the one that fits the data perfectly. Overfitting can occur when a model is overly complex, capturing noise rather than the underlying pattern. A good model strikes a balance between fitting the data well and maintaining simplicity to ensure generalizability to new, unseen data. For instance, including too many parameters can lead to a perfect fit when the number of observations equals the number of parameters, but such a model is unlikely to perform well on out-of-sample data.</p>
+<p>The goal of model selection is not only to achieve a good fit but also to reduce complexity by excluding unnecessary parameters. This process typically involves selecting a model from a relevant class of functions while keeping in mind the trade-offs between bias, variance, and model complexity. Techniques such as cross-validation, information criteria (e.g., AIC, BIC), and regularization methods are commonly used to guide the model selection process.</p>
+<p>The model selection task is sometimes one of the most consuming parts of the data analysis. Unfortunately, there is no single rule to find the best model. One way to think about the model choice problem as yet another optimization problem, with the goal to find best family of functions that describe the data. With a small number of predictors we can do brute force (check all possible models). For example, with <span class="math inline">\(p\)</span> predictors there are <span class="math inline">\(2^p\)</span> possible models with no interactions. Thus, the number of potential family functions is huge even for modest values of <span class="math inline">\(p\)</span>. One cannot consider all transformations and interactions.</p>
+<p>Our goal is to build a model that predicts well for out-of-sample data, e.g.&nbsp;the data that was not used for training. Eventually, we are interested in using our models for prediction and thus, the out of sample performance is the most important metric and should be used to choose the final model. In-sample performance is of little interest when predictive model need to be chosen, as one of the winners of Netflix prize put it, “It’s like predicting how much someone will like a movie, having them watch it and tell you how much they really liked it”. The out-of-sample performance is the final judge of the quality of our model. The goal is to use data to find a pattern that we can exploit. The pattern will be “statistical” in its nature. To uncover the pattern we start with a training dataset, denoted by <span class="math display">\[
+D = (y_i,x_i)_{i=1}^n
+\]</span> and to test the validity of our mode we use out-of-sample testing dataset <span class="math display">\[
+D^* = (y_j^*, x_j^*)_{j=1}^m,
+\]</span> where <span class="math inline">\(x_i\)</span> is a set of <span class="math inline">\(p\)</span> predictors ans <span class="math inline">\(y_i\)</span> is response variable.</p>
+<p>A good predictor will “generalize” well and provide low MSE out-of-sample. These are a number of methods/objective functions that we will use to find, <span class="math inline">\(\hat f\)</span>. In a parameter-based style we will find a black box. There are a number of ways to build our black box model. Our goal is to find the map <span class="math inline">\(f\)</span> that approximates the process that generated the data. For example data could be representing some physical observations and our goal is recover the “laws of nature" that led to those observations. One of the pitfalls is to find a map <span class="math inline">\(f\)</span> that does not generalize. Generalization means that our model actually did learn the”laws of nature" and not just identified patterns presented in training. The lack of generalization of the model is called over-fitting. It can be demonstrated in one dimension by remembering the fact from calculus that any set of <span class="math inline">\(n\)</span> points can be approximated by a polynomial of degree <span class="math inline">\(n\)</span>, e.g we can alway draw a line that connects two points. Thus, in one dimension we can always find a function with zero empirical risk. However, such a function is unlikely to generalize to the observations that were not in our training data. In other words, the empirical risk measure for <span class="math inline">\(D^*\)</span> is likely to be very high. Let us illustrate that in-sample fit can be deceiving.</p>
+<div id="exm-hard" class="theorem example">
+<p><span class="theorem-title"><strong>Example 16.2 (Hard Function)</strong></span> Say we want to approximate the following function <span class="math display">\[
+f(x) = \dfrac{1}{1+25x^2}.
+\]</span> This function is simply a ratio of two polynomial functions and we will try to build a liner model to reconstruct this function</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">2</span>,<span class="dv">2</span>,<span class="at">by=</span><span class="fl">0.01</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="dv">25</span><span class="sc">*</span>x<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Approximate with polynomial of degree 1 and 2</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">=</span> <span class="fu">lm</span>(y<span class="sc">~</span>x)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>m2 <span class="ot">=</span> <span class="fu">lm</span>(y<span class="sc">~</span><span class="fu">poly</span>(x,<span class="dv">2</span>))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Approximate with polynomial of degree 20 and 5</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>m20 <span class="ot">=</span> <span class="fu">lm</span>(y<span class="sc">~</span><span class="fu">poly</span>(x,<span class="dv">20</span>))</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>m5 <span class="ot">=</span> <span class="fu">lm</span>(y<span class="sc">~</span><span class="fu">poly</span>(x,<span class="dv">5</span>))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">3</span>,<span class="dv">3</span>,<span class="at">by=</span><span class="fl">0.01</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="dv">25</span><span class="sc">*</span>x<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x,y,<span class="at">type=</span><span class="st">'l'</span>,<span class="at">col=</span><span class="st">'black'</span>,<span class="at">lwd=</span><span class="dv">2</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fu">predict</span>(m1,<span class="fu">list</span>(<span class="at">x=</span>x)),<span class="at">lwd=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">1</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fu">predict</span>(m2,<span class="fu">poly</span>(x,<span class="dv">2</span>)),<span class="at">lwd=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">2</span>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fu">predict</span>(m5,<span class="fu">poly</span>(x,<span class="dv">5</span>)),<span class="at">lwd=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">3</span>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fu">predict</span>(m20,<span class="fu">poly</span>(x,<span class="dv">20</span>)),<span class="at">lwd=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">4</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"f(x)"</span>,<span class="st">"m1"</span>,<span class="st">"m2"</span>,<span class="st">"m5"</span>,<span class="st">"m20"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="st">"black"</span>,<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>), <span class="at">lty=</span><span class="dv">1</span>, <span class="at">cex=</span><span class="fl">0.8</span>, <span class="at">bty=</span><span class="st">'n'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fig-rungekutta" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-rungekutta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="16-select_files/figure-html/fig-rungekutta-1.png" class="img-fluid figure-img" width="576">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-rungekutta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.2: Runge-Kutta function
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p><a href="#fig-rungekutta" class="quarto-xref">Figure&nbsp;<span>16.2</span></a> shows the function itself (black line) on the interval <span class="math inline">\([-3,3]\)</span>. We used observations of <span class="math inline">\(x\)</span> from the interval <span class="math inline">\([-2,2]\)</span> to train the data (solid line) and from <span class="math inline">\([-3,-2) \cup (2,3]\)</span> (dotted line) to test the model and measure the out-of-sample performance. We tried four different linear functions to capture the relations. We see that linear model <span class="math inline">\(\hat y = \beta_0 + \beta_1 x\)</span> is not a good model. However, as we increas the degree of the polynomial to 20, the resulting model <span class="math inline">\(\hat y = \beta_0 + \beta_1x + \beta_2 x^2 +\ldots+\beta_{20}x^{20}\)</span> does fit the training data set quite well, but does very poor job on the test data set. Thus, while in-sample performance is good, the out-of sample performance is unsatisfactory. We should not use the degree 20 polynomial function as a predictive model. In practice in-sample out-of-simple loss or classification rates provide us with a metric for providing horse race between different predictors. It is worth mentioning here there should be a penalty for overly complex rules which fits extremely well in sample but perform poorly on out-of-sample data. As Einstein famous said “model should be simple, but not simpler.”</p>
+</div>
+<p>To a Bayesian, the solution to these decision problems are rather obvious: compute posterior distributions, and then make decisions by maximizing expected utility, where the posterior distribution is used to calculate the expectations. Classical solutions to these problems are different, and use repeated sampling ideas, whereby the performance of a decision rule is judged on its performance if the same decision problem were repeated infinitely. Thus, the decisions are made based on their population properties. One of the main uses of statistical decision theory is to compare different estimators or hypothesis testing procedures. This theory generates many important findings, most notably that many of the common classical estimators are “bad”,in some sense, and that Bayesian estimators are always “good”.</p>
+<p>These results have major implications for empirical work and practical applications, as they provide a guide for forecasting.</p>
+</section>
+<section id="bias-variance-trade-off" class="level2" data-number="16.3">
+<h2 data-number="16.3" class="anchored" data-anchor-id="bias-variance-trade-off"><span class="header-section-number">16.3</span> Bias-Variance Trade-off</h2>
+<p>Type II MLE: Marginal MLE (MMLE)</p>
+<p>One approach to find “plug-in” estimates of hyper-parameters (a.k.a. amount of regularisation) is to use the marginal likelihood defined by</p>
+<p><span class="math display">\[
+m(y | \lambda) = \int p(y | \theta) p(\theta | \lambda) d\theta.
+\]</span></p>
+<p>We then select</p>
+<p><span class="math display">\[
+\hat{\lambda} = \arg\max_\lambda \; \log m(y | \lambda)
+\]</span></p>
+<p>Essentially, we have a new objective function for finding the hyper-parameters (tuning parameters).</p>
+<p>We can add a further regularisation penalty <span class="math inline">\(-\log p(\lambda)\)</span> too.</p>
+<p>As J.W.Tukey stated at the 1972 American Statistical Association meeting:</p>
+<blockquote class="blockquote">
+<p>“A feeling that any gains possible from a complicated procedurelike Stein’s could not be worththe extratroubl”</p>
+</blockquote>
+</section>
+<section id="full-bayes" class="level2" data-number="16.4">
+<h2 data-number="16.4" class="anchored" data-anchor-id="full-bayes"><span class="header-section-number">16.4</span> Full Bayes</h2>
+<p>Should also place a prior on hyper-parameters <span class="math inline">\(p(\lambda)\)</span>. The optimal Bayes estimator under quadratic loss is</p>
+<p><span class="math display">\[
+\hat{\theta}(y) = E(\theta | y) = E_{\lambda | y} \left( E(\theta | \lambda, y) \right).
+\]</span></p>
+<p>where <span class="math inline">\(E_{\lambda | y}\)</span> is taken with respect to the marginal posterior</p>
+<p><span class="math display">\[
+p(\lambda | y) = \frac{m(y | \lambda) p(\lambda)}{m(y)}
+\]</span></p>
+<p>The choice of <span class="math inline">\(p(\lambda)\)</span> is an issue. Jeffreys, Polson and Scott propose the use of half-Cauchy priors <span class="math inline">\(C^+(0,1)\)</span>-priors.</p>
+<p>For any predictive model we seek to achieve best possible results, i.e.&nbsp;smallest MSE or misclassification rate. However, a model performance can be different as data used in one training/validation split may produce results dissimilar to another random split. In addition, a model that performed well on the test set may not produce good results given additional data. Sometimes we observe a situation, when a small change in the data leads to large change in the final estimated model, e.g.&nbsp;parameters of the model. These results exemplify the bias/variance tradeoff, where increasing model bias produces large variance in the final results. Similarly, low bias results in low variance, but can also produce an oversimplification of the final model. While Bias/variance concept is depicted below.</p>
+<div id="fig-bias-variance" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bias-variance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/bias-variance.drawio.svg" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bias-variance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.3: Bias-variance trade-off
+</figcaption>
+</figure>
+</div>
+<div id="exm-bias-variance" class="theorem example">
+<p><span class="theorem-title"><strong>Example 16.3 (Bias-variance)</strong></span> We demonstrate bias-variance concept using Boston housing example. We fit a model <span class="math inline">\(\mathrm{medv} = f(\mathrm{lstat})\)</span>. We use polynomial functions to approximate this relation. We fitted twelve polynomial functions with degree <span class="math inline">\(1,\ldots,12\)</span> ten time. Each time we randomly selected 20% of sample for testing and the rest for training. We estimated in-of-sample performance (bias) and out-of-sample performance by calculating MSE on training and testing sets correspondingly. For each polynomial <span class="math inline">\(f\)</span> we averaged MSE from each of the ten models.</p>
+<p><a href="#fig-boston-bias-variance" class="quarto-xref">Figure&nbsp;<span>16.4 (a)</span></a> shows bias and variance for our twelve different models. As expected, bias increases while variance increases as model complexity grows. On the other hand out-of-sample MSE is a U-shaped curve. The optimal model is the one that has smallest out-of-sample MSE. In our case it is polynomial of degree 5!</p>
+<div id="fig-boston" class="quarto-layout-panel">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-boston-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-boston" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-boston-bias-variance" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-boston-bias-variance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/boston-bias-variance.svg" class="img-fluid figure-img" data-ref-parent="fig-boston">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-boston-bias-variance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) Metrics for twelve polynomial functions fitted into Boston housing data set. As model complexity (degree of the polynomial function) increases, model variance increase and bias decreases. Out-of-sample MSE is smallest for 5th degree polynomial function, which is the optimal model in terms of bias-variance trade-off.
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell-subref quarto-layout-cell" data-ref-parent="fig-boston" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-boston-optimal-model" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-boston-optimal-model-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/boston-optimal-model.svg" class="img-fluid figure-img" data-ref-parent="fig-boston">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-boston-optimal-model-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) Optimal complexity model, which is 5th degree polynomial used to predict observations from testing data set. Model predictions (red line) are compared to actual observed values of medv variable (dots)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-boston-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.4: Metrics for 12 models
+</figcaption>
+</figure>
+</div>
+<p>Let’s take another, a more formal, look at bias-variance trade-off for a linear regression problem. We are interested in the decomposition of the error <span class="math inline">\(\E{(y-\hat y)^2}\)</span> as a function of bias <span class="math inline">\(\E{y-\hat y}\)</span> and variance <span class="math inline">\(\Var{\hat y}\)</span>.</p>
+<p>Here <span class="math inline">\(\hat y = \hat f_{\beta}(x)\)</span> prediction from the model, and <span class="math inline">\(y = f(x) + \epsilon\)</span> is the true value, which is measured with noise <span class="math inline">\(\Var{\epsilon} = \sigma^2\)</span>, <span class="math inline">\(f(x)\)</span> is the true unknown function. The expectation above measures squared error of our model on a random sample <span class="math inline">\(x\)</span>. <span class="math display">\[
+\begin{aligned}
+\E{(y - \hat{y})^2}
+&amp; = \E{y^2 + \hat{y}^2 - 2 y\hat{y}} \\
+&amp; = \E{y^2} + \E{\hat{y}^2} - \E{2y\hat{y}} \\
+&amp; = \Var{y} + \E{y}^2 + \Var{\hat{y}} + \E{\hat{y}}^2 - 2f\E{\hat{y}} \\
+&amp; = \Var{y} + \Var{\hat{y}} + (f^2 - 2f\E{\hat{y}} + \E{\hat{y}}^2) \\
+&amp; = \Var{y} + \Var{\hat{y}} + (f - \E{\hat{y}})^2 \\
+&amp; = \sigma^2 + \Var{\hat{y}} + \mathrm{Bias}(\hat{y})^2\end{aligned}
+\]</span> Here we used the following identity: <span class="math inline">\(\Var{X} = \E{X^2} - \E{X}^2\)</span> and the fact that <span class="math inline">\(f\)</span> is deterministic and <span class="math inline">\(\E{\epsilon} = 0\)</span>, thus <span class="math inline">\(\E{y} = \E{f(x)+\epsilon} = f + \E{\epsilon} = f\)</span>.</p>
+</div>
+</section>
+<section id="cross-validation" class="level2" data-number="16.5">
+<h2 data-number="16.5" class="anchored" data-anchor-id="cross-validation"><span class="header-section-number">16.5</span> Cross-Validation</h2>
+<p>If the data set at-hand is small and we cannot dedicate large enough sample size for testing, simply measuring error on test data set can lead to wrong conclusions. When size of the testing set <span class="math inline">\(D^*\)</span> is small, the estimated out-of-sample performance is of high variance, depending on precisely which observations are included in the test set. On the other hand, when training set <span class="math inline">\(D^*\)</span> is a large fraction of the entire sample available, estimated out-of-sample performance will be underestimated. Why?</p>
+<p>A trivial solution is to perform the training/testing split randomly several times and then use average out-of-sample errors. This procedure has two parameters, the fraction of samples to be selected for testing <span class="math inline">\(p\)</span> and number of estimates to be performed <span class="math inline">\(K\)</span>. The resulting algorithm is as follows</p>
+<pre><code>fsz = as.integer(p*n)
+error = rep(0,K)
+for (k in 1:K)
+{
+    test_ind = sample(1:n,size = fsz)
+    training = d[-test_ind,]
+    testing  = d[test_ind,]
+    m = lm(y~x, data=training)
+    yhat = predict(m,newdata = testing)
+    error[k] = mean((yhat-testing$y)^2)
+}
+res = mean(error)</code></pre>
+<p><a href="#fig-bootstrap" class="quarto-xref">Figure&nbsp;<span>16.5</span></a> shows the process of splitting data set randomly five times.</p>
+<p>Cross validation modifies the random splitting approach uses more “disciplined” way to split data set for training and testing. Instead of randomly selecting training data points, CV chooses consecutive observations and thus, each data point is used once for testing. As the random approach, CV helps addressing the high variance issue of out-of-sample performance estimation when data set available is small. <a href="#fig-cv" class="quarto-xref">Figure&nbsp;<span>16.6</span></a> shows the process of splitting data set five times using cross-validation approach.</p>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-bootstrap" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bootstrap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/bag5-excel.svg" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bootstrap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.5: Bootstrap
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-cv" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/cv5-excel.svg" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.6: Cross-validation
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<p>Training set (red) and testing set (green)</p>
+</div>
+</div>
+</div>
+<div id="exm-simulated" class="theorem example">
+<p><span class="theorem-title"><strong>Example 16.4 (Simulated)</strong></span> We use simulated data set to demonstrate difference between estimated out-of-sample performance using random 20/80 split, 5-fold cross-validation and random split. We used <span class="math inline">\(x=-2,-1.99,-1.98,\ldots,2\)</span> and <span class="math inline">\(y = 2+3x + \epsilon, ~ \epsilon \sim N(0,\sqrt{3})\)</span>. We simulated 35 datasets of size 100. For each of the simulated data sets, we fitted a linear model and estimated out-of-sample performance using three different approaches. <a href="#fig-test-error20" class="quarto-xref">Figure&nbsp;<span>16.7</span></a> compares empirical distribution of errors estimated from 35 samples.</p>
+<div id="fig-test-error20" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-test-error20-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/test-error20.svg" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-test-error20-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.7: Empirical comparison of simple split, cross-validation, and bootstrap approaches to estimate out-of sample performance.
+</figcaption>
+</figure>
+</div>
+<p>As we can see the estimated out-of-sample performance by a training set approach is of high variance. While, both cross-validation and bootstrap approaches lead to better estimates, they require model to be fitted 5 times, which can be computationally costly for a complex model. On the other hand, estimate from cross-validation is of lower variance and less bias compared to the bootstrap estimate. Thus, we should prefer cross-validation.</p>
+</div>
+</section>
+<section id="small-sample-size" class="level2" data-number="16.6">
+<h2 data-number="16.6" class="anchored" data-anchor-id="small-sample-size"><span class="header-section-number">16.6</span> Small Sample Size</h2>
+<p>When sample size is small and it is not feasible to divide your data into training and validation data sets, an information criterion could be used to assess a model. We can think of information criterion as a metric that “approximates” out-os-sample performance of the model. Akaike’s Information Criterion (AIC) takes the form <span class="math display">\[
+\mathrm{AIC} = log(\sigma_k^2) + \dfrac{n+2k}{n}
+\]</span> <span class="math display">\[
+\hat{\sigma}_k^2 = \dfrac{SSE_k}{n}
+\]</span> Here <span class="math inline">\(k\)</span> = number of coefficients in regression model, <span class="math inline">\(SSE_k\)</span> = residual sum of square, <span class="math inline">\(\hat{\sigma}_k^2\)</span> = MLE estimator for variance. We do not need to proceed sequentially, each model individually evaluated</p>
+<p>AIC is derived using the Kullback-Leibler information number. It is a ruler to measure the similarity between the statistical model and the true distribution. <span class="math display">\[
+I(g ; f) = E_g\left(\log \left\{\dfrac{g(y)}{f(y)}\right\}\right) = \int_{-\infty}^{\infty}\log \left\{\dfrac{g(y)}{f(y)}\right\}g(y)dy.
+\]</span> Here - <span class="math inline">\(I(g ; f) &gt; 0\)</span> - <span class="math inline">\(I(g ; f) = 0 \iff g(u) = f(y)\)</span> - <span class="math inline">\(f \rightarrow g\)</span> as <span class="math inline">\(I(g ; f) \rightarrow 0\)</span></p>
+<p>To estimate <span class="math inline">\(I(g ; f)\)</span>, we write <span class="math display">\[
+I(g ; f) = E_g\left(\log \left\{\dfrac{g(y)}{f(y)}\right\}\right) = E_g (\log g(y)) - E_g(\log f(y))
+\]</span> Only the second term is important in evaluating the statistical model <span class="math inline">\(f(y)\)</span>. Thus we need to estimate <span class="math inline">\(E_g(\log f(y))\)</span>. Given sample <span class="math inline">\(z_1,...,z_n\)</span>, and estimated parameters <span class="math inline">\(\hat{\theta}\)</span> a naive estimate is <span class="math display">\[
+\hat{E}_g(\log f(y)) =  \dfrac{1}{n} \sum_{i=1}^n \log f(z_i) = \dfrac{\ell(\hat{\theta})}{n}
+\]</span> where <span class="math inline">\(\ell(\hat{\theta})\)</span> is the log-likelihood function for model under test.</p>
+<ul>
+<li>this estimate is very biased</li>
+<li>data used used twice: to get the MLE and second to estimate the integral</li>
+<li>it will favor those model that overfit</li>
+</ul>
+<p>Akaike showed that the bias is approximately <span class="math inline">\(k/n\)</span> where <span class="math inline">\(k\)</span> is the number of parameters <span class="math inline">\(\theta\)</span>. Therefore we use <span class="math display">\[
+\hat{E}_g(\log f(y)) = \dfrac{\ell(\hat{\theta})}{n} - \dfrac{k}{n}
+\]</span> Which leads to AIC <span class="math display">\[
+AIC = 2n \hat{E}_g(\log f(y)) = 2 \ell(\hat{\theta}) - 2k
+\]</span></p>
+<p>Akaike’s Information Criterion (AIC) <span class="math display">\[
+\mathrm{AIC} = \log(\sigma_k^2) + \dfrac{n+2k}{n}
+\]</span> Controls for balance between model complexity (<span class="math inline">\(k\)</span>) and minimizing variance. The model selection process involve trying different <span class="math inline">\(k\)</span>, chose model with smallest AIC.</p>
+<p>A slightly modified version designed for small samples is the bias corrected AIC (AICc). <span class="math display">\[
+\mathrm{AICc} = \log(\hat{\sigma}_k^2) + \dfrac{n+k}{n-k-2}
+\]</span> This criterion should be used for regression models with small samples</p>
+<p>Yet, another variation designed for larger datasets is the Bayesian Information Criterion (BIC). <span class="math display">\[
+\mathrm{BIC} = \log(\hat{\sigma}_k^2) + \dfrac{k \log(n)}{n}
+\]</span> Is is the same as AIC but harsher penalty, this chooses simpler models. It works better for large samples when compared to AICc. The motivation fo BIC is from the posterior distribution over model space. Bayes rule lets you calculate the joint probability of parameter and models as <span class="math display">\[
+p(\theta,M\mid D) = \dfrac{p(D\mid \theta,M(p(M,\theta)}{p(D)},~~ p(M\mid D) = \int p(\theta,M\mid D)d\theta \approx n^{p/2}p(D\mid \hat \theta M)p(M).
+\]</span></p>
+<p>Consider a problem of predicting mortality rates given pollution and temperature measurements. Let’s plot the data.</p>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-poll-temp-mort" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-poll-temp-mort-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/poll-temp-mort.svg" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-poll-temp-mort-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.8: Time Series Plot
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div id="fig-poll-temp-mort-scatter" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-poll-temp-mort-scatter-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/poll-temp-mort-scatter.svg" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-poll-temp-mort-scatter-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.9: Scatter Plot
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<p>Regression Model 1, which just uses the trend: <span class="math inline">\(M_t = \beta_1 + \beta_2 t + w_t\)</span>. We fit by calling <code>lm(formula = cmort ~ trend)</code> to get the following coefficients</p>
+<pre><code>                Estimate    Std. Error t value  
+    (Intercept) 3297.6062   276.3132   11.93
+    trend         -1.6249     0.1399  -11.61</code></pre>
+<p>Regression Model 2 regresses to time (trend) and temperature: <span class="math inline">\(M_t = \beta_1 + \beta_2 t + \beta_t(T_t - T)+ w_t\)</span>. The R call is <code>lm(formula = cmort ~ trend + temp)</code></p>
+<pre><code>                Estimate    Std. Error t value 
+    (Intercept) 3125.75988  245.48233   12.73 
+    trend         -1.53785    0.12430  -12.37 
+    temp          -0.45792    0.03893  -11.76 </code></pre>
+<p>Regression Model 3, uses trend, temperature and mortality: <span class="math inline">\(M_t = \beta_1 + \beta_2 t + \beta_3(T_t - T)+ \beta_4(T_t - T)^2 + w_t\)</span>. The R call is <code>lm(formula = cmort ~ trend + temp + I(temp^2)</code></p>
+<pre><code>                Estimate    Std. Error t value 
+    (Intercept)  3.038e+03  2.322e+02  13.083 
+    trend       -1.494e+00  1.176e-01 -12.710 
+    temp        -4.808e-01  3.689e-02 -13.031 
+    temp2        2.583e-02  3.287e-03   7.858 </code></pre>
+<p>Regression Model 4 adds temperature squared: <span class="math display">\[M_t = \beta_1 + \beta_2 t + \beta_3(T_t - T)+ \beta_4(T_t - T)^2 + \beta_5 P_t+ w_t.\]</span></p>
+<p>The R call is <code>lm(formula = cmort ~ trend + temp +  I(temp^2) + part)</code></p>
+<pre><code>                Estimate    Std. Error t value 
+    (Intercept)  2.831e+03  1.996e+02   14.19 
+    trend       -1.396e+00  1.010e-01  -13.82 
+    temp        -4.725e-01  3.162e-02  -14.94 
+    temp2        2.259e-02  2.827e-03    7.99 
+    part         2.554e-01  1.886e-02   13.54 </code></pre>
+<p>To choose the model, we look at the information criterion</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">Model</th>
+<th style="text-align: center;"><span class="math inline">\(k\)</span></th>
+<th style="text-align: center;">SSE</th>
+<th style="text-align: center;">df</th>
+<th style="text-align: center;">MSE</th>
+<th style="text-align: center;"><span class="math inline">\(R^2\)</span></th>
+<th style="text-align: center;">AIC</th>
+<th style="text-align: center;">BIC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">40,020</td>
+<td style="text-align: center;">506</td>
+<td style="text-align: center;">79.0</td>
+<td style="text-align: center;">.21</td>
+<td style="text-align: center;">5.38</td>
+<td style="text-align: center;">5.40</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">31,413</td>
+<td style="text-align: center;">505</td>
+<td style="text-align: center;">62.2</td>
+<td style="text-align: center;">.38</td>
+<td style="text-align: center;">5.14</td>
+<td style="text-align: center;">5.17</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">27,985</td>
+<td style="text-align: center;">504</td>
+<td style="text-align: center;">55.5</td>
+<td style="text-align: center;">.45</td>
+<td style="text-align: center;">5.03</td>
+<td style="text-align: center;">5.07</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">20,508</td>
+<td style="text-align: center;">503</td>
+<td style="text-align: center;">40.8</td>
+<td style="text-align: center;">.60</td>
+<td style="text-align: center;">4.72</td>
+<td style="text-align: center;">4.77</td>
+</tr>
+</tbody>
+</table>
+<p><span class="math inline">\(R^2\)</span> always decreases with number of covariates (that is what MLE does). Thus, cannot be used as a selection criteria. <span class="math inline">\(R^2\)</span> for out-of-sample data is useful!</p>
+<p>The message to take home on model selection</p>
+<ul>
+<li><span class="math inline">\(R^2\)</span> is NOT a good metric for model selection</li>
+<li>Value of likelihood function is NOT a god metric</li>
+<li>are intuitive and work very well in practice (you should use those)</li>
+<li>AIC is good for big <span class="math inline">\(n/df\)</span>, so it overfits in high dimensions</li>
+<li>Should prefer AICc over AIC</li>
+<li>BIC underfits for large <span class="math inline">\(n\)</span></li>
+<li>Cross-validation is important, we will go over it later</li>
+</ul>
+</section>
+<section id="regularization" class="level2" data-number="16.7">
+<h2 data-number="16.7" class="anchored" data-anchor-id="regularization"><span class="header-section-number">16.7</span> Regularization</h2>
+<p>Regularization is a technique to incorporate some prior knowledge about parameters of the model into the estimation process. Consider an example when regularization allows us to solve a hard problem of filtering noisy traffic data.</p>
+<div id="exm-traffic" class="theorem example">
+<p><span class="theorem-title"><strong>Example 16.5 (Traffic)</strong></span> Consider traffic flow speed measured by an in-ground sensor installed on interstate I-55 near Chicago. Speed measurements are noisy and prone to have outliers. <a href="#fig-speed-profile" class="quarto-xref">Figure&nbsp;<span>16.10</span></a> shows speed measured data, averaged over five minute intervals on one of the weekdays.</p>
+<div id="fig-speed-profile" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-profile-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="./fig//svg/day_295.svg" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-profile-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.10: Speed profile over 24 hour period on I-55, on October 22, 2013
+</figcaption>
+</figure>
+</div>
+<p>Speed measurements are noisy and prone to have outliers. There are two sources of noise. The first is the measurement noise, caused by inhalant nature of the sensor’s hardware. The second source is due to sampling error, vehicles observed on a specific lane where senor installed might not represent well traffic in other lanes.</p>
+<p>Trend filtering, which is a variation of a well-know Hodrick-Prescott filter. In this case, the trend estimate is the minimizer of the weighted sum objective function <span class="math display">\[
+(1/2) \sum_{t=1}^{n}(y_t - x_t)^2 + \lambda \sum_{t=1}^{n-1}|x_{t-1} - 2x_t + x_{t+1}|,
+\]</span></p>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/traffic_l1.svg" class="img-fluid figure-img"></p>
+<figcaption>Trend filter for different penalty</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/day_295_tf.svg" class="img-fluid figure-img"></p>
+<figcaption>Trend filtering with optimal penalty</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<p>Trend Filtering for Traffic Speed Data</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="ridge-regression" class="level2" data-number="16.8">
+<h2 data-number="16.8" class="anchored" data-anchor-id="ridge-regression"><span class="header-section-number">16.8</span> Ridge Regression</h2>
+<p>Gauss invented the concept of least squares and developed algorithms to solve the the optimization problem <span class="math display">\[
+\underset{\beta}{\mathrm{minimize}}\quad ||y- X\beta||_2^2
+\]</span> where <span class="math inline">\(\beta = (\beta_1 , \ldots , \beta_p )\)</span>, we can use linear algebra algorithms, the solution given by <span class="math display">\[
+\hat{\beta} = ( X^T X )^{-1} X^T y
+\]</span> This can be numerically unstable when <span class="math inline">\(X^T X\)</span> is ill-conditioned, and happens when <span class="math inline">\(p\)</span> is large. Ridge regression addresses this problem by adding an extra term to the <span class="math inline">\(X^TX\)</span> matrix <span class="math display">\[
+\hat{\beta}_{\text{ridge}} = ( X^T X + \lambda I )^{-1} X^T y.
+\]</span> The corresponding optimization problem is <span class="math display">\[
+\underset{\beta}{\mathrm{minimize}}\quad ||y- X\beta||_2^2   + \lambda||\beta||_2^2.
+\]</span> We can think of the constrain is of a budget on the size of <span class="math inline">\(\beta\)</span>. Ridge reguralization was first proposed in solving inverse problems to “discover” physical laws from observations and the norm of the <span class="math inline">\(\beta\)</span> vector would usually represent amount of energy required, and the 2-norm penalty term allows to find find a balance between data fidelity and solution simplicity. The regularization term acts to constrain the solution space, preventing it from reaching high-energy (overly complex) states, most of the times nature chooses the path of least resistance, thus minimal energy solutions are practical.</p>
+<p>The we choose <span class="math inline">\(\lambda\)</span> over a regularisation path. The penalty in ridge regression forces coefficients <span class="math inline">\(\beta\)</span> to be close to 0. Penalty is large for large values and very small for small ones. Tuning parameter <span class="math inline">\(\lambda\)</span> controls trade-off between how well model fits the data and how small <span class="math inline">\(\beta\)</span>s are. Different values of <span class="math inline">\(\lambda\)</span> will lead to different models. We select <span class="math inline">\(\lambda\)</span> using cross validation.</p>
+</section>
+<section id="kernel-view" class="level2" data-number="16.9">
+<h2 data-number="16.9" class="anchored" data-anchor-id="kernel-view"><span class="header-section-number">16.9</span> Kernel view</h2>
+<p>Another interesting view stems from what is called the push-through matrix identity: <span class="math display">\[
+(aI + UV)^{-1}U = U(aI + VU)^{-1}
+\]</span> for <span class="math inline">\(a\)</span>, <span class="math inline">\(U\)</span>, <span class="math inline">\(V\)</span> such that the products are well-defined and the inverses exist. We can obtain this from <span class="math inline">\(U(aI + VU) = (aI + UV)U\)</span>, followed by multiplication by <span class="math inline">\((aI + UV)^{-1}\)</span> on the left and the right. Applying the identity above to the ridge regression solution with <span class="math inline">\(a = \lambda\)</span>, <span class="math inline">\(U = X^T\)</span>, and <span class="math inline">\(V = X\)</span>, we obtain an alternative form for the ridge solution: <span class="math display">\[
+\hat{\beta} = X^T (XX^T + \lambda I)^{-1} Y.
+\]</span> This is often referred to as the kernel form of the ridge estimator. From this, we can see that the ridge fit can be expressed as <span class="math display">\[
+X\hat{\beta} = XX^T (XX^T + \lambda I)^{-1} Y.
+\]</span> What does this remind you of? This is precisely <span class="math inline">\(K(K + \lambda I)^{-1}Y\)</span> where <span class="math inline">\(K = XX^T\)</span>, which, recall, is the fit from RKHS regression with a linear kernel <span class="math inline">\(k(x, z) = x^T z\)</span>. Therefore, we can think of RKHS regression as generalizing ridge regression by replacing the standard linear inner product with a general kernel. (Indeed, RKHS regression is often called kernel ridge regression.) <span class="math display">\[
+(aI + UV)^{-1}U = U(aI + VU)^{-1}
+\]</span> for <span class="math inline">\(a\)</span>, <span class="math inline">\(U\)</span>, <span class="math inline">\(V\)</span> such that the products are well-defined and the inverses exist. We can obtain this from <span class="math inline">\(U(aI + VU) = (aI + UV)U\)</span>, followed by multiplication by <span class="math inline">\((aI + UV)^{-1}\)</span> on the left and the right. Applying the identity above to the ridge regression solution with <span class="math inline">\(a = \lambda\)</span>, <span class="math inline">\(U = X^T\)</span>, and <span class="math inline">\(V = X\)</span>, we obtain an alternative form for the ridge solution: <span class="math display">\[
+\hat{\beta} = X^T (XX^T + \lambda I)^{-1} Y.
+\]</span> This is often referred to as the kernel form of the ridge estimator. From this, we can see that the ridge fit can be expressed as <span class="math display">\[
+X\hat{\beta} = XX^T (XX^T + \lambda I)^{-1} Y.
+\]</span> What does this remind you of? This is precisely <span class="math inline">\(K(K + \lambda I)^{-1}Y\)</span> where <span class="math inline">\(K = XX^T\)</span>, which, recall, is the fit from RKHS regression with a linear kernel <span class="math inline">\(k(x, z) = x^T z\)</span>. Therefore, we can think of RKHS regression as generalizing ridge regression by replacing the standard linear inner product with a general kernel. (Indeed, RKHS regression is often called kernel ridge regression.)</p>
+<div id="exm-simulated-bias" class="theorem example">
+<p><span class="theorem-title"><strong>Example 16.6 (Shrinkage)</strong></span> Consider a simulated data with <span class="math inline">\(n=50\)</span>, <span class="math inline">\(p=30\)</span>, and <span class="math inline">\(\sigma^2=1\)</span>. The true model is linear with <span class="math inline">\(10\)</span> large coefficients between <span class="math inline">\(0.5\)</span> and <span class="math inline">\(1\)</span>.</p>
+<p>Our approximators <span class="math inline">\(\hat f_{\beta}\)</span> is a linear regression. We can empirically calculate the bias by calculating the empirical squared loss <span class="math inline">\(1/n||y -\hat y||_2^2\)</span> and variance can be empirically calculated as <span class="math inline">\(1/n\sum  (\bar{\hat{y}} - \hat y_i)\)</span></p>
+<p>Bias squared <span class="math inline">\(\mathrm{Bias}(\hat{y})^2=0.006\)</span> and variance <span class="math inline">\(\Var{\hat{y}} =0.627\)</span>. Thus, the prediction error = <span class="math inline">\(1 + 0.006 + 0.627 = 1.633\)</span></p>
+<p>We’ll do better by shrinking the coefficients to reduce the variance. Let’s estimate, how big a gain will we get with Ridge?</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/ridge_beta.svg" class="img-fluid figure-img" style="width:60.0%"></p>
+<figcaption>True model coefficients</figcaption>
+</figure>
+</div>
+<p>Now we see the accuracy of the model as a function of <span class="math inline">\(\lambda\)</span></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/ridge_mse.svg" class="img-fluid figure-img" style="width:60.0%"></p>
+<figcaption>Prediction error as a function of <span class="math inline">\(\lambda\)</span></figcaption>
+</figure>
+</div>
+<p>Ridge Regression At best: Bias squared <span class="math inline">\(=0.077\)</span> and variance <span class="math inline">\(=0.402\)</span>.</p>
+<p>Prediction error = <span class="math inline">\(1 + 0.077 + 0.403 = 1.48\)</span></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/ridge_bias_variance.svg" class="img-fluid figure-img" style="width:60.0%"></p>
+<figcaption>Ridge</figcaption>
+</figure>
+</div>
+</div>
+<p>The additional term <span class="math inline">\(\lambda||\beta||_2^2\)</span> in the optimization problem is called the regularization term. There are several ways to regularize an optimization problem. All of those techniques were developed in the middle of last century and were applied to solve problems of fitting physics models into observed data, those frequently arise in physics and engineering applications. Here are a few examples of such regularization techniques.</p>
+<p><strong>Ivanov regularization</strong> <span class="math display">\[
+\underset{x \in \mathbb{R^n}}{\mathrm{minimize}}\quad ||y - X\beta||_2^2~~~~ \mbox{s.t.}~~||\beta||_l \le k
+\]</span></p>
+<p><strong>Morozov regularization</strong> <span class="math display">\[
+\underset{x \in \mathbb{R^n}}{\mathrm{minimize}}\quad ||\beta||_l~~~~ \mbox{s.t.}~~ ||y - X\beta||_2^2 \le \tau
+\]</span> Here <span class="math inline">\(\tau\)</span> reflects the so called noise level, i.e.&nbsp;an estimate of the error which is made during the measurement of <span class="math inline">\(b\)</span>.</p>
+<p><strong>Tikhonov regularization</strong> <span class="math display">\[
+\underset{\beta\in \mathbb{R^n}}{\mathrm{minimize}}\quad ||y - X\beta||_2^2 + \lambda||\beta||_l
+\]</span> - Tikhonov regularization with <span class="math inline">\(l=1\)</span> is lasso - Tikhonov regularization with <span class="math inline">\(l=2\)</span> is ridge regression - lasso + ridge = elastic net</p>
+</section>
+<section id="ell_1-regularization-lasso" class="level2" data-number="16.10">
+<h2 data-number="16.10" class="anchored" data-anchor-id="ell_1-regularization-lasso"><span class="header-section-number">16.10</span> <span class="math inline">\(\ell_1\)</span> Regularization (LASSO)</h2>
+<p>The Least Absolute Shrinkage and Selection Operator (LASSO) uses <span class="math inline">\(\ell_1\)</span> norm penalty and in case of linear regression leads to the following optimization problem <span class="math display">\[
+\underset{\beta}{\mathrm{minimize}}\quad ||y- X\beta||_2^2   + \lambda||\beta||_1
+\]</span></p>
+<p>In one dimensional case solves the following optimization problem <span class="math display">\[
+\underset{\beta}{\mathrm{minimize}}\quad  \frac{1}{2} (y-\beta)^2 + \lambda | \beta |
+\]</span> The solution is given by the soft-thresholding operator defined by <span class="math display">\[
+\hat{\beta} = \mathrm{soft} (y; \lambda) = ( y - \lambda ~\mathrm{sgn}(y) )_+.
+\]</span> Here sgn is the sign function and <span class="math inline">\(( x )_+ = \max (x,0)\)</span>. To demonstrate how this solution is derived, we can define a slack variable <span class="math inline">\(z = | \beta |\)</span> and solve the joint constrained optimisation problem which is differentiable.</p>
+<p>Graphically, the soft-thresholding operator is</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/soft-thresh.svg" class="img-fluid figure-img" style="width:60.0%"></p>
+<figcaption>Soft-threshold operator.</figcaption>
+</figure>
+</div>
+<p>LASSO has a nice feature that it forces some of the <span class="math inline">\(\hat{\beta}\)</span>’s to zero. It is an automatic variable selection! Finding optimal solution is computationally fast, it is a convex optimisation problem, though, it is non-smooth. As in ridge regression, we still have to pick <span class="math inline">\(\lambda\)</span> via cross-validation. Visually the process can be represented using regularization path graph, as in the following example Example: We model prostate cancer using LASSO</p>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/prostate_mse.svg" class="img-fluid figure-img"></p>
+<figcaption>MSE.</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/prostate_reg_path.svg" class="img-fluid figure-img"></p>
+<figcaption>Path</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<p>MSE and Regularization path for Prostate Cancer data using LASSO</p>
+</div>
+</div>
+</div>
+<p>Now with ridge regression</p>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/prostate_mse_ridge.svg" class="img-fluid figure-img"></p>
+<figcaption>MSE</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/prostate_reg_path_ridge.svg" class="img-fluid figure-img"></p>
+<figcaption>Path</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<p>MSE and Regularization path for Prostate Cancer data using Ridge</p>
+</div>
+</div>
+</div>
+<div id="exm-horse" class="theorem example">
+<p><span class="theorem-title"><strong>Example 16.7 (Horse race prediction using logistic regression)</strong></span> We use the <code>run.csv</code> data from Kaggle (<a href="https://www.kaggle.com/gdaley/hkracing" class="uri">https://www.kaggle.com/gdaley/hkracing</a>). Thhis dataset contains the condition of horse races in Hong Kong, including race course, distance, track condition and dividends paid. We want to use individual variables to predict the chance of winning of a horse. For the simplicity of computation, we only consider horses with id <span class="math inline">\(\leq 500\)</span>, and train the model with <span class="math inline">\(\ell_1\)</span>-regularized logistic regression.</p>
+<p>And we include <code>lengths_behind</code>, <code>horse_age</code>, <code>horse_country</code>, <code>horse_type</code>, <code>horse_rating</code>, <code>horse_gear</code>, <code>declared_weight</code>, <code>actual_weight</code>, <code>draw</code>, <code>win_odds</code>, <code>place_odds</code> as predicting variables in our model.</p>
+<p>Since most of the variables, such as <code>country</code>, <code>gear</code>, <code>type</code>, are categorical, after spanning them into binary indictors, we have more than 800 columns in the design matrix.</p>
+<p>We try two logistic regression model. The first one includes win_odds given by the gambling company. The second one does not include the win_odds and we use win_odds to test the power of our model. We tune both models with a 10-fold cross-validation to find the best penalty parameter <span class="math inline">\(\lambda\)</span>.</p>
+<p>In this model, we fit the logistic regression with full dataset. The best <span class="math inline">\(\lambda\)</span> we find is <span class="math inline">\(5.699782e-06\)</span>.</p>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/var_change_1.svg" class="img-fluid figure-img"></p>
+<figcaption>Number of variables vs lambda</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/coef_rank_1.svg" class="img-fluid figure-img"></p>
+<figcaption>Coefficient Ranking</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<p>Logistic regression for full data</p>
+</div>
+</div>
+</div>
+<p>In this model, we randomly partition the dataset into training(70%) and testing(30%) parts. We fit the logistic regression with training dataset. The best <span class="math inline">\(\lambda\)</span> we find is <span class="math inline">\(4.792637e-06\)</span>.</p>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/var_change_2.svg" class="img-fluid figure-img"></p>
+<figcaption>Number of variables vs lambda</figcaption>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/coef_rank_2.svg" class="img-fluid figure-img"></p>
+<figcaption>Coefficient Ranking</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
+<p>Logistic regression for test data</p>
+</div>
+</div>
+</div>
+<p>The out-of-sample mean squared error for <code>win_odds</code> is 0.0668.</p>
+</div>
+<p><strong>Elastic Net</strong> combines Ridge and Lasso and chooses coefficients <span class="math inline">\(\beta_1,\ldots,\beta_p\)</span> for the input variables by minimizing the sum-of-squared residuals plus a penalty of the form <span class="math display">\[
+\lambda||\beta||_1 + \alpha||\beta||_2^2.
+\]</span></p>
+</section>
+<section id="bayesian-model-selection" class="level2" data-number="16.11">
+<h2 data-number="16.11" class="anchored" data-anchor-id="bayesian-model-selection"><span class="header-section-number">16.11</span> Bayesian Model Selection</h2>
+<p>When analyzing data, we deal with three types of quantities</p>
+<ol type="1">
+<li><span class="math inline">\(X\)</span> = observed variables</li>
+<li><span class="math inline">\(Y\)</span> = hidden variable</li>
+<li><span class="math inline">\(\theta\)</span> = parameters of the model that describes the relation between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>.</li>
+</ol>
+<p>A probabilistic models of interest are the joint probability distribution <span class="math inline">\(p(D,\theta)\)</span> (called a generative model) and <span class="math inline">\(P(Y,\theta \mid X)\)</span> (discriminative model). Discriminative models are easier to build and are more frequently used in practice. Generative model requires modeling a distribution over the set of observed variables, which makes our model more complicated. Text analysis provides an illustrative example. The task of identifying a topic of an article can be solved using discriminative distribution. The problem of generating a new article requires generative model.</p>
+<p>While performing data analysis using learning algorithms, we perform two tasks, namely training and inference which are summarized in the table below</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">Step</th>
+<th style="text-align: left;">Given</th>
+<th style="text-align: left;">Hidden</th>
+<th style="text-align: left;">What to find</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">Training</td>
+<td style="text-align: left;"><span class="math inline">\(D = (X,Y) = \{x_i,y_i\}_{i=1}^n\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(\theta\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(p(\theta \mid D)\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Prediction</td>
+<td style="text-align: left;"><span class="math inline">\(x_{\text{new}}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(y_{\text{new}}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(p(y_{\text{new}}  \mid  x_{\text{new}}, D)\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>The training can be performed via the Bayes rule <span class="math display">\[
+p(\theta \mid D) = \dfrac{p(Y \mid \theta,X)p(\theta)}{\int p(Y \mid \theta,X)p(\theta)d\theta}.
+\]</span> Now to perform the second step (prediction), we calculate <span class="math display">\[
+p(y_{\text{new}}  \mid  x_{\text{new}}, D) = \int p(y_{\text{new}}  \mid  x_{\text{new}},\theta)p(\theta \mid D)d\theta
+\]</span> Thus, full Bayesian inference requires calculating two integrals, which might be difficult. We mentioned earlier that MAP allows us to avoid those calculations by approximating the posterior with <span class="math display">\[
+p(\theta \mid D) \approx \delta(\theta_{\text{MAP}}),~~\theta_{\text{MAP}} \in \argmax_{\theta}p(\theta \mid D)
+\]</span> To calculate <span class="math inline">\(\theta_{\text{MAP}}\)</span>, we do not need to know the normalizing constant for calculating posterior, since the solution of optimization problem does not depend on this constant. Further, the second integral for inference becomes degenerate and get approximated by <span class="math display">\[
+p(y_{\text{new}}  \mid  x_{\text{new}}, D) = \int p(y_{\text{new}}  \mid  x_{\text{new}},\theta)p(\theta \mid D)d\theta \approx p(y_{\text{new}}  \mid  x_{\text{new}},\theta_{\text{MAP}}).
+\]</span></p>
+<p>Now we consider a case, when we have several candidate density functions for performing the prediction <span class="math display">\[
+p_1(Y,\theta  \mid  X), ~~p_2(Y,\theta \mid X),\ldots
+\]</span> How do we choose the better model? We can choose the model with highest evidence value (due to David MacKay) <span class="math display">\[
+j = \argmax_j p_j(Y  \mid  X) = \argmax_j \int p_j(Y  \mid  X,\theta)p(\theta)d\theta.
+\]</span> Note, formally instead of <span class="math inline">\(p(\theta)\)</span> we need to write <span class="math inline">\(p(\theta \mid X)\)</span>, however since <span class="math inline">\(\theta\)</span> does not depend on <span class="math inline">\(X\)</span> we omit it.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/model-selection.svg" class="img-fluid figure-img" style="width:60.0%"></p>
+<figcaption>Model Selection</figcaption>
+</figure>
+</div>
+<p>Can you think of how the prior <span class="math inline">\(p(\theta)\)</span>, posterior <span class="math inline">\(p(\theta \mid D)\)</span> and the evidence <span class="math inline">\(p(Y \mid X)\)</span> distributions will look like? Which model is the best? Which model will have the highest <span class="math inline">\(\theta_{\text{MAP}}\)</span>?</p>
+<div id="exm-racial" class="theorem example">
+<p><span class="theorem-title"><strong>Example 16.8 (Racial discrimination)</strong></span> Say we want to analyze racial discrimination by the US courts. We have three variables:</p>
+<ul>
+<li>Murderer: <span class="math inline">\(m \in {0,1}\)</span> (black/white)</li>
+<li>Victim: <span class="math inline">\(v \in \{0,1\}\)</span> (black/white)</li>
+<li>Verdict: <span class="math inline">\(d \in \{0,1\}\)</span> (prison/death penalty)</li>
+</ul>
+<p>Say we have the data</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">m</th>
+<th style="text-align: center;">v</th>
+<th style="text-align: center;">d</th>
+<th style="text-align: center;">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">132</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">19</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">52</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">97</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">6</td>
+</tr>
+</tbody>
+</table>
+<p>We would like to establish a causal relations between the race and verdict variables. For this, we consider several models</p>
+<ol type="1">
+<li><p><span class="math inline">\(p(d \mid m,v) = p(d) = \theta\)</span></p></li>
+<li><p><span class="math inline">\(p(d \mid m,v) = p(d \mid v)\)</span>; <span class="math inline">\(p(d \mid v=0) = \alpha, ~p(d \mid v=1)=\beta\)</span></p></li>
+<li><p><span class="math inline">\(p(d \mid v,m) = p(d \mid m)\)</span>; <span class="math inline">\(p(d \mid m=1) = \gamma,~p(d \mid m=1) = \delta\)</span></p></li>
+<li><p><span class="math inline">\(p(d|v,m)\)</span> cannot be reduced, and<br>
+</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span class="math inline">\(p(d=1 \mid m,v)\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(m=0\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(m=1\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><span class="math inline">\(v=0\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\tau\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\chi\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><span class="math inline">\(v=1\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\nu\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\zeta\)</span></td>
+</tr>
+</tbody>
+</table></li>
+</ol>
+<p>We calculate which model describes data the best, we calculate the evidences. We need to describe the discriminative model <span class="math display">\[
+p(Y ,\theta \mid X) = p(Y \mid X,\theta)p(\theta \mid X)
+\]</span> Here <span class="math inline">\(X\)</span> is the number of cases, and <span class="math inline">\(Y\)</span> is the number of death penalties. We use uninformative prior <span class="math inline">\(\theta \sim U[0,1]\)</span>. To specify the likelihood, we use Binomial distribution <span class="math display">\[
+Y \mid X,\theta \sim B(X,\theta),~~B(Y \mid X,\theta) = C_Y^Xp^Y(1-\theta)^{X-Y}
+\]</span> We assume <span class="math inline">\(p(\theta)\sim Uniform\)</span>. Now lets calculate the evidence <span class="math display">\[
+p(Y, \theta \mid X) = \int p(Y  \mid  X,\theta)p(\theta)d\theta
+\]</span> for each of the four models</p>
+<ol type="1">
+<li><span class="math inline">\(p(Y \mid X) = \int B(19 \mid 151,\theta)B(0 \mid 9,\theta)B(11 \mid 63,\theta)B(6 \mid 103,\theta)d\theta\)</span> <span class="math inline">\(\propto \int_0^{1} \theta^{36}(1-\theta)^{290}d\theta = B(37,291) = 2.8\times 10^{-51}\)</span></li>
+<li><span class="math inline">\(p(Y \mid X) = \int\int B(19 \mid 151,\alpha)B(0 \mid 9,\beta)B(11 \mid 63,\alpha)B(6 \mid 103,\beta)d\alpha d\beta \propto 4.7\times 10^{-51}\)</span></li>
+<li><span class="math inline">\(p(d \mid v,m) = p(d \mid m)=\int\int B(19 \mid 151,\gamma)B(0 \mid 9,\gamma)B(11 \mid 63,\delta)B(6 \mid 103,\delta)d\gamma d\delta \propto 0.27\times10^{-51}\)</span></li>
+<li><span class="math inline">\(p(d \mid v,m) = \int\int\int\int B(19 \mid 151,\tau)B(0 \mid 9,\nu)B(11 \mid 63,\chi)B(6 \mid 103,\zeta)d\tau d\nu d\chi d\zeta \propto 0.18\times10^{-51}\)</span></li>
+</ol>
+<p>The last model is too complex, it can explain any relations in the data and this, has the lowest evidence score! However, if we are to use ML estimates, the fourth model will have the highest likelihood. Bayesian approach allows to avoid over-fitting! You can also see that this data set contains the Simpson’s paradox. Check it! A related problem is Bertrand’s gold box problem.</p>
+</div>
+</section>
+<section id="bayesian-ell_0-regularization" class="level2" data-number="16.12">
+<h2 data-number="16.12" class="anchored" data-anchor-id="bayesian-ell_0-regularization"><span class="header-section-number">16.12</span> Bayesian <span class="math inline">\(\ell_0\)</span> regularization</h2>
+<p>Bayesian <span class="math inline">\(\ell_0\)</span> regularization is an attractive solution for high dimensional variable selection as it directly penalizes the number of predictors. The caveat is the need to search over all possible model combinations, as a full solution requires enumeration over all possible models which is NP-hard. The gold standard for Bayesian variable selection are spike-and-slab priors, or Bernoulli-Gaussian mixtures.</p>
+<p>Consider a standard Gaussian linear regression model, where <span class="math inline">\(X = [X_1, \ldots, X_p] \in \mathbb{R}^{n \times p}\)</span> is a design matrix, <span class="math inline">\(\beta = (\beta_1, \ldots, \beta_p)^T \in \mathbb{R}^p\)</span> is a <span class="math inline">\(p\)</span>-dimensional coefficient vector, and <span class="math inline">\(e\)</span> is an <span class="math inline">\(n\)</span>-dimensional independent Gaussian noise. After centralizing <span class="math inline">\(y\)</span> and all columns of <span class="math inline">\(X\)</span>, we ignore the intercept term in the design matrix <span class="math inline">\(X\)</span> as well as <span class="math inline">\(\beta\)</span>, and we can write</p>
+<p><span id="eq-linreg"><span class="math display">\[
+y = X\beta + e, \quad \text{where } e \sim N(0, \sigma_e^2 I_n)
+\tag{16.1}\]</span></span></p>
+<p>To specify a prior distribution <span class="math inline">\(p(\beta)\)</span>, we impose a sparsity assumption on <span class="math inline">\(\beta\)</span>, where only a small portion of all <span class="math inline">\(\beta_i\)</span>’s are non-zero. In other words, <span class="math inline">\(\|\beta\|_0 = k \ll p\)</span>, where <span class="math inline">\(\|\beta\|_0 := \#\{i : \beta_i \neq 0\}\)</span>, the cardinality of the support of <span class="math inline">\(\beta\)</span>, also known as the <span class="math inline">\(\ell_0\)</span> (pseudo)norm of <span class="math inline">\(\beta\)</span>. A multivariate Gaussian prior (<span class="math inline">\(l_2\)</span> norm) leads to poor sparsity properties in this situation. (See, for example, <span class="citation" data-cites="polson2011shrink">Polson and Scott (<a href="references.html#ref-polson2011shrink" role="doc-biblioref">2011</a>)</span>.)</p>
+<p>Sparsity-inducing prior distributions for <span class="math inline">\(\beta\)</span> can be constructed to impose sparsity. The gold standard is a spike-and-slab prior <span class="citation" data-cites="jeffreys1998theory mitchell1988bayesian george1993variable">(<a href="references.html#ref-jeffreys1998theory" role="doc-biblioref">Jeffreys 1998</a>; <a href="references.html#ref-mitchell1988bayesian" role="doc-biblioref">Mitchell and Beauchamp 1988</a>; <a href="references.html#ref-george1993variable" role="doc-biblioref">George and and McCulloch 1993</a>)</span>. Under these assumptions, each <span class="math inline">\(\beta_i\)</span> exchangeably follows a mixture prior consisting of <span class="math inline">\(\delta_0\)</span>, a point mass at <span class="math inline">\(0\)</span>, and a Gaussian distribution centered at zero. Hence we write</p>
+<p><span id="eq-ss"><span class="math display">\[
+\beta_i | \theta, \sigma_\beta^2 \sim (1-\theta)\delta_0 + \theta N(0, \sigma_\beta^2)
+\tag{16.2}\]</span></span></p>
+<p>Here <span class="math inline">\(\theta \in (0, 1)\)</span> controls the overall sparsity in <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\sigma_\beta^2\)</span> accommodates non-zero signals. This family is termed as the Bernoulli-Gaussian mixture model in the signal processing community.</p>
+<p>A useful re-parameterization: the parameters <span class="math inline">\(\beta\)</span> are given by two independent random variable vectors <span class="math inline">\(\gamma = (\gamma_1, \ldots, \gamma_p)\)</span> and <span class="math inline">\(\alpha = (\alpha_1, \ldots, \alpha_p)\)</span> such that <span class="math inline">\(\beta_i = \gamma_i \alpha_i\)</span>, with probabilistic structure</p>
+<p><span id="eq-bg"><span class="math display">\[
+\begin{array}{rcl}
+\gamma_i|\theta &amp; \sim &amp; \text{Bernoulli}(\theta) \\
+\alpha_i | \sigma_\beta^2 &amp;\sim &amp; N(0, \sigma_\beta^2)
+\end{array}
+\tag{16.3}\]</span></span></p>
+<p>Since <span class="math inline">\(\gamma_i\)</span> and <span class="math inline">\(\alpha_i\)</span> are independent, the joint prior density becomes</p>
+<p><span class="math display">\[
+p(\gamma_i, \alpha_i | \theta, \sigma_\beta^2) = \theta^{\gamma_i}(1-\theta)^{1-\gamma_i}\frac{1}{\sqrt{2\pi}\sigma_\beta}\exp\left\{-\frac{\alpha_i^2}{2\sigma_\beta^2}\right\}, \quad 1 \leq i \leq p
+\]</span></p>
+<p>The indicator <span class="math inline">\(\gamma_i \in \{0, 1\}\)</span> can be viewed as a dummy variable to indicate whether <span class="math inline">\(\beta_i\)</span> is included in the model .</p>
+<p>Let <span class="math inline">\(S = \{i: \gamma_i = 1\} \subseteq \{1, \ldots, p\}\)</span> be the “active set” of <span class="math inline">\(\gamma\)</span>, and <span class="math inline">\(\|\gamma\|_0 = \sum_{i=1}^p \gamma_i\)</span> be its cardinality. The joint prior on the vector <span class="math inline">\(\{\gamma, \alpha\}\)</span> then factorizes as</p>
+<p><span class="math display">\[
+\begin{array}{rcl}
+p(\gamma, \alpha | \theta, \sigma_\beta^2) &amp;=&amp; \prod_{i=1}^p p(\alpha_i, \gamma_i | \theta, \sigma_\beta^2) \\
+&amp;=&amp; \theta^{\|\gamma\|_0} (1-\theta)^{p-\|\gamma\|_0} (2\pi\sigma_\beta^2)^{-p/2} \exp\left\{-\frac{1}{2\sigma_\beta^2} \sum_{i=1}^p \alpha_i^2\right\}
+\end{array}
+\]</span></p>
+<p>Let <span class="math inline">\(X_\gamma := [X_i]_{i \in S}\)</span> be the set of “active explanatory variables” and <span class="math inline">\(\alpha_\gamma := (\alpha_i)_{i \in S}\)</span> be their corresponding coefficients. We can write <span class="math inline">\(X\beta = X_\gamma \alpha_\gamma\)</span>. The likelihood can be expressed in terms of <span class="math inline">\(\gamma\)</span>, <span class="math inline">\(\alpha\)</span> as</p>
+<p><span class="math display">\[
+p(y | \gamma, \alpha, \theta, \sigma_e^2) = (2\pi\sigma_e^2)^{-n/2} \exp\left\{ -\frac{1}{2\sigma_e^2} \|y - X_\gamma \alpha_\gamma\|_2^2 \right\}
+\]</span></p>
+<p>Under this re-parameterization by <span class="math inline">\(\{\gamma, \alpha\}\)</span>, the posterior is given by</p>
+<p><span class="math display">\[
+\begin{array}{rcl}
+p(\gamma, \alpha | \theta, \sigma_\beta^2, \sigma_e^2, y) &amp;\propto&amp; p(\gamma, \alpha | \theta, \sigma_\beta^2) p(y | \gamma, \alpha, \theta, \sigma_e^2) \\
+&amp;\propto&amp; \exp\left\{ -\frac{1}{2\sigma_e^2} \|y - X_\gamma \alpha_\gamma\|_2^2 - \frac{1}{2\sigma_\beta^2} \|\alpha\|_2^2 - \log\left(\frac{1-\theta}{\theta}\right) \|\gamma\|_0 \right\}
+\end{array}
+\]</span></p>
+<p>Our goal then is to find the regularized maximum a posterior (MAP) estimator</p>
+<p><span class="math display">\[
+\arg\max_{\gamma, \alpha} p(\gamma, \alpha | \theta, \sigma_\beta^2, \sigma_e^2, y)
+\]</span></p>
+<p>By construction, <span class="math inline">\(\gamma \in \{0, 1\}^p\)</span> will directly perform variable selection. Spike-and-slab priors, on the other hand, will sample the full posterior and calculate the posterior probability of variable inclusion.</p>
+<p>Finding the MAP estimator is equivalent to minimizing over <span class="math inline">\(\{\gamma, \alpha\}\)</span> the regularized least squares objective function:</p>
+<p><span id="eq-obj-map"><span class="math display">\[
+\min_{\gamma, \alpha} \|y - X_\gamma \alpha_\gamma\|_2^2 + \frac{\sigma_e^2}{\sigma_\beta^2} \|\alpha\|_2^2 + 2\sigma_e^2 \log\left(\frac{1-\theta}{\theta}\right) \|\gamma\|_0
+\tag{16.4}\]</span></span></p>
+<p>This objective possesses several interesting properties:</p>
+<ol type="1">
+<li>The first term is essentially the least squares loss function.</li>
+<li>The second term looks like a ridge regression penalty and has connection with the signal-to-noise ratio (SNR) <span class="math inline">\(\sigma_\beta^2/\sigma_e^2\)</span>. Smaller SNR will be more likely to shrink the estimates towards <span class="math inline">\(0\)</span>. If <span class="math inline">\(\sigma_\beta^2 \gg \sigma_e^2\)</span>, the prior uncertainty on the size of non-zero coefficients is much larger than the noise level, that is, the SNR is sufficiently large, this term can be ignored. This is a common assumption in spike-and-slab framework in that people usually want <span class="math inline">\(\sigma_\beta \to \infty\)</span> or to be “sufficiently large” in order to avoid imposing harsh shrinkage to non-zero signals.</li>
+<li>If we further assume that <span class="math inline">\(\theta &lt; 1/2\)</span>, meaning that the coefficients are known to be sparse <em>a priori</em>, then <span class="math inline">\(\log((1-\theta)/\theta) &gt; 0\)</span>, and the third term can be seen as an <span class="math inline">\(\ell_0\)</span> regularization.</li>
+</ol>
+<p>Therefore, our Bayesian objective inference is connected to <span class="math inline">\(\ell_0\)</span>-regularized least squares, which we summarize in the following proposition.</p>
+<div class="proposition">
+<p><strong>Proposition 1 (Spike-and-slab MAP &amp; <span class="math inline">\(\ell_0\)</span> regularization)</strong></p>
+<p>For some <span class="math inline">\(\lambda &gt; 0\)</span>, assuming <span class="math inline">\(\theta &lt; 1/2\)</span>, <span class="math inline">\(\sigma_\beta^2 \gg \sigma_e^2\)</span>, the Bayesian MAP estimate defined by (<a href="#eq-obj-map" class="quarto-xref">Equation&nbsp;<span>16.4</span></a>) is equivalent to the <span class="math inline">\(\ell_0\)</span> regularized least squares objective, for some <span class="math inline">\(\lambda &gt; 0\)</span>,</p>
+<p><span id="eq-obj-l0"><span class="math display">\[
+\min_{\beta} \frac{1}{2} \|y - X\beta\|_2^2 + \lambda \|\beta\|_0
+\tag{16.5}\]</span></span></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span><em>Proof.</em> First, assuming that</p>
+<p><span class="math display">\[
+\theta &lt; 1/2, \quad \sigma_\beta^2 \gg \sigma_e^2, \quad \frac{\sigma_e^2}{\sigma_\beta^2} \|\alpha\|_2^2 \to 0
+\]</span></p>
+<p>gives us an objective function of the form</p>
+<p><span id="eq-obj-vs"><span class="math display">\[
+\min_{\gamma, \alpha} \frac{1}{2} \|y - X_\gamma \alpha_\gamma\|_2^2 + \lambda \|\gamma\|_0, \quad \lambda := \sigma_e^2 \log\left(\frac{1-\theta}{\theta}\right) &gt; 0
+\tag{16.6}\]</span></span></p>
+<p><a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a> can be seen as a variable selection version of <a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>. The interesting fact is that <a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a> and <a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a> are equivalent. To show this, we need only to check that the optimal solution to <a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a> corresponds to a feasible solution to <a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a> and vice versa. This is explained as follows.</p>
+<p>On the one hand, assuming <span class="math inline">\(\hat\beta\)</span> is an optimal solution to <a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>, then we can correspondingly define <span class="math inline">\(\hat\gamma_i := I\{\hat\beta_i \neq 0\}\)</span>, <span class="math inline">\(\hat\alpha_i := \hat\beta_i\)</span>, such that <span class="math inline">\(\{\hat\gamma, \hat\alpha\}\)</span> is feasible to (<a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>) and gives the same objective value as <span class="math inline">\(\hat\beta\)</span> gives (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>).</p>
+<p>On the other hand, assuming <span class="math inline">\(\{\hat\gamma, \hat\alpha\}\)</span> is optimal to (<a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>), implies that we must have all of the elements in <span class="math inline">\(\hat\alpha_\gamma\)</span> non-zero, otherwise a new <span class="math inline">\(\tilde\gamma_i := I\{\hat\alpha_i \neq 0\}\)</span> will give a lower objective value of (<a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>). As a result, if we define <span class="math inline">\(\hat\beta_i := \hat\gamma_i \hat\alpha_i\)</span>, <span class="math inline">\(\hat\beta\)</span> will be feasible to <a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a> and gives the same objective value as <span class="math inline">\(\{\hat\gamma, \hat\alpha\}\)</span> gives <a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>.</p>
+<p>Combining both arguments shows that the two problems <a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a> and <a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a> are equivalent. Hence we can use results from non-convex optimization literature to find Bayes MAP estimators.</p>
+</div>
+</section>
+<section id="survey" class="level2" data-number="16.13">
+<h2 data-number="16.13" class="anchored" data-anchor-id="survey"><span class="header-section-number">16.13</span> Computing the <span class="math inline">\(\ell_0\)</span>-regularized regression solution</h2>
+<p>We now turn to the problem of computation. <span class="math inline">\(\ell_0\)</span>-regularized least squares (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>) is closely related to the best subset selection in linear regression as follows.</p>
+<p><span id="eq-obj-subset"><span class="math display">\[
+\begin{array}{rl}
+\min_{\beta} &amp; \frac{1}{2}\|y - X\beta\|_2^2 \\
+\text{s.t.} &amp; \|\beta\|_0 \leq k
+\end{array}
+\tag{16.7}\]</span></span></p>
+<p>The <span class="math inline">\(\ell_0\)</span>-regularized least squares (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>) can be seen as (<a href="#eq-obj-subset" class="quarto-xref">Equation&nbsp;<span>16.7</span></a>)’s Lagrangian form. However, due to high non-convexity of the <span class="math inline">\(\ell_0\)</span>-norm, (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>) and (<a href="#eq-obj-subset" class="quarto-xref">Equation&nbsp;<span>16.7</span></a>) are connected but not equivalent. In particular, for any given <span class="math inline">\(\lambda \geq 0\)</span>, there exists an integer <span class="math inline">\(k \geq 0\)</span>, such that (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>) and (<a href="#eq-obj-subset" class="quarto-xref">Equation&nbsp;<span>16.7</span></a>) have the same global minimizer <span class="math inline">\(\hat\beta\)</span>. However, it’s not true the other way around. It’s possible, even common, that for a given <span class="math inline">\(k\)</span>, we cannot find a <span class="math inline">\(\lambda \geq 0\)</span>, such that the solutions to (<a href="#eq-obj-subset" class="quarto-xref">Equation&nbsp;<span>16.7</span></a>) and (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>) are the same.</p>
+<p>Indeed, for <span class="math inline">\(k \in \{1, 2, \ldots, p\}\)</span>, let <span class="math inline">\(\hat\beta_k\)</span> be respective optimal solutions to (<a href="#eq-obj-subset" class="quarto-xref">Equation&nbsp;<span>16.7</span></a>) and <span class="math inline">\(f_k\)</span> respective optimal objective values, and so <span class="math inline">\(f_1 \geq f_2 \geq \cdots \geq f_p\)</span>. If we want a solution <span class="math inline">\(\hat\beta_\lambda\)</span> to (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>) with <span class="math inline">\(\|\hat\beta_\lambda\|_0 = k\)</span>, we need to find a <span class="math inline">\(\lambda\)</span> such that</p>
+<p><span class="math display">\[
+\max_{i &gt; k} \{f_k - f_i\} \leq \lambda \leq \min_{j &lt; k} \{f_j - f_k\}
+\]</span></p>
+<p>with the caveat that such <span class="math inline">\(\lambda\)</span> need not exist.</p>
+<p>Both problems involve discrete optimization and have thus been seen as intractable for large-scale data sets. As a result, in the past, <span class="math inline">\(\ell_0\)</span> norm is usually replaced by its convex relaxation <span class="math inline">\(l_1\)</span> norm to facilitate computation. However, it’s widely known that the solutions of <span class="math inline">\(\ell_0\)</span> norm problems provide superior variable selection and prediction performance compared with their <span class="math inline">\(l_1\)</span> convex relaxation such as Lasso. It is known that the solution to the <span class="math inline">\(\ell_0\)</span>-regularized least squares should be better than Lasso in terms of variable selection especially when we have a design matrix <span class="math inline">\(X\)</span> that has high collinearity among its columns.</p>
+<p><span class="citation" data-cites="bertsimas2016best">Bertsimas, King, and Mazumder (<a href="references.html#ref-bertsimas2016best" role="doc-biblioref">2016</a>)</span> introduced a first-order algorithm to provide a stationary solution <span class="math inline">\(\beta^*\)</span> to a class of generalized <span class="math inline">\(\ell_0\)</span>-constrained optimization problem, with convex <span class="math inline">\(g\)</span>:</p>
+<p><span id="eq-gen"><span class="math display">\[
+\begin{array}{rl}
+\min_{\beta} &amp; g(\beta) \\
+\text{s.t.} &amp; \|\beta\|_0 \leq k
+\end{array}
+\tag{16.8}\]</span></span></p>
+<p>Let <span class="math inline">\(L\)</span> be the Lipschitz constant for <span class="math inline">\(\nabla g\)</span> such that <span class="math inline">\(\forall \beta_1, \beta_2\)</span>, <span class="math inline">\(\|\nabla g(\beta_1) - \nabla g(\beta_2)\| \leq L \|\beta_1 - \beta_2\|\)</span>. Their “Algorithm 1” is as follows.</p>
+<ol type="1">
+<li>Initialize <span class="math inline">\(\beta^0\)</span> such that <span class="math inline">\(\|\beta^0\|_0 \leq k\)</span>.</li>
+<li>For <span class="math inline">\(t \geq 0\)</span>, obtain <span class="math inline">\(\beta^{t+1}\)</span> as</li>
+</ol>
+<p><span id="eq-subset-algo1"><span class="math display">\[
+\beta^{t+1} = H_k\left(\beta^t - \frac{1}{L} \nabla g(\beta^t)\right)
+\tag{16.9}\]</span></span></p>
+<p>until convergence to <span class="math inline">\(\beta^*\)</span>.</p>
+<p>where the operator <span class="math inline">\(H_k(\cdot)\)</span> is to keep the largest <span class="math inline">\(k\)</span> elements of a vector as the same, whilst to set all else to zero. It can also be called the hard thresholding at the <span class="math inline">\(k\)</span>th largest element. In the least squares setting when <span class="math inline">\(g(\beta) = \frac{1}{2}\|y - X\beta\|_2^2\)</span>, <span class="math inline">\(\nabla g\)</span> and <span class="math inline">\(L\)</span> are easy to compute. <span class="citation" data-cites="bertsimas2016best">Bertsimas, King, and Mazumder (<a href="references.html#ref-bertsimas2016best" role="doc-biblioref">2016</a>)</span> then uses the stationary solution <span class="math inline">\(\beta^*\)</span> obtained by the aforementioned algorithm (<a href="#eq-subset-algo1" class="quarto-xref">Equation&nbsp;<span>16.9</span></a>) as a warm start for their mixed integer optimization (MIO) scheme to produce a “provably optimal solution” to the best subset selection problem (<a href="#eq-obj-subset" class="quarto-xref">Equation&nbsp;<span>16.7</span></a>).</p>
+<p>It’s worth pointing out that the key iteration step (<a href="#eq-subset-algo1" class="quarto-xref">Equation&nbsp;<span>16.9</span></a>) is connected to the proximal gradient descent (PGD) algorithm many have used to solve the <span class="math inline">\(\ell_0\)</span>-regularized least squares (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>), as well as other non-convex regularization problems. PGD methods solve a general class of problems such as</p>
+<p><span id="eq-obj-pgd"><span class="math display">\[
+\min_{\beta} g(\beta) + \lambda \phi(\beta)
+\tag{16.10}\]</span></span></p>
+<p>where <span class="math inline">\(g\)</span> is the same as in (<a href="#eq-gen" class="quarto-xref">Equation&nbsp;<span>16.8</span></a>), and <span class="math inline">\(\phi\)</span>, usually non-convex, is a regularization term. In this framework, in order to obtain a stationary solution <span class="math inline">\(\beta^*\)</span>, the key iteration step is</p>
+<p><span id="eq-pgd-algo"><span class="math display">\[
+\beta^{t+1} = \mathrm{prox}_{\lambda\phi}\left(\beta^t - \frac{1}{L} \nabla g(\beta^t)\right)
+\tag{16.11}\]</span></span></p>
+<p>where <span class="math inline">\(\beta^t - \frac{1}{L} \nabla g(\beta^t)\)</span> can be seen as a gradient descent step for <span class="math inline">\(g\)</span> and <span class="math inline">\(\mathrm{prox}_{\lambda\phi}\)</span> is the proximal operator for <span class="math inline">\(\lambda\phi\)</span>. In <span class="math inline">\(\ell_0\)</span>-regularized least squares, <span class="math inline">\(\lambda\phi(\cdot) = \lambda\|\cdot\|_0\)</span>, and its proximal operator <span class="math inline">\(\mathrm{prox}_{\lambda\|\cdot\|_0}\)</span> is just the hard thresholding at <span class="math inline">\(\lambda\)</span>. That is, <span class="math inline">\(\mathrm{prox}_{\lambda\|\cdot\|_0}\)</span> is to keep the same all elements no less than <span class="math inline">\(\lambda\)</span>, whilst to set all else to zero. As a result, the similarity between (<a href="#eq-subset-algo1" class="quarto-xref">Equation&nbsp;<span>16.9</span></a>) and (<a href="#eq-pgd-algo" class="quarto-xref">Equation&nbsp;<span>16.11</span></a>) are quite obvious.</p>
+<p>###Single best replacement (SBR) algorithm {#sbr}</p>
+<p>The single best replacement (SBR) algorithm, provides a solution to the variable selection regularization (<a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>). Since (<a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>) and the <span class="math inline">\(\ell_0\)</span>-regularized least squares (<a href="#eq-obj-l0" class="quarto-xref">Equation&nbsp;<span>16.5</span></a>) are equivalent, SBR also provides a practical way to give a sufficiently good local optimal solution to the NP-hard <span class="math inline">\(\ell_0\)</span> regularization.</p>
+<p>Take a look at the objective (<a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>). For any given variable selection indicator <span class="math inline">\(\gamma\)</span>, we have an active set <span class="math inline">\(S = \{i: \gamma_i = 1\}\)</span>, based on which the minimizer <span class="math inline">\(\hat\alpha_\gamma\)</span> of (<a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>) has a closed form. <span class="math inline">\(\hat\alpha_\gamma\)</span> will set every coefficient outside <span class="math inline">\(S\)</span> to zero, and regress <span class="math inline">\(y\)</span> on <span class="math inline">\(X_\gamma\)</span>, the variables inside <span class="math inline">\(S\)</span>. Therefore, the minimization of the objective function can be determined by <span class="math inline">\(\gamma\)</span> or <span class="math inline">\(S\)</span> alone. Accordingly, the objective function (<a href="#eq-obj-vs" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>) can be rewritten as follows.</p>
+<p><span class="math display">\[
+\min_{S} f_{SBR}(S) = \frac{1}{2} \|y - X_S \beta_S\|_2^2 + \lambda |S|
+\]</span> {#obj-sbr}</p>
+<p>SBR thus tries to minimize <span class="math inline">\(f_{SBR}(S)\)</span> via choosing the optimal <span class="math inline">\(\hat S\)</span>.</p>
+<p>The algorithm works as follows. Suppose we start with an initial <span class="math inline">\(S\)</span>, usually the empty set. At each iteration, SBR aims to find a “single change of <span class="math inline">\(S\)</span>”, that is, a single removal from or adding to <span class="math inline">\(S\)</span> of one element, such that this single change decreases <span class="math inline">\(f_{SBR}(S)\)</span> the most. SBR stops when no such change is available, or in other words, any single change of <span class="math inline">\(\gamma\)</span> or <span class="math inline">\(S\)</span> will only give the same or larger objective value. Therefore, intuitively SBR stops at a local optimum of <span class="math inline">\(f_{SBR}(S)\)</span>.</p>
+<p>SBR is essentially a stepwise greedy variable selection algorithm. At each iteration, both adding and removal are allowed, so this algorithm is one example of the “forward-backward” stepwise procedures. It’s provable that with this feature the algorithm “can escape from some [undesirable] local minimizers” of <span class="math inline">\(f_{SBR}(S)\)</span>. Therefore, SBR can solve the <span class="math inline">\(\ell_0\)</span>-regularized least squares in a sub-optimal way, providing a satisfactory balance between efficiency and accuracy.</p>
+<p>We now write out the algorithm more formally. For any currently chosen active set <span class="math inline">\(S\)</span>, define a single replacement <span class="math inline">\(S \cdot i, i \in \{1, \ldots, p\}\)</span> as <span class="math inline">\(S\)</span> adding or removing a single element <span class="math inline">\(i\)</span>:</p>
+<p><span class="math display">\[
+S \cdot i :=
+\begin{cases}
+S \cup \{i\}, &amp; i \notin S \\
+S \setminus \{i\}, &amp; i \in S
+\end{cases}
+\]</span></p>
+<p>Then we compare the objective value at current <span class="math inline">\(S\)</span> with all of its single replacements <span class="math inline">\(S \cdot i\)</span>, and choose the best one. SBR proceeds as follows:</p>
+<ul>
+<li><strong>Step 0:</strong> Initialize <span class="math inline">\(S_0\)</span>. Usually, <span class="math inline">\(S_0 = \emptyset\)</span>. Compute <span class="math inline">\(f_{SBR}(S_0)\)</span>. Set <span class="math inline">\(k = 1\)</span>.</li>
+<li><strong>Step <span class="math inline">\(k\)</span>:</strong> For every <span class="math inline">\(i \in \{1, \ldots, p\}\)</span>, compute <span class="math inline">\(f_{SBR}(S_{k-1} \cdot i)\)</span>. Obtain the single best replacement <span class="math inline">\(j := \arg\min_{i} f_{SBR}(S_{k-1} \cdot i)\)</span>.
+<ul>
+<li>If <span class="math inline">\(f_{SBR}(S_{k-1} \cdot j) \geq f_{SBR}(S_{k-1})\)</span>, stop. Report <span class="math inline">\(\hat S = S_{k-1}\)</span> as the solution.</li>
+<li>Otherwise, set <span class="math inline">\(S_k = S_{k-1} \cdot j\)</span>, <span class="math inline">\(k = k+1\)</span>, and repeat step <span class="math inline">\(k\)</span>.</li>
+</ul></li>
+</ul>
+<p>It can be shown that SBR always stops within finite steps. With the output <span class="math inline">\(\hat S\)</span>, the locally optimal solution to the <span class="math inline">\(\ell_0\)</span>-regularized least squares <span class="math inline">\(\hat\beta\)</span> is just the coefficients of <span class="math inline">\(y\)</span> regressed on <span class="math inline">\(X_{\hat S}\)</span> and zero elsewhere. In order to include both forward and backward steps in the variable selection process, the algorithm needs to compute <span class="math inline">\(f_{SBR}(S_{k-1} \cdot i)\)</span> for every <span class="math inline">\(i\)</span> at every step. Because it involves a one-column update of current design matrix <span class="math inline">\(X_{S_{k-1}}\)</span>, this computation can be made very efficient by using the Cholesky decomposition, without explicitly calculating <span class="math inline">\(p\)</span> linear regressions at each step . An R package implementation of the algorithm is available upon request.</p>
+</section>
+<section id="double-descent" class="level2" data-number="16.14">
+<h2 data-number="16.14" class="anchored" data-anchor-id="double-descent"><span class="header-section-number">16.14</span> Double Descent</h2>
+<div>
+
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="fig/double-descent-1.png" class="img-fluid"></p>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="fig/double-descent-5.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="fig/double-descent-20.png" class="img-fluid"></p>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="fig/double-descent-50.png" class="img-fluid"></p>
+</div>
+</div>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig/double-descent-stylized-dots.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption>Double Descent Stylized</figcaption>
+</figure>
+</div>
+<p><img src="fig/double-descent.png" class="img-fluid"></p>
+</section>
+<section id="polya-gamma" class="level2" data-number="16.15">
+<h2 data-number="16.15" class="anchored" data-anchor-id="polya-gamma"><span class="header-section-number">16.15</span> Polya-Gamma</h2>
+<p>Bayesian inference for logistic regression has long been recognized as a computationally challenging problem due to the analytically inconvenient form of the binomial likelihood function<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. While the probit model enjoys simple latent-variable methods for posterior sampling, the logistic model has historically required more complex approaches involving multiple layers of auxiliary variables or approximations<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. The breakthrough work of Polson, Scott, and Windle (2013) introduced a revolutionary data-augmentation strategy using a novel class of distributions called Pólya-Gamma distributions, which enables simple and exact Gibbs sampling for Bayesian logistic regression<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+<p>This methodology represents a significant advancement in Bayesian computation, providing a direct analog to the Albert and Chib (1993) method for probit regression while maintaining both exactness and simplicity<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. The approach has proven particularly valuable for complex hierarchical models where traditional Metropolis-Hastings samplers are difficult to tune and implement effectively<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Key Innovation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The Pólya-Gamma methodology provides exact Gibbs sampling for Bayesian logistic regression, eliminating the need for complex Metropolis-Hastings tuning while maintaining theoretical guarantees.</p>
+</div>
+</div>
+</section>
+<section id="the-pólya-gamma-distribution" class="level2" data-number="16.16">
+<h2 data-number="16.16" class="anchored" data-anchor-id="the-pólya-gamma-distribution"><span class="header-section-number">16.16</span> The Pólya-Gamma Distribution</h2>
+<p>The Pólya-Gamma distribution, denoted as PG(b,c), is carefully constructed as a subset of infinite convolutions of gamma distributions<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. A random variable X follows a Pólya-Gamma distribution with parameters b &gt; 0 and c ∈ ℝ if:</p>
+<p><span class="math display">\[X \stackrel{d}{=} \frac{1}{2\pi^2} \sum_{k=1}^{\infty} \frac{g_k}{(k-1/2)^2 + c^2/(4\pi^2)}\]</span></p>
+<p>where <span class="math inline">\(g_k \sim \text{Ga}(b,1)\)</span> are independent gamma random variables, and <span class="math inline">\(\stackrel{d}{=}\)</span> indicates equality in distribution<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+<p>The Pólya-Gamma family exhibits several remarkable properties that make it ideal for data augmentation:</p>
+<ol type="1">
+<li><p><strong>Laplace Transform</strong>: For <span class="math inline">\(\omega \sim \text{PG}(b,0)\)</span>, the Laplace transform is <span class="math inline">\(E\{\exp(-\omega t)\} = \cosh^{-b}(\sqrt{t}/2)\)</span><span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span></p></li>
+<li><p><strong>Exponential Tilting</strong>: The general PG(b,c) distribution arises through exponential tilting of the PG(b,0) density:</p></li>
+</ol>
+<p><span class="math display">\[p(x|b,c) = \frac{\exp(-c^2x/2)p(x|b,0)}{E[\exp(-c^2\omega/2)]}\]</span></p>
+<p>where the expectation is taken with respect to PG(b,0)<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span></p>
+<ol start="3" type="1">
+<li><p><strong>Convolution Property</strong>: The family is closed under convolution for random variates with the same tilting parameter<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span></p></li>
+<li><p><strong>Known Moments</strong>: All finite moments are available in closed form, with the expectation given by:</p></li>
+</ol>
+<p><span class="math display">\[E(\omega) = \frac{b}{2c}\tanh(c/2) = \frac{b}{2c}\frac{e^c-1}{1+e^c}\]</span></p>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Computational Advantage
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The known moments and convolution properties make the Pólya-Gamma distribution computationally tractable and theoretically well-behaved.</p>
+</div>
+</div>
+<section id="the-data-augmentation-strategy" class="level3" data-number="16.16.1">
+<h3 data-number="16.16.1" class="anchored" data-anchor-id="the-data-augmentation-strategy"><span class="header-section-number">16.16.1</span> The Data-Augmentation Strategy</h3>
+<p>The core of the Pólya-Gamma methodology rests on a fundamental integral identity that represents binomial likelihoods as mixtures of Gaussians<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. The key theorem states:</p>
+<div class="theorem">
+<p><strong>Theorem 1</strong>: For b &gt; 0 and a ∈ ℝ, the following integral identity holds:</p>
+<p><span class="math display">\[\frac{(e^\psi)^a}{(1+e^\psi)^b} = 2^{-b}e^{\kappa\psi} \int_0^{\infty} e^{-\omega\psi^2/2} p(\omega) d\omega\]</span></p>
+<p>where <span class="math inline">\(\kappa = a - b/2\)</span>, and <span class="math inline">\(p(\omega)\)</span> is the density of <span class="math inline">\(\omega \sim \text{PG}(b,0)\)</span><span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+<p>Moreover, the conditional distribution <span class="math inline">\(p(\omega|\psi)\)</span> is also in the Pólya-Gamma class: <span class="math inline">\((\omega|\psi) \sim \text{PG}(b,\psi)\)</span><span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+</div>
+</section>
+<section id="gibbs-sampling-algorithm" class="level3" data-number="16.16.2">
+<h3 data-number="16.16.2" class="anchored" data-anchor-id="gibbs-sampling-algorithm"><span class="header-section-number">16.16.2</span> Gibbs Sampling Algorithm</h3>
+<p>This integral identity leads directly to a simple two-step Gibbs sampler for Bayesian logistic regression<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. For a dataset with observations <span class="math inline">\(y_i \sim \text{Binom}(n_i, 1/(1+e^{-\psi_i}))\)</span> where <span class="math inline">\(\psi_i = x_i^T\beta\)</span>, and a Gaussian prior <span class="math inline">\(\beta \sim N(b,B)\)</span>, the algorithm iterates:</p>
+<ol type="1">
+<li><strong>Sample auxiliary variables</strong>: <span class="math inline">\((\omega_i|\beta) \sim \text{PG}(n_i, x_i^T\beta)\)</span> for each observation</li>
+<li><strong>Sample parameters</strong>: <span class="math inline">\((\beta|y,\omega) \sim N(m_\omega, V_\omega)\)</span> where:
+<ul>
+<li><span class="math inline">\(V_\omega = (X^T\Omega X + B^{-1})^{-1}\)</span></li>
+<li><span class="math inline">\(m_\omega = V_\omega(X^T\kappa + B^{-1}b)\)</span></li>
+<li><span class="math inline">\(\kappa = (y_1-n_1/2, \ldots, y_n-n_n/2)\)</span></li>
+<li><span class="math inline">\(\Omega = \text{diag}(\omega_1, \ldots, \omega_n)\)</span></li>
+</ul></li>
+</ol>
+<p>This approach requires only Gaussian draws for the main parameters and Pólya-Gamma draws for a single layer of latent variables, making it significantly simpler than previous methods<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+</section>
+<section id="the-pg1z-sampler" class="level3" data-number="16.16.3">
+<h3 data-number="16.16.3" class="anchored" data-anchor-id="the-pg1z-sampler"><span class="header-section-number">16.16.3</span> The PG(1,z) Sampler</h3>
+<p>The practical success of the Pólya-Gamma method depends on efficient simulation of Pólya-Gamma random variables<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. The authors developed a sophisticated accept-reject sampler based on the alternating-series method of Devroye (1986)<span class="citation" data-cites="devroye1986nonuniform">(<a href="references.html#ref-devroye1986nonuniform" role="doc-biblioref">Devroye 1986</a>)</span>. For the fundamental PG(1,c) case, the sampler:</p>
+<ul>
+<li>Uses exponential and inverse-Gaussian draws as proposals</li>
+<li>Achieves acceptance probability uniformly bounded below at 0.99919</li>
+<li>Requires no tuning for optimal performance</li>
+<li>Evaluates acceptance using iterative partial sums</li>
+</ul>
+</section>
+<section id="general-pgbz-sampling" class="level3" data-number="16.16.4">
+<h3 data-number="16.16.4" class="anchored" data-anchor-id="general-pgbz-sampling"><span class="header-section-number">16.16.4</span> General PG(b,z) Sampling</h3>
+<p>For integer values of b, PG(b,z) random variables are generated by summing b independent PG(1,z) draws, exploiting the convolution property<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. This approach maintains efficiency for moderate values of b, though computational cost scales linearly with the total number of counts in negative binomial applications<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+</section>
+</section>
+<section id="implementation-with-bayeslogit-package" class="level2" data-number="16.17">
+<h2 data-number="16.17" class="anchored" data-anchor-id="implementation-with-bayeslogit-package"><span class="header-section-number">16.17</span> Implementation with BayesLogit Package</h2>
+<section id="package-overview" class="level3" data-number="16.17.1">
+<h3 data-number="16.17.1" class="anchored" data-anchor-id="package-overview"><span class="header-section-number">16.17.1</span> Package Overview</h3>
+<p>The <code>BayesLogit</code> package provides efficient tools for sampling from the Pólya-Gamma distribution<span class="citation" data-cites="windle2023bayeslogit">(<a href="references.html#ref-windle2023bayeslogit" role="doc-biblioref">Windle 2023</a>)</span>. The current version (2.1) focuses on core functionality: sampling from the Pólya-Gamma distribution through the <code>rpg()</code> function and its variants<span class="citation" data-cites="windle2023bayeslogit">(<a href="references.html#ref-windle2023bayeslogit" role="doc-biblioref">Windle 2023</a>)</span>.</p>
+</section>
+<section id="core-functions" class="level3" data-number="16.17.2">
+<h3 data-number="16.17.2" class="anchored" data-anchor-id="core-functions"><span class="header-section-number">16.17.2</span> Core Functions</h3>
+<p>The package offers several sampling methods:</p>
+<ul>
+<li><code>rpg()</code>: Main function that automatically selects the best method</li>
+<li><code>rpg.devroye()</code>: Devroye-like method for integer h values</li>
+<li><code>rpg.gamma()</code>: Sum of gammas method (slower but works for all parameters)</li>
+<li><code>rpg.sp()</code>: Saddlepoint approximation method</li>
+</ul>
+</section>
+<section id="installation-and-basic-usage" class="level3" data-number="16.17.3">
+<h3 data-number="16.17.3" class="anchored" data-anchor-id="installation-and-basic-usage"><span class="header-section-number">16.17.3</span> Installation and Basic Usage</h3>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Install from CRAN</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"BayesLogit"</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(BayesLogit)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Basic usage examples</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample from PG(1, 0)</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>samples1 <span class="ot">&lt;-</span> <span class="fu">rpg</span>(<span class="dv">1000</span>, <span class="at">h=</span><span class="dv">1</span>, <span class="at">z=</span><span class="dv">0</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample with tilting parameter</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>samples2 <span class="ot">&lt;-</span> <span class="fu">rpg</span>(<span class="dv">1000</span>, <span class="at">h=</span><span class="dv">1</span>, <span class="at">z=</span><span class="fl">2.5</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Multiple shape parameters</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>h_values <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>z_values <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>samples3 <span class="ot">&lt;-</span> <span class="fu">rpg</span>(<span class="dv">100</span>, <span class="at">h=</span>h_values, <span class="at">z=</span>z_values)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="implementing-bayesian-logistic-regression" class="level3" data-number="16.17.4">
+<h3 data-number="16.17.4" class="anchored" data-anchor-id="implementing-bayesian-logistic-regression"><span class="header-section-number">16.17.4</span> Implementing Bayesian Logistic Regression</h3>
+<p>Here’s a complete implementation of Bayesian logistic regression using the Pólya-Gamma methodology:</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bayesian Logistic Regression with Pólya-Gamma Data Augmentation</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>bayesian_logit_pg <span class="ot">&lt;-</span> <span class="cf">function</span>(y, X, <span class="at">n_iter=</span><span class="dv">5000</span>, <span class="at">burn_in=</span><span class="dv">1000</span>) {</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Prior specification (weakly informative)</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  beta_prior_mean <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, p)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  beta_prior_prec <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="fl">0.01</span>, p)  <span class="co"># Precision matrix</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Storage for samples</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  beta_samples <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n_iter, p)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  omega_samples <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n_iter, n)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Initialize</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  beta <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, p)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(iter <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_iter) {</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 1: Sample omega (auxiliary variables)</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    psi <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    omega <span class="ot">&lt;-</span> <span class="fu">rpg</span>(n, <span class="at">h=</span><span class="dv">1</span>, <span class="at">z=</span>psi)</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 2: Sample beta (regression coefficients)</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Posterior precision and mean</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    V_omega <span class="ot">&lt;-</span> <span class="fu">solve</span>(<span class="fu">t</span>(X) <span class="sc">%*%</span> <span class="fu">diag</span>(omega) <span class="sc">%*%</span> X <span class="sc">+</span> beta_prior_prec)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    kappa <span class="ot">&lt;-</span> y <span class="sc">-</span> <span class="fl">0.5</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    m_omega <span class="ot">&lt;-</span> V_omega <span class="sc">%*%</span> (<span class="fu">t</span>(X) <span class="sc">%*%</span> kappa <span class="sc">+</span> beta_prior_prec <span class="sc">%*%</span> beta_prior_mean)</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample from multivariate normal</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> <span class="fu">mvrnorm</span>(<span class="dv">1</span>, m_omega, V_omega)</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Store samples</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    beta_samples[iter, ] <span class="ot">&lt;-</span> beta</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    omega_samples[iter, ] <span class="ot">&lt;-</span> omega</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Return samples after burn-in</span></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">beta =</span> beta_samples[(burn_in<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>n_iter, ],</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">omega =</span> omega_samples[(burn_in<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>n_iter, ],</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_samples =</span> n_iter <span class="sc">-</span> burn_in</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Example usage with simulated data</span></span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n<span class="sc">*</span><span class="dv">2</span>), n, <span class="dv">2</span>))  <span class="co"># Intercept + 2 predictors</span></span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>beta_true <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">0.5</span>, <span class="fl">1.2</span>, <span class="sc">-</span><span class="fl">0.8</span>)</span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>logits <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta_true</span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>probs <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>logits))</span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, probs)</span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit model</span></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">bayesian_logit_pg</span>(y, X, <span class="at">n_iter=</span><span class="dv">3000</span>, <span class="at">burn_in=</span><span class="dv">500</span>)</span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior summaries</span></span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>posterior_means <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(results<span class="sc">$</span>beta)</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>posterior_sds <span class="ot">&lt;-</span> <span class="fu">apply</span>(results<span class="sc">$</span>beta, <span class="dv">2</span>, sd)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><strong>Computational Advantages</strong></p>
+<p>Extensive benchmarking studies demonstrate the superior performance of the Pólya-Gamma method across various scenarios<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>:</p>
+<ol type="1">
+<li><strong>Simple logistic models</strong>: Competitive with well-tuned Metropolis-Hastings samplers</li>
+<li><strong>Hierarchical models</strong>: Significantly outperforms alternative methods</li>
+<li><strong>Mixed models</strong>: Provides substantial efficiency gains over traditional approaches</li>
+<li><strong>Spatial models</strong>: Shows dramatic improvements for Gaussian process spatial models</li>
+</ol>
+<p><strong>Theoretical Guarantees</strong></p>
+<p>The Pólya-Gamma Gibbs sampler enjoys strong theoretical properties<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>:</p>
+<ul>
+<li><strong>Uniform ergodicity</strong>: Proven by Choi and Hobert (2013), guaranteeing convergence and central limit theorems for Monte Carlo averages<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span></li>
+<li><strong>No tuning required</strong>: Unlike Metropolis-Hastings methods, the sampler requires no manual tuning</li>
+<li><strong>Exact sampling</strong>: Produces draws from the correct posterior distribution without approximation</li>
+</ul>
+<div class="callout callout-style-default callout-warning no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The theoretical guarantees hold under standard regularity conditions, and the method requires proper prior specification for optimal performance.</p>
+</div>
+</div>
+<p><strong>Beyond Binary Logistic Regression</strong></p>
+<p>The Pólya-Gamma methodology extends naturally to various related models<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>:</p>
+<ol type="1">
+<li>Negative binomial regression: Direct application using the same data-augmentation scheme</li>
+<li>Multinomial logistic models: Extended through partial difference of random utility models<span class="citation" data-cites="windle2014sampling">(<a href="references.html#ref-windle2014sampling" role="doc-biblioref">Windle, Polson, and Scott 2014</a>)</span></li>
+<li>Mixed effects models: Seamless incorporation of random effects structures</li>
+<li>Spatial models: Efficient inference for spatial count data models</li>
+</ol>
+</section>
+<section id="modern-applications" class="level3" data-number="16.17.5">
+<h3 data-number="16.17.5" class="anchored" data-anchor-id="modern-applications"><span class="header-section-number">16.17.5</span> Modern Applications</h3>
+<p>Recent developments have expanded the methodology’s applicability[<span class="citation" data-cites="windle2014sampling">Windle, Polson, and Scott (<a href="references.html#ref-windle2014sampling" role="doc-biblioref">2014</a>)</span>]<span class="citation" data-cites="zhang2018scalable">(<a href="references.html#ref-zhang2018scalable" role="doc-biblioref">Zhang, Datta, and Banerjee 2018</a>)</span>:</p>
+<ul>
+<li>Gaussian process classification: Scalable variational approaches using Pólya-Gamma augmentation</li>
+<li>Deep learning: Integration with neural network architectures for Bayesian deep learning</li>
+<li>State-space models: Application to dynamic binary time series models</li>
+</ul>
+<p>The Pólya-Gamma methodology represents a fundamental advancement in Bayesian computation for logistic models, combining theoretical elegance with practical efficiency<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. Its introduction of the Pólya-Gamma distribution class and the associated data-augmentation strategy has enabled routine application of Bayesian methods to complex hierarchical models that were previously computationally prohibitive<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+<p>The <code>BayesLogit</code> package provides researchers and practitioners with efficient, well-tested implementations of these methods<span class="citation" data-cites="windle2023bayeslogit">(<a href="references.html#ref-windle2023bayeslogit" role="doc-biblioref">Windle 2023</a>)</span>. The combination of exact inference, computational efficiency, and theoretical guarantees makes the Pólya-Gamma approach the method of choice for Bayesian logistic regression in most practical applications<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+<p>As computational demands continue to grow and models become increasingly complex, the Pólya-Gamma methodology’s advantages become even more pronounced, establishing it as an essential tool in the modern Bayesian statistician’s toolkit (<span class="citation" data-cites="tiao2019polyagamma">Tiao (<a href="references.html#ref-tiao2019polyagamma" role="doc-biblioref">2019</a>)</span>). Ongoing research continues to extend the Pólya-Gamma methodology to new domains, including high-dimensional settings, nonparametric models, and integration with modern machine learning frameworks.</p>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bertsimas2016best" class="csl-entry" role="listitem">
+Bertsimas, Dimitris, Angela King, and Rahul Mazumder. 2016. <span>“Best Subset Selection via a Modern Optimization Lens.”</span> <em>The Annals of Statistics</em> 44 (2): 813–52.
+</div>
+<div id="ref-devroye1986nonuniform" class="csl-entry" role="listitem">
+Devroye, Luc. 1986. <em>Non-Uniform Random Variate Generation</em>. Springer Science &amp; Business Media.
+</div>
+<div id="ref-george1993variable" class="csl-entry" role="listitem">
+George, Edward I., and Robert E. and McCulloch. 1993. <span>“Variable <span>Selection</span> via <span>Gibbs Sampling</span>.”</span> <em>Journal of the American Statistical Association</em> 88 (423): 881–89.
+</div>
+<div id="ref-jeffreys1998theory" class="csl-entry" role="listitem">
+Jeffreys, Harold. 1998. <em>Theory of <span>Probability</span></em>. Third Edition, Third Edition. Oxford <span>Classic Texts</span> in the <span>Physical Sciences</span>. Oxford, New York: Oxford University Press.
+</div>
+<div id="ref-mitchell1988bayesian" class="csl-entry" role="listitem">
+Mitchell, T. J., and J. J. Beauchamp. 1988. <span>“Bayesian <span>Variable Selection</span> in <span>Linear Regression</span>.”</span> <em>Journal of the American Statistical Association</em> 83 (404): 1023–32. <a href="https://www.jstor.org/stable/2290129">https://www.jstor.org/stable/2290129</a>.
+</div>
+<div id="ref-polson2011shrink" class="csl-entry" role="listitem">
+Polson, Nicholas G., and James G. Scott. 2011. <span>“Shrink <span>Globally</span>, <span>Act Locally</span>: <span>Sparse Bayesian Regularization</span> and <span>Prediction</span>.”</span> In <em>Bayesian <span>Statistics</span> 9</em>, edited by José M. Bernardo, M. J. Bayarri, James O. Berger, A. P. Dawid, David Heckerman, Adrian F. M. Smith, and Mike West, 0. Oxford University Press.
+</div>
+<div id="ref-polson2013bayesian" class="csl-entry" role="listitem">
+Polson, Nicholas G., James G. Scott, and Jesse Windle. 2013. <span>“Bayesian <span>Inference</span> for <span class="nocase">Logistic Models Using P<span class="nocase">ó</span>lya</span>–<span>Gamma Latent Variables</span>.”</span> <em>Journal of the American Statistical Association</em> 108 (504): 1339–49.
+</div>
+<div id="ref-tiao2019polyagamma" class="csl-entry" role="listitem">
+Tiao, Louis. 2019. <span>“P<span>ó</span>lya-<span>Gamma Bayesian</span> Logistic Regression.”</span> Blog post.
+</div>
+<div id="ref-windle2023bayeslogit" class="csl-entry" role="listitem">
+Windle, Jesse. 2023. <span>“<span>BayesLogit</span>: <span>Bayesian</span> Logistic Regression.”</span> R package version 2.1.
+</div>
+<div id="ref-windle2014sampling" class="csl-entry" role="listitem">
+Windle, Jesse, Nicholas G. Polson, and James G. Scott. 2014. <span>“Sampling <span>Polya-Gamma</span> Random Variates: Alternate and Approximate Techniques.”</span> arXiv. <a href="https://arxiv.org/abs/1405.0506">https://arxiv.org/abs/1405.0506</a>.
+</div>
+<div id="ref-zhang2018scalable" class="csl-entry" role="listitem">
+Zhang, Yichi, Anirban Datta, and Sudipto Banerjee. 2018. <span>“Scalable <span>Gaussian</span> Process Classification with <span class="nocase">P<span class="nocase">ó</span>lya-Gamma</span> Data Augmentation.”</span> <em>arXiv Preprint arXiv:1802.06383</em>. <a href="https://arxiv.org/abs/1802.06383">https://arxiv.org/abs/1802.06383</a>.
+</div>
+</div>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./15-rct.html" class="pagination-link" aria-label="Randomized Controlled Trials">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Randomized Controlled Trials</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./17-tree.html" class="pagination-link" aria-label="Tree Models">
+        <span class="nav-page-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Tree Models</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

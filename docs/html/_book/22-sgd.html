@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>22&nbsp; Gradient Descent – Bayes, AI and Deep Learning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./24-qnn.html" rel="next">
+<link href="./21-nn.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-29e2c20b02301cfff04dc8050bf30c7e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-8f57c241cdbc1f937d718a8870719880.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+</head><body class="nav-sidebar floating fullcontent"><div class="hidden">
+<p><span class="math display">\[
+\newcommand{\prob}[1]{\operatorname{P}\left(#1\right)}
+\newcommand{\Var}[1]{\operatorname{Var}\left(#1\right)}
+\newcommand{\sd}[1]{\operatorname{sd}\left(#1\right)}
+\newcommand{\Cor}[1]{\operatorname{Corr}\left(#1\right)}
+\newcommand{\Cov}[1]{\operatorname{Cov}\left(#1\right)}
+\newcommand{\E}[1]{\operatorname{E}\left(#1\right)}
+\newcommand{\defeq}{\overset{\text{\tiny def}}{=}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\mini}{minimize}
+\]</span></p>
+</div>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+
+
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./19-dl.html">Deep Learning</a></li><li class="breadcrumb-item"><a href="./22-sgd.html"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Gradient Descent</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Bayes, AI and Deep Learning</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00-intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Principles of Data Science</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Bayes</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-prob.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Probability and Uncertainty</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-bayes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Bayes Rule</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-bl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Bayesian Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-dec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Utility, Risk and Decisions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-ab.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">AB Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-hyp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Bayesian Hypothesis Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07-sp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Stochastic Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08-gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Gaussian Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09-rl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Reinforcement Learning</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Unreasonable Effectiveness of Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11-pattern.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Pattern Matching</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12-theoryai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Theory of AI</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12-glm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Linear and Multiple Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13-logistic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Classification: Logistic Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15-rct.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Randomized Controlled Trials</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16-select.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Model Selection</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17-tree.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Tree Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18-forecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Forecasting</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Deep Learning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19-dl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Deep Learners</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20-theorydl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Theory of Deep Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21-nn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22-sgd.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24-qnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Quantile Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25-cnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Convolutional Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26-llm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Large Language Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27-robots.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Robotics</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ex.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Exercises</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./19-dl.html">Deep Learning</a></li><li class="breadcrumb-item"><a href="./22-sgd.html"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Gradient Descent</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Gradient Descent</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Traditional statistical models are estimated by maximizing likelihood and using the least squares algorithm for linear regression and weighted least squares or Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm for generalized linear models.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(iris)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> iris<span class="sc">$</span>Petal.Length</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># initialize theta</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>theta <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">ncol =</span> <span class="dv">1</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># learning rate</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>alpha <span class="ot">&lt;-</span> <span class="fl">0.0001</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># number of iterations</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>n_iter <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># gradient descent</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_iter) {</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># compute gradient</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    grad <span class="ot">&lt;-</span> <span class="sc">-</span><span class="dv">2</span> <span class="sc">*</span> <span class="fu">t</span>(x) <span class="sc">%*%</span> (y <span class="sc">-</span> x <span class="sc">%*%</span> theta)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># update theta</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    theta <span class="ot">&lt;-</span> theta <span class="sc">-</span> alpha <span class="sc">*</span> grad</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="deep-learning-and-least-squares" class="level2" data-number="22.1">
+<h2 data-number="22.1" class="anchored" data-anchor-id="deep-learning-and-least-squares"><span class="header-section-number">22.1</span> Deep Learning and Least Squares</h2>
+<p>The deep learning model approximates the relation between inputs <span class="math inline">\(x\)</span> and outputs <span class="math inline">\(y\)</span> using a non-linear function <span class="math inline">\(f(x,\theta)\)</span>, where <span class="math inline">\(\theta\)</span> is a vector of parameters. The goal is to find the optimal value of <span class="math inline">\(\theta\)</span> that minimizes the expected loss function, given a training data set <span class="math inline">\(D = \{x_i,y_i\}_{i=1}^n\)</span>. The loss function is a measure of discrepancy between the true value of <span class="math inline">\(y\)</span> and the predicted value <span class="math inline">\(f(x,\theta)\)</span>. The loss function is usually defined as the negative log-likelihood function of the model. <span class="math display">\[
+    l(\theta) = - \sum_{i=1}^n \log p(y_i | x_i, \theta),
+\]</span> where <span class="math inline">\(p(y_i | x_i, \theta)\)</span> is the conditional distribution of <span class="math inline">\(y_i\)</span> given <span class="math inline">\(x_i\)</span> and <span class="math inline">\(\theta\)</span>. Thus, in the case of regression, we have <span class="math display">\[
+  y_i = f(x_i,\theta) + \epsilon, ~ \epsilon \sim N(0,\sigma^2),
+\]</span> Thus, the loss function is <span class="math display">\[
+    l(\theta) = - \sum_{i=1}^n \log p(y_i | x_i, \theta) = \sum_{i=1}^n (y_i - f(x_i, \theta))^2,
+\]</span></p>
+</section>
+<section id="regression" class="level2" data-number="22.2">
+<h2 data-number="22.2" class="anchored" data-anchor-id="regression"><span class="header-section-number">22.2</span> Regression</h2>
+<p>Regression is simply a neural network which is wide and shallow. The insight of DL is that you use a deep and shallow neural network. Let’s look at a simple example and fit a linear regression model to <code>iris</code> dataset.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(iris)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> iris<span class="sc">$</span>Petal.Length</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>loss <span class="ot">=</span> <span class="cf">function</span>(theta) <span class="fu">sum</span>((y <span class="sc">-</span> x <span class="sc">%*%</span> theta)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>grad <span class="ot">=</span> <span class="cf">function</span>(theta) <span class="sc">-</span><span class="dv">2</span> <span class="sc">*</span> <span class="fu">t</span>(x) <span class="sc">%*%</span> (y <span class="sc">-</span> x <span class="sc">%*%</span> theta)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>), loss, grad, <span class="at">method=</span><span class="st">"BFGS"</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>theta <span class="ot">=</span> res<span class="sc">$</span>par</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Our loss minimization algorithm finds the following coefficients</p>
+<div class="cell" data-null_prefix="true">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">Intercept (<span class="math inline">\(\theta_1\)</span>)</th>
+<th style="text-align: right;">Petal.Width (<span class="math inline">\(\theta_2\)</span>)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">2.2</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Let’s plot the data and model estimated using gradient descent</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x[,<span class="dv">2</span>],y,<span class="at">pch=</span><span class="dv">16</span>, <span class="at">xlab=</span><span class="st">"Petal.Width"</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(theta[<span class="dv">2</span>],theta[<span class="dv">1</span>], <span class="at">lwd=</span><span class="dv">3</span>,<span class="at">col=</span><span class="st">"red"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="22-sgd_files/figure-html/iris-gd-plot-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s compare it to the standard estimation algorithm</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>m <span class="ot">=</span> <span class="fu">lm</span>(Petal.Length<span class="sc">~</span>Petal.Width, <span class="at">data=</span>iris)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">(Intercept)</th>
+<th style="text-align: right;">Petal.Width</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">2.2</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The values found by gradient descent are very close to the ones found by the standard OLS algorithm.</p>
+</section>
+<section id="logistic-regression" class="level2" data-number="22.3">
+<h2 data-number="22.3" class="anchored" data-anchor-id="logistic-regression"><span class="header-section-number">22.3</span> Logistic Regression</h2>
+<p>Logistic regression is a generalized linear model (GLM) with a logit link function, defined as: <span class="math display">\[
+    \log \left(\frac{p}{1-p}\right) = \theta_0 + \theta_1 x_1 + \ldots + \theta_p x_p,
+\]</span> where <span class="math inline">\(p\)</span> is the probability of the positive class. The negative log-likelihood function for logistic regression is a cross-entropy loss <span class="math display">\[
+    l(\theta) = - \sum_{i=1}^n \left[ y_i \log p_i + (1-y_i) \log (1-p_i) \right],
+\]</span> where <span class="math inline">\(p_i = 1/\left(1 + \exp(-\theta_0 - \theta_1 x_{i1} - \ldots - \theta_p x_{ip})\right)\)</span>. The derivative of the negative log-likelihood function is <span class="math display">\[
+    \nabla l(\theta) = - \sum_{i=1}^n \left[ y_i - p_i \right] \begin{pmatrix} 1 \\ x_{i1} \\ \vdots \\ x_{ip} \end{pmatrix}.
+\]</span> In matrix notations, we have <span class="math display">\[
+    \nabla l(\theta) = - X^T (y - p).
+\]</span> Let’s implement gradient descent algorithm now.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">ifelse</span>(iris<span class="sc">$</span>Species<span class="sc">==</span><span class="st">"setosa"</span>,<span class="dv">1</span>,<span class="dv">0</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">cbind</span>(<span class="fu">rep</span>(<span class="dv">1</span>,<span class="dv">150</span>),iris<span class="sc">$</span>Sepal.Length)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>lrgd  <span class="ot">=</span> <span class="cf">function</span>(x,y, alpha, n_iter) {</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  theta <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">ncol =</span> <span class="dv">1</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_iter) {</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># compute gradient</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    p <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">exp</span>(<span class="sc">-</span>x <span class="sc">%*%</span> theta))</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    grad <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">t</span>(x) <span class="sc">%*%</span> (y <span class="sc">-</span> p)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># update theta</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    theta <span class="ot">&lt;-</span> theta <span class="sc">-</span> alpha <span class="sc">*</span> grad</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(theta)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>theta <span class="ot">=</span> <span class="fu">lrgd</span>(x,y,<span class="fl">0.005</span>,<span class="dv">20000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The gradient descent parameters are</p>
+<div class="cell" data-null_prefix="true">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">Intercept (<span class="math inline">\(\theta_1\)</span>)</th>
+<th style="text-align: right;">Sepal.Length (<span class="math inline">\(\theta_2\)</span>)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">-5.2</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>And the plot is</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>), <span class="at">bty=</span><span class="st">'n'</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x[,<span class="dv">2</span>],y,<span class="at">pch=</span><span class="dv">16</span>, <span class="at">xlab=</span><span class="st">"Sepal.Length"</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x[,<span class="dv">2</span>],p,<span class="at">type=</span><span class="st">'p'</span>, <span class="at">pch=</span><span class="dv">16</span>,<span class="at">col=</span><span class="st">"red"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="22-sgd_files/figure-html/iris-gd-plot-glm-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s compare it to the standard estimation algorithm</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glm</span>(y<span class="sc">~</span>x<span class="dv">-1</span>, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:  glm(formula = y ~ x - 1, family = binomial(link = "logit"))
+
+Coefficients:
+   x1     x2  
+27.83  -5.18  
+
+Degrees of Freedom: 150 Total (i.e. Null);  148 Residual
+Null Deviance:      208 
+Residual Deviance: 72   AIC: 76</code></pre>
+</div>
+</div>
+<p>Now, we demonstrate the gradient descent for estimating a generalized linear model (GLM), namely logistic regression. We will use the <code>iris</code> data set again and try to predict the species of the flower using the petal width as a predictor. We will use the following model <span class="math display">\[
+    \log \left(\frac{p_i}{1-p_i}\right) = \theta_0 + \theta_1 x_i,
+\]</span> where <span class="math inline">\(p_i = P(y_i = 1)\)</span> is the probability of the flower being of the species <span class="math inline">\(y_i = 1\)</span> (setosa).</p>
+<p>The negative log-likelihood function for logistic regression model is <span class="math display">\[
+    l(\theta) = - \sum_{i=1}^n \left[ y_i \log p_i + (1-y_i) \log (1-p_i) \right],
+\]</span> where <span class="math inline">\(p_i = 1/\left(1 + \exp(-\theta_0 - \theta_1 x_i)\right)\)</span>. The derivative of the negative log-likelihood function is <span class="math display">\[
+    \nabla l(\theta) = - \sum_{i=1}^n \left[ y_i - p_i \right] \begin{pmatrix} 1 \\ x_i \end{pmatrix}.
+\]</span> In matrix notations, we have <span class="math display">\[
+    \nabla l(\theta) = - X^T (y - p).
+\]</span></p>
+</section>
+<section id="stochastic-gradient-descent" class="level2" data-number="22.4">
+<h2 data-number="22.4" class="anchored" data-anchor-id="stochastic-gradient-descent"><span class="header-section-number">22.4</span> Stochastic Gradient Descent</h2>
+<p>Stochastic gradient descent (SGD) is a variant of the gradient descent algorithm. The main difference is that instead of computing the gradient over the whole data set, SGD computes the gradient over a randomly selected subset of the data. This allows SGD to be applied to estimate models when data set is too large to fit into memory, which is often the case with the deep learning models. The SGD algorithm replaces the gradient of the negative log-likelihood function with the gradient of the negative log-likelihood function computed over a randomly selected subset of the data <span class="math display">\[
+    \nabla l(\theta) \approx \dfrac{1}{|B|} \sum_{i \in B} \nabla l(y_i, f(x_i, \theta)),
+\]</span> where <span class="math inline">\(B \in \{1,2,\ldots,n\}\)</span> is the batch samples from the data set. This method can be interpreted as gradient descent using noisy gradients, which are typically called mini-batch gradients with batch size <span class="math inline">\(|B|\)</span>.</p>
+<p>The SGD is based on the idea of stochastic approximation introduced by <span class="citation" data-cites="robbins1951stochastic">Robbins and Monro (<a href="references.html#ref-robbins1951stochastic" role="doc-biblioref">1951</a>)</span>. Stochastic simply replaces <span class="math inline">\(F(l)\)</span> with its Monte Carlo approximation.</p>
+<p>In a small mini-batch regime, when <span class="math inline">\(|B| \ll n\)</span> and typically <span class="math inline">\(|B| \in \{32,64,\ldots,1024\}\)</span> it was shown that SGD converges faster than the standard gradient descent algorithm, it does converge to minimizers of strongly convex functions (negative log-likelihood function from exponential family is strongly convex) <span class="citation" data-cites="bottou2018optimization">(<a href="references.html#ref-bottou2018optimization" role="doc-biblioref">Bottou, Curtis, and Nocedal 2018</a>)</span> and it is more robust to noise in the data <span class="citation" data-cites="hardt2016train">(<a href="references.html#ref-hardt2016train" role="doc-biblioref">Hardt, Recht, and Singer 2016</a>)</span>. Further, it was shown that it can avoid saddle-points, which is often an issue with deep learning log-likelihood functions. In the case of multiple-minima, SGD can find a good solution <span class="citation" data-cites="keskar2016largebatch">LeCun et al. (<a href="references.html#ref-lecun2002efficient" role="doc-biblioref">2002</a>)</span>, meaning that the out-of-sample performance is often worse when trained with large- batch methods as compared to small-batch methods.</p>
+<p>Now, we implement SGD for logistic regression and compare performance for different batch sizes <!-- https://math.stackexchange.com/questions/2503428/derivative-of-binary-cross-entropy-why-are-my-signs-not-right --></p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>lrgd_minibatch  <span class="ot">=</span> <span class="cf">function</span>(x,y, alpha, n_iter, bs) {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  theta <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">ncol =</span> n_iter<span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">=</span> <span class="fu">length</span>(y)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_iter) {</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    s <span class="ot">=</span> ((i<span class="dv">-1</span>)<span class="sc">*</span>bs<span class="sc">+</span><span class="dv">1</span>)<span class="sc">%%</span>n</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    e <span class="ot">=</span> <span class="fu">min</span>(s<span class="sc">+</span>bs<span class="dv">-1</span>,n)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    xl <span class="ot">=</span> x[s<span class="sc">:</span>e,]; yl <span class="ot">=</span> y[s<span class="sc">:</span>e]</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    p <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">exp</span>(<span class="sc">-</span>xl <span class="sc">%*%</span> theta[,i]))</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    grad <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">t</span>(xl) <span class="sc">%*%</span> (yl <span class="sc">-</span> p)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># update theta</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    theta[,i<span class="sc">+</span><span class="dv">1</span>] <span class="ot">&lt;-</span> theta[,i] <span class="sc">-</span> alpha <span class="sc">*</span> grad</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(theta)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now run our SGD algorithm with different batch sizes.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">92</span>) <span class="co"># kuzy</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>ind <span class="ot">=</span> <span class="fu">sample</span>(<span class="dv">150</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">ifelse</span>(iris<span class="sc">$</span>Species<span class="sc">==</span><span class="st">"setosa"</span>,<span class="dv">1</span>,<span class="dv">0</span>)[ind] <span class="co"># shuffle data</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">cbind</span>(<span class="fu">rep</span>(<span class="dv">1</span>,<span class="dv">150</span>),iris<span class="sc">$</span>Sepal.Length)[ind,] <span class="co"># shuffle data</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>nit<span class="ot">=</span><span class="dv">200000</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>lr <span class="ot">=</span> <span class="fl">0.01</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>th1 <span class="ot">=</span> <span class="fu">lrgd_minibatch</span>(x,y,lr,nit,<span class="dv">5</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>th2 <span class="ot">=</span> <span class="fu">lrgd_minibatch</span>(x,y,lr,nit,<span class="dv">15</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>th3 <span class="ot">=</span> <span class="fu">lrgd_minibatch</span>(x,y,lr,nit,<span class="dv">30</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="22-sgd_files/figure-html/sgd-mb-run-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We run it with 2^{5} iterations and the learning rate of 0.01 and plot the values of <span class="math inline">\(\theta_1\)</span> every 1000 iteration. There are a couple of important points we need to highlight when using SGD. First, we shuffle the data before using it. The reason is that if the data is sorted in any way (e.g.&nbsp;by date or by value of one of the inputs), then data within batches can be highly correlated, which reduces the convergence speed. Shuffling helps avoiding this issue. Second, the larger the batch size, the smaller number of iterations are required for convergence, which is something we would expect. However, in this specific example, from the number of computation point of view, the batch size does not change the number calculations required overall. Let’s look at the same plot, but scale the x-axis according to the amount of computations</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ind<span class="sc">/</span><span class="dv">1000</span>,th1[<span class="dv">1</span>,ind], <span class="at">type=</span><span class="st">'l'</span>, <span class="at">ylim=</span><span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">33</span>), <span class="at">col=</span><span class="dv">1</span>, <span class="at">ylab=</span><span class="fu">expression</span>(theta[<span class="dv">1</span>]), <span class="at">xlab=</span><span class="st">"Iteration"</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h=</span><span class="fl">27.83</span>, <span class="at">lty=</span><span class="dv">2</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(ind<span class="sc">/</span><span class="dv">1000</span><span class="sc">*</span><span class="dv">3</span>,th2[<span class="dv">1</span>,ind], <span class="at">type=</span><span class="st">'l'</span>, <span class="at">col=</span><span class="dv">2</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(ind<span class="sc">/</span><span class="dv">1000</span><span class="sc">*</span><span class="dv">6</span>,th3[<span class="dv">1</span>,ind], <span class="at">type=</span><span class="st">'l'</span>, <span class="at">col=</span><span class="dv">3</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="dv">5</span>,<span class="dv">15</span>,<span class="dv">30</span>),<span class="at">col=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">lty=</span><span class="dv">1</span>, <span class="at">bty=</span><span class="st">'n'</span>,<span class="at">title =</span> <span class="st">"Batch Size"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="22-sgd_files/figure-html/sgd-scaled-plot-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>There are several important considerations about choosing the batch size for SGD.</p>
+<ul>
+<li>The larger the batch size, the more memory is required to store the data.</li>
+<li>Parallelization is more efficient with larger batch sizes. Modern harware supports parallelization of matrix operations, which is the main operation in SGD. The larger the batch size, the more efficient the parallelization is. Usually there is a sweet spot <span class="math inline">\(|B|\)</span> for the batch size, which is the largest batch size that can fit into the memory or parallelized. Meaning it takes the same amount of time to compute SGD step for batch size <span class="math inline">\(1\)</span> and <span class="math inline">\(B\)</span>.</li>
+<li>Third, the larger the batch size, the less noise in the gradient. This means that the larger the batch size, the more accurate the gradient is. However, it was empirically shown that in many applications we should prefer noisier gradients (small batches) to obtain high quality solutions when the objective function (negative log-likelihood) is non-convex <span class="citation" data-cites="keskar2016largebatch">(<a href="references.html#ref-keskar2016largebatch" role="doc-biblioref">Keskar et al. 2016</a>)</span>.</li>
+</ul>
+<p>Deep learning estimation problem as well as a large number of statistical problems, can be expressed in the form <span class="math display">\[
+\min l(x) + \phi(x).
+\]</span> In learning <span class="math inline">\(l(x)\)</span> is the negative log-likelihood and <span class="math inline">\(\phi(x)\)</span> is a penalty function that regularizes the estimate. From the Bayesian perspective, the solution to this problem may be interpreted as a maximum a posteriori <span class="math display">\[p(y\mid x) \propto \exp\{-l(x)\}, ~ p(x) \propto \exp\{-\phi(x)\}.\]</span></p>
+<p>Second order optimisation algorithms, such as BFGS used for traditional statistical models do not work well for deep learning models. The reason is that the number of parameters a DL model has is large and estimating second order derivatives (Hessian or Fisher information matrix) becomes prohibitive from both computational and memory use standpoints. Instead, first order gradient descent methods are used for estimating parameters of a deep learning models.</p>
+<p>The problem of parameter estimation (when likelihood belongs to the exponential family) is an optimisation problem</p>
+<p><span class="math display">\[
+    \min_{\theta} l(\theta) := \dfrac{1}{n} \sum_{i=1}^n \log p(y_i, f(x_i, \theta))
+\]</span> where <span class="math inline">\(l\)</span> is the negative log-likelihood of a sample, and <span class="math inline">\(\theta\)</span> is the vector of parameters. The gradient descent method is an iterative algorithm that starts with an initial guess <span class="math inline">\(\theta^{0}\)</span> and then updates the parameter vector <span class="math inline">\(\theta\)</span> at each iteration <span class="math inline">\(t\)</span> as follows: <span class="math display">\[
+    \theta^{t+1} = \theta^t - \alpha_t \nabla l(\theta^t).
+\]</span></p>
+<p>Let’s demonstrate these algorithms on a simple example of linear regression. We will use the <code>mtcars</code> data set and try to predict the fuel consumption (mpg) <span class="math inline">\(y\)</span> using the number of cylinders (cyl) as a predictor <span class="math inline">\(x\)</span>. We will use the following model: <span class="math display">\[
+    y_i = \theta_0 + \theta_1 x_i + \epsilon_i,
+\]</span> or in matrix form <span class="math display">\[
+    y = X \theta + \epsilon,
+\]</span> where <span class="math inline">\(\epsilon_i \sim N(0, \sigma^2)\)</span>, <span class="math inline">\(X = [1 ~ x]\)</span> is the design matrix with first column beign all ones.</p>
+<p>The negative log-likelihood function for the linear regression model is <span class="math display">\[
+    l(\theta) = \sum_{i=1}^n (y_i - \theta_0 - \theta_1 x_i)^2.
+\]</span></p>
+<p>The gradient then is <span class="math display">\[
+    \nabla l(\theta) = -2 \sum_{i=1}^n (y_i - \theta_0 - \theta_1 x_i) \begin{pmatrix} 1 \\ x_i \end{pmatrix}.
+\]</span> In matrix form, we have <span class="math display">\[
+    \nabla l(\theta) = -2 X^T (y - X \theta).   
+\]</span></p>
+</section>
+<section id="automatic-differentiation-backpropagation" class="level2" data-number="22.5">
+<h2 data-number="22.5" class="anchored" data-anchor-id="automatic-differentiation-backpropagation"><span class="header-section-number">22.5</span> Automatic Differentiation (Backpropagation)</h2>
+<p>To calculate the value of the gradient vector, at each step of the optimization process, deep learning libraries require calculations of derivatives. In general, there are three different ways to calculate those derivatives. First, is numerical differentiation, when a gradient is approximated by a finite difference <span class="math inline">\(f'(x) = (f(x+h)-f(x))/h\)</span> and requires two function evaluations. However, the numerical differentiation is not backward stable <span class="citation" data-cites="griewank2012numerical">(<a href="references.html#ref-griewank2012numerical" role="doc-biblioref">Griewank, Kulshreshtha, and Walther 2012</a>)</span>, meaning that for a small perturbation in input value <span class="math inline">\(x\)</span>, the calculated derivative is not the correct one. Second, is a symbolic differentiation which has been used in symbolic computational frameworks such as <code>Mathematica</code> or <code>Maple</code> for decades. Symbolic differentiation uses a tree form representation of a function and applies chain rule to the tree to calculate the symbolic derivative of a given function. Figure @ref(fig:comp-graph) shows a tree representation of of composition of affine and sigmoid functions (the first layer of our neural network).</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./fig//svg/output1.svg" class="img-fluid figure-img"></p>
+<figcaption>Computational graph of the first layer of our neural network</figcaption>
+</figure>
+</div>
+<p>The advantage of symbolic calculations is that the analytical representation of derivative is available for further analysis. For example, when derivative calculation is in an intermediate step of the analysis. Third way to calculate a derivative is to use automatic differentiation (AD). Similar to symbolic differentiation, AD recursively applies the chain rule and calculates the exact value of derivative and thus avoids the problem of numerical instability. The difference between AD and symbolic differentiation is that AD provides the value of derivative evaluated at a specific point, rather than an analytical representation of the derivative.</p>
+<p>AD does not require analytical specification and can be applied to a function defined by a sequence of algebraic manipulations, logical and transient functions applied to input variables and specified in a computer code. AD can differentiate complex functions which involve IF statements and loops, and AD can be implemented using either forward or backward mode. Consider an example of calculating a derivative of the following function with respect to <code>x</code>.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>sigmoid <span class="ot">=</span> <span class="cf">function</span>(x,b,w){</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  v1 <span class="ot">=</span> w<span class="sc">*</span>x;</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  v2 <span class="ot">=</span> v1 <span class="sc">+</span> b</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  v3 <span class="ot">=</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">exp</span>(<span class="sc">-</span>v2))</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>In the forward mode an auxiliary variable, called a dual number, will be added to each line of the code to track the value of the derivative associated with this line. In our example, if we set <code>x=2, w=3, b=5</code>2, we get the calculations given in Table below.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 35%">
+<col style="width: 64%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function calculations</th>
+<th>Derivative calculations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1. <code>v1 = w*x = 6</code></td>
+<td>1. <code>dv1 = w = 3</code> (derivative of <code>v1</code> with respect to <code>x</code>)</td>
+</tr>
+<tr class="even">
+<td>2. <code>v2 = v1 + b = 11</code></td>
+<td>2. <code>dv2 = dv1 = 3</code> (derivative of <code>v2</code> with respect to <code>x</code>)</td>
+</tr>
+<tr class="odd">
+<td>3. <code>v3 = 1/(1+exp(-v2)) = 0.99</code></td>
+<td>3. <code>dv3 = eps2*exp(-v2)/(1+exp(-v2))**2  = 5e-05</code></td>
+</tr>
+</tbody>
+</table>
+<p>Variables <code>dv1,dv2,dv3</code> correspond to partial (local) derivatives of each intermediate variables <code>v1,v2,v3</code> with respect to <span class="math inline">\(x\)</span>, and are called dual variables. Tracking for dual variables can either be implemented using source code modification tools that add new code for calculating the dual numbers or via operator overloading.</p>
+<p>The reverse AD also applies chain rule recursively but starts from the outer function, as shown in Table below.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 39%">
+<col style="width: 60%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function calculations</th>
+<th>Derivative calculations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1. <code>v1 = w*x = 6</code></td>
+<td>4. <code>dv1dx =w; dv1 = dv2*dv1dx = 3*1.3e-05=5e-05</code></td>
+</tr>
+<tr class="even">
+<td>2. <code>v2 = v1 + b = 11</code></td>
+<td>3. <code>dv2dv1 =1; dv2 = dv3*dv2dv1 = 1.3e-05</code></td>
+</tr>
+<tr class="odd">
+<td>3. <code>v3 = 1/(1+exp(-v2)) = 0.99</code></td>
+<td>2. <code>dv3dv2 = exp(-v2)/(1+exp(-v2))**2;</code></td>
+</tr>
+<tr class="even">
+<td>4. <code>v4 = v3</code></td>
+<td>1. <code>dv4=1</code></td>
+</tr>
+</tbody>
+</table>
+<p>For DL, derivatives are calculated by applying reverse AD algorithm to a model which is defined as a superposition of functions. A model is defined either using a general purpose language as it is done in <code>PyTorch</code> or through a sequence of function calls defined by framework libraries (e.g.&nbsp;in <code>TensorFlow</code>). Forward AD algorithms calculate the derivative with respect to a single input variable, but reverse AD produces derivatives with respect to all intermediate variables. For models with many parameters, it is much more computationally feasible to perform the reverse AD.</p>
+<p>In the context of neural networks, the reverse AD algorithms is called back-propagation and was popularized in AI by <span class="citation" data-cites="rumelhart1986learning">Rumelhart, Hinton, and Williams (<a href="references.html#ref-rumelhart1986learning" role="doc-biblioref">1986</a>)</span>. According to <span class="citation" data-cites="schmidhuber2015deep">Schmidhuber (<a href="references.html#ref-schmidhuber2015deep" role="doc-biblioref">2015</a>)</span> the first version of what we call today back-propagation was published in 1970 in a master’s thesis <span class="citation" data-cites="linnainmaa1970representation">Linnainmaa (<a href="references.html#ref-linnainmaa1970representation" role="doc-biblioref">1970</a>)</span> and was closely related to the work of <span class="citation" data-cites="ostrovskii1971uber">Ostrovskii, Volin, and Borisov (<a href="references.html#ref-ostrovskii1971uber" role="doc-biblioref">1971</a>)</span>. However, similar techniques rooted in Pontryagin’s maximization principle were discussed in the context of multi-stage control problems <span class="citation" data-cites="bryson1961gradient">Bryson (<a href="references.html#ref-bryson1961gradient" role="doc-biblioref">1961</a>)</span>,bryson1969applied}. <span class="citation" data-cites="dreyfus1962numerical">Dreyfus (<a href="references.html#ref-dreyfus1962numerical" role="doc-biblioref">1962</a>)</span> applies back-propagation to calculate the first order derivative of a return function to numerically solve a variational problem. Later <span class="citation" data-cites="dreyfus1973computational">Dreyfus (<a href="references.html#ref-dreyfus1973computational" role="doc-biblioref">1973</a>)</span> used back-propagation to derive an efficient algorithm to solve a minimization problem. The first neural network specific version of back-propagation was proposed in <span class="citation" data-cites="werbos1974regression">P. Werbos (<a href="references.html#ref-werbos1974regression" role="doc-biblioref">1974</a>)</span> and an efficient back-propagation algorithm was discussed in <span class="citation" data-cites="werbos1982applications">P. J. Werbos (<a href="references.html#ref-werbos1982applications" role="doc-biblioref">1982</a>)</span>.</p>
+<p>Modern deep learning frameworks fully automate the process of finding derivatives using AD algorithms. For example, <code>PyTorch</code> relies on <code>autograd</code> library which automatically finds gradient using back-propagation algorithm. Here is a small code example using <code>autograd</code> library in <code>jax</code>.</p>
+<div class="cell" data-null_prefix="true">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> grad,jit</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> random</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> abline(slope, intercept):</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Plot a line from slope and intercept"""</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    axes <span class="op">=</span> plt.gca()</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    x_vals <span class="op">=</span> jnp.array(axes.get_xlim())</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    ylim <span class="op">=</span> axes.get_xlim()</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    y_vals <span class="op">=</span> intercept <span class="op">+</span> slope <span class="op">*</span> x_vals</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    plt.plot(x_vals, y_vals, <span class="st">'-'</span>)<span class="op">;</span> plt.ylim(ylim)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> pd.read_csv(<span class="st">'../data/circle.csv'</span>).values</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> d[:, <span class="dv">1</span>:<span class="dv">3</span>]<span class="op">;</span> y <span class="op">=</span> d[:, <span class="dv">0</span>]</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sigmoid(x):</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> jnp.exp(<span class="op">-</span>x))</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> predict(x, w1,b1,w2,b2):</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    z <span class="op">=</span> sigmoid(jnp.dot(x, w1)<span class="op">+</span>b1)</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sigmoid(jnp.dot(z, w2)<span class="op">+</span>b2)[:,<span class="dv">0</span>]</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> nll(x, y, w1,b1,w2,b2):</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    yhat <span class="op">=</span> predict(x, w1,b1,w2,b2)</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">-</span>jnp.<span class="bu">sum</span>(y <span class="op">*</span> jnp.log(yhat) <span class="op">+</span> (<span class="dv">1</span> <span class="op">-</span> y) <span class="op">*</span> jnp.log(<span class="dv">1</span> <span class="op">-</span> yhat))</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sgd_step(x, y, w1,b1,w2,b2, lr):</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>    grads <span class="op">=</span> grad(nll,argnums<span class="op">=</span>[<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>])(x, y, w1,b1,w2,b2)</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> w1 <span class="op">-</span> lr <span class="op">*</span> grads[<span class="dv">0</span>],b1 <span class="op">-</span> lr <span class="op">*</span> grads[<span class="dv">1</span>],w2 <span class="op">-</span> lr <span class="op">*</span> grads[<span class="dv">2</span>],b2 <span class="op">-</span> lr <span class="op">*</span> grads[<span class="dv">3</span>]</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> accuracy(x, y, w1,b1,w2,b2):</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>    y_pred <span class="op">=</span> predict(x, w1,b1,w2,b2)</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.mean((y_pred <span class="op">&gt;</span> <span class="fl">0.5</span>) <span class="op">==</span> y)</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> random.PRNGKey(<span class="dv">0</span>)</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>w1 <span class="op">=</span> <span class="fl">0.1</span><span class="op">*</span>random.normal(k,(<span class="dv">2</span>,<span class="dv">4</span>))</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>b1 <span class="op">=</span> <span class="fl">0.01</span><span class="op">*</span>random.normal(k,(<span class="dv">4</span>,))</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>w2 <span class="op">=</span> <span class="fl">0.1</span><span class="op">*</span>random.normal(k,(<span class="dv">4</span>,<span class="dv">1</span>))</span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>b2 <span class="op">=</span> <span class="fl">0.01</span><span class="op">*</span>random.normal(k,(<span class="dv">1</span>,))</span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1000</span>):</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>    w1,b1,w2,b2 <span class="op">=</span> sgd_step(x,y,w1,b1,w2,b2,<span class="fl">0.003</span>)</span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(accuracy(x,y,w1,b1,w2,b2))</span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>ax.scatter(x[:,<span class="dv">0</span>], x[:,<span class="dv">1</span>], c<span class="op">=</span>[<span class="st">'r'</span> <span class="cf">if</span> x<span class="op">==</span><span class="dv">1</span> <span class="cf">else</span> <span class="st">'g'</span> <span class="cf">for</span> x <span class="kw">in</span> y],s<span class="op">=</span><span class="dv">7</span>)<span class="op">;</span> plt.xlabel(<span class="st">"x1"</span>)<span class="op">;</span> plt.ylabel(<span class="st">"x2"</span>)<span class="op">;</span> plt.xlim(<span class="op">-</span><span class="dv">10</span>,<span class="dv">10</span>)</span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>ax.spines[<span class="st">'top'</span>].set_visible(<span class="va">False</span>)</span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.scatter((x[:,1]*w1[1,0] - b1[0])/w1[0,0], x[:,1])</span></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>abline(w1[<span class="dv">1</span>,<span class="dv">0</span>]<span class="op">/</span>w1[<span class="dv">0</span>,<span class="dv">0</span>],b1[<span class="dv">0</span>]<span class="op">/</span>w1[<span class="dv">0</span>,<span class="dv">0</span>])</span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>abline(w1[<span class="dv">1</span>,<span class="dv">1</span>]<span class="op">/</span>w1[<span class="dv">0</span>,<span class="dv">1</span>],b1[<span class="dv">1</span>]<span class="op">/</span>w1[<span class="dv">0</span>,<span class="dv">1</span>])</span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>abline(w1[<span class="dv">1</span>,<span class="dv">2</span>]<span class="op">/</span>w1[<span class="dv">0</span>,<span class="dv">2</span>],b1[<span class="dv">2</span>]<span class="op">/</span>w1[<span class="dv">0</span>,<span class="dv">2</span>])</span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>abline(w1[<span class="dv">1</span>,<span class="dv">3</span>]<span class="op">/</span>w1[<span class="dv">0</span>,<span class="dv">3</span>],b1[<span class="dv">3</span>]<span class="op">/</span>w1[<span class="dv">0</span>,<span class="dv">3</span>])</span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="stochastic-gradient-descent-1" class="level2" data-number="22.6">
+<h2 data-number="22.6" class="anchored" data-anchor-id="stochastic-gradient-descent-1"><span class="header-section-number">22.6</span> Stochastic Gradient Descent</h2>
+<p>Stochastic gradient descent (SGD) is a default standard for minimizing the loss function <span class="math inline">\(f(W,b)\)</span> (maximizing the likelihood) to find the deep learning weights and offsets. SGD simply minimizes the function by taking a negative step along an estimate <span class="math inline">\(g^k\)</span> of the gradient <span class="math inline">\(\nabla f(W^k, b^k)\)</span> at iteration <span class="math inline">\(k\)</span>. The gradients are available via the chain rule applied to the superposition of semi-affine functions. The approximate gradient is estimated by calculating</p>
+<p><span class="math display">\[
+g^k = \frac{1}{|E_k|} \sum_{i \in E_k} \nabla \mathcal{L}_{w,b}( Y_i , \hat{Y}^k( X_i))
+\]</span></p>
+<p>where <span class="math inline">\(E_k \subset \{1,\ldots,T \}\)</span> and <span class="math inline">\(|E_k|\)</span> is the number of elements in <span class="math inline">\(E_k\)</span>.</p>
+<p>When <span class="math inline">\(|E_k| &gt;1\)</span> the algorithm is called batch SGD and simply SGD otherwise. Typically, the subset <span class="math inline">\(E\)</span> is chosen by going cyclically and picking consecutive elements of <span class="math inline">\(\{1,\ldots,T \}\)</span>, <span class="math inline">\(E_{k+1} = [E_k \mod T]+1\)</span>. The direction <span class="math inline">\(g^k\)</span> is calculated using a chain rule (a.k.a. back-propagation) providing an unbiased estimator of <span class="math inline">\(\nabla f(W^k, b^k)\)</span>. Specifically, we have</p>
+<p><span class="math display">\[
+\mathrm{E}(g^k) = \frac{1}{T} \sum_{i =1}^T \nabla \mathcal{L}_{w,b}( Y_i , \hat{Y}^k( X_i)) = \nabla f(W^k, b^k)
+\]</span></p>
+<p>At each iteration, the SGD updates the solution</p>
+<p><span class="math display">\[
+(W,b)^{k+1} = (W,b)^k - t_k g^k
+\]</span></p>
+<p>Deep learning algorithms use step size <span class="math inline">\(t_k\)</span> (a.k.a learning rate) that is either kept constant or a simple step size reduction strategy, such as <span class="math inline">\(t_k = a\exp(-kt)\)</span> is used. The hyper parameters of reduction schedule are usually found empirically from numerical experiments and observations of the loss function progression.</p>
+<p>One caveat of SGD is that the descent in <span class="math inline">\(f\)</span> is not guaranteed or can be very slow at every iteration. Stochastic Bayesian approaches ought to alleviate these issues. The variance of the gradient estimate <span class="math inline">\(g^k\)</span> can also be near zero as the iterates converge to a solution. To tackle those problems a coordinate descent (CD) and momentum-based modifications can be applied. Alternative directions method of multipliers (ADMM) can also provide a natural alternative and lead to non-linear alternating updates (see <span class="citation" data-cites="carreira-perpinan2014distributed">Carreira-Perpinán and Wang (<a href="references.html#ref-carreira-perpinan2014distributed" role="doc-biblioref">2014</a>)</span>).</p>
+<p>The CD evaluates a single component <span class="math inline">\(E_k\)</span> of the gradient <span class="math inline">\(\nabla f\)</span> at the current point and then updates the <span class="math inline">\(E_k\)</span>th component of the variable vector in the negative gradient direction. The momentum-based versions of SGD or so-called accelerated algorithms were originally proposed by <span class="citation" data-cites="nesterov1983method">Nesterov (<a href="references.html#ref-nesterov1983method" role="doc-biblioref">1983</a>)</span>. For more recent discussion, see <span class="citation" data-cites="nesterov2013introductory">Nesterov (<a href="references.html#ref-nesterov2013introductory" role="doc-biblioref">2013</a>)</span>. Momentum adds memory to the search process by combining new gradient information with the previous search directions. Empirically momentum-based methods have been shown a better convergence for deep learning networks <span class="citation" data-cites="sutskever2013importance">Sutskever et al. (<a href="references.html#ref-sutskever2013importance" role="doc-biblioref">2013</a>)</span>. The gradient only influences changes in the velocity of the update, which then updates the variable</p>
+<p><span class="math display">\[
+v^{k+1} = \mu v^k - t_k g((W,b)^k)
+\]</span> <span class="math display">\[
+(W,b)^{k+1} = (W,b)^k +v^k
+\]</span></p>
+<p>The hyper-parameter <span class="math inline">\(\mu\)</span> controls the damping effect on the rate of update of the variables. The physical analogy is the reduction in kinetic energy that allows to “slow down” the movements at the minima. This parameter can also be chosen empirically using cross-validation.</p>
+<p>Nesterov’s momentum method (a.k.a. Nesterov acceleration) calculates the gradient at the point predicted by the momentum. One can view this as a look-ahead strategy with updating scheme</p>
+<p><span class="math display">\[
+v^{k+1} = \mu v^k - t_k g((W,b)^k +v^k)
+\]</span> <span class="math display">\[
+(W,b)^{k+1} = (W,b)^k +v^k
+\]</span></p>
+<p>Another popular modification are the AdaGrad methods <span class="citation" data-cites="zeiler2012adadelta">Zeiler (<a href="references.html#ref-zeiler2012adadelta" role="doc-biblioref">2012</a>)</span>, which adaptively scales each of the learning parameter at each iteration</p>
+<p><span class="math display">\[
+c^{k+1} = c^k + g((W,b)^k)^2
+\]</span> <span class="math display">\[
+(W,b)^{k+1} = (W,b)^k - t_k g(W,b)^k)/(\sqrt{c^{k+1}} - a)
+\]</span></p>
+<p>where <span class="math inline">\(a\)</span> is usually a small number, e.g.&nbsp;<span class="math inline">\(a = 10^{-6}\)</span> that prevents from dividing by zero. <strong>RMSprop</strong> takes the AdaGrad idea further and puts more weight on recent values of gradient squared to scale the update direction:</p>
+<p><span class="math display">\[
+c^{k+1} =  dc^k + (1-d)g((W,b)^k)^2
+\]</span></p>
+<p>The <strong>Adam</strong> method <span class="citation" data-cites="kingma2014adam">Kingma and Ba (<a href="references.html#ref-kingma2014adam" role="doc-biblioref">2014</a>)</span> combines both RMSprop and momentum methods, it leads to the following update equations</p>
+<p><span class="math display">\[
+v^{k+1} = \mu v^k - (1-\mu)t_k g((W,b)^k +v^k)
+\]</span> <span class="math display">\[
+c^{k+1} = dc^k + (1-d)g((W,b)^k)^2
+\]</span> <span class="math display">\[
+(W,b)^{k+1} = (W,b)^k - t_k v^{k+1}/(\sqrt{c^{k+1}} - a)
+\]</span></p>
+<p>Second order methods solve the optimization problem by solving a system of nonlinear equations <span class="math inline">\(\nabla f(W,b) = 0\)</span> by applying the Newton’s method</p>
+<p><span class="math display">\[
+(W,b)^+ = (W,b) - \{ \nabla^2f(W,b) \}^{-1}\nabla f(W,b)
+\]</span></p>
+<p>We can see that SGD simply approximates <span class="math inline">\(\nabla^2f(W,b)\)</span> by <span class="math inline">\(1/t\)</span>. The advantages of a second order method include much faster convergence rates and insensitivity to the conditioning of the problem. In practice, second order methods are rarely used for deep learning applications <span class="citation" data-cites="dean2012large">Dean et al. (<a href="references.html#ref-dean2012large" role="doc-biblioref">2012</a>)</span>. The major disadvantage is inability to train model using batches of data as SGD does. Since typical deep learning model relies on large scale data sets, the second order methods become memory and computationally prohibitive at even modest-sized training data sets.</p>
+</section>
+<section id="why-robbins-monro" class="level2" data-number="22.7">
+<h2 data-number="22.7" class="anchored" data-anchor-id="why-robbins-monro"><span class="header-section-number">22.7</span> Why Robbins-Monro?</h2>
+<p>The Robbins-Monro algorithm was introduced in their seminal 1951 paper “A Stochastic Approximation Method” <span class="citation" data-cites="robbins1951stochastic">Robbins and Monro (<a href="references.html#ref-robbins1951stochastic" role="doc-biblioref">1951</a>)</span>. The paper addressed the problem of finding the root of a function when only noisy observations are available.</p>
+<p>Consider a function <span class="math inline">\(M(\theta)\)</span> where we want to find <span class="math inline">\(\theta^*\)</span> such that <span class="math inline">\(M(\theta^*) = \alpha\)</span> for some target value <span class="math inline">\(\alpha\)</span>. In the original formulation, <span class="math inline">\(M(\theta)\)</span> represents the expected value of some random variable <span class="math inline">\(Y(\theta)\)</span>:</p>
+<p><span class="math display">\[M(\theta) = \mathbb{E}[Y(\theta)] = \alpha\]</span></p>
+<p>The key insight is that we can only observe noisy realizations <span class="math inline">\(y(\theta)\)</span> where:</p>
+<p><span class="math display">\[y(\theta) = M(\theta) + \epsilon(\theta)\]</span></p>
+<p>where <span class="math inline">\(\epsilon(\theta)\)</span> is a zero-mean random error term.</p>
+<p>The Robbins-Monro algorithm iteratively updates the estimate <span class="math inline">\(\theta_n\)</span> using:</p>
+<p><span class="math display">\[\theta_{n+1} = \theta_n - a_n(y(\theta_n) - \alpha)\]</span></p>
+<p>where <span class="math inline">\(a_n\)</span> is a sequence of positive step sizes that must satisfy:</p>
+<p><span class="math display">\[\sum_{n=1}^{\infty} a_n = \infty \quad \text{and} \quad \sum_{n=1}^{\infty} a_n^2 &lt; \infty\]</span></p>
+<p>These conditions ensure that the algorithm can explore the entire space (first condition) while eventually converging (second condition).</p>
+<p>Under appropriate conditions on <span class="math inline">\(M(\theta)\)</span> (monotonicity and boundedness), the algorithm converges almost surely to <span class="math inline">\(\theta^*\)</span>:</p>
+<p><span class="math display">\[\lim_{n \to \infty} \theta_n = \theta^* \quad \text{almost surely}\]</span></p>
+<p>The convergence rate depends on the choice of step sizes. For <span class="math inline">\(a_n = c/n\)</span> with <span class="math inline">\(c &gt; 0\)</span>, the algorithm achieves optimal convergence rates.</p>
+<p>This foundational work established the theoretical basis for stochastic approximation methods that are now widely used in machine learning, particularly in stochastic gradient descent and related optimization algorithms.</p>
+<p>Inference on estimands can be expressed as the solution to a convex optimization problem. In addition to means, this includes medians, other quantiles, linear and logistic regression coefficients, and many other quantities. Formally, we consider estimands of the form</p>
+<p><span class="math display">\[\theta^* = \arg\min_{\theta \in \mathbb{R}^p} \mathbb{E}[\ell_\theta(X_i, Y_i)],\]</span></p>
+<p>for a loss function <span class="math inline">\(\ell_\theta: \mathcal{X} \times \mathcal{Y} \to \mathbb{R}\)</span> that is convex in <span class="math inline">\(\theta \in \mathbb{R}^p\)</span>, for some <span class="math inline">\(p \in \mathbb{N}\)</span>. Throughout, we take the existence of <span class="math inline">\(\theta^*\)</span> as given. If the minimizer is not unique, our method will return a confidence set guaranteed to contain all minimizers. Under mild conditions, convexity ensures that <span class="math inline">\(\theta^*\)</span> can also be expressed as the value solving <span id="eq-value-solving"><span class="math display">\[
+\mathbb{E}[g_\theta(X_i, Y_i)] = 0.
+\tag{22.1}\]</span></span></p>
+<p>where <span class="math inline">\(g_\theta: \mathcal{X} \times \mathcal{Y} \to \mathbb{R}^p\)</span> is a subgradient of <span class="math inline">\(\ell_\theta\)</span> with respect to <span class="math inline">\(\theta\)</span>. We will call convex estimation problems where <span class="math inline">\(\theta^*\)</span> satisfies <a href="#eq-value-solving" class="quarto-xref">Equation&nbsp;<span>22.1</span></a> nondegenerate, and we will later discuss mild conditions that ensure this regularity.</p>
+</section>
+<section id="the-em-ecm-and-ecme-algorithms" class="level2" data-number="22.8">
+<h2 data-number="22.8" class="anchored" data-anchor-id="the-em-ecm-and-ecme-algorithms"><span class="header-section-number">22.8</span> The EM, ECM, and ECME algorithms</h2>
+<p>MCMC methods have been used extensively to perform numerical integration. There is also interest in using simulation-based methods to optimise functions. The EM algorithm is an algorithm in a general class of Q-maximisation algorithms that finds a (deterministic) sequence <span class="math inline">\(\{\theta^{(g)}\}\)</span> converging to <span class="math inline">\(\arg\max_{\theta \in \Theta} Q(\theta)\)</span>.</p>
+<p>First, define a function <span class="math inline">\(Q(\theta,\phi)\)</span> such that <span class="math inline">\(Q(\theta) = Q(\theta,\theta)\)</span> and it satisfies a convexity constraint <span class="math inline">\(Q(\theta,\phi) \geq Q(\theta,\theta)\)</span>. Then define</p>
+<p><span class="math display">\[\theta^{(g+1)} = \arg\max_{\theta \in \Theta} Q(\theta,\theta^{(g)})\]</span></p>
+<p>This satisfies the convexity constraint <span class="math inline">\(Q(\theta,\theta) \geq Q(\theta,\phi)\)</span> for any <span class="math inline">\(\phi\)</span>. In order to prove convergence, you get a sequence of inequalities</p>
+<p><span class="math display">\[Q(\theta^{(0)},\theta^{(0)}) \leq Q(\theta^{(1)},\theta^{(0)}) \leq Q(\theta^{(1)},\theta^{(1)}) \leq \ldots \leq Q\]</span></p>
+<p>In many models we have to deal with a latent variable and require estimation where integration is also involved. For example, suppose that we have a triple <span class="math inline">\((y,z,\theta)\)</span> with joint probability specification <span class="math inline">\(p(y,z,\theta) = p(y|z,\theta)p(z,\theta)\)</span>. This can occur in missing data problems and estimation problems in mixture models.</p>
+<p>A standard application of the EM algorithm is to find</p>
+<p><span class="math display">\[\arg\max_{\theta \in \Theta} \int_z p(y|z,\theta)p(z|\theta)dz\]</span></p>
+<p>As we are just finding an optimum, you do not need the prior specification <span class="math inline">\(p(\theta)\)</span>. The EM algorithm finds a sequence of parameter values <span class="math inline">\(\theta^{(g)}\)</span> by alternating between an expectation and a maximisation step. This still requires the numerical (or analytical) computation of the criteria function <span class="math inline">\(Q(\theta,\theta^{(g)})\)</span> described below.</p>
+<p>EM algorithms have been used extensively in mixture models and missing data problems. The EM algorithm uses the particular choice where</p>
+<p><span class="math display">\[Q(\theta) = \log p(y|\theta) = \log \int p(y,z|\theta)dz\]</span></p>
+<p>Here the likelihood has a mixture representation where <span class="math inline">\(z\)</span> is the latent variable (missing data, state variable etc.). This is termed a Q-maximization algorithm with:</p>
+<p><span class="math display">\[Q(\theta,\theta^{(g)}) = \int \log p(y|z,\theta)p(z|\theta^{(g)},y)dz = \mathbb{E}_{z|\theta^{(g)},y} [\log p(y|z,\theta)]\]</span></p>
+<p>To implement EM you need to be able to calculate <span class="math inline">\(Q(\theta,\theta^{(g)})\)</span> and optimize at each iteration.</p>
+<p>The EM algorithm and its extensions ECM and ECME are methods of computing maximum likelihood estimates or posterior modes in the presence of missing data. Let the objective function be <span class="math inline">\(\ell(\theta) = \log p(\theta|y) + c(y)\)</span>, where <span class="math inline">\(c(y)\)</span> is a possibly unknown normalizing constant that does not depend on <span class="math inline">\(\beta\)</span> and <span class="math inline">\(y\)</span> denotes observed data. We have a mixture representation,</p>
+<p><span class="math display">\[p(\theta|y) = \int p(\theta,z|y)dz = \int p(\theta|z,y)p(z|y)dz\]</span></p>
+<p>where distribution of the latent variables is <span class="math inline">\(p(z|\theta,y) = p(y|\theta,z)p(z|\theta)/p(y|\theta)\)</span>.</p>
+<p>In some cases the complete data log-posterior is simple enough for <span class="math inline">\(\arg\max_{\theta} \log p(\theta|z,y)\)</span> to be computed in closed form. The EM algorithm alternates between the Expectation and Maximization steps for which it is named. The E-step and M-step computes</p>
+<p><span class="math display">\[Q(\beta|\beta^{(g)}) = \mathbb{E}_{z|\beta^{(g)},y} [\log p(y,z|\beta)] = \int \log p(y,z|\beta)p(z|\beta^{(g)},y)dz\]</span></p>
+<p><span class="math display">\[\beta^{(g+1)} = \arg\max_{\beta} Q(\beta|\beta^{(g)})\]</span></p>
+<p>This has an important monotonicity property that ensures <span class="math inline">\(\ell(\beta^{(g)}) \leq \ell(\beta^{(g+1)})\)</span> for all <span class="math inline">\(g\)</span>. In fact, the monotonicity proof given by Dempster et al.&nbsp;(1977) shows that any <span class="math inline">\(\beta\)</span> with <span class="math inline">\(Q(\beta,\beta^{(g)}) \geq Q(\beta^{(g)},\beta^{(g)})\)</span> also satisfies the log-likelihood inequality <span class="math inline">\(\ell(\beta) \geq \ell(\beta^{(g)})\)</span>.</p>
+<p>In problems with many parameters the M-step of EM may be difficult. In this case <span class="math inline">\(\theta\)</span> may be partitioned into components <span class="math inline">\((\theta_1,\ldots,\theta_k)\)</span> in such a way that maximizing <span class="math inline">\(\log p(\theta_j|\theta_{-j},z,y)\)</span> is easy. The ECM algorithm pairs the EM algorithm’s E-step with <span class="math inline">\(k\)</span> conditional maximization (CM) steps, each maximizing <span class="math inline">\(Q\)</span> over one component <span class="math inline">\(\theta_j\)</span> with each component of <span class="math inline">\(\theta_{-j}\)</span> fixed at the most recent value. Due to the fact that each CM step increases <span class="math inline">\(Q\)</span>, the ECM algorithm retains the monotonicity property. The ECME algorithm replaces some of ECM’s CM steps with maximizations over <span class="math inline">\(\ell\)</span> instead of <span class="math inline">\(Q\)</span>. Liu and Rubin (1994) show that doing so can greatly increase the rate of convergence.</p>
+<p>In many cases we will have a parameter vector <span class="math inline">\(\theta = (\beta,\nu)\)</span> partitioned into its components and a missing data vector <span class="math inline">\(z = (\lambda,\omega)\)</span>. Then we compute the <span class="math inline">\(Q(\beta,\nu|\beta^{(g)},\nu^{(g)})\)</span> objective function and then compute E- and M steps from this to provide an iterative algorithm for updating parameters. To update the hyperparameter <span class="math inline">\(\nu\)</span> we can maximize the fully data posterior <span class="math inline">\(p(\beta,\nu|y)\)</span> with <span class="math inline">\(\beta\)</span> fixed at <span class="math inline">\(\beta^{(g+1)}\)</span>. The algorithm can be summarized as follows:</p>
+<p><span class="math display">\[\beta^{(g+1)} = \arg\max_{\beta} Q(\beta|\beta^{(g)},\nu^{(g)}) \quad \text{where} \quad Q(\beta|\beta^{(g)},\nu^{(g)}) = \mathbb{E}_{z|\beta^{(g)},\nu^{(g)},y} \log p(y,z|\beta,\nu^{(g)})\]</span></p>
+<p><span class="math display">\[\nu^{(g+1)} = \arg\max_{\nu} \log p(\beta^{(g+1)},\nu|y)\]</span></p>
+<div id="exm-simulated-annealing" class="theorem example">
+<p><span class="theorem-title"><strong>Example 22.1</strong></span> Simulated Annealing (SA) is a simulation-based approach to finding</p>
+<p><span class="math display">\[\hat{\theta} = \arg\max_{\theta \in \Theta} H(\theta)\]</span></p>
+<p><span class="math display">\[\pi_J(\theta) = \frac{e^{-JH(\theta)}}{\int e^{JH(\theta)}d\mu(\theta)}\]</span></p>
+<p>where <span class="math inline">\(J\)</span> is a temperature parameter. Instead of looking at derivatives and performing gradient-based optimization you can simulate from the sequence of densities. This forms a time-homogeneous Markov chain and under suitable regularity conditions on the relaxation schedule for the temperature we have <span class="math inline">\(\theta^{(g)} \to \hat{\theta}\)</span>. The main caveat is that we need to know the criterion function <span class="math inline">\(H(\theta)\)</span> to evaluate the Metropolis probability for sampling from the sequence of densities. This is not always available.</p>
+<p>An interesting generalisation which is appropriate in latent variable mixture models is the following. Suppose that <span class="math inline">\(H(\theta) = \mathbb{E}_{z|\theta} \{H(z,\theta)\}\)</span> is unavailable in closed-form where without loss of generality we assume that <span class="math inline">\(H(z,\theta) \geq 0\)</span>. In this case we can use latent variable simulated annealing (LVSA) methods. Define a joint probability distribution for <span class="math inline">\(z_J = (z_1,\ldots,z_J)\)</span> as</p>
+<p><span class="math display">\[\pi_J(z_J,\theta) \propto \prod_{j=1}^J H(z_j,\theta)p(z_j|\theta)\mu(\theta)\]</span></p>
+<p>for some measure <span class="math inline">\(\mu\)</span> which ensures integrability of the joint. This distribution has the property that its marginal distribution on <span class="math inline">\(\theta\)</span> is given by</p>
+<p><span class="math display">\[\pi_J(\theta) \propto \mathbb{E}_{z|\theta} \{H(z,\theta)\}^J \mu(\theta) = e^{J \ln H(\theta)}\mu(\theta)\]</span></p>
+<p>By the simulated annealing argument we see that this marginal collapses on the maximum of <span class="math inline">\(\ln H(\theta)\)</span>. The advantage of this approach is that it is typically straightforward to sample with MCMC from the conditionals</p>
+<p><span class="math display">\[\pi_J(z_i|\theta) \sim H(z_j,\theta)p(z_j|\theta) \quad \text{and} \quad \pi_J(\theta|z) \sim \prod_{j=1}^J H(z_j,\theta)p(z_j|\theta)\mu(\theta)\]</span></p>
+</div>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bottou2018optimization" class="csl-entry" role="listitem">
+Bottou, Léon, Frank E Curtis, and Jorge Nocedal. 2018. <span>“Optimization Methods for Large-Scale Machine Learning.”</span> <em>SIAM Review</em> 60 (2): 223–311.
+</div>
+<div id="ref-bryson1961gradient" class="csl-entry" role="listitem">
+Bryson, Arthur E. 1961. <span>“A Gradient Method for Optimizing Multi-Stage Allocation Processes.”</span> In <em>Proc. <span>Harvard Univ</span>. <span>Symposium</span> on Digital Computers and Their Applications</em>. Vol. 72.
+</div>
+<div id="ref-carreira-perpinan2014distributed" class="csl-entry" role="listitem">
+Carreira-Perpinán, Miguel A, and Weiran Wang. 2014. <span>“Distributed Optimization of Deeply Nested Systems.”</span> In <em><span>AISTATS</span></em>, 10–19.
+</div>
+<div id="ref-dean2012large" class="csl-entry" role="listitem">
+Dean, Jeffrey, Greg Corrado, Rajat Monga, Kai Chen, Matthieu Devin, Mark Mao, Andrew Senior, et al. 2012. <span>“Large Scale Distributed Deep Networks.”</span> In <em>Advances in Neural Information Processing Systems</em>, 1223–31.
+</div>
+<div id="ref-dreyfus1962numerical" class="csl-entry" role="listitem">
+Dreyfus, Stuart. 1962. <span>“The Numerical Solution of Variational Problems.”</span> <em>Journal of Mathematical Analysis and Applications</em> 5 (1): 30–45.
+</div>
+<div id="ref-dreyfus1973computational" class="csl-entry" role="listitem">
+———. 1973. <span>“The Computational Solution of Optimal Control Problems with Time Lag.”</span> <em>IEEE Transactions on Automatic Control</em> 18 (4): 383–85.
+</div>
+<div id="ref-griewank2012numerical" class="csl-entry" role="listitem">
+Griewank, Andreas, Kshitij Kulshreshtha, and Andrea Walther. 2012. <span>“On the Numerical Stability of Algorithmic Differentiation.”</span> <em>Computing. Archives for Scientific Computing</em> 94 (2-4): 125–49.
+</div>
+<div id="ref-hardt2016train" class="csl-entry" role="listitem">
+Hardt, Moritz, Ben Recht, and Yoram Singer. 2016. <span>“Train Faster, Generalize Better: <span>Stability</span> of Stochastic Gradient Descent.”</span> In <em>International Conference on Machine Learning</em>, 1225–34. PMLR.
+</div>
+<div id="ref-keskar2016largebatch" class="csl-entry" role="listitem">
+Keskar, Nitish Shirish, Dheevatsa Mudigere, Jorge Nocedal, Mikhail Smelyanskiy, and Ping Tak Peter Tang. 2016. <span>“On Large-Batch Training for Deep Learning: <span>Generalization</span> Gap and Sharp Minima.”</span> <em>arXiv Preprint arXiv:1609.04836</em>. <a href="https://arxiv.org/abs/1609.04836">https://arxiv.org/abs/1609.04836</a>.
+</div>
+<div id="ref-kingma2014adam" class="csl-entry" role="listitem">
+Kingma, Diederik, and Jimmy Ba. 2014. <span>“Adam: <span>A</span> Method for Stochastic Optimization.”</span> <em>arXiv Preprint arXiv:1412.6980</em>. <a href="https://arxiv.org/abs/1412.6980">https://arxiv.org/abs/1412.6980</a>.
+</div>
+<div id="ref-lecun2002efficient" class="csl-entry" role="listitem">
+LeCun, Yann, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. 2002. <span>“Efficient Backprop.”</span> In <em>Neural Networks: <span>Tricks</span> of the Trade</em>, 9–50. Springer.
+</div>
+<div id="ref-linnainmaa1970representation" class="csl-entry" role="listitem">
+Linnainmaa, Seppo. 1970. <span>“The Representation of the Cumulative Rounding Error of an Algorithm as a <span>Taylor</span> Expansion of the Local Rounding Errors.”</span> <em>Master’s Thesis (in Finnish), Univ. Helsinki</em>, 6–7.
+</div>
+<div id="ref-nesterov1983method" class="csl-entry" role="listitem">
+Nesterov, Yurii. 1983. <span>“A Method of Solving a Convex Programming Problem with Convergence Rate <span>O</span> (1/K2).”</span> In <em>Soviet <span>Mathematics Doklady</span></em>, 27:372–76.
+</div>
+<div id="ref-nesterov2013introductory" class="csl-entry" role="listitem">
+———. 2013. <em>Introductory Lectures on Convex Optimization: <span>A</span> Basic Course</em>. Vol. 87. Springer Science &amp; Business Media.
+</div>
+<div id="ref-ostrovskii1971uber" class="csl-entry" role="listitem">
+Ostrovskii, GM, Yu M Volin, and WW Borisov. 1971. <span>“Uber Die Berechnung von Ableitungen.”</span> <em>Wissenschaftliche Zeitschrift Der Technischen Hochschule f Ur Chemie, Leuna-Merseburg</em> 13 (4): 382–84.
+</div>
+<div id="ref-robbins1951stochastic" class="csl-entry" role="listitem">
+Robbins, Herbert, and Sutton Monro. 1951. <span>“A Stochastic Approximation Method.”</span> <em>The Annals of Mathematical Statistics</em> 22 (3): 400–407.
+</div>
+<div id="ref-rumelhart1986learning" class="csl-entry" role="listitem">
+Rumelhart, David E, Geoffrey E Hinton, and Ronald J Williams. 1986. <span>“Learning Representations by Back-Propagating Errors.”</span> <em>Nature</em> 323 (6088): 533.
+</div>
+<div id="ref-schmidhuber2015deep" class="csl-entry" role="listitem">
+Schmidhuber, Jürgen. 2015. <span>“Deep Learning in Neural Networks: <span>An</span> Overview.”</span> <em>Neural Networks</em> 61: 85–117.
+</div>
+<div id="ref-sutskever2013importance" class="csl-entry" role="listitem">
+Sutskever, Ilya, James Martens, George Dahl, and Geoffrey Hinton. 2013. <span>“On the Importance of Initialization and Momentum in Deep Learning.”</span> In <em>International Conference on Machine Learning</em>, 1139–47.
+</div>
+<div id="ref-werbos1974regression" class="csl-entry" role="listitem">
+Werbos, Paul. 1974. <span>“Beyond Regression:" New Tools for Prediction and Analysis in the Behavioral Sciences.”</span> <em>Ph. D. Dissertation, Harvard University</em>.
+</div>
+<div id="ref-werbos1982applications" class="csl-entry" role="listitem">
+Werbos, Paul J. 1982. <span>“Applications of Advances in Nonlinear Sensitivity Analysis.”</span> In <em>System Modeling and Optimization</em>, 762–70. Springer.
+</div>
+<div id="ref-zeiler2012adadelta" class="csl-entry" role="listitem">
+Zeiler, Matthew D. 2012. <span>“<span>ADADELTA</span>: An Adaptive Learning Rate Method.”</span> <em>arXiv Preprint arXiv:1212.5701</em>. <a href="https://arxiv.org/abs/1212.5701">https://arxiv.org/abs/1212.5701</a>.
+</div>
+</div>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./21-nn.html" class="pagination-link" aria-label="Neural Networks">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Neural Networks</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./24-qnn.html" class="pagination-link" aria-label="Quantile Neural Networks">
+        <span class="nav-page-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Quantile Neural Networks</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
