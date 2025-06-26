@@ -448,35 +448,40 @@ window.Quarto = {
 <span class="math display">\[
 R(f) = \sum_{i=1}^N  l(y_i,f(x_i)) + \lambda \phi(f)
 \]</span> where <span class="math inline">\(l\)</span> is a loss function, <span class="math inline">\(\phi\)</span> is a regularization function, and <span class="math inline">\(\lambda\)</span> is a regularization parameter. The loss function <span class="math inline">\(L\)</span> measures the difference between the output of the function <span class="math inline">\(f\)</span> and the true output <span class="math inline">\(y\)</span>. The regularization function <span class="math inline">\(\phi\)</span> measures the complexity of the function <span class="math inline">\(f\)</span>. The regularization parameter <span class="math inline">\(\lambda\)</span> controls the tradeoff between the loss and the complexity.</p>
-<p>When <span class="math inline">\(y\in R\)</span> is numeric, we use the squared loss <span class="math inline">\(l(y,f(x)) = (f(x)-y)^2\)</span>. When <span class="math inline">\(y\in \{0,1\}\)</span> is binary, we use the logistic loss <span class="math inline">\(l(y,f(x)) = \log(1+\exp(-yf(x)))\)</span>.</p>
-<p>The problem of finding a good model boils down to finding <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\phi\)</span> that minimize the risk. There are two main approaches to finding a good model:</p>
+<section id="choice-of-loss-penalty-and-regularisation" class="level2" data-number="12.1">
+<h2 data-number="12.1" class="anchored" data-anchor-id="choice-of-loss-penalty-and-regularisation"><span class="header-section-number">12.1</span> Choice of loss, penalty and regularisation</h2>
+<section id="loss" class="level3" data-number="12.1.1">
+<h3 data-number="12.1.1" class="anchored" data-anchor-id="loss"><span class="header-section-number">12.1.1</span> Loss</h3>
+<p>When <span class="math inline">\(y\in R\)</span> is numeric, we use the squared loss <span class="math inline">\(l(y,f(x)) = (y-f(x))^2\)</span>. When <span class="math inline">\(y\in \{0,1\}\)</span> is binary, we use the logistic loss <span class="math inline">\(l(y,f(x)) = \log(1+\exp(-yf(x)))\)</span>.</p>
+<p>One can interpret the empirical loss as the negative log-likelihood from a probabilistic model specified for the data generating process. This provides insights into which loss to use; for example, normal errors corresponds to squared loss and a binary likelihood to a logistic loss.</p>
+</section>
+<section id="penalty-and-regularisation" class="level3" data-number="12.1.2">
+<h3 data-number="12.1.2" class="anchored" data-anchor-id="penalty-and-regularisation"><span class="header-section-number">12.1.2</span> Penalty and Regularisation</h3>
+<p>The problem of finding a good model boils down to finding <span class="math inline">\(\phi\)</span> that minimize some form of Bayes risk for the problem at hand.</p>
+<p>There are a number of commonly used penalty functions (a.k.a. log prior density). For example, the $ l^2$-norm corresponds to s normal prior. The resulting Bayes rule will take the form of a shrinkage estimator, a weighted combination between data and prior beliefs about the parameter. An $ l^1 $-norm will induce a sparse solution in the estimator and can be used an a variable selection operator. The $ l_0 $-norm directly induces a subset selection procedure.</p>
+<p>The amount of regularisation $ $ gauges the trade-off between the compromise between the observed data and the initial prior beliefs.</p>
+<p>There are two main approaches to finding a good model:</p>
 <ul>
 <li>Full Bayes: This approach places a prior distribution on the parameters and computes the full posterior distribution.</li>
 <li>Regularization Methods: These approaches add penalty terms to the objective function to control model complexity. Common examples include ridge regression (L2 penalty), lasso regression (L1 penalty), and elastic net (combination of L1 and L2 penalties).</li>
 </ul>
-<p>The canonical problem is estimaiton of the normal means problem. Here we have <span class="math inline">\(y_i = \theta_i + e_i,~i=1,\ldots,p\)</span> and <span class="math inline">\(e_i \sim N(0, \sigma^2)\)</span>. The goal is to estimate the vector of means <span class="math inline">\(\theta = (\theta_1, \ldots, \theta_p)\)</span>. This is also a proxy for non-parametric regression, where <span class="math inline">\(\theta_i = f(x_i)\)</span>. Aslo typically <span class="math inline">\(y_i\)</span> is a mean of <span class="math inline">\(n\)</span> observations, i.e.&nbsp;<span class="math inline">\(y_i = \frac{1}{n} \sum_{j=1}^n x_{ij}\)</span>. Much has been written on the properties of the Bayes risk as a function of <span class="math inline">\(n\)</span> and <span class="math inline">\(p\)</span>. Much work has also been done on the asymptotic properties of the Bayes risk as <span class="math inline">\(n\)</span> and <span class="math inline">\(p\)</span> grow to infinity. We now sumamrise some of the standard risk results.</p>
-<section id="james-stein-estimator" class="level2" data-number="12.1">
-<h2 data-number="12.1" class="anchored" data-anchor-id="james-stein-estimator"><span class="header-section-number">12.1</span> James-Stein Estimator</h2>
-<p>The classic James-Stein shrinkage rule, <span class="math inline">\(\hat y_{js}\)</span>, uniformly dominates the traditional sample mean estimator, <span class="math inline">\(\hat{\theta}\)</span>, for all values of the true parameter <span class="math inline">\(\theta\)</span>. In classical MSE risk terms: <span class="math display">\[
-R(\hat y_{js}, \theta) \defeq E_{y|\theta} {\Vert \hat y_{js} - \theta \Vert}^2 &lt; p
-    = E_{y|\theta} {\Vert y - \theta \Vert}^2, \;\;\; \forall \theta
-\]</span> For a sparse signal, however, <span class="math inline">\(\hat y_{js}\)</span> performs poorly when the true parameter is an <span class="math inline">\(r\)</span>-spike where <span class="math inline">\(\theta_r\)</span> has <span class="math inline">\(r\)</span> coordinates at <span class="math inline">\(\sqrt{p/r}\)</span> and the rest set at zero with norm <span class="math inline">\({\Vert \theta_r \Vert}^2 =p\)</span>.</p>
-<p>The classical risk satisfies <span class="math inline">\(R \left ( \hat y_{js} , \theta_r \right ) \geq p/2\)</span> where the simple thresholding rule <span class="math inline">\(\sqrt{2 \ln p}\)</span> performs with risk <span class="math inline">\(\sqrt{\ln p}\)</span> in the <span class="math inline">\(r\)</span>-spike sparse case even though it is inadmissible in MSE for a non-sparse signal.</p>
 </section>
-<section id="r-spike-problem" class="level2" data-number="12.2">
-<h2 data-number="12.2" class="anchored" data-anchor-id="r-spike-problem"><span class="header-section-number">12.2</span> R-spike Problem</h2>
+</section>
+<section id="normal-means-problem" class="level2" data-number="12.2">
+<h2 data-number="12.2" class="anchored" data-anchor-id="normal-means-problem"><span class="header-section-number">12.2</span> Normal Means Problem</h2>
+<p>The canonical problem is estimation in the normal means problem. Suppose that we have <span class="math inline">\(y_i = \theta_i + e_i,~i=1,\ldots,p\)</span> and <span class="math inline">\(e_i \sim N(0, \sigma^2)\)</span>. The goal is to estimate the vector of means <span class="math inline">\(\theta = (\theta_1, \ldots, \theta_p)\)</span>. This is also a proxy for non-parametric regression, where <span class="math inline">\(\theta_i = f(x_i)\)</span>. Also typically <span class="math inline">\(y_i\)</span> is a mean of <span class="math inline">\(n\)</span> observations, i.e.&nbsp;<span class="math inline">\(y_i = \frac{1}{n} \sum_{j=1}^n x_{ij}\)</span>. Much has been written on the properties of the Bayes risk as a function of <span class="math inline">\(n\)</span> and <span class="math inline">\(p\)</span>. Much work has also been done on the asymptotic properties of the Bayes risk as <span class="math inline">\(n\)</span> and <span class="math inline">\(p\)</span> grow to infinity. We now summarise some of the standard risk results.</p>
+<section id="james-stein-estimator" class="level3" data-number="12.2.1">
+<h3 data-number="12.2.1" class="anchored" data-anchor-id="james-stein-estimator"><span class="header-section-number">12.2.1</span> James-Stein Estimator</h3>
+<p>The classic James-Stein shrinkage rule, <span class="math inline">\(\hat \thea_{JS}\)</span>, uniformly dominates the traditional sample mean estimator, <span class="math inline">\(\hat{\theta}\)</span>, for all values of the true parameter <span class="math inline">\(\theta\)</span>. In classical MSE risk terms: <span class="math display">\[
+R(\hat \theta_{JS}, \theta) \defeq E_{y|\theta} {\Vert \hat \theta_{JS} - \theta \Vert}^2 &lt; p
+    = E_{y|\theta} {\Vert y - \theta \Vert}^2, \;\;\; \forall \theta
+\]</span></p>
 <p>From a historical perspective, James-Stein (a.k.a <span class="math inline">\(L^2\)</span>-regularisation)<span class="citation" data-cites="stein1964inadmissibility">(<a href="#ref-stein1964inadmissibility" role="doc-biblioref">Stein 1964</a>)</span> is only a global shrinkage rule–in the sense that there are no local parameters to learn about sparsity. A simple sparsity example shows the issue with <span class="math inline">\(L^2\)</span>-regularisation. Consider the sparse <span class="math inline">\(r\)</span>-spike shows the problem with focusing solely on rules with the same shrinkage weight (albeit benefiting from pooling of information).</p>
 <p>Let the true parameter value be <span class="math inline">\(\theta_p = \left ( \sqrt{d/p} , \ldots , \sqrt{d/p} , 0 , \ldots , 0 \right )\)</span>. James-Stein is equivalent to the model <span class="math display">\[
 y_i = \theta_i + \epsilon_i \; \mathrm{ and} \; \theta_i \sim \mathcal{N} \left ( 0 , \tau^2 \right )
-\]</span> This dominates the plain MLE but loses admissibility! This is due to the fact that a “plug-in” estimate of global shrinkage <span class="math inline">\(\hat{\tau}\)</span> is used. Tiao and Tan’s original “closed-form” analysis is particularly relevant here. They point out that the mode of <span class="math inline">\(p(\tau^2|y)\)</span> is zero exactly when the shrinkage weight turns negative (their condition 6.6). From a risk perspective <span class="math inline">\(E \Vert \hat{\theta}^{JS} - \theta \Vert \leq p , \forall \theta\)</span> showing the inadmissibility of the MLE. At origin the risk is <span class="math inline">\(2\)</span>, <strong>but!</strong> <span class="math display">\[
-\frac{p \Vert \theta \Vert^2}{p + \Vert \theta \Vert^2} \leq R \left ( \hat{\theta}^{JS} , \theta_p \right ) \leq
-2 + \frac{p \Vert \theta \Vert^2}{ d + \Vert \theta \Vert^2}.
-\]</span> This implies that <span class="math inline">\(R \left ( \hat{\theta}^{JS} , \theta_p \right ) \geq (p/2)\)</span>. Hence, simple thresholding rule beats James-Stein this with a risk given by <span class="math inline">\(\sqrt{\log p }\)</span>. This simple example, shows that the choice of penalty should not be taken for granted as different estimators will have different risk profiles.</p>
-<p>The horseshoe estimator, which we will discuss in more detail later, <span class="math inline">\(\hat y_{hs}\)</span>, was proposed by <span class="citation" data-cites="carvalho2010horseshoe">Carvalho, Polson, and Scott (<a href="#ref-carvalho2010horseshoe" role="doc-biblioref">2010</a>)</span> to provide a Bayes rule that inherits good MSE properties but also simultaneously provides asymptotic minimax estimation risk for sparse signals. HS estimator uniformly dominates the traditional sample mean estimator in MSE and has good posterior concentration properties for nearly black objects. Specifically, the horseshoe estimator attains asymptotically minimax risk rate <span class="math display">\[
-\sup_{ \theta \in l_0[p_n] } \;
-\mathbb{E}_{ y | \theta } \|\hat y_{hs} - \theta \|^2 \asymp
-p_n \log \left ( n / p_n \right ).
-\]</span> The “worst’’ <span class="math inline">\(\theta\)</span> is obtained at the maximum difference between <span class="math inline">\(\left| \hat y_{hs} - y \right|\)</span> where <span class="math inline">\(\hat y_{hs} = \mathbb{E}(\theta|y)\)</span> can be interpreted as a Bayes posterior mean (optimal under Bayes MSE).</p>
+\]</span> This dominates the plain MLE but loses admissibility! This is due to the fact that a “plug-in” estimate of global shrinkage <span class="math inline">\(\hat{\tau}\)</span> is used.</p>
+<p>From a risk perspective <span class="math inline">\(E \Vert \hat{\theta}^{JS} - \theta \Vert \leq p , \forall \theta\)</span> showing the inadmissibility of the MLE. At origin the risk is <span class="math inline">\(2\)</span>.</p>
+</section>
 </section>
 <section id="ell_2-shrinkage" class="level2" data-number="12.3">
 <h2 data-number="12.3" class="anchored" data-anchor-id="ell_2-shrinkage"><span class="header-section-number">12.3</span> <span class="math inline">\(\ell_2\)</span> Shrinkage</h2>
@@ -491,12 +496,39 @@ p_n \log \left ( n / p_n \right ).
 \]</span> This is a general property of Bayes estimators, they are functions of the MLE. This is a consequence of the fact that the posterior distribution is a function of the likelihood and the prior. The Bayes estimator is a function of the MLE <span class="math display">\[
 \widehat{\theta}=\frac{\sigma^{2}}{\sigma^{2}+n}\bar{y}+\frac{n}{\sigma^{2}+n}\widehat{\theta}.
 \]</span> This is a general property of Bayes estimators, they are functions of the MLE. This is a consequence of the fact that the posterior distribution is a function of the likelihood and the prior.</p>
-<p>The original JS estimator shranks to zero and estimates prior variance using empirical Bayes (marginal MLE or Type II MLE). Efron and MOrris and Lindley showed that you want o shrink to overall mean <span class="math inline">\(\bar y\)</span> and in this approach <span class="math display">\[
+</div>
+<p>The original JS estimator shranks to zero and estimates prior variance using empirical Bayes (marginal MLE or Type II MLE). Efron and Morris and Lindley showed that you want o shrink to overall mean <span class="math inline">\(\bar y\)</span> and in this approach <span class="math display">\[
 \theta \sim N(\mu,\tau^2).
-\]</span> The original JS is <span class="math inline">\(\mu=0\)</span>. To estimate the <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\tau\)</span> you can do full Bayes or empirical Bayes that shrinks to overall grand mean <span class="math inline">\(\bar y\)</span>, whcih serves as the estimate of the original prior mean <span class="math inline">\(\mu\)</span>. It seems paradoxical that you estimate propr from the data. However, this is not the case. You simply use mixture prior <span class="citation" data-cites="diaconis1983quantifying">Diaconis and Ylvisaker (<a href="#ref-diaconis1983quantifying" role="doc-biblioref">1983</a>)</span> with marginal MLE (MMLE). The MMLE is the product <span class="math display">\[
+\]</span> The original JS is <span class="math inline">\(\mu=0\)</span>. To estimate the <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\tau\)</span> you can do full Bayes or empirical Bayes that shrinks to overall grand mean <span class="math inline">\(\bar y\)</span>, which serves as the estimate of the original prior mean <span class="math inline">\(\mu\)</span>. It seems paradoxical that you estimate propr from the data. However, this is not the case. You simply use mixture prior <span class="citation" data-cites="diaconis1983quantifying">Diaconis and Ylvisaker (<a href="#ref-diaconis1983quantifying" role="doc-biblioref">1983</a>)</span> with marginal MLE (MMLE). The MMLE is the product <span class="math display">\[
 \int_{\theta_i}\prod_{i=1}^k p(\bar y_i \mid \theta_i)p(\theta_i \mid \mu, \tau^2).
 \]</span></p>
-<p>We reproduce the baseball bartting average example from <span class="citation" data-cites="efron1977steins">Efron and Morris (<a href="#ref-efron1977steins" role="doc-biblioref">1977</a>)</span>. Data below has the number of hits for 18 baseball player after 45 at-beat in 1970 season</p>
+<section id="sparse-r-spike-problem" class="level3" data-number="12.3.1">
+<h3 data-number="12.3.1" class="anchored" data-anchor-id="sparse-r-spike-problem"><span class="header-section-number">12.3.1</span> Sparse <span class="math inline">\(r\)</span>-spike problem</h3>
+<p>For the sparse <span class="math inline">\(r\)</span>-spike problem we require a different rule. For a sparse signal, however, <span class="math inline">\(\hat \theta_{JS}\)</span> performs poorly when the true parameter is an <span class="math inline">\(r\)</span>-spike where <span class="math inline">\(\theta_r\)</span> has <span class="math inline">\(r\)</span> coordinates at <span class="math inline">\(\sqrt{p/r}\)</span> and the rest set at zero with norm <span class="math inline">\({\Vert \theta_r \Vert}^2 =p\)</span>.</p>
+<p>The classical risk satisfies <span class="math inline">\(R \left ( \hat \theta_{JS} , \theta_r \right ) \geq p/2\)</span> where the simple thresholding rule <span class="math inline">\(\sqrt{2 \ln p}\)</span> performs with risk <span class="math inline">\(\sqrt{\ln p}\)</span> in the <span class="math inline">\(r\)</span>-spike sparse case even though it is inadmissible in MSE for a non-sparse signal. Then is due to the fact that for $ _p $ we have <span class="math display">\[
+\frac{p \Vert \theta \Vert^2}{p + \Vert \theta \Vert^2} \leq R \left ( \hat{\theta}^{JS} , \theta_p \right ) \leq
+2 + \frac{p \Vert \theta \Vert^2}{ d + \Vert \theta \Vert^2}.
+\]</span> This implies that <span class="math inline">\(R \left ( \hat{\theta}^{JS} , \theta_p \right ) \geq (p/2)\)</span>. Hence, simple thresholding rule beats James-Stein this with a risk given by <span class="math inline">\(\sqrt{\log p }\)</span>. This simple example, shows that the choice of penalty should not be taken for granted as different estimators will have different risk profiles.</p>
+<p>A Bayes rule that inherits good MSE properties but also simultaneously provides asymptotic minimax estimation risk for sparse signals. HS estimator uniformly dominates the traditional sample mean estimator in MSE and has good posterior concentration properties for nearly black objects. Specifically, the horseshoe estimator attains asymptotically minimax risk rate <span class="math display">\[
+\sup_{ \theta \in l_0[p_n] } \;
+\mathbb{E}_{ y | \theta } \|\hat y_{hs} - \theta \|^2 \asymp
+p_n \log \left ( n / p_n \right ).
+\]</span> The “worst’’ <span class="math inline">\(\theta\)</span> is obtained at the maximum difference between <span class="math inline">\(\left| \hat \theta_{HS} - y \right|\)</span> where <span class="math inline">\(\hat \theta_{HS} = \mathbb{E}(\theta|y)\)</span> can be interpreted as a Bayes posterior mean (optimal under Bayes MSE).</p>
+<p>One such estimator that achieves the optimal minimax rate is the horseshoe estimator proposed by <span class="citation" data-cites="carvalho2010horseshoe">Carvalho, Polson, and Scott (<a href="#ref-carvalho2010horseshoe" role="doc-biblioref">2010</a>)</span> t</p>
+</section>
+<section id="efron-example" class="level3" data-number="12.3.2">
+<h3 data-number="12.3.2" class="anchored" data-anchor-id="efron-example"><span class="header-section-number">12.3.2</span> Efron Example</h3>
+<p>Efron provide an example which shows the importance of specifying priors in high dimensions. The key idea behind James-Stein shrinkage is that one when one can “borrow strength” across components. In this sense the multivariate parameter estimation problem is easier than the univariate one.</p>
+<p>Stein’s phenomenon where <span class="math inline">\(y_i | \theta_i \sim N(\theta_i, 1)\)</span> and <span class="math inline">\(\theta_i \sim N(0, \tau^2)\)</span> where $ $ illustrates this point well. This leads to the improper “non-informative” uniform prior. The corresponding generalized Bayes rule is the vector of means—which we know is inadmissible. so no regularisation leads to an estimator with poor risk property.</p>
+<p>Let $ || y || = _{i=1}^p y_i^2 <span class="math inline">\(. Then, we can make the following probabilistic statements from the model,\)</span>$ P( | y | &gt; | | ) &gt; <span class="math display">\[
+Now for the posterior, this inequallty is reversed under a flat Lebesgue measure,
+\]</span> P( | | &gt; | y | ; | ; y ) &gt; $$ which is in conflict with the classical statement. This is a property of the prior which leads to a poor rule (the overall average) and risk.</p>
+<p>The shrinkage rule (a.k.a. normal prior) where $ ^2 $ is “estimated” from the data avoids this conflict. More precisely, we have <span class="math display">\[
+\hat{\theta}(y) = \left( 1 - \frac{k-2}{\|y\|^2} \right) y \quad \text{and} \quad E\left( \| \hat{\theta} - \theta \| \right) &lt; k, \; \forall \theta.
+\]</span> Hence, when <span class="math inline">\(\|y\|^2\)</span> is small the shrinkage factor is more extreme. For example, if <span class="math inline">\(k=10\)</span>, <span class="math inline">\(\|y\|^2=12\)</span>, then <span class="math inline">\(\hat{\theta} = (1/3) y\)</span>. Now we have the more intuitive result that $ P( | | &gt; | y | ; | ; y ) &lt; $.</p>
+<p>This shows that careful specification of default priors matter in high dimensions is necessary.</p>
+<div id="exm-baseball" class="theorem example">
+<p><span class="theorem-title"><strong>Example 12.2 (Example: James-Stein for Baseball Batting Averages)</strong></span> We reproduce the baseball batting average example from <span class="citation" data-cites="efron1977steins">Efron and Morris (<a href="#ref-efron1977steins" role="doc-biblioref">1977</a>)</span>. Data below has the number of hits for 18 baseball player after 45 at-beat in 1970 season</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Data source: https://www1.swarthmore.edu/NatSci/peverso1/Sports%20Data/JamesSteinData/Efron-Morris%20Baseball/EfronMorrisBB.txt</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>baseball <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/EfronMorrisBB.txt"</span>, <span class="at">sep =</span> <span class="st">"</span><span class="sc">\t</span><span class="st">"</span>, <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(LastName,AtBats,BattingAverage,SeasonAverage)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -506,7 +538,7 @@ p_n \log \left ( n / p_n \right ).
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>mu_hat <span class="ot">&lt;-</span> <span class="fu">mean</span>(baseball<span class="sc">$</span>BattingAverage)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sigma2_hat <span class="ot">&lt;-</span> <span class="fu">var</span>(baseball<span class="sc">$</span>BattingAverage)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>As well as the osterior mean for each player (James-Stein estimator)</p>
+<p>As well as the posterior mean for each player (James-Stein estimator)</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>baseball <span class="ot">&lt;-</span> baseball <span class="sc">%&gt;%</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -734,8 +766,296 @@ p_n \log \left ( n / p_n \right ).
 </div>
 </div>
 <p>The motivation for the shrinkage prior rather than a flat uniform prior are the following probabilistic arguments.</p>
+</section>
+</section>
+<section id="ell_1-sparsity" class="level2" data-number="12.4">
+<h2 data-number="12.4" class="anchored" data-anchor-id="ell_1-sparsity"><span class="header-section-number">12.4</span> <span class="math inline">\(\ell_1\)</span> Sparsity</h2>
+</section>
+<section id="ell_0-subset-selection" class="level2" data-number="12.5">
+<h2 data-number="12.5" class="anchored" data-anchor-id="ell_0-subset-selection"><span class="header-section-number">12.5</span> <span class="math inline">\(\ell_0\)</span> Subset Selection</h2>
+<p>The canonical problem is estimaiton of the normal means problem. Here we have <span class="math inline">\(y_i = \theta_i + e_i,~i=1,\ldots,p\)</span> and <span class="math inline">\(e_i \sim N(0, \sigma^2)\)</span>. The goal is to estimate the vector of means <span class="math inline">\(\theta = (\theta_1, \ldots, \theta_p)\)</span>. This is also a proxy for non-parametric regression, where <span class="math inline">\(\theta_i = f(x_i)\)</span>. Aslo typically <span class="math inline">\(y_i\)</span> is a mean of <span class="math inline">\(n\)</span> observations, i.e.&nbsp;<span class="math inline">\(y_i = \frac{1}{n} \sum_{j=1}^n x_{ij}\)</span>. Much has been written on the properties of the Bayes risk as a function of <span class="math inline">\(n\)</span> and <span class="math inline">\(p\)</span>. Much work has also been done on the asymptotic properties of the Bayes risk as <span class="math inline">\(n\)</span> and <span class="math inline">\(p\)</span> grow to infinity. We now sumamrise some of the standard risk results.</p>
+</section>
+<section id="james-stein-estimator-1" class="level2" data-number="12.6">
+<h2 data-number="12.6" class="anchored" data-anchor-id="james-stein-estimator-1"><span class="header-section-number">12.6</span> James-Stein Estimator</h2>
+<p>The classic James-Stein shrinkage rule, <span class="math inline">\(\hat y_{js}\)</span>, uniformly dominates the traditional sample mean estimator, <span class="math inline">\(\hat{\theta}\)</span>, for all values of the true parameter <span class="math inline">\(\theta\)</span>. In classical MSE risk terms: <span class="math display">\[
+R(\hat y_{js}, \theta) \defeq E_{y|\theta} {\Vert \hat y_{js} - \theta \Vert}^2 &lt; p
+    = E_{y|\theta} {\Vert y - \theta \Vert}^2, \;\;\; \forall \theta
+\]</span> For a sparse signal, however, <span class="math inline">\(\hat y_{js}\)</span> performs poorly when the true parameter is an <span class="math inline">\(r\)</span>-spike where <span class="math inline">\(\theta_r\)</span> has <span class="math inline">\(r\)</span> coordinates at <span class="math inline">\(\sqrt{p/r}\)</span> and the rest set at zero with norm <span class="math inline">\({\Vert \theta_r \Vert}^2 =p\)</span>.</p>
+<p>The classical risk satisfies <span class="math inline">\(R \left ( \hat y_{js} , \theta_r \right ) \geq p/2\)</span> where the simple thresholding rule <span class="math inline">\(\sqrt{2 \ln p}\)</span> performs with risk <span class="math inline">\(\sqrt{\ln p}\)</span> in the <span class="math inline">\(r\)</span>-spike sparse case even though it is inadmissible in MSE for a non-sparse signal.</p>
+</section>
+<section id="r-spike-problem" class="level2" data-number="12.7">
+<h2 data-number="12.7" class="anchored" data-anchor-id="r-spike-problem"><span class="header-section-number">12.7</span> R-spike Problem</h2>
+<p>From a historical perspective, James-Stein (a.k.a <span class="math inline">\(L^2\)</span>-regularisation)<span class="citation" data-cites="stein1964inadmissibility">(<a href="#ref-stein1964inadmissibility" role="doc-biblioref">Stein 1964</a>)</span> is only a global shrinkage rule–in the sense that there are no local parameters to learn about sparsity. A simple sparsity example shows the issue with <span class="math inline">\(L^2\)</span>-regularisation. Consider the sparse <span class="math inline">\(r\)</span>-spike shows the problem with focusing solely on rules with the same shrinkage weight (albeit benefiting from pooling of information).</p>
+<p>Let the true parameter value be <span class="math inline">\(\theta_p = \left ( \sqrt{d/p} , \ldots , \sqrt{d/p} , 0 , \ldots , 0 \right )\)</span>. James-Stein is equivalent to the model <span class="math display">\[
+y_i = \theta_i + \epsilon_i \; \mathrm{ and} \; \theta_i \sim \mathcal{N} \left ( 0 , \tau^2 \right )
+\]</span> This dominates the plain MLE but loses admissibility! This is due to the fact that a “plug-in” estimate of global shrinkage <span class="math inline">\(\hat{\tau}\)</span> is used. Tiao and Tan’s original “closed-form” analysis is particularly relevant here. They point out that the mode of <span class="math inline">\(p(\tau^2|y)\)</span> is zero exactly when the shrinkage weight turns negative (their condition 6.6). From a risk perspective <span class="math inline">\(E \Vert \hat{\theta}^{JS} - \theta \Vert \leq p , \forall \theta\)</span> showing the inadmissibility of the MLE. At origin the risk is <span class="math inline">\(2\)</span>, <strong>but!</strong> <span class="math display">\[
+\frac{p \Vert \theta \Vert^2}{p + \Vert \theta \Vert^2} \leq R \left ( \hat{\theta}^{JS} , \theta_p \right ) \leq
+2 + \frac{p \Vert \theta \Vert^2}{ d + \Vert \theta \Vert^2}.
+\]</span> This implies that <span class="math inline">\(R \left ( \hat{\theta}^{JS} , \theta_p \right ) \geq (p/2)\)</span>. Hence, simple thresholding rule beats James-Stein this with a risk given by <span class="math inline">\(\sqrt{\log p }\)</span>. This simple example, shows that the choice of penalty should not be taken for granted as different estimators will have different risk profiles.</p>
+<p>The horseshoe estimator, which we will discuss in more detail later, <span class="math inline">\(\hat y_{hs}\)</span>, was proposed by <span class="citation" data-cites="carvalho2010horseshoe">Carvalho, Polson, and Scott (<a href="#ref-carvalho2010horseshoe" role="doc-biblioref">2010</a>)</span> to provide a Bayes rule that inherits good MSE properties but also simultaneously provides asymptotic minimax estimation risk for sparse signals. HS estimator uniformly dominates the traditional sample mean estimator in MSE and has good posterior concentration properties for nearly black objects. Specifically, the horseshoe estimator attains asymptotically minimax risk rate <span class="math display">\[
+\sup_{ \theta \in l_0[p_n] } \;
+\mathbb{E}_{ y | \theta } \|\hat y_{hs} - \theta \|^2 \asymp
+p_n \log \left ( n / p_n \right ).
+\]</span> The “worst’’ <span class="math inline">\(\theta\)</span> is obtained at the maximum difference between <span class="math inline">\(\left| \hat y_{hs} - y \right|\)</span> where <span class="math inline">\(\hat y_{hs} = \mathbb{E}(\theta|y)\)</span> can be interpreted as a Bayes posterior mean (optimal under Bayes MSE).</p>
+</section>
+<section id="ell_2-shrinkage-1" class="level2" data-number="12.8">
+<h2 data-number="12.8" class="anchored" data-anchor-id="ell_2-shrinkage-1"><span class="header-section-number">12.8</span> <span class="math inline">\(\ell_2\)</span> Shrinkage</h2>
 <div id="exm-stein" class="theorem example">
-<p><span class="theorem-title"><strong>Example 12.2 (Efron Example)</strong></span> Efron shows the importance of priors in high dimensions when one can “borrow strength” (a.k.a. regularisation) across components.</p>
+<p><span class="theorem-title"><strong>Example 12.3 (Stein’s Paradox)</strong></span> Stein’s paradox, as explained <span class="citation" data-cites="efron1977steins">Efron and Morris (<a href="#ref-efron1977steins" role="doc-biblioref">1977</a>)</span>, is a phenomenon in statistics that challenges our intuitive understanding of estimation. The paradox arises when trying to estimate the mean of a multivariate normal distribution. Traditionally, the best guess about the future is usually obtained by computing the average of past events. However, Charles Stein showed that there are circumstances where there are estimators better than the arithmetic average. This is what’s known as Stein’s paradox.</p>
+<p>In 1961, James and Stein exhibited an estimator of the mean of a multivariate normal distribution that has uniformly lower mean squared error than the sample mean. This estimator is reviewed briefly in an empirical Bayes context. Stein’s rule and its generalizations are then applied to predict baseball averages, to estimate toxomosis prevalence rates, and to estimate the exact size of Pearson’s chi-square test with results from a computer simulation.</p>
+<p>In each of these examples, the mean square error of these rules is less than half that of the sample mean. This result is paradoxical because it contradicts the elementary law of statistical theory. The philosophical implications of Stein’s paradox are also significant. It has influenced the development of shrinkage estimators and has connections to Bayesianism and model selection criteria.</p>
+<p>Suppose that we have <span class="math inline">\(n\)</span> independent observations <span class="math inline">\(y_{1},\ldots,y_{n}\)</span> from a <span class="math inline">\(N\left(  \theta,\sigma^{2}\right)\)</span> distribution. The maximum likelihood estimator is <span class="math inline">\(\widehat{\theta}=\bar{y}\)</span>, the sample mean. The Bayes estimator is the posterior mean, <span class="math display">\[
+\widehat{\theta}=\mathbb{E}\left[  \theta\mid y\right]  =\frac{\sigma^{2}}{\sigma^{2}+n}% \bar{y}.
+\]</span> The Bayes estimator is a shrinkage estimator, it shrinks the MLE towards the prior mean. The amount of shrinkage is determined by the ratio of the variance of the prior and the variance of the likelihood. The Bayes estimator is also a function of the MLE <span class="math display">\[
+\widehat{\theta}=\frac{\sigma^{2}}{\sigma^{2}+n}\bar{y}+\frac{n}{\sigma^{2}+n}\widehat{\theta}.
+\]</span> This is a general property of Bayes estimators, they are functions of the MLE. This is a consequence of the fact that the posterior distribution is a function of the likelihood and the prior. The Bayes estimator is a function of the MLE <span class="math display">\[
+\widehat{\theta}=\frac{\sigma^{2}}{\sigma^{2}+n}\bar{y}+\frac{n}{\sigma^{2}+n}\widehat{\theta}.
+\]</span> This is a general property of Bayes estimators, they are functions of the MLE. This is a consequence of the fact that the posterior distribution is a function of the likelihood and the prior.</p>
+<p>The original JS estimator shranks to zero and estimates prior variance using empirical Bayes (marginal MLE or Type II MLE). Efron and MOrris and Lindley showed that you want o shrink to overall mean <span class="math inline">\(\bar y\)</span> and in this approach <span class="math display">\[
+\theta \sim N(\mu,\tau^2).
+\]</span> The original JS is <span class="math inline">\(\mu=0\)</span>. To estimate the <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\tau\)</span> you can do full Bayes or empirical Bayes that shrinks to overall grand mean <span class="math inline">\(\bar y\)</span>, whcih serves as the estimate of the original prior mean <span class="math inline">\(\mu\)</span>. It seems paradoxical that you estimate propr from the data. However, this is not the case. You simply use mixture prior <span class="citation" data-cites="diaconis1983quantifying">Diaconis and Ylvisaker (<a href="#ref-diaconis1983quantifying" role="doc-biblioref">1983</a>)</span> with marginal MLE (MMLE). The MMLE is the product <span class="math display">\[
+\int_{\theta_i}\prod_{i=1}^k p(\bar y_i \mid \theta_i)p(\theta_i \mid \mu, \tau^2).
+\]</span></p>
+<p>We reproduce the baseball bartting average example from <span class="citation" data-cites="efron1977steins">Efron and Morris (<a href="#ref-efron1977steins" role="doc-biblioref">1977</a>)</span>. Data below has the number of hits for 18 baseball player after 45 at-beat in 1970 season</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Data source: https://www1.swarthmore.edu/NatSci/peverso1/Sports%20Data/JamesSteinData/Efron-Morris%20Baseball/EfronMorrisBB.txt</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>baseball <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/EfronMorrisBB.txt"</span>, <span class="at">sep =</span> <span class="st">"</span><span class="sc">\t</span><span class="st">"</span>, <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(LastName,AtBats,BattingAverage,SeasonAverage)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, we can eatimate overall mean and variance</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>mu_hat <span class="ot">&lt;-</span> <span class="fu">mean</span>(baseball<span class="sc">$</span>BattingAverage)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>sigma2_hat <span class="ot">&lt;-</span> <span class="fu">var</span>(baseball<span class="sc">$</span>BattingAverage)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>As well as the osterior mean for each player (James-Stein estimator)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>baseball <span class="ot">&lt;-</span> baseball <span class="sc">%&gt;%</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">JS =</span> (sigma2_hat <span class="sc">/</span> (sigma2_hat <span class="sc">+</span> (BattingAverage <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> BattingAverage) <span class="sc">/</span> AtBats))) <span class="sc">*</span> mu_hat <span class="sc">+</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>      ((BattingAverage <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> BattingAverage) <span class="sc">/</span> AtBats) <span class="sc">/</span> (sigma2_hat <span class="sc">+</span> (BattingAverage <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> BattingAverage) <span class="sc">/</span> AtBats))) <span class="sc">*</span> BattingAverage</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(baseball)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">LastName</th>
+<th style="text-align: right;">AtBats</th>
+<th style="text-align: right;">BattingAverage</th>
+<th style="text-align: right;">SeasonAverage</th>
+<th style="text-align: right;">JS</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Clemente</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.400</td>
+<td style="text-align: right;">0.352</td>
+<td style="text-align: right;">0.3358644</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Robinson</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.378</td>
+<td style="text-align: right;">0.306</td>
+<td style="text-align: right;">0.3237686</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Howard</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.356</td>
+<td style="text-align: right;">0.283</td>
+<td style="text-align: right;">0.3117929</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Johnstone</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.333</td>
+<td style="text-align: right;">0.238</td>
+<td style="text-align: right;">0.2994785</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Berry</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.311</td>
+<td style="text-align: right;">0.276</td>
+<td style="text-align: right;">0.2879767</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Spencer</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.311</td>
+<td style="text-align: right;">0.274</td>
+<td style="text-align: right;">0.2879767</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Kessinger</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.289</td>
+<td style="text-align: right;">0.266</td>
+<td style="text-align: right;">0.2768343</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Alvarado</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.267</td>
+<td style="text-align: right;">0.224</td>
+<td style="text-align: right;">0.2661503</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Santo</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.244</td>
+<td style="text-align: right;">0.267</td>
+<td style="text-align: right;">0.2555955</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Swaboda</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.244</td>
+<td style="text-align: right;">0.233</td>
+<td style="text-align: right;">0.2555955</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Petrocelli</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.222</td>
+<td style="text-align: right;">0.261</td>
+<td style="text-align: right;">0.2462289</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Rodriguez</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.222</td>
+<td style="text-align: right;">0.225</td>
+<td style="text-align: right;">0.2462289</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Scott</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.222</td>
+<td style="text-align: right;">0.296</td>
+<td style="text-align: right;">0.2462289</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Unser</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.222</td>
+<td style="text-align: right;">0.258</td>
+<td style="text-align: right;">0.2462289</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Williams</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.222</td>
+<td style="text-align: right;">0.251</td>
+<td style="text-align: right;">0.2462289</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Campaneris</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.200</td>
+<td style="text-align: right;">0.279</td>
+<td style="text-align: right;">0.2377410</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Munson</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.178</td>
+<td style="text-align: right;">0.302</td>
+<td style="text-align: right;">0.2303313</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Alvis</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.156</td>
+<td style="text-align: right;">0.183</td>
+<td style="text-align: right;">0.2242473</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Plot below shows the observed averages vs.&nbsp;James-Stein estimate</p>
+<div class="cell" data-fold="true">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(baseball, <span class="fu">aes</span>(<span class="at">x =</span> BattingAverage, <span class="at">y =</span> JS)) <span class="sc">+</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Observed Batting Average"</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"James-Stein Estimate"</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Empirical Bayes Shrinkage of Batting Averages (2016)"</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Calculate mean squared error (MSE) for observed and James-Stein estimates</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>mse_observed <span class="ot">&lt;-</span> <span class="fu">mean</span>((baseball<span class="sc">$</span>BattingAverage <span class="sc">-</span> mu_hat)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>mse_js <span class="ot">&lt;-</span> <span class="fu">mean</span>((baseball<span class="sc">$</span>JS <span class="sc">-</span> mu_hat)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MSE (Observed): %.6f</span><span class="sc">\n</span><span class="st">"</span>, mse_observed))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>## MSE (Observed): 0.004584</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MSE (James-Stein): %.6f</span><span class="sc">\n</span><span class="st">"</span>, mse_js))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>## MSE (James-Stein): 0.001031</code></pre>
+</div>
+</div>
+<p>We can see that the James-Stein estimator has a lower MSE than the observed batting averages. This is a demonstration of Stein’s paradox, where the James-Stein estimator, which shrinks the estimates towards the overall mean, performs better than the naive sample mean estimator.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>a <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="fu">nrow</span>(baseball)), <span class="dv">3</span>, <span class="fu">nrow</span>(baseball))</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>b <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">c</span>(baseball<span class="sc">$</span>BattingAverage, baseball<span class="sc">$</span>SeasonAverage, baseball<span class="sc">$</span>JS),    <span class="dv">3</span>, <span class="fu">nrow</span>(baseball), <span class="at">byrow=</span><span class="cn">TRUE</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="fu">matplot</span>(a, b, <span class="at">pch=</span><span class="st">" "</span>, <span class="at">ylab=</span><span class="st">"predicted average"</span>, <span class="at">xaxt=</span><span class="st">"n"</span>, <span class="at">xlim=</span><span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">3.1</span>), <span class="at">ylim=</span><span class="fu">c</span>(<span class="fl">0.13</span>, <span class="fl">0.42</span>))</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="fu">matlines</span>(a, b)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fu">rep</span>(<span class="fl">0.7</span>, <span class="fu">nrow</span>(baseball)), baseball<span class="sc">$</span>BattingAverage, baseball<span class="sc">$</span>LastName, <span class="at">cex=</span><span class="fl">0.6</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">1</span>, <span class="fl">0.14</span>, <span class="st">"First 45</span><span class="sc">\n</span><span class="st">at bats"</span>, <span class="at">cex=</span><span class="fl">0.5</span>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">2</span>, <span class="fl">0.14</span>, <span class="st">"Average</span><span class="sc">\n</span><span class="st">of remainder"</span>, <span class="at">cex=</span><span class="fl">0.5</span>)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">3</span>, <span class="fl">0.14</span>, <span class="st">"J-S</span><span class="sc">\n</span><span class="st">estimator"</span>, <span class="at">cex=</span><span class="fl">0.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Now if we look at the season dynamics for Clemente</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Data source: https://www.baseball-almanac.com/players/hittinglogs.php?p=clemero01&amp;y=1970</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/clemente.csv"</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">cumsum</span>(cl<span class="sc">$</span>AB)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">cumsum</span>(cl<span class="sc">$</span>H)<span class="sc">/</span><span class="fu">cumsum</span>(cl<span class="sc">$</span>AB)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot x,y startind from index 2</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>ind <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x[<span class="sc">-</span>ind],y[<span class="sc">-</span>ind], <span class="at">type=</span><span class="st">'o'</span>, <span class="at">ylab=</span><span class="st">"Betting Average"</span>, <span class="at">xlab=</span><span class="st">"Number at Bats"</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Add horizontal line for season average 145/412 and add text above line `Seaosn Average`</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">200</span>, <span class="dv">145</span><span class="sc">/</span><span class="dv">412</span> <span class="sc">+</span> <span class="fl">0.005</span>, <span class="st">"Season Average"</span>, <span class="at">col =</span> <span class="st">"red"</span>)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> <span class="dv">145</span><span class="sc">/</span><span class="dv">412</span>, <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Ted williams record is .406 in in 1941, so you know the first data points are noise</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">200</span>, baseball<span class="sc">$</span>JS[<span class="dv">1</span>] <span class="sc">+</span> <span class="fl">0.005</span>, <span class="st">"JS"</span>, <span class="at">col =</span> <span class="st">"red"</span>)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> baseball<span class="sc">$</span>JS[<span class="dv">1</span>], <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">200</span>, baseball<span class="sc">$</span>BattingAverage[<span class="dv">1</span>] <span class="sc">+</span> <span class="fl">0.005</span>, <span class="st">"After 45 Bets"</span>, <span class="at">col =</span> <span class="st">"red"</span>)</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> baseball<span class="sc">$</span>BattingAverage[<span class="dv">1</span>], <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<p>The motivation for the shrinkage prior rather than a flat uniform prior are the following probabilistic arguments.</p>
+<div id="exm-stein" class="theorem example">
+<p><span class="theorem-title"><strong>Example 12.4 (Efron Example)</strong></span> Efron shows the importance of priors in high dimensions when one can “borrow strength” (a.k.a. regularisation) across components.</p>
 <p>Stein’s phenomenon where <span class="math inline">\(y_i | \theta_i \sim N(\theta_i, 1)\)</span> and <span class="math inline">\(\theta_i \sim N(0, \tau^2)\)</span> illustrates this point well. From the model,</p>
 <p><span class="math display">\[
 P\left( \| y \| &gt; \| \theta \| \right) &gt; \frac{1}{2}
@@ -756,14 +1076,14 @@ P\left( \| \theta \| &gt; \| y \| \; | \; y \right) &lt; \frac{1}{2}
 <p>Showing that default priors matter in high dimensions.</p>
 </div>
 </section>
-<section id="ell_1-sparsity" class="level2" data-number="12.4">
-<h2 data-number="12.4" class="anchored" data-anchor-id="ell_1-sparsity"><span class="header-section-number">12.4</span> <span class="math inline">\(\ell_1\)</span> Sparsity</h2>
+<section id="ell_1-sparsity-1" class="level2" data-number="12.9">
+<h2 data-number="12.9" class="anchored" data-anchor-id="ell_1-sparsity-1"><span class="header-section-number">12.9</span> <span class="math inline">\(\ell_1\)</span> Sparsity</h2>
 </section>
-<section id="ell_0-subset-selection" class="level2" data-number="12.5">
-<h2 data-number="12.5" class="anchored" data-anchor-id="ell_0-subset-selection"><span class="header-section-number">12.5</span> <span class="math inline">\(\ell_0\)</span> Subset Selection</h2>
+<section id="ell_0-subset-selection-1" class="level2" data-number="12.10">
+<h2 data-number="12.10" class="anchored" data-anchor-id="ell_0-subset-selection-1"><span class="header-section-number">12.10</span> <span class="math inline">\(\ell_0\)</span> Subset Selection</h2>
 </section>
-<section id="bayesain-model-selection-via-regularisation" class="level2" data-number="12.6">
-<h2 data-number="12.6" class="anchored" data-anchor-id="bayesain-model-selection-via-regularisation"><span class="header-section-number">12.6</span> Bayesain Model Selection via Regularisation</h2>
+<section id="bayesain-model-selection-via-regularisation" class="level2" data-number="12.11">
+<h2 data-number="12.11" class="anchored" data-anchor-id="bayesain-model-selection-via-regularisation"><span class="header-section-number">12.11</span> Bayesain Model Selection via Regularisation</h2>
 <p>From Bayesian perspective regularization is nothing but incorporation of prior information into the model. Remember, that a Bayesian model is specified by likelihood and prior distributions. Bayesian regularization methods include the Bayesian bridge, horseshoe regularization, Bayesian lasso, Bayesian elastic net, spike-and-slab lasso, and global-local shrinkage priors. Bayesian <span class="math inline">\(\ell_0\)</span> regularization is an attractive solution for high dimensional variable selection as it directly penalizes the number of predictors. The caveat is the need to search over all possible model combinations, as a full solution requires enumeration over all possible models which is NP-hard.</p>
 <p>In Bayesian approach, regularization requires the specification of a loss, denoted by <span class="math inline">\(l\left(\beta\right)\)</span> and a penalty function, denoted by <span class="math inline">\(\phi_{\lambda}(\beta)\)</span>, where <span class="math inline">\(\lambda\)</span> is a global regularization parameter. From a Bayesian perspective, <span class="math inline">\(l\left(\beta\right)\)</span> and <span class="math inline">\(\phi_{\lambda}(\beta)\)</span> correspond to the negative logarithms of the likelihood and prior distribution, respectively. Regularization leads to an maximum a posteriori (MAP) optimization problem of the form <span class="math display">\[
 \underset{\beta \in R^p}{\mathrm{minimize}\quad}
@@ -782,8 +1102,8 @@ p(\theta_i \mid b) = 0.5b\exp(-|\theta|/b).
 <p>The goal is to find a function <span class="math inline">\(f\)</span> that minimizes the risk <span class="math inline">\(R(f)\)</span>. This is called the <strong>empirical risk minimization</strong> problem. Finding minimum is a difficult problem when the risk function <span class="math inline">\(R(f)\)</span> is non-convex. In practice, we often use gradient descent to find a local minimum of the risk function <span class="math inline">\(R(f)\)</span>.</p>
 <p>There are multiple ways to choose the penalty term <span class="math inline">\(\phi(f)\)</span>. Sections below describe the most popular approaches.</p>
 </section>
-<section id="shrinkage-ell_2-norm" class="level2" data-number="12.7">
-<h2 data-number="12.7" class="anchored" data-anchor-id="shrinkage-ell_2-norm"><span class="header-section-number">12.7</span> Shrinkage (<span class="math inline">\(\ell_2\)</span> Norm)</h2>
+<section id="shrinkage-ell_2-norm" class="level2" data-number="12.12">
+<h2 data-number="12.12" class="anchored" data-anchor-id="shrinkage-ell_2-norm"><span class="header-section-number">12.12</span> Shrinkage (<span class="math inline">\(\ell_2\)</span> Norm)</h2>
 <p>We can estimate the risk bounds of <span class="math inline">\(\ell_2\)</span> Norm regularisation. The classic bias-variance tradeoff is given by the MSE risk bound. <span class="math display">\[
 R(\theta,\hat \theta) = E_{y|\theta} \left [ \Vert \hat \theta - \theta \Vert^2 \right ] = \Vert \hat \theta - \theta \Vert^2 + E_{y|\theta} \left [ \Vert \hat \theta - \mathbb{E}(\hat \theta) \Vert^2 \right ]
 \]</span></p>
@@ -794,8 +1114,8 @@ R(\theta,\hat \theta_{JS}) &lt; R(\theta,\hat \theta_{MLE}) \;\;\; \forall \thet
 \hat \theta_{ridge} = \left (  X^T X + \lambda I \right )^{-1} X^T y
 \]</span> where <span class="math inline">\(\lambda\)</span> is the regularization parameter.</p>
 </section>
-<section id="sparsity-ell_1-norm" class="level2" data-number="12.8">
-<h2 data-number="12.8" class="anchored" data-anchor-id="sparsity-ell_1-norm"><span class="header-section-number">12.8</span> Sparsity (<span class="math inline">\(\ell_1\)</span> Norm)</h2>
+<section id="sparsity-ell_1-norm" class="level2" data-number="12.13">
+<h2 data-number="12.13" class="anchored" data-anchor-id="sparsity-ell_1-norm"><span class="header-section-number">12.13</span> Sparsity (<span class="math inline">\(\ell_1\)</span> Norm)</h2>
 <p>High-dimensional predictor selection and sparse signal recovery are routine statistical and machine learning tasks. There is a vast and growing literator with lasso (leat absolute selection) being the gold standard. Horseshoe priors are the Bayesian counterpart. Sparsity relies on the property of a few large signals among many (nearly zero) noisy observations. The goal is to find a niddle in the haystack. Suppose that we observe data from Normal means model <span class="math display">\[
 y_i \mid \theta_i \sim N(\theta_i,1),~ 1\le i\le p, ~ \theta = (\theta_1,\ldots,\theta_p),
 \]</span> where parameter <span class="math inline">\(\theta\)</span> lies in the ball <span class="math display">\[
@@ -907,8 +1227,8 @@ where $\alpha_i$ are the Lagrange multipliers, $K(x, x_i)$ is the kernel functio
 
 It is important to experiment with different methods and compare their performance on your specific dataset before choosing the best model for your task. -->
 </section>
-<section id="lasso" class="level2" data-number="12.9">
-<h2 data-number="12.9" class="anchored" data-anchor-id="lasso"><span class="header-section-number">12.9</span> LASSO</h2>
+<section id="lasso" class="level2" data-number="12.14">
+<h2 data-number="12.14" class="anchored" data-anchor-id="lasso"><span class="header-section-number">12.14</span> LASSO</h2>
 <p>The Laplace distribution can be represented as scale mixture of Normal distribution<span class="citation" data-cites="andrews1974scale">(<a href="#ref-andrews1974scale" role="doc-biblioref">Andrews and Mallows 1974</a>)</span> <span class="math display">\[
 \begin{aligned}
 \theta_i \mid \sigma^2,\tau \sim &amp;N(0,\tau^2\sigma^2)\\
@@ -919,12 +1239,12 @@ p(\theta_i\mid \sigma^2,\alpha) =  \int_{0}^{\infty} \dfrac{1}{\sqrt{2\pi \tau}}
 \]</span> Thus it is a Laplace distribution with location 0 and scale <span class="math inline">\(\alpha/\sigma\)</span>. Representation of Laplace prior is a scale Normal mixture allows us to apply an efficient numerical algorithm for computing samples from the posterior distribution. This algorithms is called a Gibbs sample and it iteratively samples from <span class="math inline">\(\theta \mid a,y\)</span> and <span class="math inline">\(b\mid \theta,y\)</span> to estimate joint distribution over <span class="math inline">\((\hat \theta, \hat b)\)</span>. Thus, we so not need to apply cross-validation to find optimal value of <span class="math inline">\(b\)</span>, the Bayesian algorithm does it “automatically”. We will discuss Gibbs algorithm later in the book.</p>
 <p>When prior is Normal <span class="math inline">\(\theta_i \sim N(0,\sigma_{\theta}^2)\)</span>, the posterior mode is equivalent to the ridge estimate. The relation between variance of the prior and the penalty weight in ridge regression is inverse proportional <span class="math inline">\(\lambda\propto 1/\sigma_{\theta}^2\)</span>.</p>
 </section>
-<section id="subset-selection-ell_0-norm" class="level2" data-number="12.10">
-<h2 data-number="12.10" class="anchored" data-anchor-id="subset-selection-ell_0-norm"><span class="header-section-number">12.10</span> Subset Selection (<span class="math inline">\(\ell_0\)</span> Norm)</h2>
+<section id="subset-selection-ell_0-norm" class="level2" data-number="12.15">
+<h2 data-number="12.15" class="anchored" data-anchor-id="subset-selection-ell_0-norm"><span class="header-section-number">12.15</span> Subset Selection (<span class="math inline">\(\ell_0\)</span> Norm)</h2>
 <p>Skike-and-slab (George and McCulloh) or Bernoulli-Gaussian (Polson Sun)</p>
 </section>
-<section id="bridge-ell_alpha" class="level2" data-number="12.11">
-<h2 data-number="12.11" class="anchored" data-anchor-id="bridge-ell_alpha"><span class="header-section-number">12.11</span> Bridge (<span class="math inline">\(\ell_{\alpha}\)</span>)</h2>
+<section id="bridge-ell_alpha" class="level2" data-number="12.16">
+<h2 data-number="12.16" class="anchored" data-anchor-id="bridge-ell_alpha"><span class="header-section-number">12.16</span> Bridge (<span class="math inline">\(\ell_{\alpha}\)</span>)</h2>
 <p>This is a non-convex penalty when <span class="math inline">\(0&lt;\alpha&lt;1\)</span>. It is an NP-hard problem. When <span class="math inline">\(\alpha=1\)</span> or <span class="math inline">\(\alpha=2\)</span> we have optimisation problems that are “solvable” for large scale cases. However, when <span class="math inline">\(0\le \alpha&lt;1\)</span> the current optimisation algorithms won’t work.</p>
 <p>The real killer is that you can use data to estimate <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\lambda\)</span> (let the data speak for itself) <span class="citation" data-cites="box1992bayesian">Box and Tiao (<a href="#ref-box1992bayesian" role="doc-biblioref">1992</a>)</span>.</p>
 <p>Bayesian analogue of the bridge estimator in regression is <span class="math display">\[
@@ -944,8 +1264,8 @@ p(\beta \mid y) \propto \exp\{-Q_y(\beta)\}
 p(\beta \mid \alpha, \nu) \propto \prod_{j=1}^p \exp\left(-\left|\frac{\beta_j}{\tau}\right|^\alpha\right), \quad \tau = \nu^{-1/\alpha}. \tag{2}
 \]</span></p>
 <p>Rather than minimizing (1), we proceed by constructing a Markov chain having the joint posterior for <span class="math inline">\(\beta\)</span> as its stationary distribution.</p>
-<section id="spike-and-slab-prior" class="level3" data-number="12.11.1">
-<h3 data-number="12.11.1" class="anchored" data-anchor-id="spike-and-slab-prior"><span class="header-section-number">12.11.1</span> Spike-and-Slab Prior</h3>
+<section id="spike-and-slab-prior" class="level3" data-number="12.16.1">
+<h3 data-number="12.16.1" class="anchored" data-anchor-id="spike-and-slab-prior"><span class="header-section-number">12.16.1</span> Spike-and-Slab Prior</h3>
 <p>Our Bayesian formulation of allows to specify a wide range of range of regularized formulations for a regression problem. In this section we consider a Bayesian model for variable selection. Consider a linear regression problem <span class="math display">\[
 y = \beta_1x_1+\ldots+\beta_px_p + e \ , \ \  \text{where } e \sim N(0, \sigma^2),~-\infty \le \beta_i \le \infty \ .
 \]</span> We would like to solve the problem of variable selections, i.e.&nbsp;identify which input variables <span class="math inline">\(x_i\)</span> to be used in our model. The gold standard for Bayesian variable selection are spike-and-slab priors, or Bernoulli-Gaussian mixtures. Whilst spike-and-slab priors provide full model uncertainty quantification, they can be hard to scale to very high dimensional problems and can have poor sparsity properties. On the other hand, techniques like proximal algorithms can solve non-convex optimization problems which are fast and scalable, although they generally don’t provide a full assessment of model uncertainty.</p>
@@ -1033,8 +1353,8 @@ p\left(y \mid \gamma, \alpha, \theta, \sigma_e^2\right)\\
 <p>On the other hand, assuming <span class="math inline">\(\left\{\hat\gamma, \hat\alpha\right\}\)</span> is optimal to <a href="#eq-obj:vs" class="quarto-xref">Equation&nbsp;<span class="quarto-unresolved-ref">eq-obj:vs</span></a>, implies that we must have all of the elements in <span class="math inline">\(\hat\alpha_\gamma\)</span> should be non-zero, otherwise a new <span class="math inline">\(\tilde\gamma_i \defeq I\left\{\hat\alpha_i \neq 0\right\}\)</span> will give a lower objective value of <a href="#eq-obj:vs" class="quarto-xref">Equation&nbsp;<span class="quarto-unresolved-ref">eq-obj:vs</span></a>. As a result, if we define <span class="math inline">\(\hat\beta_i \defeq \hat\gamma_i\hat\alpha_i\)</span>, <span class="math inline">\(\hat\beta\)</span> will be feasible to <a href="#eq-obj:l0" class="quarto-xref">Equation&nbsp;<span class="quarto-unresolved-ref">eq-obj:l0</span></a> and gives the same objective value as <span class="math inline">\(\left\{\hat\gamma, \hat\alpha\right\}\)</span> gives <a href="#eq-obj:vs" class="quarto-xref">Equation&nbsp;<span class="quarto-unresolved-ref">eq-obj:vs</span></a>.</p>
 </section>
 </section>
-<section id="horseshoe-prior" class="level2" data-number="12.12">
-<h2 data-number="12.12" class="anchored" data-anchor-id="horseshoe-prior"><span class="header-section-number">12.12</span> Horseshoe Prior</h2>
+<section id="horseshoe-prior" class="level2" data-number="12.17">
+<h2 data-number="12.17" class="anchored" data-anchor-id="horseshoe-prior"><span class="header-section-number">12.17</span> Horseshoe Prior</h2>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -1054,86 +1374,86 @@ p\left(y \mid \gamma, \alpha, \theta, \sigma_e^2\right)\\
 \end{align*}\]</span> where <span class="math inline">\(C^+\)</span> denotes the half-Cauchy distribution. Optionally, hyperpriors on <span class="math inline">\(\tau\)</span> and <span class="math inline">\(\sigma\)</span> may be specified, as is described further in the next two sections.</p>
 <p>To illustrate the shrinkage behaviour of the horseshoe, let’s plot the posterior mean for <span class="math inline">\(\beta_i\)</span> as a function of <span class="math inline">\(y_i\)</span> for three different values of <span class="math inline">\(\tau\)</span>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(horseshoe)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>tau.values <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.005</span>, <span class="fl">0.05</span>, <span class="fl">0.5</span>)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>y.values <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>, <span class="at">length =</span> <span class="dv">100</span>)</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">tau =</span> <span class="fu">rep</span>(tau.values, <span class="at">each =</span> <span class="fu">length</span>(y.values)),</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">y =</span> <span class="fu">rep</span>(y.values, <span class="dv">3</span>),</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>                 <span class="at">post.mean =</span> <span class="fu">c</span>(<span class="fu">HS.post.mean</span>(y.values, <span class="at">tau =</span> tau.values[<span class="dv">1</span>], <span class="at">Sigma2=</span><span class="dv">1</span>), </span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">HS.post.mean</span>(y.values, <span class="at">tau =</span> tau.values[<span class="dv">2</span>], <span class="at">Sigma2=</span><span class="dv">1</span>), </span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">HS.post.mean</span>(y.values, <span class="at">tau =</span> tau.values[<span class="dv">3</span>], <span class="at">Sigma2=</span><span class="dv">1</span>)) )</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> y, <span class="at">y =</span> post.mean, <span class="at">group =</span> tau, <span class="at">color =</span> <span class="fu">factor</span>(tau))) <span class="sc">+</span> </span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">size =</span> <span class="fl">1.5</span>) <span class="sc">+</span> </span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_brewer</span>(<span class="at">palette=</span><span class="st">"Dark2"</span>) <span class="sc">+</span> </span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span> <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">colour =</span> <span class="st">"grey"</span>) <span class="sc">+</span> </span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">color =</span> <span class="st">"Tau"</span>) <span class="sc">+</span></span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Horseshoe posterior mean for three values of tau"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(horseshoe)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>tau.values <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.005</span>, <span class="fl">0.05</span>, <span class="fl">0.5</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>y.values <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>, <span class="at">length =</span> <span class="dv">100</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">tau =</span> <span class="fu">rep</span>(tau.values, <span class="at">each =</span> <span class="fu">length</span>(y.values)),</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">y =</span> <span class="fu">rep</span>(y.values, <span class="dv">3</span>),</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>                 <span class="at">post.mean =</span> <span class="fu">c</span>(<span class="fu">HS.post.mean</span>(y.values, <span class="at">tau =</span> tau.values[<span class="dv">1</span>], <span class="at">Sigma2=</span><span class="dv">1</span>), </span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">HS.post.mean</span>(y.values, <span class="at">tau =</span> tau.values[<span class="dv">2</span>], <span class="at">Sigma2=</span><span class="dv">1</span>), </span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">HS.post.mean</span>(y.values, <span class="at">tau =</span> tau.values[<span class="dv">3</span>], <span class="at">Sigma2=</span><span class="dv">1</span>)) )</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> y, <span class="at">y =</span> post.mean, <span class="at">group =</span> tau, <span class="at">color =</span> <span class="fu">factor</span>(tau))) <span class="sc">+</span> </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">size =</span> <span class="fl">1.5</span>) <span class="sc">+</span> </span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_brewer</span>(<span class="at">palette=</span><span class="st">"Dark2"</span>) <span class="sc">+</span> </span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span> <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">colour =</span> <span class="st">"grey"</span>) <span class="sc">+</span> </span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">color =</span> <span class="st">"Tau"</span>) <span class="sc">+</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Horseshoe posterior mean for three values of tau"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="12-theoryai_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="576"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>Smaller values of <span class="math inline">\(\tau\)</span> lead to stronger shrinkage behaviour of the horseshoe. Observations that are in absolute value at most equal to <span class="math inline">\(\sqrt{2\sigma^2\log(1/\tau)}\)</span> are shrunk to values close to zero (Van der Pas et al (2014)). For larger observed values, the horseshoe posterior mean will tend to the identity (that is, barely any shrinkage, the estimate will be very close to the observed value). The optimal value of <span class="math inline">\(\tau\)</span> is the proportion of true signals. This value is typically not known in practice but can be estimated, as described further in the next sections.</p>
 </section>
-<section id="the-normal-means-problem" class="level2" data-number="12.13">
-<h2 data-number="12.13" class="anchored" data-anchor-id="the-normal-means-problem"><span class="header-section-number">12.13</span> The normal means problem</h2>
+<section id="the-normal-means-problem" class="level2" data-number="12.18">
+<h2 data-number="12.18" class="anchored" data-anchor-id="the-normal-means-problem"><span class="header-section-number">12.18</span> The normal means problem</h2>
 <p>The normal means model is: <span class="math display">\[Y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,\]</span> with <span class="math inline">\(\varepsilon_i\)</span> i.i.d. <span class="math inline">\(\mathcal{N}(0, \sigma^2)\)</span>.</p>
 <p>First, we will be computing the posterior mean only, with known variance <span class="math inline">\(\sigma^2\)</span> The function <code>HS.post.mean</code> computes the posterior mean of <span class="math inline">\((\beta_1, \ldots, \beta_n)\)</span>. It does not require MCMC and is suitable when only an estimate of the vector <span class="math inline">\((\beta_1, \ldots, \beta_n)\)</span> is desired. In case uncertainty quantification or variable selection is also of interest, or no good value for <span class="math inline">\(\sigma^2\)</span> is available, please see below for the function <code>HS.normal.means</code>.</p>
 <p>The function <code>HS.post.mean</code> requires the observed outcomes, a value for <span class="math inline">\(\tau\)</span> and a value for <span class="math inline">\(\sigma\)</span>. Ideally, <span class="math inline">\(\tau\)</span> should be equal to the proportion of nonzero <span class="math inline">\(\beta_i\)</span>’s. Typically, this proportion is unknown, in which case it is recommended to use the function <code>HS.MMLE</code> to find the marginal maximum likelihood estimator for <span class="math inline">\(\tau\)</span>.</p>
 <p>As an example, we generate 50 data points, the first 10 of which are coming from true signals. The first 10 <span class="math inline">\(\beta_i\)</span>’s are equal to five and the remaining <span class="math inline">\(\beta_i\)</span>’s are equal to zero. Let’s first plot the true parameters (black) and observations (blue).</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">index =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">50</span>,</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                 truth <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="dv">5</span>, <span class="dv">10</span>), <span class="fu">rep</span>(<span class="dv">0</span>, <span class="dv">40</span>)),</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                 y <span class="ot">&lt;-</span> truth <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">50</span>) <span class="co">#observations</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                 )</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">index =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">50</span>,</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                 truth <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="dv">5</span>, <span class="dv">10</span>), <span class="fu">rep</span>(<span class="dv">0</span>, <span class="dv">40</span>)),</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                 y <span class="ot">&lt;-</span> truth <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">50</span>) <span class="co">#observations</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                 )</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="12-theoryai_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="576"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>We estimate <span class="math inline">\(\tau\)</span> using the MMLE, using the known variance.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>(tau.est <span class="ot">&lt;-</span> <span class="fu">HS.MMLE</span>(df<span class="sc">$</span>y, <span class="at">Sigma2 =</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>(tau.est <span class="ot">&lt;-</span> <span class="fu">HS.MMLE</span>(df<span class="sc">$</span>y, <span class="at">Sigma2 =</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## [1] 0.95408</code></pre>
 </div>
 </div>
 <p>We then use this estimate of <span class="math inline">\(\tau\)</span> to find the posterior mean, and add it to the plot in red.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>post.mean <span class="ot">&lt;-</span> <span class="fu">HS.post.mean</span>(df<span class="sc">$</span>y, tau.est, <span class="dv">1</span>)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>post.mean <span class="ot">&lt;-</span> post.mean</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations, Red = estimates"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>post.mean <span class="ot">&lt;-</span> <span class="fu">HS.post.mean</span>(df<span class="sc">$</span>y, tau.est, <span class="dv">1</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>post.mean <span class="ot">&lt;-</span> post.mean</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations, Red = estimates"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="12-theoryai_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="576"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>If the posterior variance is of interest, the function <code>HS.post.var</code> can be used. It takes the same arguments as <code>HS.post.mean</code>.</p>
-<section id="posterior-mean-credible-intervals-and-variable-selection-possibly-unknown-sigma2" class="level3" data-number="12.13.1">
-<h3 data-number="12.13.1" class="anchored" data-anchor-id="posterior-mean-credible-intervals-and-variable-selection-possibly-unknown-sigma2"><span class="header-section-number">12.13.1</span> Posterior mean, credible intervals and variable selection, possibly unknown <span class="math inline">\(\sigma^2\)</span></h3>
+<section id="posterior-mean-credible-intervals-and-variable-selection-possibly-unknown-sigma2" class="level3" data-number="12.18.1">
+<h3 data-number="12.18.1" class="anchored" data-anchor-id="posterior-mean-credible-intervals-and-variable-selection-possibly-unknown-sigma2"><span class="header-section-number">12.18.1</span> Posterior mean, credible intervals and variable selection, possibly unknown <span class="math inline">\(\sigma^2\)</span></h3>
 <p>The function <code>HS.normal.means</code> is the main function to use for the normal means problem. It uses MCMC and results in an object that contains all MCMC samples as well as the posterior mean for all parameters (<span class="math inline">\(\beta_i\)</span>’s, <span class="math inline">\(\tau\)</span>, <span class="math inline">\(\sigma\)</span>), the posterior median for the <span class="math inline">\(\beta_i\)</span>’s, and credible intervals for the <span class="math inline">\(\beta_i\)</span>’s.</p>
 <p>The key choices to make are:</p>
 <ul>
@@ -1143,86 +1463,86 @@ p\left(y \mid \gamma, \alpha, \theta, \sigma_e^2\right)\\
 <p>Other options that can be set by the user are the level of the credible intervals (default is 95%), and the number of MCMC samples (default is 1000 burn-in samples and then 5000 more).</p>
 <p>Let’s continue the example from the previous section. We first create a ‘horseshoe object’.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>hs.object <span class="ot">&lt;-</span> <span class="fu">HS.normal.means</span>(df<span class="sc">$</span>y, <span class="at">method.tau =</span> <span class="st">"truncatedCauchy"</span>, <span class="at">method.sigma =</span> <span class="st">"Jeffreys"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>hs.object <span class="ot">&lt;-</span> <span class="fu">HS.normal.means</span>(df<span class="sc">$</span>y, <span class="at">method.tau =</span> <span class="st">"truncatedCauchy"</span>, <span class="at">method.sigma =</span> <span class="st">"Jeffreys"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We extract the posterior mean of the <span class="math inline">\(\beta_i\)</span>’s and plot them in red.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>post.mean.full <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>BetaHat</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations, Red = estimates"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>post.mean.full <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>BetaHat</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations, Red = estimates"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="12-theoryai_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="576"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>We plot the marginal credible intervals (and remove the observations from the plot for clarity).</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>lower.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>LeftCI</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>upper.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>RightCI</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI), <span class="at">width =</span> .<span class="dv">1</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Red = estimates with 95% credible intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>lower.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>LeftCI</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>upper.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>RightCI</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI), <span class="at">width =</span> .<span class="dv">1</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Red = estimates with 95% credible intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="12-theoryai_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="576"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>Finally, we perform variable selection using <code>HS.var.select</code>. In the normal means problem, we can use two decision rules. We will illustrate them both. The first method checks whether zero is contained in the credible interval, as studied by Van der Pas et al (2017).</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.CI <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.CI <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The result is a vector of zeroes and ones, with the ones indicating that the observations is suspected to correspond to an actual signal. We now plot the results, coloring the estimates/intervals blue if a signal is detected and red otherwise.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)), </span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)),</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> .<span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>) <span class="sc">+</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)), </span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)),</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> .<span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="12-theoryai_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="576"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>The other variable selection method is the thresholding method of Carvalho et al (2010). The posterior mean can be written as <span class="math inline">\(c_iy_i\)</span> where <span class="math inline">\(y_i\)</span> is the observation and <span class="math inline">\(c_i\)</span> some number between 0 and 1. A variable is selected if <span class="math inline">\(c_i \geq c\)</span> for some user-selected threshold <span class="math inline">\(c\)</span> (default is <span class="math inline">\(c = 0.5\)</span>). In the example:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.thres <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"threshold"</span>)</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full, <span class="at">col =</span> <span class="fu">factor</span>(selected.thres)), </span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI, <span class="at">col =</span> <span class="fu">factor</span>(selected.thres)),</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> .<span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>) <span class="sc">+</span></span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.thres <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"threshold"</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full, <span class="at">col =</span> <span class="fu">factor</span>(selected.thres)), </span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI, <span class="at">col =</span> <span class="fu">factor</span>(selected.thres)),</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> .<span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="12-theoryai_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="12-theoryai_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="576"></p>
 </figure>
 </div>
 </div>
