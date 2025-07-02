@@ -243,7 +243,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12-regression.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Linear and Multiple Regression</span></span></a>
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Linear Regression</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -301,7 +301,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./10-data.html">AI</a></li><li class="breadcrumb-item"><a href="./11-pattern.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Pattern Matching</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Pattern Matching</span></h1>
+<h1 class="title"><span id="sec-pattern" class="quarto-section-identifier"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Pattern Matching</span></span></h1>
 </div>
 
 
@@ -1106,9 +1106,9 @@ f_i(x) = \sigma(W_i x + b_i),
 L(\theta) = \prod_{i=1}^n p(y_i\mid x_i,  \theta).
 \]</span> It treats the data <span class="math inline">\(D = (y_i,x_i)_{i=1}^n\)</span> as fixed and varies <span class="math inline">\(\theta\)</span>.</p>
 <p>Likelihood connects our model to the data generating process by quantifying how likely it is to observe the actual data we have under different parameter values. For example, if we assume our data follows a normal distribution <span class="math inline">\(y \sim N(f_\theta(x), \sigma^2)\)</span> with mean <span class="math inline">\(f_\theta(x)\)</span> and variance <span class="math inline">\(\sigma^2\)</span>, the likelihood function would be:</p>
-<p><span class="math display">\[
+<p><span id="eq-normal-likelihood"><span class="math display">\[
 L(\theta) = \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(y_i - f_\theta(x_i))^2}{2\sigma^2}\right).
-\]</span></p>
+\tag{2.1}\]</span></span></p>
 <p>For the case of classification problem, we assume that <span class="math inline">\(y_i\)</span> follows a Bernoulli distribution <span class="math inline">\(y_i \sim \text{Bernoulli}(f_\theta(x_i))\)</span>. The likelihood function is defined as <span class="math display">\[
 L(\theta) = \prod_{i=1}^n f_\theta(x_i)^{y_i} (1-f_\theta(x_i))^{1-y_i}.
 \]</span> Notice, that in this case function <span class="math inline">\(f_\theta(x_i)\)</span> is restricted to output values in <span class="math inline">\((0,1)\)</span>.</p>
@@ -1123,9 +1123,27 @@ L(\theta) = \prod_{i=1}^n f_\theta(x_i)^{y_i} (1-f_\theta(x_i))^{1-y_i}.
 <p>Finally, in machine leanring literature, it is more common to minimize the negative log-likelihood function (same as maximizing the log-likelihood function). <span class="math display">\[
 \theta^* = \arg\min_{\theta} -l(\theta).
 \]</span> Then the negative log-likelihood function is called the <em>loss function</em>. Thus the problem of finding maximum likelihood estimate is equivalent to minimizing the loss function.</p>
+<p>Let’s calculate the loss function that corresponds to the normal likelihood function given by <a href="#eq-normal-likelihood" class="quarto-xref">Equation&nbsp;<span>2.1</span></a>. Using the fact that logarithm of product is a sum of logarithms, we can rewrite the likelihood function as <span class="math display">\[
+l(\theta) = \sum_{i=1}^n \log \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(y_i - f_\theta(x_i))^2}{2\sigma^2}\right).
+\]</span> Inside the sum, we have a product of two terms. The first term is a constant with respect to <span class="math inline">\(\theta\)</span> and the second term is a function of <span class="math inline">\(\theta\)</span>. We can rewrite the likelihood function as <span class="math display">\[
+l(\theta) = \sum_{i=1}^n \left[\log \frac{1}{\sqrt{2\pi\sigma^2}} + \log \exp\left(-\frac{(y_i - f_\theta(x_i))^2}{2\sigma^2}\right)\right].
+\]</span></p>
+<p>The first term <span class="math inline">\(\log \frac{1}{\sqrt{2\pi\sigma^2}}\)</span> is a constant with respect to <span class="math inline">\(\theta\)</span>, so we can drop it from the optimization problem. The second term can be simplified using the fact that <span class="math inline">\(\log \exp(x) = x\)</span>:</p>
+<p><span class="math display">\[
+l(\theta) = \sum_{i=1}^n \left[-\frac{(y_i - f_\theta(x_i))^2}{2\sigma^2}\right] + C,
+\]</span></p>
+<p>where <span class="math inline">\(C\)</span> is a constant that does not depend on <span class="math inline">\(\theta\)</span>. Since we are maximizing the log-likelihood, we can drop the constant term and the negative sign:</p>
+<p><span class="math display">\[
+l(\theta) = -\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i - f_\theta(x_i))^2.
+\]</span></p>
+<p>When we minimize the negative log-likelihood (which is equivalent to maximizing the log-likelihood), we get:</p>
+<p><span class="math display">\[
+-\ell(\theta) = \frac{1}{2\sigma^2}\sum_{i=1}^n (y_i - f_\theta(x_i))^2.
+\]</span></p>
+<p>This is the <strong>mean squared error (MSE)</strong> loss function, which is the most commonly used loss function for regression problems. The factor <span class="math inline">\(\frac{1}{2\sigma^2}\)</span> is often absorbed into the learning rate or regularization parameter in optimization algorithms. Thus, another name of the estimator is the <strong>least squares estimator</strong>. It is the same as the maximum likelihood estimator, assuming that the <span class="math inline">\(f_\theta(x_i)\)</span> is normally distributed.</p>
 <section id="penalized-likelihood" class="level3" data-number="2.5.1">
 <h3 data-number="2.5.1" class="anchored" data-anchor-id="penalized-likelihood"><span class="header-section-number">2.5.1</span> Penalized Likelihood</h3>
-<p>While maximum likelihood estimation provides a principled approach to parameter estimation, we can often find a better estimators using what is called a penalized likelihood. In fact, there are certain cases, when penalized estimator leads to universally better estimators. In statistics, we would say that MLE is inadmissibile, meaning there exists another estimator (James–Stein) that is strictly better in terms of risk. Later is Section <span class="quarto-unresolved-ref">?sec-theoryai</span> we will discuss the theory of penalized estimators in more detail.</p>
+<p>While maximum likelihood estimation provides a principled approach to parameter estimation, we can often find a better estimators using what is called a penalized likelihood. In fact, there are certain cases, when penalized estimator leads to universally better estimators. In statistics, we would say that MLE is inadmissibile, meaning there exists another estimator (James–Stein) that is strictly better in terms of risk. Later is Section <a href="13-theoryai.html" class="quarto-xref"><span>Chapter 5</span></a> we will discuss the theory of penalized estimators in more detail.</p>
 <p>Penalized likelihood addresses overfitting by adding a regularization term to the likelihood function. Instead of maximizing just the likelihood, we maximize:</p>
 <p><span class="math display">\[
 L_{\text{penalized}}(\theta) = L(\theta) \cdot \exp(-\lambda \phi(\theta))
@@ -1650,8 +1668,8 @@ Tikhonov, Andrey Nikolayevich et al. 1943. <span>“On the Stability of Inverse 
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./12-regression.html" class="pagination-link" aria-label="Linear and Multiple Regression">
-        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Linear and Multiple Regression</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./12-regression.html" class="pagination-link" aria-label="Linear Regression">
+        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Linear Regression</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
