@@ -261,12 +261,7 @@ window.Quarto = {
   <li><a href="#the-bayesian-information-criterion" id="toc-the-bayesian-information-criterion" class="nav-link" data-scroll-target="#the-bayesian-information-criterion"><span class="header-section-number">1.6.1</span> The Bayesian Information Criterion</a></li>
   <li><a href="#nic-and-evidence-framework" id="toc-nic-and-evidence-framework" class="nav-link" data-scroll-target="#nic-and-evidence-framework"><span class="header-section-number">1.6.2</span> NIC and Evidence Framework</a></li>
   </ul></li>
-  <li><a href="#widely-applicable-bayesian-information-criterion" id="toc-widely-applicable-bayesian-information-criterion" class="nav-link" data-scroll-target="#widely-applicable-bayesian-information-criterion"><span class="header-section-number">1.7</span> Widely applicable Bayesian Information Criterion</a>
-  <ul class="collapse">
-  <li><a href="#motivation-for-wbic" id="toc-motivation-for-wbic" class="nav-link" data-scroll-target="#motivation-for-wbic"><span class="header-section-number">1.7.1</span> Motivation for WBIC</a></li>
-  <li><a href="#practical-implementation" id="toc-practical-implementation" class="nav-link" data-scroll-target="#practical-implementation"><span class="header-section-number">1.7.2</span> Practical Implementation</a></li>
-  </ul></li>
-  <li><a href="#double-descent" id="toc-double-descent" class="nav-link" data-scroll-target="#double-descent"><span class="header-section-number">1.8</span> Double Descent</a></li>
+  <li><a href="#double-descent" id="toc-double-descent" class="nav-link" data-scroll-target="#double-descent"><span class="header-section-number">1.7</span> Double Descent</a></li>
   </ul>
 </nav>
 </nav>
@@ -1077,76 +1072,11 @@ w_{ij} \sim \mathcal{N}(0, \alpha_i^{-1}), \quad \text{for all } j
 <p>The evidence framework also naturally handles the multiple scales of uncertainty present in neural networks. Parameter uncertainty captures the uncertainty in individual weight values given the training data, while hyperparameter uncertainty reflects uncertainty about the appropriate level of regularization or architectural choices. Model uncertainty encompasses uncertainty about the fundamental model class or architecture family. The hierarchical Bayesian treatment allows simultaneous reasoning about all these sources of uncertainty within a unified framework.</p>
 <p>Despite its theoretical elegance, the evidence framework faces practical limitations in very large-scale applications. The computational requirements of Hessian approximation, even with modern efficient methods, can be substantial for networks with hundreds of millions of parameters. The Laplace approximation itself may be inadequate when the posterior is highly non-Gaussian, which can occur in networks with many local minima or complex loss landscapes.</p>
 <p>The enduring value of MacKay’s evidence framework lies in its principled approach to the fundamental trade-offs in machine learning model design. By providing a theoretically grounded method for balancing model complexity against data fit, the framework offers insights that remain relevant even as the scale and sophistication of machine learning models continue to evolve. The automatic hyperparameter selection and architecture comparison capabilities of the evidence framework continue to influence contemporary approaches to neural architecture search and automated machine learning.</p>
+<p>Yet another approach is the Widely applicable Bayesian Information Criterion (WBIC) propsed by <span class="citation" data-cites="watanabe2013widely">Watanabe (<a href="references.html#ref-watanabe2013widely" role="doc-biblioref">2013</a>)</span>. It is a generalization of the traditional BIC that addresses some of its fundamental limitations, particularly when dealing with singular statistical models and complex machine learning architectures. It addresses the problem when BIC’s assumptions that the true parameter lies in the interior of the parameter space and that the information matrix is positive definite are violated. These regularity conditions fail for many important models such as neural networks with hidden units, mixture models where the number of components is unknown, tree-based models with unknown structure, and models with parameter constraints or boundaries. Second, BIC requires knowing the effective number of parameters <span class="math inline">\(k\)</span>, which can be ambiguous for complex models. This becomes problematic when dealing with shared parameters across different parts of the model, regularization that effectively reduces the parameter dimension, or hierarchical structures where the effective dimensionality depends on the data. The challenge of defining the “true” number of parameters in modern machine learning models makes BIC’s penalty term difficult to specify correctly.</p>
 </section>
 </section>
-<section id="widely-applicable-bayesian-information-criterion" class="level2" data-number="1.7">
-<h2 data-number="1.7" class="anchored" data-anchor-id="widely-applicable-bayesian-information-criterion"><span class="header-section-number">1.7</span> Widely applicable Bayesian Information Criterion</h2>
-<p>The Widely applicable Bayesian Information Criterion (WBIC) is a generalization of the traditional BIC that addresses some of its fundamental limitations, particularly when dealing with singular statistical models and complex machine learning architectures. WBIC was developed by Sumio Watanabe as part of his singular learning theory, which provides a mathematical framework for understanding the behavior of statistical models that don’t satisfy the regularity conditions assumed by classical statistical theory.</p>
-<section id="motivation-for-wbic" class="level3" data-number="1.7.1">
-<h3 data-number="1.7.1" class="anchored" data-anchor-id="motivation-for-wbic"><span class="header-section-number">1.7.1</span> Motivation for WBIC</h3>
-<p>The standard BIC, while useful, relies on several restrictive assumptions that often fail in modern machine learning contexts. First, BIC assumes that the true parameter lies in the interior of the parameter space and that the Fisher information matrix is positive definite. These regularity conditions fail for many important models such as neural networks with hidden units, mixture models where the number of components is unknown, tree-based models with unknown structure, and models with parameter constraints or boundaries.</p>
-<p>Second, BIC requires knowing the effective number of parameters <span class="math inline">\(k\)</span>, which can be ambiguous for complex models. This becomes problematic when dealing with shared parameters across different parts of the model, regularization that effectively reduces the parameter dimension, or hierarchical structures where the effective dimensionality depends on the data. The challenge of defining the “true” number of parameters in modern machine learning models makes BIC’s penalty term difficult to specify correctly.</p>
-<p>Third, BIC’s theoretical guarantees assume large sample sizes, but its performance can be poor for finite samples, especially when the model is complex relative to the data size. This limitation is particularly relevant in contemporary applications where high-dimensional models are applied to moderate-sized datasets, a common scenario in domains such as genomics, natural language processing, and computer vision.</p>
-<p>WBIC addresses these limitations through a temperature-based approach that connects Bayesian model selection to statistical mechanics. The WBIC is defined as:</p>
-<p><span class="math display">\[
-\text{WBIC} = 2n \mathbb{E}_{\beta^{-1}}[\log p(D|\theta)] - 2 \log \int p(D|\theta)^{\beta} p(\theta) d\theta
-\]</span></p>
-<p>where <span class="math inline">\(\beta = 1/\log n\)</span> is an inverse temperature parameter that decreases as the sample size <span class="math inline">\(n\)</span> increases, and <span class="math inline">\(\mathbb{E}_{\beta^{-1}}[\cdot]\)</span> denotes expectation with respect to the posterior distribution at inverse temperature <span class="math inline">\(\beta^{-1}\)</span>.</p>
-<p>More practically, WBIC can be computed as:</p>
-<p><span class="math display">\[
-\text{WBIC} = \frac{1}{T} \sum_{t=1}^{T} \left[ -2 \log p(D|\theta^{(t)}) \right]
-\]</span></p>
-<p>where <span class="math inline">\(\{\theta^{(t)}\}_{t=1}^{T}\)</span> are samples from the tempered posterior distribution:</p>
-<p><span class="math display">\[
-p_{\beta}(\theta|D) \propto p(D|\theta)^{\beta} p(\theta)
-\]</span></p>
-<p>with <span class="math inline">\(\beta = 1/\log n\)</span>.</p>
-<p><strong>The temperature</strong> parameter <span class="math inline">\(\beta = 1/\log n\)</span> serves several important purposes in the WBIC framework. As the sample size <span class="math inline">\(n\)</span> increases, <span class="math inline">\(\beta\)</span> decreases, making the tempered posterior more diffuse than the standard posterior. This provides automatic regularization that prevents overfitting by spreading the posterior probability over a wider range of parameter values. The temperature mechanism allows WBIC to work with singular models where the standard likelihood-based methods fail, addressing one of the key limitations of traditional information criteria.</p>
-<p>Unlike BIC’s asymptotic approximation, WBIC provides finite-sample corrections that improve performance for moderate sample sizes. This is particularly valuable in practical applications where the asymptotic regime may not be reached or where the effective sample size is reduced due to high-dimensional parameter spaces.</p>
-<p>When the regularity conditions hold and the sample size is large, <strong>WBIC converges to BIC</strong>:</p>
-<p><span class="math display">\[
-\lim_{n \to \infty} \text{WBIC} = \text{BIC} = -2\log p(D|\hat{\theta}) + k \log n
-\]</span></p>
-<p>However, for singular models or finite samples, WBIC can provide substantially different and often more accurate model selection results. The convergence property ensures that WBIC maintains the desirable asymptotic properties of BIC while extending its applicability to a much broader class of models.</p>
-<p>The WBIC naturally implements Occam’s razor through its temperature mechanism. Simpler models with fewer effective parameters receive higher weight because they have smaller variance in their log-likelihood values, the temperature averaging tends to favor models with more concentrated likelihood surfaces, and complex models are automatically penalized through the integral term in the WBIC expression. This automatic penalty adjustment is particularly valuable when the effective number of parameters is difficult to determine a priori.</p>
-</section>
-<section id="practical-implementation" class="level3" data-number="1.7.2">
-<h3 data-number="1.7.2" class="anchored" data-anchor-id="practical-implementation"><span class="header-section-number">1.7.2</span> Practical Implementation</h3>
-<p>Computing WBIC requires sampling from a tempered posterior, which can be accomplished through several computational approaches. Tempered MCMC modifies standard MCMC algorithms to sample from <span class="math inline">\(p_{\beta}(\theta|D)\)</span> instead of the standard posterior, requiring adjustments to the acceptance probabilities and proposal distributions. Parallel tempering runs multiple MCMC chains at different temperatures and uses the chain at <span class="math inline">\(\beta = 1/\log n\)</span>, which can be computationally intensive but provides robust sampling. When MCMC is computationally prohibitive, variational approximation methods can be used to approximate the tempered posterior, trading some accuracy for computational efficiency.</p>
-<p>Here’s a simple example of how WBIC might be computed for a Bayesian linear regression model:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute WBIC for Bayesian linear regression</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>compute_wbic <span class="ot">&lt;-</span> <span class="cf">function</span>(X, y, <span class="at">prior_precision =</span> <span class="dv">1</span>) {</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  beta_temp <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> <span class="fu">log</span>(n)  <span class="co"># Temperature parameter</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Set up tempered posterior sampling</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># (This is a simplified example - real implementation would use proper MCMC)</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sample from tempered posterior</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  n_samples <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  log_likes <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n_samples)</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_samples) {</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample theta from tempered posterior p(theta|D)^beta</span></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ... MCMC sampling code ...</span></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compute log-likelihood at sampled theta</span></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    log_likes[i] <span class="ot">&lt;-</span> <span class="fu">compute_log_likelihood</span>(theta_sample, X, y)</span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="co"># WBIC estimate</span></span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  wbic <span class="ot">&lt;-</span> <span class="sc">-</span><span class="dv">2</span> <span class="sc">*</span> <span class="fu">mean</span>(log_likes)</span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(wbic)</span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>WBIC offers several significant advantages over traditional information criteria. It works with singular models where BIC fails, provides finite-sample corrections that improve performance in practical applications, automatically handles effective parameter counting without requiring explicit specification, is theoretically grounded in singular learning theory, and often provides more accurate model selection for complex models. These properties make WBIC particularly valuable for modern machine learning applications where model singularities and complex parameter structures are common.</p>
-<p>However, WBIC also has important limitations that practitioners should consider. It is computationally more expensive than BIC because it requires MCMC sampling rather than simple point estimates. It is less familiar to practitioners than standard information criteria, potentially creating barriers to adoption. Implementation can be complex for some model types, particularly when designing appropriate tempering schemes. Finally, while theoretically grounded, the practical properties of WBIC are less well-understood for some applications compared to the extensive literature on traditional information criteria.</p>
-<p>The choice between WBIC and BIC depends on several factors related to the model, data, and computational constraints. WBIC is preferable when working with neural networks, mixture models, or other potentially singular models where BIC’s regularity assumptions fail. It is also advantageous when the effective number of parameters is unclear or when sample sizes are moderate and BIC’s asymptotic approximations may not be reliable. Additionally, WBIC should be considered when computational resources allow for the additional complexity of tempering and sampling procedures.</p>
-<p>Conversely, BIC remains the better choice when working with simple, regular models such as linear regression or basic generalized linear models where the regularity conditions are satisfied. BIC is also preferable for large sample sizes where asymptotic approximations are accurate, when computational efficiency is paramount and the additional complexity of WBIC cannot be justified, or when the number of parameters is well-defined and small enough that BIC’s penalty term is appropriate.</p>
-<p>WBIC represents an important advancement in Bayesian model selection, extending the applicability of information-theoretic model selection to the complex, high-dimensional models that are increasingly common in modern data science and machine learning applications. As the field continues to develop models that violate traditional statistical assumptions, tools like WBIC become essential for principled model comparison and selection.</p>
-</section>
-</section>
-<section id="double-descent" class="level2" data-number="1.8">
-<h2 data-number="1.8" class="anchored" data-anchor-id="double-descent"><span class="header-section-number">1.8</span> Double Descent</h2>
+<section id="double-descent" class="level2" data-number="1.7">
+<h2 data-number="1.7" class="anchored" data-anchor-id="double-descent"><span class="header-section-number">1.7</span> Double Descent</h2>
 <p>Double descent is a phenomenon of over-parameterized statistical models. In this section, we present a view of double descent from a Bayesian perspective. Over-parameterized models such as deep neural networks have an interesting re-descending property in their risk characteristics. This is a recent phenomenon in machine learning and has been the subject of many studies. As the complexity of the model increases, there is a U-shaped region corresponding to the traditional bias-variance trade-off, but then as the number of parameters equals the number of observations and the model becomes one of interpolation, the risk can become infinite and then, in the over-parameterized region, it re-descends—the double descent effect. We show that this has a natural Bayesian interpretation. Moreover, we show that it is not in conflict with the traditional Occam’s razor that Bayesian models possess, in that they tend to prefer simpler models when possible.</p>
 <p>Empirically, the double descent effect was initially observed for high-dimensional neural network regression models and the good performance of these models on such tasks as large language models, image processing, and generative AI methods<span class="citation" data-cites="nareklishvili2023generative">(<a href="references.html#ref-nareklishvili2023generative" role="doc-biblioref">Nareklishvili, Polson, and Sokolov 2023</a>)</span>. The double descent effect extends the classical bias-variance trade-off curve that shrinkage estimators possess. This phenomenon was first observed in the context of linear regression<span class="citation" data-cites="belkin2019reconciling">(<a href="references.html#ref-belkin2019reconciling" role="doc-biblioref">Belkin et al. 2019</a>)</span>. The authors showed that the test error of the estimator can decrease as the number of parameters increases. <span class="citation" data-cites="bach2024highdimensional">Bach (<a href="references.html#ref-bach2024highdimensional" role="doc-biblioref">2024</a>)</span> extends these results to stochastic regression models.</p>
 <p>Interpolators—estimators that achieve zero training error—were then shown to have attractive properties due to the double descent effect<span class="citation" data-cites="hastie2022surprises">(<a href="references.html#ref-hastie2022surprises" role="doc-biblioref">Hastie et al. 2022</a>)</span>. Our goal is to show that Bayesian estimators can also possess a double descent phenomenon. Interpolators such as ReLU neural networks<span class="citation" data-cites="polson2017deep">(<a href="references.html#ref-polson2017deep" role="doc-biblioref">Polson, Sokolov, et al. 2017</a>)</span> have increased in popularity with many applications such as traffic flow modeling<span class="citation" data-cites="polson2017deep">(<a href="references.html#ref-polson2017deep" role="doc-biblioref">Polson, Sokolov, et al. 2017</a>)</span> and high-frequency trading<span class="citation" data-cites="dixon2019deep">(<a href="references.html#ref-dixon2019deep" role="doc-biblioref">Dixon, Polson, and Sokolov 2019</a>)</span>, among many others.</p>
@@ -1166,60 +1096,60 @@ p_{\beta}(\theta|D) \propto p(D|\theta)^{\beta} p(\theta)
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">20</span>  <span class="co"># number of samples</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>sigma <span class="op">=</span> <span class="fl">0.3</span>  <span class="co"># stdev of noise</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> <span class="dv">1</span>  <span class="co"># range of x values</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Use Legendre polynomial basis by default</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>G <span class="op">=</span> np.polynomial.legendre.legvander</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> poly(pts, beta, d):</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> G(pts, d).dot(beta)</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize data</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>ground_truth <span class="op">=</span> sin</span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(a, b, n)</span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> ground_truth(x) <span class="op">+</span> sigma <span class="op">*</span> np.random.normal(size<span class="op">=</span>n)</span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>xdense <span class="op">=</span> np.linspace(a, b, <span class="dv">100</span>)</span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>ygt <span class="op">=</span> ground_truth(xdense)</span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Core functions</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> solve_reg(A, y, lamb):</span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> la.solve(A.T.dot(A) <span class="op">+</span> lamb <span class="op">*</span> np.identity(A.shape[<span class="dv">1</span>]), A.T.dot(y))</span>
-<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fit(d):</span>
-<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    betaHat <span class="op">=</span> la.pinv(G(x, d)).dot(y)</span>
-<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    mseos <span class="op">=</span> np.sqrt(np.mean((G(xdense, d).dot(betaHat) <span class="op">-</span> ygt)<span class="op">**</span><span class="dv">2</span>))</span>
-<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    mseis <span class="op">=</span> np.sqrt(np.mean((G(x, d).dot(betaHat) <span class="op">-</span> y)<span class="op">**</span><span class="dv">2</span>))</span>
-<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> betaHat, mseos, mseis</span>
-<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run(d, ax):</span>
-<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Compute the regressor for degree d, and plot the solution."""</span></span>
-<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    betaHat, mseos, mseois <span class="op">=</span> fit(d)</span>
-<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    ax.plot(xdense, ygt, label<span class="op">=</span><span class="st">'ground-truth'</span>)</span>
-<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    ax.scatter(x, y, c<span class="op">=</span><span class="st">'r'</span>, label<span class="op">=</span><span class="st">'samples'</span>)</span>
-<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    ax.plot(xdense, poly(xdense, betaHat, d), label<span class="op">=</span><span class="st">'model'</span>)</span>
-<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    ax.set_ylim(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>)</span>
-<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    ax.axis(<span class="st">'off'</span>)</span>
-<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>    ax.legend()</span>
-<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="st">'d=</span><span class="sc">%d</span><span class="st">, MSE: Test=</span><span class="sc">%.2f</span><span class="st">, Train=</span><span class="sc">%.2f</span><span class="st">'</span> <span class="op">%</span> (d, mseos, mseois))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">20</span>  <span class="co"># number of samples</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>sigma <span class="op">=</span> <span class="fl">0.3</span>  <span class="co"># stdev of noise</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> <span class="dv">1</span>  <span class="co"># range of x values</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Use Legendre polynomial basis by default</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>G <span class="op">=</span> np.polynomial.legendre.legvander</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> poly(pts, beta, d):</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> G(pts, d).dot(beta)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize data</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>ground_truth <span class="op">=</span> sin</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(a, b, n)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> ground_truth(x) <span class="op">+</span> sigma <span class="op">*</span> np.random.normal(size<span class="op">=</span>n)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>xdense <span class="op">=</span> np.linspace(a, b, <span class="dv">100</span>)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>ygt <span class="op">=</span> ground_truth(xdense)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Core functions</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> solve_reg(A, y, lamb):</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> la.solve(A.T.dot(A) <span class="op">+</span> lamb <span class="op">*</span> np.identity(A.shape[<span class="dv">1</span>]), A.T.dot(y))</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fit(d):</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    betaHat <span class="op">=</span> la.pinv(G(x, d)).dot(y)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    mseos <span class="op">=</span> np.sqrt(np.mean((G(xdense, d).dot(betaHat) <span class="op">-</span> ygt)<span class="op">**</span><span class="dv">2</span>))</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    mseis <span class="op">=</span> np.sqrt(np.mean((G(x, d).dot(betaHat) <span class="op">-</span> y)<span class="op">**</span><span class="dv">2</span>))</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> betaHat, mseos, mseis</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run(d, ax):</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Compute the regressor for degree d, and plot the solution."""</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    betaHat, mseos, mseois <span class="op">=</span> fit(d)</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    ax.plot(xdense, ygt, label<span class="op">=</span><span class="st">'ground-truth'</span>)</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    ax.scatter(x, y, c<span class="op">=</span><span class="st">'r'</span>, label<span class="op">=</span><span class="st">'samples'</span>)</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    ax.plot(xdense, poly(xdense, betaHat, d), label<span class="op">=</span><span class="st">'model'</span>)</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    ax.set_ylim(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>)</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>    ax.axis(<span class="st">'off'</span>)</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>    ax.legend()</span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="st">'d=</span><span class="sc">%d</span><span class="st">, MSE: Test=</span><span class="sc">%.2f</span><span class="st">, Train=</span><span class="sc">%.2f</span><span class="st">'</span> <span class="op">%</span> (d, mseos, mseois))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create 2x2 subplot grid (all functions and variables are now persistent!)</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">10</span>))</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>fig.suptitle(<span class="st">'Double Descent Phenomenon: Polynomial Regression'</span>, fontsize<span class="op">=</span><span class="dv">16</span>)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot each degree in its respective subplot</span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>run(<span class="dv">1</span>, axes[<span class="dv">0</span>, <span class="dv">0</span>])   <span class="co"># Top left</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>run(<span class="dv">5</span>, axes[<span class="dv">0</span>, <span class="dv">1</span>])   <span class="co"># Top right  </span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>run(<span class="dv">20</span>, axes[<span class="dv">1</span>, <span class="dv">0</span>])  <span class="co"># Bottom left</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>run(<span class="dv">50</span>, axes[<span class="dv">1</span>, <span class="dv">1</span>])  <span class="co"># Bottom right</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create 2x2 subplot grid (all functions and variables are now persistent!)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">10</span>))</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>fig.suptitle(<span class="st">'Double Descent Phenomenon: Polynomial Regression'</span>, fontsize<span class="op">=</span><span class="dv">16</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot each degree in its respective subplot</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>run(<span class="dv">1</span>, axes[<span class="dv">0</span>, <span class="dv">0</span>])   <span class="co"># Top left</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>run(<span class="dv">5</span>, axes[<span class="dv">0</span>, <span class="dv">1</span>])   <span class="co"># Top right  </span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>run(<span class="dv">20</span>, axes[<span class="dv">1</span>, <span class="dv">0</span>])  <span class="co"># Bottom left</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>run(<span class="dv">50</span>, axes[<span class="dv">1</span>, <span class="dv">1</span>])  <span class="co"># Bottom right</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-double-descent-grid" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1238,24 +1168,24 @@ Figure&nbsp;1.9: Double Descent Phenomenon: Polynomial Regression with Different
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate MSE data for different polynomial degrees (using persistent functions!)</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>nd <span class="op">=</span> <span class="dv">50</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>mse1 <span class="op">=</span> np.zeros(nd)  <span class="co"># Test MSE</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>mse2 <span class="op">=</span> np.zeros(nd)  <span class="co"># Train MSE</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> d <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, nd):</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    betaHat, mseos, mseois <span class="op">=</span> fit(d)</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    mse1[d] <span class="op">=</span> mseos</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    mse2[d] <span class="op">=</span> mseois</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>fig, ax1 <span class="op">=</span> plt.subplots()</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'Number of Features'</span>)</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">'MSE'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>ax1.plot(np.log10(mse1), color<span class="op">=</span><span class="st">'blue'</span>, label<span class="op">=</span><span class="st">'out-of-sample'</span>)</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax1.twinx()</span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>ax2.plot(np.log10(mse2), color<span class="op">=</span><span class="st">'red'</span>, label<span class="op">=</span><span class="st">'in-sample'</span>)</span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.plot(mse1, label='out-of-sample')</span></span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.plot(mse2, label='in-sample')</span></span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>fig.legend()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate MSE data for different polynomial degrees (using persistent functions!)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>nd <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>mse1 <span class="op">=</span> np.zeros(nd)  <span class="co"># Test MSE</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>mse2 <span class="op">=</span> np.zeros(nd)  <span class="co"># Train MSE</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> d <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, nd):</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    betaHat, mseos, mseois <span class="op">=</span> fit(d)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    mse1[d] <span class="op">=</span> mseos</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    mse2[d] <span class="op">=</span> mseois</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>fig, ax1 <span class="op">=</span> plt.subplots()</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'Number of Features'</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">'MSE'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>ax1.plot(np.log10(mse1), color<span class="op">=</span><span class="st">'blue'</span>, label<span class="op">=</span><span class="st">'out-of-sample'</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax1.twinx()</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>ax2.plot(np.log10(mse2), color<span class="op">=</span><span class="st">'red'</span>, label<span class="op">=</span><span class="st">'in-sample'</span>)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.plot(mse1, label='out-of-sample')</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.plot(mse2, label='in-sample')</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>fig.legend()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-mse-curve" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1318,6 +1248,9 @@ Ritter, Hippolyt, Aleksandar Botev, and David Barber. 2018. <span>“A <span>Sca
 </div>
 <div id="ref-singh2024framework" class="csl-entry" role="listitem">
 Singh, Pratyush Kumar, Kathryn A. Farrell-Maupin, and Danial Faghihi. 2024. <span>“A <span>Framework</span> for <span>Strategic Discovery</span> of <span>Credible Neural Network Surrogate Models</span> Under <span>Uncertainty</span>.”</span> arXiv. <a href="https://arxiv.org/abs/2403.08901">https://arxiv.org/abs/2403.08901</a>.
+</div>
+<div id="ref-watanabe2013widely" class="csl-entry" role="listitem">
+Watanabe, Sumio. 2013. <span>“A Widely Applicable <span>Bayesian</span> Information Criterion.”</span> <em>The Journal of Machine Learning Research</em> 14 (1): 867–97.
 </div>
 </div>
 </section>
