@@ -485,6 +485,12 @@ window.Quarto = {
   <li><a href="#proximal-perspective" id="toc-proximal-perspective" class="nav-link" data-scroll-target="#proximal-perspective">Proximal Perspective</a></li>
   </ul></li>
   <li><a href="#final-thoughts" id="toc-final-thoughts" class="nav-link" data-scroll-target="#final-thoughts"><span class="header-section-number">19.8</span> Final Thoughts</a></li>
+  <li><a href="#advanced-topics-in-regularization" id="toc-advanced-topics-in-regularization" class="nav-link" data-scroll-target="#advanced-topics-in-regularization"><span class="header-section-number">19.9</span> Advanced Topics in Regularization</a>
+  <ul class="collapse">
+  <li><a href="#tikhonov-regularization-framework" id="toc-tikhonov-regularization-framework" class="nav-link" data-scroll-target="#tikhonov-regularization-framework">Tikhonov Regularization Framework</a></li>
+  <li><a href="#generalized-ridge-regression-in-the-canonical-basis" id="toc-generalized-ridge-regression-in-the-canonical-basis" class="nav-link" data-scroll-target="#generalized-ridge-regression-in-the-canonical-basis">Generalized Ridge Regression in the Canonical Basis</a></li>
+  <li><a href="#trend-filtering-and-composite-penalties" id="toc-trend-filtering-and-composite-penalties" class="nav-link" data-scroll-target="#trend-filtering-and-composite-penalties">Trend Filtering and Composite Penalties</a></li>
+  </ul></li>
   </ul>
 </nav>
 </nav>
@@ -2565,6 +2571,50 @@ code/horseshoe_unit_ball.R -->
 <p>The evolution from maximum likelihood estimation to sophisticated Bayesian regularization represents more than technical progress—it reflects a fundamental shift in how we approach learning from data. Rather than seeking single “best” estimates, modern methods embrace uncertainty, incorporate prior knowledge, and adaptively balance model complexity with empirical fit.</p>
 <p>The remarkable fact that Bayesian approaches often dominate classical frequentist methods, even from a frequentist perspective (as demonstrated by Stein’s paradox), suggests that probabilistic thinking provides not just philosophical appeal but concrete practical advantages. In an era of ever-growing data complexity and dimensionality, these theoretical insights become increasingly valuable for developing robust, interpretable, and effective learning algorithms.</p>
 <p>The unified framework presented in this chapter—connecting classical statistics, Bayesian inference, optimization theory, and modern machine learning—provides both historical perspective and forward-looking guidance for the continued development of artificial intelligence systems. As we confront increasingly complex learning challenges, from personalized medicine to autonomous systems, the principled approach to regularization and uncertainty quantification developed here will remain fundamental to building trustworthy and effective AI systems.</p>
+</section>
+<section id="advanced-topics-in-regularization" class="level2" data-number="19.9">
+<h2 data-number="19.9" class="anchored" data-anchor-id="advanced-topics-in-regularization"><span class="header-section-number">19.9</span> Advanced Topics in Regularization</h2>
+<section id="tikhonov-regularization-framework" class="level3">
+<h3 class="anchored" data-anchor-id="tikhonov-regularization-framework">Tikhonov Regularization Framework</h3>
+<p>The Tikhonov regularization framework provides a general setting for regression that connects classical regularization theory with modern Bayesian approaches. Given observed data <span class="math inline">\(\{(x_i, y_i)\}_{i=1}^n\)</span> and a parametric model <span class="math inline">\(f(x,w)\)</span> with parameter vector <span class="math inline">\(w \in \mathbb{R}^k\)</span>, we define a data misfit functional: <span class="math display">\[
+E_D(w) = \sum_{i=1}^n (y_i - f(x_i,w))^2
+\]</span></p>
+<p>This yields a Gaussian likelihood: <span class="math display">\[
+p(y \mid w) = \frac{1}{Z_D}\exp\left(-\frac{1}{2\sigma^2}E_D(w)\right)
+\]</span> where <span class="math inline">\(\sigma^2\)</span> denotes the noise variance and <span class="math inline">\(Z_D\)</span> is a normalization constant.</p>
+<p>A Gaussian prior on the weights can be specified as: <span class="math display">\[
+p(w) = \frac{1}{Z_W}\exp\left(-\frac{1}{2\sigma_w^2}E_W(w)\right)
+\]</span> where <span class="math inline">\(E_W(w)\)</span> denotes a quadratic penalty on <span class="math inline">\(w\)</span> (e.g., <span class="math inline">\(E_W(w) = w^T w\)</span>), <span class="math inline">\(\sigma_w^2\)</span> is the prior variance, and <span class="math inline">\(Z_W\)</span> is its normalization constant.</p>
+<p>The hyperparameters <span class="math inline">\(\sigma^2\)</span> and <span class="math inline">\(\sigma_w^2\)</span> control the strength of the noise and the prior. Following MacKay’s notation, we define precisions <span class="math inline">\(\tau_D^2 = 1/\sigma^2\)</span> and <span class="math inline">\(\tau_w^2 = 1/\sigma_w^2\)</span>. Let <span class="math inline">\(B\)</span> and <span class="math inline">\(C\)</span> denote the Hessians of <span class="math inline">\(E_D(w)\)</span> and <span class="math inline">\(E_W(w)\)</span> at the maximum a posteriori (MAP) estimate <span class="math inline">\(w^{\text{MAP}}\)</span>. The Hessian of the negative log-posterior is then <span class="math inline">\(A = \tau_w^2 C + \tau_D^2 B\)</span>.</p>
+<p>Evaluating the log-evidence under a Gaussian Laplace approximation yields: <span class="math display">\[
+\log p(D \mid \tau_w^2,\tau_D^2) = -\tau_w^2 E_W^{\text{MAP}} - \tau_D^2 E_D^{\text{MAP}} - \frac{1}{2}\log\det A - \log Z_W(\tau_w^2) - \log Z_D(\tau_D^2) + \frac{k}{2}\log(2\pi)
+\]</span></p>
+<p>The associated Occam factor, which penalizes excessively small prior variances, is: <span class="math display">\[
+-\tau_w^2 E_W^{\text{MAP}} - \frac{1}{2}\log\det A - \log Z_W(\tau_w^2)
+\]</span></p>
+<p>This represents the reduction in effective volume of parameter space from prior to posterior.</p>
+</section>
+<section id="generalized-ridge-regression-in-the-canonical-basis" class="level3">
+<h3 class="anchored" data-anchor-id="generalized-ridge-regression-in-the-canonical-basis">Generalized Ridge Regression in the Canonical Basis</h3>
+<p>We revisit ridge regression from the perspective of the canonical coordinate system, using the singular value decomposition <span class="math inline">\(X = UDW^T\)</span> and rotated coefficients <span class="math inline">\(\alpha = W^T\beta\)</span>. In this basis: <span class="math display">\[
+Y = X\beta + \epsilon = UD\alpha + \epsilon
+\]</span></p>
+<p>Projecting onto <span class="math inline">\(U\)</span>: <span class="math display">\[
+\hat{\alpha}_i = \alpha_i + \epsilon_i, \quad \epsilon_i \sim N(0, \sigma^2/d_i^2)
+\]</span></p>
+<p>With independent priors <span class="math inline">\(\alpha_i \sim N(0, v_i)\)</span>, the posterior mean yields a shrinkage estimator: <span class="math display">\[
+\alpha_i^* = \kappa_i \hat{\alpha}_i, \quad \text{with} \quad \kappa_i = \frac{d_i^2}{d_i^2 + k_i}
+\]</span> where <span class="math inline">\(k_i = \sigma^2/v_i\)</span> is the generalized ridge penalty.</p>
+<p>This framework offers componentwise optimality and anticipates global-local shrinkage priors where individual parameters receive adaptive regularization.</p>
+</section>
+<section id="trend-filtering-and-composite-penalties" class="level3">
+<h3 class="anchored" data-anchor-id="trend-filtering-and-composite-penalties">Trend Filtering and Composite Penalties</h3>
+<p>Trend filtering provides an example of regularized least squares with composite penalty, useful when a 1D signal has jumps at few positions: <span class="math display">\[
+\hat{\beta} = \arg\min_{\beta} \left\{\frac{1}{2}\|y - \beta\|_2^2 + \lambda\phi(D\beta)\right\}
+\]</span> where <span class="math inline">\(D\)</span> is the difference matrix and <span class="math inline">\(\phi\)</span> is a penalty function that encourages sparsity in the differences, leading to piecewise-constant or piecewise-polynomial solutions.</p>
+<p>The evolution from maximum likelihood estimation to sophisticated Bayesian regularization represents more than technical progress—it reflects a fundamental shift in how we approach learning from data. Rather than seeking single “best” estimates, modern methods embrace uncertainty, incorporate prior knowledge, and adaptively balance model complexity with empirical fit.</p>
+<p>The remarkable fact that Bayesian approaches often dominate classical frequentist methods, even from a frequentist perspective (as demonstrated by Stein’s paradox), suggests that probabilistic thinking provides not just philosophical appeal but concrete practical advantages. In an era of ever-growing data complexity and dimensionality, these theoretical insights become increasingly valuable for developing robust, interpretable, and effective learning algorithms.</p>
+<p>The unified framework presented in this chapter—connecting classical statistics, Bayesian inference, optimization theory, and modern machine learning—provides both historical perspective and forward-looking guidance for the continued development of artificial intelligence systems. As we confront increasingly complex learning challenges, from personalized medicine to autonomous systems, the principled approach to regularization and uncertainty quantification developed here will remain fundamental to building trustworthy and effective AI systems.</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
@@ -2590,6 +2640,7 @@ Stein, Charles. 1964. <span>“Inadmissibility of the Usual Estimator for the Va
 Tikhonov, Andrey Nikolayevich et al. 1943. <span>“On the Stability of Inverse Problems.”</span> In <em>Dokl. Akad. Nauk Sssr</em>, 39:195–98.
 </div>
 </div>
+</section>
 </section>
 
 </main> <!-- /main -->

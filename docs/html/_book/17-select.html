@@ -454,6 +454,12 @@ window.Quarto = {
   <li><a href="#the-bayesian-information-criterion" id="toc-the-bayesian-information-criterion" class="nav-link" data-scroll-target="#the-bayesian-information-criterion">The Bayesian Information Criterion</a></li>
   <li><a href="#nic-and-evidence-framework" id="toc-nic-and-evidence-framework" class="nav-link" data-scroll-target="#nic-and-evidence-framework">NIC and Evidence Framework</a></li>
   </ul></li>
+  <li><a href="#model-selection-and-bayesian-relativity" id="toc-model-selection-and-bayesian-relativity" class="nav-link" data-scroll-target="#model-selection-and-bayesian-relativity"><span class="header-section-number">18.7</span> Model Selection and Bayesian Relativity</a>
+  <ul class="collapse">
+  <li><a href="#exhaustive-vs-non-exhaustive-hypotheses" id="toc-exhaustive-vs-non-exhaustive-hypotheses" class="nav-link" data-scroll-target="#exhaustive-vs-non-exhaustive-hypotheses">Exhaustive vs Non-Exhaustive Hypotheses</a></li>
+  </ul></li>
+  <li><a href="#the-asymptotic-carrier" id="toc-the-asymptotic-carrier" class="nav-link" data-scroll-target="#the-asymptotic-carrier"><span class="header-section-number">18.8</span> The Asymptotic Carrier</a></li>
+  <li><a href="#the-vertical-likelihood-duality" id="toc-the-vertical-likelihood-duality" class="nav-link" data-scroll-target="#the-vertical-likelihood-duality"><span class="header-section-number">18.9</span> The Vertical Likelihood Duality</a></li>
   </ul>
 </nav>
 </nav>
@@ -1265,6 +1271,59 @@ w_{ij} \sim \mathcal{N}(0, \alpha_i^{-1}), \quad \text{for all } j
 <p>Despite its theoretical elegance, the evidence framework faces practical limitations in very large-scale applications. The computational requirements of Hessian approximation, even with modern efficient methods, can be substantial for networks with hundreds of millions of parameters. The Laplace approximation itself may be inadequate when the posterior is highly non-Gaussian, which can occur in networks with many local minima or complex loss landscapes.</p>
 <p>The enduring value of MacKay’s evidence framework lies in its principled approach to the fundamental trade-offs in machine learning model design. By providing a theoretically grounded method for balancing model complexity against data fit, the framework offers insights that remain relevant even as the scale and sophistication of machine learning models continue to evolve. The automatic hyperparameter selection and architecture comparison capabilities of the evidence framework continue to influence contemporary approaches to neural architecture search and automated machine learning.</p>
 <p>Yet another approach is the Widely applicable Bayesian Information Criterion (WBIC) propsed by <span class="citation" data-cites="watanabe2013widely">Watanabe (<a href="references.html#ref-watanabe2013widely" role="doc-biblioref">2013</a>)</span>. It is a generalization of the traditional BIC that addresses some of its fundamental limitations, particularly when dealing with singular statistical models and complex machine learning architectures. It addresses the problem when BIC’s assumptions that the true parameter lies in the interior of the parameter space and that the information matrix is positive definite are violated. These regularity conditions fail for many important models such as neural networks with hidden units, mixture models where the number of components is unknown, tree-based models with unknown structure, and models with parameter constraints or boundaries. Second, BIC requires knowing the effective number of parameters <span class="math inline">\(k\)</span>, which can be ambiguous for complex models. This becomes problematic when dealing with shared parameters across different parts of the model, regularization that effectively reduces the parameter dimension, or hierarchical structures where the effective dimensionality depends on the data. The challenge of defining the “true” number of parameters in modern machine learning models makes BIC’s penalty term difficult to specify correctly.</p>
+</section>
+</section>
+<section id="model-selection-and-bayesian-relativity" class="level2" data-number="18.7">
+<h2 data-number="18.7" class="anchored" data-anchor-id="model-selection-and-bayesian-relativity"><span class="header-section-number">18.7</span> Model Selection and Bayesian Relativity</h2>
+<p>Bayes rule provides only relative evidence between models. Classical approaches try to find absolute truth, but Bayesian model selection is fundamentally comparative. Consider the basic relationship: <span class="math display">\[
+\frac{p(H_0 \mid D)}{p(H_1 \mid D)} = \frac{p(D \mid H_0)}{p(D \mid H_1)} \frac{p(H_0)}{p(H_1)}
+\]</span></p>
+<p>When <span class="math inline">\(D = \{T(y) &gt; t_{obs}\}\)</span>, the numerator is the p-value. However, this needs to be assessed relative to the p-value under the alternative, which might be even more unlikely! As Sherlock Holmes noted: “When you have eliminated the impossible, whatever remains, however improbable, must be the truth.” Even though an event may be unlikely under <span class="math inline">\(H_0\)</span>, it could be the best available description given the alternatives.</p>
+<p>Fisher recognized this issue: “In scientific inference, a hypothesis is never proved but merely shown to be more or less probable relative to the available alternatives.” The problem with p-values is that they attempt to be an objective measure of model “fit” without considering alternatives. Unlikely events do occur under a “true” model.</p>
+<section id="exhaustive-vs-non-exhaustive-hypotheses" class="level3">
+<h3 class="anchored" data-anchor-id="exhaustive-vs-non-exhaustive-hypotheses">Exhaustive vs Non-Exhaustive Hypotheses</h3>
+<p>In cases where hypotheses are exhaustive, <span class="math inline">\(p(H_0) + p(H_1) = 1\)</span>, we can directly calculate <span class="math inline">\(p(H_0 \mid D)\)</span>. Otherwise, we obtain just a relative ordering: <span class="math display">\[
+\frac{p(H_0 \mid D)}{p(H_1 \mid D)} = \frac{p(D \mid H_0)}{p(D \mid H_1)} \frac{p(H_0)}{p(H_1)}
+\]</span></p>
+<p>This holds for <span class="math inline">\(p(H_0) + p(H_1) &lt; 1\)</span>. An important benefit of this rational approach is that if a new hypothesis <span class="math inline">\(H_2\)</span> comes along, the relative calculation between <span class="math inline">\(H_0\)</span> and <span class="math inline">\(H_1\)</span> doesn’t change! This is a benefit of rational decision-making. However, posterior probabilities can change if we re-normalize to account for the new alternative.</p>
+</section>
+</section>
+<section id="the-asymptotic-carrier" class="level2" data-number="18.8">
+<h2 data-number="18.8" class="anchored" data-anchor-id="the-asymptotic-carrier"><span class="header-section-number">18.8</span> The Asymptotic Carrier</h2>
+<p>What happens when the “true” model is not in the set of models under consideration? This is a critical question in modern machine learning, where model misspecification is the norm rather than the exception.</p>
+<p>The asymptotic behavior of the posterior <span class="math inline">\(p(\theta \mid y)\)</span> is characterized by the <strong>asymptotic carrier</strong> of the posterior. Let <span class="math inline">\(F\)</span> denote the true data-generating process. The set <span class="math inline">\(\mathcal{C}\)</span> is defined by: <span class="math display">\[
+\mathcal{C} = \arg\min_{\theta \in \Theta} \int f(y) \log f_\theta(y) dy = \arg\min_{\theta \in \Theta} KL(f, f_\theta)
+\]</span></p>
+<p>That is, the posterior over parameters <span class="math inline">\(\theta\)</span> in the model class <span class="math inline">\(\mathcal{M}\)</span> converges to the density that minimizes the Kullback-Leibler (KL) distance between the data-generating process <span class="math inline">\(f\)</span> and the model class.</p>
+<p>The posterior has the limiting property that for any <span class="math inline">\(A \subset \mathcal{C}\)</span>: <span class="math display">\[
+\lim_{n \to \infty} P_{\mathcal{M}}[A \mid y_1, \ldots, y_n] = 1 \text{ almost surely under } F
+\]</span></p>
+<p>Since Berk (1966), there has been extensive work on the limiting behavior of the posterior when the true model <span class="math inline">\(f\)</span> lies outside the class <span class="math inline">\(\{f_\theta\}\)</span> indexed by the models under consideration. This theory provides important insights:</p>
+<ol type="1">
+<li><p><strong>Consistency under misspecification</strong>: Even when the true model is not in our class, the posterior will concentrate on the best approximation within that class.</p></li>
+<li><p><strong>KL optimality</strong>: The limiting posterior focuses on parameters that minimize the KL divergence, which is often a reasonable criterion for model approximation.</p></li>
+<li><p><strong>Practical implications</strong>: This suggests that Bayesian methods can be robust to model misspecification, concentrating probability mass on the best available approximation.</p></li>
+</ol>
+</section>
+<section id="the-vertical-likelihood-duality" class="level2" data-number="18.9">
+<h2 data-number="18.9" class="anchored" data-anchor-id="the-vertical-likelihood-duality"><span class="header-section-number">18.9</span> The Vertical Likelihood Duality</h2>
+<p>For computational efficiency in model evaluation, consider the problem of estimating <span class="math inline">\(\int_{\mathcal{X}} L(x) P(dx)\)</span> where <span class="math inline">\(L: \mathcal{X} \to \mathbb{R}\)</span>. By letting <span class="math inline">\(Y = L(x)\)</span>, we can transform this to a one-dimensional integral <span class="math inline">\(\int_0^1 F_Y^{-1}(s) ds\)</span>.</p>
+<p>We therefore have a duality: <span class="math display">\[
+\int_{\mathcal{X}} L(x) P(dx) = \int_0^1 F_Y^{-1}(s) ds
+\]</span> where <span class="math inline">\(Y\)</span> is a random variable <span class="math inline">\(Y = L(X)\)</span> with <span class="math inline">\(X \sim P(dx)\)</span>.</p>
+<p>This approach offers several advantages:</p>
+<ul>
+<li>We can use sophisticated grids (Riemann) to approximate one-dimensional integrals</li>
+<li>A grid on inverse CDF space is equivalent to importance weighting in the original <span class="math inline">\(\mathcal{X}\)</span> space</li>
+<li>If <span class="math inline">\(F_Y^{-1}(s)\)</span> is known and bounded, we could use deterministic grids on <span class="math inline">\([0,1]\)</span> with <span class="math inline">\(O(N^{-4})\)</span> convergence properties</li>
+</ul>
+<p>The main caveats are:</p>
+<ul>
+<li><span class="math inline">\(F_Y^{-1}(s)\)</span> is typically unknown</li>
+<li>It becomes infinite if <span class="math inline">\(L\)</span> is unbounded</li>
+<li>We often resort to stochastic Riemann sums</li>
+</ul>
+<p>The duality implies that finding a good importance function on <span class="math inline">\([0,1]\)</span> corresponds to finding good “weighting” in <span class="math inline">\(\mathcal{X}\)</span> space. As a diagnostic for any importance sampling scheme, you should plot the equivalent grid on <span class="math inline">\([0,1]\)</span> and estimated values of <span class="math inline">\(F_Y^{-1}\)</span> to assess performance.</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
@@ -1287,7 +1346,6 @@ Singh, Pratyush Kumar, Kathryn A. Farrell-Maupin, and Danial Faghihi. 2024. <spa
 Watanabe, Sumio. 2013. <span>“A Widely Applicable <span>Bayesian</span> Information Criterion.”</span> <em>The Journal of Machine Learning Research</em> 14 (1): 867–97.
 </div>
 </div>
-</section>
 </section>
 
 </main> <!-- /main -->
