@@ -2067,7 +2067,8 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 <p><span class="math inline">\(X_1\)</span> and <span class="math inline">\(D\)</span> dummy</p>
 <p>When <span class="math inline">\(X_2 = D\)</span> is a dummy variable with values of zero or one, we typically run a regression of the form <span class="math display">\[Y = \beta_0 + \beta_1 X_1 + \beta_2 X_1 \star D + \epsilon\]</span> The coefficient <span class="math inline">\(\beta_1 + \beta_2\)</span> is the effect of <span class="math inline">\(X_1\)</span> when <span class="math inline">\(D=1\)</span>. The coefficient <span class="math inline">\(\beta_1\)</span> is the effect when <span class="math inline">\(D=0\)</span>.</p>
 <div id="exm-oj" class="theorem example">
-<p><span class="theorem-title"><strong>Example 12.9 (Orange Juice)</strong></span> &nbsp;</p>
+<p><span class="theorem-title"><strong>Example 12.9 (Orange Juice)</strong></span> Understanding how advertising affects consumer price sensitivity is a fundamental question in marketing analytics. Do promotional campaigns make consumers more or less sensitive to price changes? To explore this question, we analyze a dataset from the orange juice category that includes sales data from 83 Chicagoland stores. This dataset provides rich information including price, sales volume (measured as log units moved), brand identity, and whether the product was featured in store displays or advertising circulars.</p>
+<p>Let’s begin by examining the structure of the data and the basic relationships between variables.</p>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>oj <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"./../data/oj.csv"</span>)</span>
 <span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(oj[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>,<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>], <span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -2247,6 +2248,7 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </table>
 </div>
 </div>
+<p>The dataset includes three major brands: Dominick’s (the store brand), Minute Maid, and Tropicana. We can visualize the price distributions and the relationship between price and sales for these brands.</p>
 <div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>brandcol <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"green"</span>,<span class="st">"red"</span>,<span class="st">"gold"</span>)</span>
 <span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>oj<span class="sc">$</span>brand <span class="ot">=</span> <span class="fu">factor</span>(oj<span class="sc">$</span>brand)</span>
 <span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(<span class="fu">log</span>(price) <span class="sc">~</span> brand, <span class="at">data=</span>oj, <span class="at">col=</span>brandcol)</span>
@@ -2269,8 +2271,9 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 </div>
 </div>
-<p>The dataset includes 83 Chicagoland stores with demographic information for each, along with price, sales (log units moved), and whether advertised (feat).</p>
-<p>Orange Juice: Price vs Sales</p>
+<p>The boxplot reveals that Tropicana commands premium pricing, while Dominick’s store brand is positioned as the value option. The scatterplot shows a clear negative relationship between price and sales, as expected from basic economic theory: higher prices lead to lower sales volume.</p>
+<p>A critical modeling decision is whether to use logarithmic transformations for our variables. Let’s examine the relationship between price and sales on both the original and log scales to determine which specification better captures the underlying relationship.</p>
+<p>First, we plot sales against price on the original scale:</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -2280,25 +2283,13 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 </div>
 </div>
-<p>Orange Juice: Price vs log(Sales)</p>
+<p>The pattern suggests a nonlinear relationship that might be better captured with a transformation. Next, we examine the relationship between price and log(sales):</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>), <span class="at">bty=</span><span class="st">"n"</span>)</span>
-<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(logmove <span class="sc">~</span> price, <span class="at">data=</span>oj, <span class="at">col=</span>brandcol[oj<span class="sc">$</span>brand], <span class="at">pch=</span><span class="dv">16</span>, <span class="at">cex=</span><span class="fl">0.5</span>, <span class="at">ylab=</span><span class="st">"log(move)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="12-regression_files/figure-html/plot-logmove-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Orange Juice: Price vs log(Sales)</p>
-<div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>l1 <span class="ot">&lt;-</span> <span class="fu">loess</span>(logmove <span class="sc">~</span> price, <span class="at">data=</span>oj, <span class="at">span=</span><span class="dv">2</span>)</span>
-<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>smoothed1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(l1) </span>
-<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>ind <span class="ot">=</span> <span class="fu">order</span>(oj<span class="sc">$</span>price)</span>
-<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(logmove <span class="sc">~</span> price, <span class="at">data=</span>oj, <span class="at">col=</span>brandcol[oj<span class="sc">$</span>brand], <span class="at">pch=</span><span class="dv">16</span>, <span class="at">cex=</span><span class="fl">0.5</span>, <span class="at">ylab=</span><span class="st">"log(move)"</span>)</span>
-<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(smoothed1[ind], <span class="at">x=</span>oj<span class="sc">$</span>price[ind], <span class="at">col=</span><span class="st">"blue"</span>, <span class="at">lwd=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>l1 <span class="ot">&lt;-</span> <span class="fu">loess</span>(logmove <span class="sc">~</span> price, <span class="at">data=</span>oj, <span class="at">span=</span><span class="dv">2</span>)</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>smoothed1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(l1) </span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>ind <span class="ot">=</span> <span class="fu">order</span>(oj<span class="sc">$</span>price)</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(logmove <span class="sc">~</span> price, <span class="at">data=</span>oj, <span class="at">col=</span>brandcol[oj<span class="sc">$</span>brand], <span class="at">pch=</span><span class="dv">16</span>, <span class="at">cex=</span><span class="fl">0.5</span>, <span class="at">ylab=</span><span class="st">"log(move)"</span>)</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(smoothed1[ind], <span class="at">x=</span>oj<span class="sc">$</span>price[ind], <span class="at">col=</span><span class="st">"blue"</span>, <span class="at">lwd=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2307,14 +2298,14 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 </div>
 </div>
-<p>Orange Juice: log(Price) vs log(Sales)</p>
+<p>While this shows some improvement, the relationship still exhibits curvature. Finally, we examine the log-log specification:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>), <span class="at">bty=</span><span class="st">"n"</span>)</span>
-<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price), <span class="at">data=</span>oj, <span class="at">col=</span>brandcol[oj<span class="sc">$</span>brand], <span class="at">pch=</span><span class="dv">16</span>, <span class="at">cex=</span><span class="fl">0.5</span>, <span class="at">ylab=</span><span class="st">"log(move)"</span>)</span>
-<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a>l2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price), <span class="at">data=</span>oj)</span>
-<span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a>smoothed2 <span class="ot">&lt;-</span> <span class="fu">predict</span>(l2) </span>
-<span id="cb71-5"><a href="#cb71-5" aria-hidden="true" tabindex="-1"></a>ind <span class="ot">=</span> <span class="fu">order</span>(oj<span class="sc">$</span>price)</span>
-<span id="cb71-6"><a href="#cb71-6" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(smoothed2[ind], <span class="at">x=</span><span class="fu">log</span>(oj<span class="sc">$</span>price[ind]), <span class="at">col=</span><span class="st">"blue"</span>, <span class="at">lwd=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>), <span class="at">bty=</span><span class="st">"n"</span>)</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price), <span class="at">data=</span>oj, <span class="at">col=</span>brandcol[oj<span class="sc">$</span>brand], <span class="at">pch=</span><span class="dv">16</span>, <span class="at">cex=</span><span class="fl">0.5</span>, <span class="at">ylab=</span><span class="st">"log(move)"</span>)</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>l2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price), <span class="at">data=</span>oj)</span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>smoothed2 <span class="ot">&lt;-</span> <span class="fu">predict</span>(l2) </span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>ind <span class="ot">=</span> <span class="fu">order</span>(oj<span class="sc">$</span>price)</span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(smoothed2[ind], <span class="at">x=</span><span class="fu">log</span>(oj<span class="sc">$</span>price[ind]), <span class="at">col=</span><span class="st">"blue"</span>, <span class="at">lwd=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2323,65 +2314,23 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 </div>
 </div>
-<p>Why? Multiplicative (rather than additive) change.</p>
-<p>Now we are interested in how does advertisement affect price sensitivity?</p>
-<p>Original model <span class="math display">\[
+<p>The log-log specification produces a much more linear relationship. This makes economic sense: the relationship between price and sales is multiplicative rather than additive. A 10% increase in price leads to a proportional percentage decrease in sales, regardless of the starting price level. This constant elasticity model is the standard approach in demand analysis.</p>
+<p>Our central research question is whether featuring a product in advertisements affects consumers’ price sensitivity. We start with a baseline model that includes both log price and the advertising indicator: <span class="math display">\[
 \log(\mathrm{sales}) = \beta_0 + \beta_1\log(\mathrm{price}) + \beta_2 \mathrm{feat}.
-\]</span> If we feature the brand (in-store display promo or flyer ad), does it affect price sensitivity <span class="math inline">\(\beta_1\)</span>? If we assume it does <span class="math display">\[
-\beta_1 = \beta_3 +  \beta_4\mathrm{feat}.
-\]</span> The new model is <span class="math display">\[
-\log(\mathrm{sales}) = \beta_0 + (\beta_3 +  \beta_4\mathrm{feat})\log(\mathrm{price}) + \beta_2 \mathrm{feat}.
-\]</span> After expanding <span class="math display">\[
-\log(\mathrm{sales}) = \beta_0 + \beta_3\log(\mathrm{price}) +  \beta_4\mathrm{feat}*\log(\mathrm{price}) + \beta_2 \mathrm{feat}.
 \]</span></p>
+<p>However, this model assumes that advertising only shifts demand up or down, without changing how consumers respond to price. To test whether advertising actually changes price sensitivity, we need to allow the price coefficient <span class="math inline">\(\beta_1\)</span> to vary with advertising. We can model this by assuming that the price sensitivity depends linearly on the advertising indicator: <span class="math display">\[
+\beta_1 = \beta_3 +  \beta_4\mathrm{feat}.
+\]</span></p>
+<p>Substituting this into our demand equation gives us an interaction model: <span class="math display">\[
+\log(\mathrm{sales}) = \beta_0 + (\beta_3 +  \beta_4\mathrm{feat})\log(\mathrm{price}) + \beta_2 \mathrm{feat}.
+\]</span></p>
+<p>Expanding this expression yields: <span class="math display">\[
+\log(\mathrm{sales}) = \beta_0 + \beta_3\log(\mathrm{price}) +  \beta_4\mathrm{feat} \times \log(\mathrm{price}) + \beta_2 \mathrm{feat}.
+\]</span></p>
+<p>The coefficient <span class="math inline">\(\beta_4\)</span> on the interaction term tells us how much price sensitivity changes when the product is featured in advertising. Let’s estimate this model and compare it to simpler specifications.</p>
+<p>First, we fit the basic model with only log price:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="do">## and finally, consider 3-way interactions</span></span>
-<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>ojreg <span class="ot">&lt;-</span> <span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price)<span class="sc">*</span>feat, <span class="at">data=</span>oj)</span>
-<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>ojreg <span class="sc">%&gt;%</span>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<th style="text-align: left;">term</th>
-<th style="text-align: right;">estimate</th>
-<th style="text-align: right;">std.error</th>
-<th style="text-align: right;">statistic</th>
-<th style="text-align: right;">p.value</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">(Intercept)</td>
-<td style="text-align: right;">9.66</td>
-<td style="text-align: right;">0.02</td>
-<td style="text-align: right;">588</td>
-<td style="text-align: right;">0</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">log(price)</td>
-<td style="text-align: right;">-0.96</td>
-<td style="text-align: right;">0.02</td>
-<td style="text-align: right;">-51</td>
-<td style="text-align: right;">0</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">feat</td>
-<td style="text-align: right;">1.71</td>
-<td style="text-align: right;">0.03</td>
-<td style="text-align: right;">56</td>
-<td style="text-align: right;">0</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">log(price):feat</td>
-<td style="text-align: right;">-0.98</td>
-<td style="text-align: right;">0.04</td>
-<td style="text-align: right;">-23</td>
-<td style="text-align: right;">0</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price), <span class="at">data=</span>oj) <span class="sc">%&gt;%</span>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price), <span class="at">data=</span>oj) <span class="sc">%&gt;%</span>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2412,10 +2361,12 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </table>
 </div>
 </div>
+<p>This simple model suggests a price elasticity of approximately -3.1, meaning a 1% increase in price leads to roughly a 3.1% decrease in sales.</p>
+<p>Next, we add brand effects and the advertising indicator without interactions:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price) <span class="sc">+</span> feat <span class="sc">+</span> brand, <span class="at">data=</span>oj) <span class="sc">%&gt;%</span> </span>
-<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price) <span class="sc">+</span> feat <span class="sc">+</span> brand, <span class="at">data=</span>oj) <span class="sc">%&gt;%</span> </span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2467,8 +2418,10 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </table>
 </div>
 </div>
+<p>Now we estimate the full model with the interaction between price and advertising:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price)<span class="sc">*</span>feat, <span class="at">data=</span>oj) <span class="sc">%&gt;%</span>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>ojreg <span class="ot">&lt;-</span> <span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price)<span class="sc">*</span>feat, <span class="at">data=</span>oj)</span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>ojreg <span class="sc">%&gt;%</span>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2513,55 +2466,16 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </table>
 </div>
 </div>
+<p>The results reveal a striking finding: the interaction coefficient is -0.98, which is highly statistically significant. When products are not featured (feat = 0), the price elasticity is -0.96. However, when products are featured in advertising (feat = 1), the price elasticity becomes <span class="math inline">\(-0.96 + (-0.98) = -1.94\)</span>, essentially doubling in magnitude. This means that advertising makes consumers nearly twice as sensitive to price changes.</p>
+<p>This result seems counterintuitive at first. We might expect that advertising would make consumers less price-sensitive by building brand loyalty or highlighting non-price attributes. Why would advertising increase price sensitivity?</p>
+<p>The explanation lies in the promotional strategy employed by retailers. Let’s examine the pricing behavior during advertising campaigns:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(logmove <span class="sc">~</span> brand<span class="dv">-1</span>, <span class="at">data=</span>oj) <span class="sc">%&gt;%</span>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<th style="text-align: left;">term</th>
-<th style="text-align: right;">estimate</th>
-<th style="text-align: right;">std.error</th>
-<th style="text-align: right;">statistic</th>
-<th style="text-align: right;">p.value</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">branddominicks</td>
-<td style="text-align: right;">9.2</td>
-<td style="text-align: right;">0.01</td>
-<td style="text-align: right;">885</td>
-<td style="text-align: right;">0</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">brandminute.maid</td>
-<td style="text-align: right;">9.2</td>
-<td style="text-align: right;">0.01</td>
-<td style="text-align: right;">889</td>
-<td style="text-align: right;">0</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">brandtropicana</td>
-<td style="text-align: right;">9.1</td>
-<td style="text-align: right;">0.01</td>
-<td style="text-align: right;">879</td>
-<td style="text-align: right;">0</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Advertisement increases price sensitivity from -0.96 to -0.958 - 0.98 = -1.94!</p>
-<p>Why?</p>
-<p>One of the reasons is that the price was lowered during the Ad campaign!</p>
-<div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>), <span class="at">bty=</span><span class="st">"n"</span>) </span>
-<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>doj <span class="ot">=</span> oj <span class="sc">%&gt;%</span> <span class="fu">filter</span>(brand<span class="sc">==</span><span class="st">"dominicks"</span>)</span>
-<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">3</span>), <span class="at">mar=</span><span class="fu">c</span>(<span class="fl">4.2</span>,<span class="fl">4.6</span>,<span class="dv">2</span>,<span class="dv">1</span>))</span>
-<span id="cb77-4"><a href="#cb77-4" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(price <span class="sc">~</span>  feat, <span class="at">data =</span> oj[oj<span class="sc">$</span>brand<span class="sc">==</span><span class="st">"dominicks"</span>,], <span class="at">col=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>), <span class="at">main=</span><span class="st">"dominicks"</span>, <span class="at">ylab=</span><span class="st">"Price ($)"</span>)</span>
-<span id="cb77-5"><a href="#cb77-5" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(price <span class="sc">~</span>  feat, <span class="at">data =</span> oj[oj<span class="sc">$</span>brand<span class="sc">==</span><span class="st">"minute.maid"</span>,], <span class="at">col=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>), <span class="at">main=</span><span class="st">"minute.maid"</span>)</span>
-<span id="cb77-6"><a href="#cb77-6" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(price <span class="sc">~</span>  feat, <span class="at">data =</span> oj[oj<span class="sc">$</span>brand<span class="sc">==</span><span class="st">"tropicana"</span>,], <span class="at">col=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>), <span class="at">main=</span><span class="st">"tropicana"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>), <span class="at">bty=</span><span class="st">"n"</span>) </span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>doj <span class="ot">=</span> oj <span class="sc">%&gt;%</span> <span class="fu">filter</span>(brand<span class="sc">==</span><span class="st">"dominicks"</span>)</span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">3</span>), <span class="at">mar=</span><span class="fu">c</span>(<span class="fl">4.2</span>,<span class="fl">4.6</span>,<span class="dv">2</span>,<span class="dv">1</span>))</span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(price <span class="sc">~</span>  feat, <span class="at">data =</span> oj[oj<span class="sc">$</span>brand<span class="sc">==</span><span class="st">"dominicks"</span>,], <span class="at">col=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>), <span class="at">main=</span><span class="st">"dominicks"</span>, <span class="at">ylab=</span><span class="st">"Price ($)"</span>)</span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(price <span class="sc">~</span>  feat, <span class="at">data =</span> oj[oj<span class="sc">$</span>brand<span class="sc">==</span><span class="st">"minute.maid"</span>,], <span class="at">col=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>), <span class="at">main=</span><span class="st">"minute.maid"</span>)</span>
+<span id="cb74-6"><a href="#cb74-6" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(price <span class="sc">~</span>  feat, <span class="at">data =</span> oj[oj<span class="sc">$</span>brand<span class="sc">==</span><span class="st">"tropicana"</span>,], <span class="at">col=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>), <span class="at">main=</span><span class="st">"tropicana"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2570,7 +2484,9 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 </div>
 </div>
-<p>0 = not featured, 1 = featured</p>
+<p>The boxplots reveal the key insight: prices are systematically lower when products are featured (feat = 1) compared to when they are not (feat = 0). This is a classic promotional pricing strategy where advertising and price discounts are bundled together. Retailers use advertising to draw attention to temporary price reductions.</p>
+<p>The increased price sensitivity we observe during advertising periods is not caused by the advertising itself making consumers more price-conscious. Rather, it reflects the fact that advertising campaigns coincide with periods of price variation, and consumers who respond to advertisements are precisely those who are most price-sensitive. The advertising serves as a signal that draws price-sensitive consumers into the market, creating a selected sample with higher elasticity.</p>
+<p>This example demonstrates the importance of carefully interpreting interaction effects and understanding the underlying business practices that generate the data. What appears to be an advertising effect on price sensitivity is actually a selection effect driven by the correlation between advertising and pricing strategies.</p>
 </div>
 </section>
 <section id="dummies" class="level2" data-number="12.4">
@@ -2612,7 +2528,7 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 <p><span class="math display">\[\log(\mathrm{sales}) = \beta_0 + \beta_1\log(\mathrm{price}) + \beta_{21}\mathrm{brandminute.maid} + \beta_{22}\mathrm{brandtropicana}\]</span></p>
 <p><code>R</code> will automatically do it for you</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price)<span class="sc">+</span>brand, <span class="at">data=</span>oj))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">lm</span>(logmove <span class="sc">~</span> <span class="fu">log</span>(price)<span class="sc">+</span>brand, <span class="at">data=</span>oj))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## 
 ## Call:
@@ -2710,13 +2626,13 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </table>
 <p>We will analyze these data to determine which of the variables nevents, drivedist, gir, and avgputts is most important for winning money on the PGA Tour. We begin by performing a regression of Money on all explanatory variables:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>d00 <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"../data/pga-2000.csv"</span>)</span>
-<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>d18 <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"../data/pga-2018.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>d00 <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"../data/pga-2000.csv"</span>)</span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>d18 <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"../data/pga-2018.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>model18 <span class="ot">=</span> <span class="fu">lm</span>(money <span class="sc">~</span> nevents <span class="sc">+</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data=</span>d18)</span>
-<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>model00 <span class="ot">=</span> <span class="fu">lm</span>(money <span class="sc">~</span> nevents <span class="sc">+</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data=</span>d00)</span>
-<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>model00 <span class="sc">%&gt;%</span>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>model18 <span class="ot">=</span> <span class="fu">lm</span>(money <span class="sc">~</span> nevents <span class="sc">+</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data=</span>d18)</span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>model00 <span class="ot">=</span> <span class="fu">lm</span>(money <span class="sc">~</span> nevents <span class="sc">+</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data=</span>d00)</span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>model00 <span class="sc">%&gt;%</span>  <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2770,7 +2686,7 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 <p>Let’s look at the residuals:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">rstandard</span>(model00), <span class="at">breaks=</span><span class="dv">20</span>, <span class="at">col=</span><span class="st">"lightblue"</span>, <span class="at">xlab =</span> <span class="st">"Standartized Residual"</span>, <span class="at">main=</span><span class="st">""</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">rstandard</span>(model00), <span class="at">breaks=</span><span class="dv">20</span>, <span class="at">col=</span><span class="st">"lightblue"</span>, <span class="at">xlab =</span> <span class="st">"Standartized Residual"</span>, <span class="at">main=</span><span class="st">""</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2781,8 +2697,8 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 <p>It seems like we need to measure <code>money</code> on a log scale. Let’s transform with <code>log(Money)</code> as it has much better residual diagnostic plots.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>m <span class="ot">=</span> <span class="fu">lm</span>(<span class="at">formula =</span> <span class="fu">log</span>(money) <span class="sc">~</span> nevents <span class="sc">+</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data =</span> d00)</span>
-<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>m <span class="sc">%&gt;%</span> <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>m <span class="ot">=</span> <span class="fu">lm</span>(<span class="at">formula =</span> <span class="fu">log</span>(money) <span class="sc">~</span> nevents <span class="sc">+</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data =</span> d00)</span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>m <span class="sc">%&gt;%</span> <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2835,8 +2751,9 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>,<span class="fl">4.5</span>,<span class="dv">0</span>,<span class="dv">0</span>),<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>))</span>
-<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>model00log <span class="sc">%&gt;%</span> <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>,<span class="fl">4.5</span>,<span class="dv">0</span>,<span class="dv">0</span>),<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>))</span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>model00log <span class="ot">=</span> <span class="fu">lm</span>(<span class="fu">log</span>(money) <span class="sc">~</span> nevents <span class="sc">+</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data=</span>d00)</span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>model00log <span class="sc">%&gt;%</span> <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2887,9 +2804,9 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </tbody>
 </table>
 </div>
-<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">rstandard</span>(model00log), <span class="at">breaks=</span><span class="dv">20</span>, <span class="at">col=</span><span class="st">"lightblue"</span>, <span class="at">xlab =</span> <span class="st">"Standartized Residual"</span>, <span class="at">main=</span><span class="st">""</span>)</span>
-<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a><span class="fu">arrows</span>(<span class="at">x0 =</span> <span class="dv">3</span>,<span class="at">y0 =</span> <span class="dv">20</span>,<span class="at">x1 =</span> <span class="fl">3.2</span>,<span class="at">y1 =</span> <span class="dv">2</span>,<span class="at">length =</span> <span class="fl">0.1</span>)</span>
-<span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="at">x =</span> <span class="dv">3</span>,<span class="at">y =</span> <span class="dv">22</span>,<span class="at">labels =</span> <span class="st">"Tiger Woods"</span>, <span class="at">cex=</span><span class="fl">1.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">rstandard</span>(model00log), <span class="at">breaks=</span><span class="dv">20</span>, <span class="at">col=</span><span class="st">"lightblue"</span>, <span class="at">xlab =</span> <span class="st">"Standartized Residual"</span>, <span class="at">main=</span><span class="st">""</span>)</span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a><span class="fu">arrows</span>(<span class="at">x0 =</span> <span class="dv">3</span>,<span class="at">y0 =</span> <span class="dv">20</span>,<span class="at">x1 =</span> <span class="fl">3.2</span>,<span class="at">y1 =</span> <span class="dv">2</span>,<span class="at">length =</span> <span class="fl">0.1</span>)</span>
+<span id="cb82-3"><a href="#cb82-3" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="at">x =</span> <span class="dv">3</span>,<span class="at">y =</span> <span class="dv">22</span>,<span class="at">labels =</span> <span class="st">"Tiger Woods"</span>, <span class="at">cex=</span><span class="fl">1.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2900,8 +2817,8 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 </div>
 <p>Using log scale for <code>money</code> gives us a better model. We will keep it for now. How about selectng variables. Notice, that <span class="math inline">\(t\)</span>-stats for <code>nevents</code> is <span class="math inline">\(&lt;1.5\)</span>. Thus, we can remove it.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">=</span> <span class="fu">lm</span>(<span class="at">formula =</span> <span class="fu">log</span>(money) <span class="sc">~</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data =</span> d00)</span>
-<span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a>m1 <span class="sc">%&gt;%</span> <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">=</span> <span class="fu">lm</span>(<span class="at">formula =</span> <span class="fu">log</span>(money) <span class="sc">~</span> drivedist <span class="sc">+</span> gir <span class="sc">+</span> avgputts, <span class="at">data =</span> d00)</span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>m1 <span class="sc">%&gt;%</span> <span class="fu">tidy</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -2949,8 +2866,8 @@ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon.
 <p>It is obvious that fewer putts indicate a better golfer. However, decreasing the average number of putts per round by one is extremely difficult to achieve.</p>
 <p><strong>Evaluating the Coefficients</strong></p>
 <ol type="1">
-<li><p>Greens in Regulation (GIR) has a <span class="math inline">\(\hat{\beta} = 0.17\)</span>. If I can increase my GIR by one, I’ll earn <span class="math inline">\(e^{0.17} = 1.18\)</span>% An extra <span class="math inline">\(18\)</span>%</p></li>
-<li><p>DriveDis has a <span class="math inline">\(\hat{\beta} = 0.014\)</span>. A <span class="math inline">\(10\)</span> yard improvement, I’ll earn <span class="math inline">\(e^{0.014 \times 10} =e^{0.14}  = 1.15\)</span>% An extra <span class="math inline">\(15\)</span>%</p></li>
+<li><p>Greens in Regulation (GIR) has a <span class="math inline">\(\hat{\beta} = 0.17\)</span>. If I can increase my GIR by one, I’ll earn <span class="math inline">\(e^{0.17} = 1.18\)</span>% An extra <span class="math inline">\(18\)</span>%.</p></li>
+<li><p>DriveDis has a <span class="math inline">\(\hat{\beta} = 0.014\)</span>. A <span class="math inline">\(10\)</span> yard improvement, I’ll earn <span class="math inline">\(e^{0.014 \times 10} =e^{0.14}  = 1.15\)</span>% An extra <span class="math inline">\(15\)</span>%.</p></li>
 </ol>
 <p>Caveat: Everyone has gotten better since 2000!</p>
 <p>Tiger Woods was nine standard deviations better than what the model predicted, while taking the natural logarithm of money earnings significantly improves the residual diagnostics and an exponential model appears to fit the data well as evidenced by the good residual diagnostic plots; furthermore, the t-ratios for the number of events variable are consistently under 1.5, indicating it may not be a significant predictor.</p>
@@ -3355,14 +3272,14 @@ y = \beta_0 + \beta_1 x + \epsilon, ~~ \beta_i \sim N(0,1),~~~\sigma_e = 1
 <p>The options of <code>horseshoe</code> are the same as for <code>HS.normal.means</code> (discussed above, although in case of linear regression it is less clear which prior to use for <span class="math inline">\(\tau\)</span>). We illustrate the use of <code>horseshoe</code> via an example.</p>
 <p>We create a 50 by 100 design matrix <span class="math inline">\(X\)</span> filled with realizations of independent normal random variables. The first 10 entries of the vector <span class="math inline">\(\beta\)</span> are set equal to six (the signals) and the remaining 90 entries are set equal to zero (the noise).</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="dv">50</span><span class="sc">*</span><span class="dv">100</span>), <span class="dv">50</span>)</span>
-<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="dv">6</span>, <span class="dv">10</span>), <span class="fu">rep</span>(<span class="dv">0</span>, <span class="dv">90</span>))</span>
-<span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">50</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="dv">50</span><span class="sc">*</span><span class="dv">100</span>), <span class="dv">50</span>)</span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="dv">6</span>, <span class="dv">10</span>), <span class="fu">rep</span>(<span class="dv">0</span>, <span class="dv">90</span>))</span>
+<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">50</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We use the horseshoe and plot the posterior mean and marginal 95% credible interval per parameter in red. The true parameter values are shown in black.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(horseshoe)</span>
-<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>hs.object <span class="ot">&lt;-</span> <span class="fu">horseshoe</span>(y, X, <span class="at">method.tau =</span> <span class="st">"truncatedCauchy"</span>, <span class="at">method.sigma =</span><span class="st">"Jeffreys"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(horseshoe)</span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>hs.object <span class="ot">&lt;-</span> <span class="fu">horseshoe</span>(y, X, <span class="at">method.tau =</span> <span class="st">"truncatedCauchy"</span>, <span class="at">method.sigma =</span><span class="st">"Jeffreys"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## [1] 1000
 ## [1] 2000
@@ -3371,23 +3288,23 @@ y = \beta_0 + \beta_1 x + \epsilon, ~~ \beta_i \sim N(0,1),~~~\sigma_e = 1
 ## [1] 5000
 ## [1] 6000</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">index =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>,</span>
-<span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">truth =</span> beta,</span>
-<span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">post.mean =</span> hs.object<span class="sc">$</span>BetaHat,</span>
-<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a>                 lower.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>LeftCI,</span>
-<span id="cb90-5"><a href="#cb90-5" aria-hidden="true" tabindex="-1"></a>                 upper.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>RightCI</span>
-<span id="cb90-6"><a href="#cb90-6" aria-hidden="true" tabindex="-1"></a>                 )</span>
-<span id="cb90-7"><a href="#cb90-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb90-8"><a href="#cb90-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
-<span id="cb90-9"><a href="#cb90-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
-<span id="cb90-10"><a href="#cb90-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb90-11"><a href="#cb90-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb90-12"><a href="#cb90-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI), <span class="at">width =</span> .<span class="dv">1</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb90-13"><a href="#cb90-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Red = estimates with 95% credible intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">index =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>,</span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">truth =</span> beta,</span>
+<span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">post.mean =</span> hs.object<span class="sc">$</span>BetaHat,</span>
+<span id="cb87-4"><a href="#cb87-4" aria-hidden="true" tabindex="-1"></a>                 lower.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>LeftCI,</span>
+<span id="cb87-5"><a href="#cb87-5" aria-hidden="true" tabindex="-1"></a>                 upper.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>RightCI</span>
+<span id="cb87-6"><a href="#cb87-6" aria-hidden="true" tabindex="-1"></a>                 )</span>
+<span id="cb87-7"><a href="#cb87-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb87-8"><a href="#cb87-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<span id="cb87-9"><a href="#cb87-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
+<span id="cb87-10"><a href="#cb87-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb87-11"><a href="#cb87-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb87-12"><a href="#cb87-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI), <span class="at">width =</span> .<span class="dv">1</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb87-13"><a href="#cb87-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Red = estimates with 95% credible intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="12-regression_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
+<p><img src="12-regression_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
 </figure>
 </div>
 </div>
@@ -3395,23 +3312,23 @@ y = \beta_0 + \beta_1 x + \epsilon, ~~ \beta_i \sim N(0,1),~~~\sigma_e = 1
 <p>We again perform variable selection. The function, <code>HS.var.select</code>, is the same as described above for the normal means problem. Here we show how it works when variables are selected by checking whether 0 is in the credible interval. For the thresholding procedure, please refer to the normal means example above.</p>
 <p>We perform variable selection:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.CI <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.CI <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The result is a vector of zeroes and ones, with the ones indicating that the observations is suspected to correspond to an actual signal. We now plot the results, coloring the estimates/intervals blue if a signal is detected and red otherwise.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
-<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb92-3"><a href="#cb92-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb92-4"><a href="#cb92-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)), </span>
-<span id="cb92-5"><a href="#cb92-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb92-6"><a href="#cb92-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)),</span>
-<span id="cb92-7"><a href="#cb92-7" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> .<span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb92-8"><a href="#cb92-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>) <span class="sc">+</span></span>
-<span id="cb92-9"><a href="#cb92-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb89-4"><a href="#cb89-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)), </span>
+<span id="cb89-5"><a href="#cb89-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb89-6"><a href="#cb89-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)),</span>
+<span id="cb89-7"><a href="#cb89-7" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> .<span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb89-8"><a href="#cb89-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb89-9"><a href="#cb89-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="12-regression_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
+<p><img src="12-regression_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
 </figure>
 </div>
 </div>
