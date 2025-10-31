@@ -124,6 +124,9 @@ div.csl-indent {
     "search-label": "Search"
   }
 }</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 <script>
   // Load MathJax with custom macros
   window.MathJax = {
@@ -447,7 +450,8 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#structural-time-series-models" id="toc-structural-time-series-models" class="nav-link active" data-scroll-target="#structural-time-series-models"><span class="header-section-number">15.1</span> Structural time series models</a></li>
+  <li><a href="#a-motivating-example-epidemic-forecasting" id="toc-a-motivating-example-epidemic-forecasting" class="nav-link active" data-scroll-target="#a-motivating-example-epidemic-forecasting">A Motivating Example: Epidemic Forecasting</a></li>
+  <li><a href="#structural-time-series-models" id="toc-structural-time-series-models" class="nav-link" data-scroll-target="#structural-time-series-models"><span class="header-section-number">15.1</span> Structural time series models</a></li>
   <li><a href="#regression-with-spike-and-slab-priors" id="toc-regression-with-spike-and-slab-priors" class="nav-link" data-scroll-target="#regression-with-spike-and-slab-priors"><span class="header-section-number">15.2</span> Regression with spike and slab priors</a></li>
   <li><a href="#model-diagnostics-did-the-google-data-help" id="toc-model-diagnostics-did-the-google-data-help" class="nav-link" data-scroll-target="#model-diagnostics-did-the-google-data-help"><span class="header-section-number">15.3</span> Model diagnostics: did the Google data help?</a></li>
   <li><a href="#final-remarks-on-structural-models" id="toc-final-remarks-on-structural-models" class="nav-link" data-scroll-target="#final-remarks-on-structural-models"><span class="header-section-number">15.4</span> Final Remarks on Structural Models</a></li>
@@ -499,7 +503,120 @@ window.Quarto = {
 <p>In this chapter, we introduce the <code>bsts</code> package for R, which provides a framework for fitting Bayesian structural time series models. These models, also referred to as “state space models,” “structural time series,” “Kalman filter models,” or “dynamic linear models,” are highly flexible and can be approached from both Bayesian and non-Bayesian perspectives. The <code>bsts</code> package, however, is specifically designed to leverage Bayesian posterior sampling.</p>
 <p>As an open-source package available on CRAN (installable via <code>install.packages("bsts")</code>), <code>bsts</code> shares some similarities with the forecasting systems developed by Facebook and Google, but it was created with different objectives. Whereas the Facebook and Google tools are optimized for large-scale, automated forecasting—particularly for daily data and across many time series—<code>bsts</code> is intended to be more customizable. The focus of those large-scale systems is on automating analysis to handle many series efficiently, often by using techniques like regularized regression (Facebook) or ensemble averaging (Google), and by carefully accounting for holidays.</p>
 <p>While <code>bsts</code> can be set up for automated forecasting and is even used as part of Google’s ensemble approach, it is also well-suited for analysts who want to tailor models to specific needs. This includes decisions about forecasting horizons, handling of seasonality, and whether the primary goal is prediction or explanation.</p>
+<section id="a-motivating-example-epidemic-forecasting" class="level3">
+<h3 class="anchored" data-anchor-id="a-motivating-example-epidemic-forecasting">A Motivating Example: Epidemic Forecasting</h3>
+<p>Before delving into the technical details of structural time series models, consider a classic application that illustrates both the power and challenges of dynamic forecasting: modeling infectious disease spread.</p>
+<p>In 1766, Daniel Bernoulli developed the first mathematical model of disease transmission for smallpox, writing: <em>“I wish simply that, in matters which so closely concern the well being of the human race, no decision shall be made without all knowledge which a little analysis and calculation can provide.”</em> This pioneering work laid the foundation for epidemic modeling that continues to inform public health decisions today.</p>
+<p>One of the most famous early applications involved the London Plague of 1665-1666, particularly in the village of Eyam near Sheffield. The data, shown below, tracked susceptible individuals (<span class="math inline">\(S\)</span>) and infected individuals (<span class="math inline">\(I\)</span>) over time:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Date (1666)</th>
+<th>Susceptibles</th>
+<th>Infectives</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Initial</td>
+<td>254</td>
+<td>7</td>
+</tr>
+<tr class="even">
+<td>July 3</td>
+<td>235</td>
+<td>15</td>
+</tr>
+<tr class="odd">
+<td>July 19</td>
+<td>201</td>
+<td>22</td>
+</tr>
+<tr class="even">
+<td>Aug 3</td>
+<td>153</td>
+<td>29</td>
+</tr>
+<tr class="odd">
+<td>Aug 19</td>
+<td>121</td>
+<td>21</td>
+</tr>
+<tr class="even">
+<td>Sept 3</td>
+<td>108</td>
+<td>8</td>
+</tr>
+<tr class="odd">
+<td>Sept 19</td>
+<td>97</td>
+<td>8</td>
+</tr>
+<tr class="even">
+<td>Oct 3</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr class="odd">
+<td>Oct 19</td>
+<td>83</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>The initial population was <span class="math inline">\(N=261\)</span>, and by the end of the outbreak, 83 individuals remained susceptible (never infected). This simple dataset illustrates a fundamental challenge in time series forecasting: understanding the <em>mechanism</em> driving the dynamics.</p>
+<p>The minister of the local church in Eyam, John Ashton, kept detailed records of the outbreak. The missing record on Oct 3 is due to the fact that John Ashton himself was infected and died on that day. The interesting part is that he understood the importance of quarantine and did not allow anyone to visit him or his family until he was dead. Also he understood the importance of recording the data daily and did it long before Nightingale’s time.</p>
+<p>The susceptible-exposed-infectious-recovered (SEIR) model extends earlier approaches by explicitly modeling disease transmission dynamics. The model tracks four compartments:</p>
+<div class="cell" data-fig-width="6" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">graph LR
+    S[Susceptible&lt;br/&gt;S] --&gt;|beta*S*I| E[Exposed&lt;br/&gt;E]
+    E --&gt;|alpha*E| I[Infectious&lt;br/&gt;I]
+    I --&gt;|gamma*I| R[Recovered&lt;br/&gt;R]
+    
+    style S fill:#e1f5ff
+    style E fill:#fff4e1
+    style I fill:#ffe1e1
+    style R fill:#e1ffe1
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>The dynamics are governed by a system of coupled differential equations:</p>
+<span class="math display">\[\begin{aligned}
+\frac{dS}{dt} &amp;= -\beta S I \\
+\frac{dE}{dt} &amp;= \beta S I - \alpha E \\
+\frac{dI}{dt} &amp;= \alpha E - \gamma I \\
+\frac{dR}{dt} &amp;= \gamma I
+\end{aligned}\]</span>
+<p>where <span class="math inline">\(S_t + E_t + I_t + R_t = N\)</span> (constant population). The parameters have intuitive interpretations:</p>
+<ul>
+<li><span class="math inline">\(\beta = \beta_1 \beta_2\)</span>: transmission rate (contact rate <span class="math inline">\(\times\)</span> infection probability)</li>
+<li><span class="math inline">\(\alpha\)</span>: rate at which exposed individuals become infectious</li>
+<li><span class="math inline">\(\gamma\)</span>: recovery rate</li>
+</ul>
+<p>A key quantity in epidemic modeling is the <em>basic reproductive ratio</em> <span class="math inline">\(R_0 := \beta S_0 / \gamma\)</span>, which represents the mean number of secondary infections produced by one infectious person in a completely susceptible population. When <span class="math inline">\(R_0 &gt; 1\)</span>, an epidemic can occur; when <span class="math inline">\(R_0 &lt; 1\)</span>, the disease dies out.</p>
+<p>For the Eyam plague data, researchers fitted a simpler SI model (without the exposed and recovered compartments) and estimated: <span class="math display">\[
+\frac{\beta}{\alpha} = 6.54 \times 10^{-3}, \quad \frac{\alpha}{\beta} = 1.53
+\]</span> using the relationship: <span class="math display">\[
+\frac{\hat{\beta}}{\alpha} = \frac{\ln(S_0/S_\infty)}{S_0 - S_\infty}
+\]</span></p>
+<p>The model predicted a maximum of 30.4 infected individuals, remarkably close to the observed peak of 29.</p>
+<p>This example highlights several themes central to this chapter:</p>
+<ol type="1">
+<li><em>Self-reinforcing dynamics</em>: Disease spread accelerates with more infectants, creating nonlinear feedback loops</li>
+<li><em>State-space structure</em>: The compartments (<span class="math inline">\(S, E, I, R\)</span>) represent latent states that evolve according to known dynamics</li>
+<li><em>Parameter uncertainty</em>: Even with detailed data, parameters like <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span> must be estimated</li>
+<li><em>Retrospective vs.&nbsp;prospective</em>: The Eyam analysis was performed in hindsight with complete data; real-time forecasting during an outbreak is considerably more challenging</li>
+</ol>
+<p>Modern epidemic forecasting, as demonstrated during the COVID-19 pandemic, combines SEIR-type models with Bayesian methods to quantify uncertainty, incorporate real-time data, and inform policy decisions. While epidemic models differ from the business and economic time series we’ll focus on in this chapter, they share the fundamental state-space structure that makes Bayesian structural time series models so powerful.</p>
 <p>The foundation of <code>bsts</code> is the structural time series model, which will be outlined in the next section. The chapter then proceeds with several detailed examples that showcase advanced features of the package. The first example, <strong>Nowcasting</strong>, covers local linear trend and seasonal models, as well as spike-and-slab priors for high-dimensional regression. The second example, <strong>Long-term forecasting</strong>, addresses cases where standard local level or trend models are insufficient and introduces the semilocal linear trend model. The third example, <strong>Recession modeling</strong>, demonstrates how to handle non-Gaussian response variables and focuses on controlling for serial dependence in explanatory modeling. The chapter concludes with a brief overview of additional features in <code>bsts</code> that are not covered in depth.</p>
+</section>
 <section id="structural-time-series-models" class="level2" data-number="15.1">
 <h2 data-number="15.1" class="anchored" data-anchor-id="structural-time-series-models"><span class="header-section-number">15.1</span> Structural time series models</h2>
 <p>A structural time series model is defined by two equations. The observation equation relates the observed data <span class="math inline">\(y_t\)</span> to a vector of latent variables <span class="math inline">\(\alpha_t\)</span> known as the “state.” <span class="math display">\[
@@ -1080,9 +1197,7 @@ Figure&nbsp;15.7: S&amp;P 500 Prediction
 </section>
 <section id="final-remarks-on-structural-models" class="level2" data-number="15.4">
 <h2 data-number="15.4" class="anchored" data-anchor-id="final-remarks-on-structural-models"><span class="header-section-number">15.4</span> Final Remarks on Structural Models</h2>
-<p>The preceding examples have shown that the <code>bsts</code> software package can handle several nonstandard, but useful, time series applications. These include the ability to handle large numbers of contemporaneous predictors with spike and slab priors, the presence of trend models suitable for long term forecasting, and the ability to handle non-Gaussian data. We have run out of space, but <code>bsts</code> can do much more.</p>
-<p>For starters, there are other state models you can use. Bsts has elementary support for holidays. It knows about 18 US holidays, and has capacity to add more, including holidays that occur on the same date each year, holidays that occur on a fixed weekday of a fixed month (e.g.&nbsp;3rd Tuesday in February, or last Monday in November). The model for each holiday is a simple random walk, but look for future versions to have improved holiday support via Bayesian shrinkage.</p>
-<p>Bsts offers support for multiple seasonalities. For example, if you have several weeks of hourly data then you will have an hour-of-day effect as well as a day-of-week effect. You can model these using a single seasonal effect with 168 seasons (which would allow for different hourly effects on weekends and weekdays), or you can assume additive seasonal patterns using the season.duration argument to <code>AddSeasonal</code>,</p>
+<p>The preceding examples have shown that the <code>bsts</code> software package can handle several nonstandard, but useful, time series applications. These include the ability to handle large numbers of contemporaneous predictors with spike and slab priors, the presence of trend models suitable for long term forecasting, and the ability to handle non-Gaussian data. Further, <code>bsts</code> offers support for multiple seasonalities. For example, if you have several weeks of hourly data then you will have an hour-of-day effect as well as a day-of-week effect. You can model these using a single seasonal effect with 168 seasons (which would allow for different hourly effects on weekends and weekdays), or you can assume additive seasonal patterns using the season.duration argument to <code>AddSeasonal</code>.</p>
 <pre><code>ss &lt;- AddSeasonal(ss, y, nseasons = 24)
 ss &lt;- AddSeasonal(ss, y, nseasons = 7, season.duration = 24)</code></pre>
 <p>The latter specifies that each daily effect should remain constant for 24 hours. For modeling physical phenomena, <code>bsts</code> also offers trigonometric seasonal effects, which are sine and cosine waves with time varying coefficients. You obtain these by calling AddTrig. Time varying effects are available for arbitrary regressions with small numbers of predictor variables through a call to <code>AddDynamicRegression</code>.</p>
@@ -1687,7 +1802,7 @@ f(y;G) = \int k(y ; \theta) dG(\theta)
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="15-forecasting_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
+<p><img src="15-forecasting_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
 </figure>
 </div>
 </div>
