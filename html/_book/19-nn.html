@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -89,14 +89,15 @@ div.csl-indent {
 <link href="./18-theoryai.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-680e7c22d93ef26f016bec9199f8e6d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -124,6 +125,9 @@ div.csl-indent {
     "search-label": "Search"
   }
 }</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 <script>
   // Load MathJax with custom macros
   window.MathJax = {
@@ -168,7 +172,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -442,15 +446,21 @@ window.Quarto = {
    
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">19.1</span> Introduction</a></li>
-  <li><a href="#motivating-examples" id="toc-motivating-examples" class="nav-link" data-scroll-target="#motivating-examples"><span class="header-section-number">19.2</span> Motivating Examples</a></li>
-  <li><a href="#activation-functions" id="toc-activation-functions" class="nav-link" data-scroll-target="#activation-functions"><span class="header-section-number">19.3</span> Activation Functions</a></li>
-  <li><a href="#modern-deep-learning-architectures" id="toc-modern-deep-learning-architectures" class="nav-link" data-scroll-target="#modern-deep-learning-architectures"><span class="header-section-number">19.4</span> Modern Deep Learning Architectures</a>
+  <li><a href="#mathematical-foundations" id="toc-mathematical-foundations" class="nav-link" data-scroll-target="#mathematical-foundations"><span class="header-section-number">19.2</span> Mathematical Foundations</a>
+  <ul class="collapse">
+  <li><a href="#relu-networks-as-max-sum-networks" id="toc-relu-networks-as-max-sum-networks" class="nav-link" data-scroll-target="#relu-networks-as-max-sum-networks">ReLU Networks as Max-Sum Networks</a></li>
+  <li><a href="#auto-encoders" id="toc-auto-encoders" class="nav-link" data-scroll-target="#auto-encoders">Auto-Encoders</a></li>
+  </ul></li>
+  <li><a href="#classification-with-neural-networks" id="toc-classification-with-neural-networks" class="nav-link" data-scroll-target="#classification-with-neural-networks"><span class="header-section-number">19.3</span> Classification with Neural Networks</a></li>
+  <li><a href="#activation-functions" id="toc-activation-functions" class="nav-link" data-scroll-target="#activation-functions"><span class="header-section-number">19.4</span> Activation Functions</a></li>
+  <li><a href="#modern-deep-learning-architectures" id="toc-modern-deep-learning-architectures" class="nav-link" data-scroll-target="#modern-deep-learning-architectures"><span class="header-section-number">19.5</span> Modern Deep Learning Architectures</a>
   <ul class="collapse">
   <li><a href="#transfer-learning-and-pre-trained-blocks" id="toc-transfer-learning-and-pre-trained-blocks" class="nav-link" data-scroll-target="#transfer-learning-and-pre-trained-blocks">Transfer Learning and Pre-trained Blocks</a></li>
   <li><a href="#mixture-of-experts" id="toc-mixture-of-experts" class="nav-link" data-scroll-target="#mixture-of-experts">Mixture of Experts</a></li>
   <li><a href="#ensembles" id="toc-ensembles" class="nav-link" data-scroll-target="#ensembles">Ensembles</a></li>
   <li><a href="#architectural-innovations" id="toc-architectural-innovations" class="nav-link" data-scroll-target="#architectural-innovations">Architectural Innovations</a></li>
   </ul></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary"><span class="header-section-number">19.6</span> Summary</a></li>
   </ul>
 </nav>
 </nav>
@@ -480,16 +490,17 @@ window.Quarto = {
 </header>
 
 
-<p>The goal of this section is to provide an overview of Deep Learning (DL). To do this, we have discussed the model estimation procedure and demonstrated that DL is an extension of a generalized linear model. One goal of statistics is to build predictive models along with uncertainty and to develop an understanding of the data generating mechanism. Data models are well studied in statistical literature, but often do not provide enough flexibility to learn the input-output relations. Closed box predictive rules, such as trees and neural networks, are more flexible learners. However, in high-dimensional problems, finding good models is challenging, and this is where deep learning methods shine. We can think of deterministic DL model as a transformation of high dimensional input and outputs. Hidden features lie on the transformed space, and are empirically learned as opposed to theoretically specified.</p>
-<p>Although DL models have been almost exclusively used for problems of image analysis and natural language processing, more traditional data sets, which arise in finance, science and engineering, such as spatial and temporal data can be efficiently analyzed using deep learning. Thus, DL provides an alternative for applications where traditional statistical techniques apply. There are a number of areas of future research for Statisticians. In particular, uncertainty quantification and model selection, such as architecture design, as well as algorithmic improvements and Bayesian deep learning. We hope this review will make DL models accessible for statisticians.</p>
-<p>In recent years neural networks and deep learning have re-emerged as a dominant technology for natural language processing (NLP), image analysis and reinforcement learning. The majority of applications use feed-forward neural network architectures such as convolutional neural networks and transformers. In this chapter we will focus on the feed-forward neural networks and their applications to regression and classification problems. We will also discuss the computational aspects of deep learning and its implementation in <code>R</code> and <code>Python</code>.</p>
+<blockquote class="blockquote">
+<p>“We have a chance to build machines that will be smarter than us. We need to be thoughtful about what we are asking for.” — Geoffrey Hinton</p>
+</blockquote>
+<p>In 2012, a neural network called AlexNet stunned the computer vision community by winning the ImageNet competition with an error rate nearly half that of the previous year’s winner. This breakthrough marked the beginning of deep learning’s modern era—a period in which neural networks have transformed fields from medical diagnosis to language translation, from game playing to autonomous driving.</p>
+<p>The goal of this chapter is to provide a comprehensive overview of deep learning (DL) methods. From a statistical perspective, deep learning extends the framework of generalized linear models by introducing multiple layers of nonlinear transformations. While traditional statistical models are well-studied and interpretable, they often lack the flexibility to capture complex input-output relationships. <em>Black-box</em> predictive methods, such as decision trees and neural networks, offer greater flexibility at the cost of interpretability. Deep learning excels precisely where high-dimensional problems make traditional model selection challenging.</p>
+<p>Deep learning thus offers a powerful alternative in domains traditionally served by statistical methods, opening rich avenues for future research—including uncertainty quantification, principled architecture selection, and Bayesian deep learning. Although DL models have been most prominently applied to image analysis and natural language processing, they have also demonstrated superior performance in traditional engineering and scientific domains such as spatio-temporal modeling and financial forecasting <span class="citation" data-cites="polson2021deep polson2017deep dixon2019deep sokolov2017discussion bhadra2021merging behnia2021deep nareklishvili2022deep nareklishvili2023feature polson2023generative nareklishvili2023generative polson2020deep">(<a href="references.html#ref-polson2021deep" role="doc-biblioref">N. Polson, Sokolov, and Xu 2021</a>; <a href="references.html#ref-polson2017deep" role="doc-biblioref">Nicholas G. Polson, Sokolov, et al. 2017</a>; <a href="references.html#ref-dixon2019deep" role="doc-biblioref">Dixon, Polson, and Sokolov 2019</a>; <a href="references.html#ref-sokolov2017discussion" role="doc-biblioref">Sokolov 2017</a>; <a href="references.html#ref-bhadra2021merging" role="doc-biblioref">Bhadra et al. 2021</a>; <a href="references.html#ref-behnia2021deep" role="doc-biblioref">Behnia, Karbowski, and Sokolov 2021</a>; <a href="references.html#ref-nareklishvili2022deep" role="doc-biblioref">Nareklishvili, Polson, and Sokolov 2022</a>, <a href="references.html#ref-nareklishvili2023feature" role="doc-biblioref">2023b</a>, <a href="references.html#ref-nareklishvili2023generative" role="doc-biblioref">2023a</a>; <a href="references.html#ref-polson2023generative" role="doc-biblioref">Nicholas G. Polson and Sokolov 2023</a>; <a href="references.html#ref-polson2020deep" role="doc-biblioref">N. Polson and Sokolov 2020</a>)</span>.</p>
+<p>In this chapter, we focus on feed-forward neural networks and their applications to regression and classification. We begin with the mathematical foundations, work through illustrative examples, and discuss practical implementation in <code>R</code> and <code>Python</code>.</p>
 <section id="introduction" class="level2" data-number="19.1">
 <h2 data-number="19.1" class="anchored" data-anchor-id="introduction"><span class="header-section-number">19.1</span> Introduction</h2>
-<p>Our goal is to provide a review of deep learning methods which provide insight into structured high-dimensional data. Rather than using shallow additive architectures common to most statistical models, deep learning uses layers of semi-affine input transformations to provide a predictive rule. Applying these layers of transformations leads to a set of attributes (or, features) to which probabilistic statistical methods can be applied. Thus, the best of both worlds can be achieved: scalable prediction rules fortified with uncertainty quantification, where sparse regularization finds the features.</p>
-<p>Deep learning is one of the widely used machine learning methods for analysis of large-scale and high-dimensional data sets. Large-scale means that we have many samples (observations) and high dimensional means that each sample is a vector with many entries, usually hundreds and up.</p>
-<p>Machine learning is the engineer’s version of statistical data analysis. The major difference between ML and statistics is that ML focuses on practical aspects, such as computational efficiency and ease of use of techniques, while statistical analysis is more concerned with the rigorousness of the analysis and interpretability of the results.</p>
-<p>Deep learning provides a powerful pattern matching tool suitable for many AI applications. Image recognition and text analysis are probably two of deep learning’s most successful applications. From a computational perspective, you can think of an image or text as high-dimensional matrices and vectors, respectively. The problem of recognizing objects in images or translating a text requires designing complex decision boundaries in the high dimensional space of inputs.</p>
-<p>Although image analysis and natural language processing are the applications where deep learning is the dominating approach, more traditional engineering and science applications, such as spatio-temporal and financial analysis, are where DL has also shown superior performance compared to traditional statistical learning techniques <span class="citation" data-cites="polson2021deep polson2017deep dixon2019deep sokolov2017discussion bhadra2021merging bhadra2021merging behnia2021deep nareklishvili2022deep nareklishvili2023feature polson2023generative nareklishvili2023generative polson2020deep">(<a href="references.html#ref-polson2021deep" role="doc-biblioref">N. Polson, Sokolov, and Xu 2021</a>; <a href="references.html#ref-polson2017deep" role="doc-biblioref">Nicholas G. Polson, Sokolov, et al. 2017</a>; <a href="references.html#ref-dixon2019deep" role="doc-biblioref">Dixon, Polson, and Sokolov 2019</a>; <a href="references.html#ref-sokolov2017discussion" role="doc-biblioref">Sokolov 2017</a>; <a href="references.html#ref-bhadra2021merging" role="doc-biblioref">Bhadra et al. 2021</a>, <a href="references.html#ref-bhadra2021merging" role="doc-biblioref">2021</a>; <a href="references.html#ref-behnia2021deep" role="doc-biblioref">Behnia, Karbowski, and Sokolov 2021</a>; <a href="references.html#ref-nareklishvili2022deep" role="doc-biblioref">Nareklishvili, Polson, and Sokolov 2022</a>, <a href="references.html#ref-nareklishvili2023feature" role="doc-biblioref">2023b</a>, <a href="references.html#ref-nareklishvili2023generative" role="doc-biblioref">2023a</a>; <a href="references.html#ref-polson2023generative" role="doc-biblioref">Nicholas G. Polson and Sokolov 2023</a>; <a href="references.html#ref-polson2020deep" role="doc-biblioref">N. Polson and Sokolov 2020</a>)</span></p>
+<p>Machine learning and statistical analysis share common foundations, but they emphasize different priorities: ML focuses on scalable algorithms and predictive accuracy, while statistics prioritizes interpretability and inferential rigor. Deep learning sits at the intersection, providing powerful pattern-matching capabilities suitable for AI applications such as image recognition and text analysis.</p>
+<p>From a computational perspective, images and text can be represented as high-dimensional matrices and vectors, respectively. The challenge of recognizing objects in images or understanding natural language requires learning complex decision boundaries in these high-dimensional input spaces. Deep learning addresses this challenge by using hierarchical layers of transformations that progressively extract meaningful features from raw data. This approach differs from traditional statistical models in that the features are <em>learned</em> from data rather than specified <em>a priori</em></p>
 <p>There are several deep learning architectures - each has its own uses and purposes. Convolutional Neural Networks (CNN) deal with 2-dimensional input objects, i.e., images, and have been shown to outperform other techniques. Recurrent Neural Networks (RNN) have shown the best performance on speech and text analysis tasks.</p>
 <p>In general, a neural network can be described as follows. Let <span class="math inline">\(f_1 , \ldots , f_L\)</span> be given univariate activation functions for each of the <span class="math inline">\(L\)</span> layers. Activation functions are nonlinear transformations of weighted data. A semi-affine activation rule is then defined by <span class="math display">\[
 f_l^{W,b} = f_l \left ( \sum_{j=1}^{N_l} W_{lj} X_j + b_l \right ) = f_l ( W_l X_l + b_l )\,
@@ -497,7 +508,7 @@ f_l^{W,b} = f_l \left ( \sum_{j=1}^{N_l} W_{lj} X_j + b_l \right ) = f_l ( W_l X
 <p><span class="math display">\[
 \hat{Y}(X) = F(X) = \left ( f_l^{W_1,b_1} \circ \ldots \circ f_L^{W_L,b_L} \right ) ( X)\,.
 \]</span></p>
-<p>The fact that DL forms a universal “basis” which we recognize in this formulation dates to Poincare and Hilbert is central. From a practical perspective, given a large enough data set of “test cases”, we can empirically learn an optimal predictor. Similar to a classic basis decomposition, the deep approach uses univariate activation functions to decompose a high dimensional <span class="math inline">\(X\)</span>.</p>
+<p>Deep learning’s capacity to serve as a universal function approximator has deep mathematical roots—a principle traceable to the functional analysis of the nineteenth century. From a practical perspective, given a large enough dataset, we can empirically learn an optimal predictor. Similar to a classic basis decomposition, the deep approach uses univariate activation functions to decompose a high-dimensional input <span class="math inline">\(X\)</span>.</p>
 <p>Let <span class="math inline">\(Z^{(l)}\)</span> denote the <span class="math inline">\(l\)</span>th layer, and so <span class="math inline">\(X = Z^{(0)}\)</span>. The final output <span class="math inline">\(Y\)</span> can be numeric or categorical. The explicit structure of a deep prediction rule is then <span class="math display">\[
 \begin{aligned}
 \hat{Y} (X) &amp; = W^{(L)} Z^{(L)} + b^{(L)} \\
@@ -506,12 +517,59 @@ Z^{(2)} &amp; = f^{(2)} \left ( W^{(1)} Z^{(1)} + b^{(1)} \right ) \\
 \ldots  &amp; \\
 Z^{(L)} &amp; = f^{(L)} \left ( W^{(L-1)} Z^{(L-1)} + b^{(L-1)} \right )\,.
 \end{aligned}
-\]</span> Here <span class="math inline">\(W^{(l)}\)</span> is a weight matrix and <span class="math inline">\(b^{(l)}\)</span> are threshold or activation levels. Designing a good predictor depends crucially on the choice of univariate activation functions <span class="math inline">\(f^{(l)}\)</span>. The <span class="math inline">\(Z^{(l)}\)</span> are hidden features which the algorithm will extract.</p>
+\]</span> Here <span class="math inline">\(W^{(l)}\)</span> is a weight matrix and <span class="math inline">\(b^{(l)}\)</span> are bias terms that shift the activation functions. Designing a good predictor depends crucially on the choice of univariate activation functions <span class="math inline">\(f^{(l)}\)</span>. The <span class="math inline">\(Z^{(l)}\)</span> are hidden features (or <em>latent representations</em>) that the algorithm extracts from the data.</p>
 <p>Put differently, the deep approach employs hierarchical predictors comprising a series of <span class="math inline">\(L\)</span> nonlinear transformations applied to <span class="math inline">\(X\)</span>. Each of the <span class="math inline">\(L\)</span> transformations is referred to as a <em>layer</em>, where the original input is <span class="math inline">\(X\)</span>, the output of the first transformation is the first layer, and so on, with the output <span class="math inline">\(\hat Y\)</span> as the final layer. The layers <span class="math inline">\(1\)</span> to <span class="math inline">\(L\)</span> are called <em>hidden layers</em>. The number of layers <span class="math inline">\(L\)</span> represents the depth of our network.</p>
+<p>The following diagram illustrates the structure of a simple feedforward neural network with two hidden layers:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    subgraph Input["Input Layer"]
+        X1["$X_1$"]
+        X2["$X_2$"]
+        X3["$X_3$"]
+    end
+    
+    subgraph H1["Hidden Layer 1"]
+        Z11["$Z_1^{(1)}$"]
+        Z12["$Z_2^{(1)}$"]
+        Z13["$Z_3^{(1)}$"]
+        Z14["$Z_4^{(1)}$"]
+    end
+    
+    subgraph H2["Hidden Layer 2"]
+        Z21["$Z_1^{(2)}$"]
+        Z22["$Z_2^{(2)}$"]
+    end
+    
+    subgraph Output["Output Layer"]
+        Y["$\hat{Y}$"]
+    end
+    
+    X1 --&gt; Z11 &amp; Z12 &amp; Z13 &amp; Z14
+    X2 --&gt; Z11 &amp; Z12 &amp; Z13 &amp; Z14
+    X3 --&gt; Z11 &amp; Z12 &amp; Z13 &amp; Z14
+    
+    Z11 --&gt; Z21 &amp; Z22
+    Z12 --&gt; Z21 &amp; Z22
+    Z13 --&gt; Z21 &amp; Z22
+    Z14 --&gt; Z21 &amp; Z22
+    
+    Z21 --&gt; Y
+    Z22 --&gt; Y
+</pre>
+</div>
+<p></p><figcaption> Architecture of a feedforward neural network with two hidden layers.</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+<p>Each arrow represents a weight connecting neurons in adjacent layers. The input is transformed through successive layers of weighted combinations and nonlinear activations until it reaches the output.</p>
 </section>
-<section id="motivating-examples" class="level2" data-number="19.2">
-<h2 data-number="19.2" class="anchored" data-anchor-id="motivating-examples"><span class="header-section-number">19.2</span> Motivating Examples</h2>
-<p>Interaction terms, <span class="math inline">\(x_1 x_2\)</span> and <span class="math inline">\((x_1 x_2)^2\)</span>, and max functions, <span class="math inline">\(\max(x_1, x_2)\)</span> can be expressed as nonlinear functions of semi-affine combinations. Specifically:</p>
+<section id="mathematical-foundations" class="level2" data-number="19.2">
+<h2 data-number="19.2" class="anchored" data-anchor-id="mathematical-foundations"><span class="header-section-number">19.2</span> Mathematical Foundations</h2>
+<p>Before exploring practical examples, it is instructive to see how neural networks can represent common mathematical operations. Interaction terms such as <span class="math inline">\(x_1 x_2\)</span> and <span class="math inline">\((x_1 x_2)^2\)</span>, as well as max functions like <span class="math inline">\(\max(x_1, x_2)\)</span>, can be expressed as nonlinear functions of semi-affine combinations. Specifically:</p>
 <p><span class="math display">\[
 x_1x_2 = \frac{1}{4} ( x_1+x_2 )^2 - \frac{1}{4} (x_1-x_2)^2
 \]</span></p>
@@ -521,13 +579,19 @@ x_1x_2 = \frac{1}{4} ( x_1+x_2 )^2 - \frac{1}{4} (x_1-x_2)^2
 <p><span class="math display">\[
 (x_1x_2)^2 = \frac{1}{4} ( x_1+x_2 )^4 + \frac{7}{4 \cdot 3^3} (x_1-x_2)^4 - \frac{1}{2 \cdot 3^3} ( x_1+ 2 x_2)^4 - \frac{2^3}{3^3} ( x_1 + \frac{1}{2} x_2 )^4
 \]</span></p>
-<p><span class="citation" data-cites="diaconis1981generating">Diaconis and Shahshahani (<a href="references.html#ref-diaconis1981generating" role="doc-biblioref">1981</a>)</span> provides further discussion for Projection Pursuit Regression, where the network uses a layered model <span class="math inline">\(\sum_{i=1}^N f ( w_i^\top X )\)</span>. They provide an ergodic view of composite iterated functions, a precursor to the use of multiple layers of single operators that can model complex multivariate systems.</p>
-<p>Deep ReLU architectures can be viewed as Max-Sum networks via the following simple identity. Define <span class="math inline">\(x^+ = \max(x,0)\)</span>. Let <span class="math inline">\(f_x(b) = (x + b)^+\)</span> where <span class="math inline">\(b\)</span> is an offset. Then <span class="math inline">\((x + y^+)^+ = \max(0, x, x+y)\)</span>. This is generalized in <span class="citation" data-cites="feller1971introduction">Feller (<a href="references.html#ref-feller1971introduction" role="doc-biblioref">1971</a>)</span> (p.272) who shows by induction that</p>
+<p>These identities reveal that products and maxima—operations central to modeling interactions and thresholds—can be constructed from combinations of univariate functions applied to linear projections of the input. This is precisely what neural networks do.</p>
+<p><span class="citation" data-cites="diaconis1981generating">Diaconis and Shahshahani (<a href="references.html#ref-diaconis1981generating" role="doc-biblioref">1981</a>)</span> provides further discussion in the context of <em>Projection Pursuit Regression</em>, where the model uses a layered structure <span class="math inline">\(\sum_{i=1}^N f(w_i^\top X)\)</span>. Their work on composite iterated functions foreshadowed the modern use of multiple layers to model complex multivariate systems.</p>
+<section id="relu-networks-as-max-sum-networks" class="level3">
+<h3 class="anchored" data-anchor-id="relu-networks-as-max-sum-networks">ReLU Networks as Max-Sum Networks</h3>
+<p>Deep ReLU architectures can be viewed as max-sum networks via a simple identity. Define <span class="math inline">\(x^+ = \max(x,0)\)</span>. Let <span class="math inline">\(f_x(b) = (x + b)^+\)</span> where <span class="math inline">\(b\)</span> is an offset. Then <span class="math inline">\((x + y^+)^+ = \max(0, x, x+y)\)</span>. This is generalized in <span class="citation" data-cites="feller1971introduction">Feller (<a href="references.html#ref-feller1971introduction" role="doc-biblioref">1971</a>)</span> (p.272), who shows by induction that</p>
 <p><span class="math display">\[
 ( f_{x_1} \circ \ldots \circ f_{x_k} ) (0) = ( x_1 + ( x_2 + \ldots + ( x_{k-1} + x_k^+ )^+ )^+ = \max_{1 \leq j \leq k} ( x_1 + \ldots + x_j )^+
 \]</span></p>
-<p>A composition or convolution of <span class="math inline">\(\max\)</span>-layers is then a one layer max-sum network.</p>
-<p>Auto-encoding is an important data reduction technique. An auto-encoder is a deep learning architecture designed to replicate <span class="math inline">\(X\)</span> itself, namely <span class="math inline">\(X=Y\)</span>, via a <em>bottleneck</em> structure. This means we select a model <span class="math inline">\(F^{W,b}(X)\)</span> which aims to concentrate the information required to recreate <span class="math inline">\(X\)</span>. See Heaton et al (2017) for an application to smart indexing in finance.</p>
+<p>A composition of max-layers thus reduces to a single-layer max-sum network. This mathematical insight helps explain why deep ReLU networks are so effective: they can efficiently represent a rich class of piecewise linear functions.</p>
+</section>
+<section id="auto-encoders" class="level3">
+<h3 class="anchored" data-anchor-id="auto-encoders">Auto-Encoders</h3>
+<p>Auto-encoding is an important dimensionality reduction technique. An auto-encoder is a neural network architecture designed to replicate its input <span class="math inline">\(X\)</span>, i.e., <span class="math inline">\(Y = X\)</span>, via a <em>bottleneck</em> structure. The model <span class="math inline">\(F^{W,b}(X)\)</span> learns to compress the information required to recreate <span class="math inline">\(X\)</span> into a lower-dimensional representation. <span class="citation" data-cites="heaton2017deep">(<a href="references.html#ref-heaton2017deep" role="doc-biblioref"><strong>heaton2017deep?</strong></a>)</span> provide an application to smart indexing in finance.</p>
 <p>Suppose that we have <span class="math inline">\(N\)</span> input vectors <span class="math inline">\(X = \{ x_1 , \ldots , x_N \} \in \mathbb{R}^{M\times N}\)</span> and <span class="math inline">\(N\)</span> output (or target) vectors <span class="math inline">\(\{ x_1 , \ldots , x_N \} \in \mathbb{R}^{M\times N}\)</span>. Setting biases to zero, for the purpose of illustration, and using only one hidden layer (<span class="math inline">\(L=2\)</span>) with <span class="math inline">\(K &lt; N\)</span> factors, gives for <span class="math inline">\(j=1, \ldots, N\)</span>:</p>
 <p><span class="math display">\[
 Y_j(x) = F^m_{W} ( X )_j = \sum_{k=1}^K W^{jk}_2 f \left ( \sum_{i=1}^N W^{ki}_1 x_i \right ) =  \sum_{k=1}^K W^{jk}_2 Z_j \quad \text{for } Z_j =  f \left ( \sum_{i=1}^N W^{ki}_1 x_i \right )
@@ -552,7 +616,11 @@ Y_j(x) = F^m_{W} ( X )_j = \sum_{k=1}^K W^{jk}_2 f \left ( \sum_{i=1}^N W^{ki}_1
 Y_t = W_x X _t + W_y Y_{t-1} \quad \text{and} \quad \begin{pmatrix} X_t \\ Y_{t-1} \end{pmatrix} = W Y_t
 \]</span></p>
 <p>Here, the state equation encodes and the matrix <span class="math inline">\(W\)</span> decodes the <span class="math inline">\(Y_t\)</span> vector into its history <span class="math inline">\(Y_{t-1}\)</span> and the current state <span class="math inline">\(X_t\)</span>.</p>
-<p>We will start with applying a feed-forward neural network with one hidden layer to a problem of binary classification on a simulated data set. We start by generating a simple dataset shown in Figure below. The data is generated from a mixture of two distributions (Gaussian and truncated Gaussian). The red points are the positive class and the green points are the negative class. The goal is to find a model boundary that discriminates the two classes.</p>
+</section>
+</section>
+<section id="classification-with-neural-networks" class="level2" data-number="19.3">
+<h2 data-number="19.3" class="anchored" data-anchor-id="classification-with-neural-networks"><span class="header-section-number">19.3</span> Classification with Neural Networks</h2>
+<p>To illustrate the concepts introduced above, we apply a feed-forward neural network with one hidden layer to a binary classification problem. Consider the simulated dataset shown below, where points are generated from two distributions: the inner cluster (green) represents one class, while the outer ring (red) represents the other. The goal is to learn a decision boundary that separates these two classes.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -562,15 +630,15 @@ Y_t = W_x X _t + W_y Y_{t-1} \quad \text{and} \quad \begin{pmatrix} X_t \\ Y_{t-
 </div>
 </div>
 </div>
-<p>Let’s try to use a simple logistic regression model to separate the two classes.</p>
+<p>As a baseline, we first attempt to classify the data using logistic regression:</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit a logistic regression model</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit a logistic regression model</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">=</span> <span class="fu">glm</span>(label<span class="sc">~</span>x1<span class="sc">+</span>x2, <span class="at">data=</span><span class="fu">as.data.frame</span>(d), <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">'logit'</span>))</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the training dataset</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(d[,<span class="dv">2</span>],d[,<span class="dv">3</span>], <span class="at">col=</span>d[,<span class="dv">1</span>]<span class="sc">+</span><span class="dv">2</span>, <span class="at">pch=</span><span class="dv">16</span>, <span class="at">xlab=</span><span class="st">"x1"</span>, <span class="at">ylab=</span><span class="st">"x2"</span>)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>th <span class="ot">=</span> fit<span class="sc">$</span>coefficients</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the decision boundary</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="sc">-</span>th[<span class="dv">1</span>]<span class="sc">/</span>th[<span class="dv">3</span>], <span class="sc">-</span>th[<span class="dv">2</span>]<span class="sc">/</span>th[<span class="dv">3</span>], <span class="at">col=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="sc">-</span>th[<span class="dv">1</span>]<span class="sc">/</span>th[<span class="dv">3</span>], <span class="sc">-</span>th[<span class="dv">2</span>]<span class="sc">/</span>th[<span class="dv">3</span>], <span class="at">col=</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -581,12 +649,12 @@ Y_t = W_x X _t + W_y Y_{t-1} \quad \text{and} \quad \begin{pmatrix} X_t \\ Y_{t-
 </div>
 <p>We can see that a logistic regression could not do it. It uses a single line to separate observations of two classes. We can see that the data is not linearly separable. However, we can use multiple lines to separate the data.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x1<span class="sc">~</span>x2, <span class="at">data=</span>d,<span class="at">col=</span>d[,<span class="dv">1</span>]<span class="sc">+</span><span class="dv">2</span>, <span class="at">pch=</span><span class="dv">16</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x1<span class="sc">~</span>x2, <span class="at">data=</span>d,<span class="at">col=</span>d[,<span class="dv">1</span>]<span class="sc">+</span><span class="dv">2</span>, <span class="at">pch=</span><span class="dv">16</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot lines that separate once class (red) from another (green)</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x1, <span class="sc">-</span>x1 <span class="sc">-</span> <span class="dv">6</span>); <span class="fu">text</span>(<span class="sc">-</span><span class="dv">4</span>,<span class="sc">-</span><span class="dv">3</span>,<span class="dv">1</span>)</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x1, <span class="sc">-</span>x1 <span class="sc">+</span> <span class="dv">6</span>); <span class="fu">text</span>(<span class="dv">4</span>,<span class="dv">3</span>,<span class="dv">2</span>)</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x1,  x1 <span class="sc">-</span> <span class="dv">6</span>); <span class="fu">text</span>(<span class="dv">4</span>,<span class="sc">-</span><span class="dv">3</span>,<span class="dv">3</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x1,  x1 <span class="sc">+</span> <span class="dv">6</span>); <span class="fu">text</span>(<span class="sc">-</span><span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x1,  x1 <span class="sc">+</span> <span class="dv">6</span>); <span class="fu">text</span>(<span class="sc">-</span><span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">4</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -597,7 +665,7 @@ Y_t = W_x X _t + W_y Y_{t-1} \quad \text{and} \quad \begin{pmatrix} X_t \\ Y_{t-
 </div>
 <p>Now, we do the same thing as in simple logistic regression and apply logistic function to each of those lines</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define sigmoid function</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define sigmoid function</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>sigmoid  <span class="ot">=</span> <span class="cf">function</span>(z) <span class="fu">exp</span>(z)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">exp</span>(z))</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Define hidden layer of our neural network</span></span>
@@ -607,7 +675,7 @@ Y_t = W_x X _t + W_y Y_{t-1} \quad \text{and} \quad \begin{pmatrix} X_t \\ Y_{t-
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  z3 <span class="ot">=</span>  <span class="dv">6</span> <span class="sc">-</span> x1 <span class="sc">+</span> x2; a3 <span class="ot">=</span> <span class="fu">sigmoid</span>(z3)</span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  z4 <span class="ot">=</span>  <span class="dv">6</span> <span class="sc">+</span> x1 <span class="sc">-</span> x2; a4 <span class="ot">=</span> <span class="fu">sigmoid</span>(z4)</span>
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">c</span>(a1,a2,a3,a4))</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Using the matrix notation, we have <span class="math display">\[
 z = \sigma(Wx + b), ~ W = \begin{bmatrix} 1 &amp; 1 \\ -1 &amp; -1 \\ -1 &amp; 1 \\ 1 &amp; -1 \end{bmatrix}, ~ b = \begin{bmatrix} 6 \\ 6 \\ 6 \\ 6 \end{bmatrix}, ~ \sigma(z) = \frac{1}{1+e^{-z}}
@@ -617,7 +685,7 @@ z = \sigma(Wx + b), ~ W = \begin{bmatrix} 1 &amp; 1 \\ -1 &amp; -1 \\ -1 &amp; 1
 \]</span></p>
 <p>The output of the output layer is the probability of the positive class.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate prediction (classification) using our neural network</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate prediction (classification) using our neural network</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>predict_prob <span class="ot">=</span> <span class="cf">function</span>(x){</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  x1 <span class="ot">=</span> x[<span class="dv">1</span>]; x2 <span class="ot">=</span> x[<span class="dv">2</span>]</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">=</span> <span class="fu">features</span>(x1,x2)</span>
@@ -625,33 +693,33 @@ z = \sigma(Wx + b), ~ W = \begin{bmatrix} 1 &amp; 1 \\ -1 &amp; -1 \\ -1 &amp; 1
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  mu <span class="ot">=</span> <span class="fu">sum</span>(z) <span class="sc">-</span> <span class="fl">3.1</span></span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># print(mu)</span></span>
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sigmoid</span>(mu)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We can use our model to do the predictions now</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict the probability of the positive class for a given point</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">predict_prob</span>(<span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict the probability of the positive class for a given point</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">predict_prob</span>(<span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 0.71</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict_prob</span>(<span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predict_prob</span>(<span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">10</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 0.26</code></pre>
 </div>
 </div>
 <p>The model generates sensible predictions, let’s plot the decision boundary to see how well it separates the data.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>x1 <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">11</span>,<span class="dv">11</span>,<span class="at">length.out =</span> <span class="dv">100</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>x1 <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">11</span>,<span class="dv">11</span>,<span class="at">length.out =</span> <span class="dv">100</span>)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>x2 <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">11</span>,<span class="dv">11</span>,<span class="at">length.out =</span> <span class="dv">100</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>gr <span class="ot">=</span> <span class="fu">as.matrix</span>(<span class="fu">expand.grid</span>(x1,x2));</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>gr <span class="ot">=</span> <span class="fu">as.matrix</span>(<span class="fu">expand.grid</span>(x1,x2));</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 10000     2</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>yhat <span class="ot">=</span> <span class="fu">apply</span>(gr,<span class="dv">1</span>,predict_prob)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>yhat <span class="ot">=</span> <span class="fu">apply</span>(gr,<span class="dv">1</span>,predict_prob)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 10000</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">image</span>(x1,x2,<span class="fu">matrix</span>(yhat,<span class="at">ncol =</span> <span class="dv">100</span>), <span class="at">col =</span> <span class="fu">heat.colors</span>(<span class="dv">20</span>,<span class="fl">0.7</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">image</span>(x1,x2,<span class="fu">matrix</span>(yhat,<span class="at">ncol =</span> <span class="dv">100</span>), <span class="at">col =</span> <span class="fu">heat.colors</span>(<span class="dv">20</span>,<span class="fl">0.7</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -664,33 +732,33 @@ z = \sigma(Wx + b), ~ W = \begin{bmatrix} 1 &amp; 1 \\ -1 &amp; -1 \\ -1 &amp; 1
 y = 0.5 + 0.3x^2 + \epsilon, ~ \epsilon \sim N(0,0.02^2)
 \]</span> And use 3 hidden units in the first hidden layer and two units in the second hidden layer. The output layer is a single unit. We will use the hyperbolic tangent (<code>tanh</code>) activation function for all layers. The model is defined as follows</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>relu <span class="ot">=</span> <span class="cf">function</span>(x) <span class="fu">max</span>(<span class="dv">0</span>,x)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>relu <span class="ot">=</span> <span class="cf">function</span>(x) <span class="fu">max</span>(<span class="dv">0</span>,x)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>nn <span class="ot">=</span> <span class="cf">function</span>(W,<span class="at">f=</span>relu) {</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    b0 <span class="ot">=</span> W[<span class="dv">1</span>]; w0<span class="ot">=</span>W[<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>];b1 <span class="ot">=</span> W[<span class="dv">5</span>]; w1 <span class="ot">=</span> W[<span class="dv">6</span><span class="sc">:</span><span class="dv">8</span>]</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    z0 <span class="ot">=</span> <span class="fu">apply</span>(b0 <span class="sc">+</span> <span class="fu">outer</span>(x,w0,<span class="st">'*'</span>),<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,f)</span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    yhat <span class="ot">=</span> b1 <span class="sc">+</span> z0 <span class="sc">%*%</span> w1</span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="fu">list</span>(<span class="at">yhat =</span> yhat[,<span class="dv">1</span>],<span class="at">z0=</span>z0))</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The hidden layer has three outputs (neurons) and uses the ReLU activation function. The output linear layer has a single output. Thus, the prediction <code>yhat</code> is generated as a linear model of the feature vector <code>z0</code>. The model has 8 parameters. Let’s generate training data and fit the model. We will use the BFGS optimization algorithm to minimize the loss function (negative log-likelihood) of the model.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">99</span>) <span class="co">#gretzky</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">99</span>) <span class="co">#gretzky</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>nl  <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">3</span>,<span class="dv">2</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>params <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="fu">rnorm</span>(<span class="dv">3</span>),<span class="dv">0</span>,<span class="fu">rnorm</span>(<span class="dv">3</span>))</span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">1</span>,<span class="dv">1</span>,<span class="fl">0.02</span>)</span>
 <span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">0.3</span><span class="sc">*</span>x<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="fu">length</span>(x),<span class="dv">0</span>,<span class="fl">0.02</span>)</span>
 <span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>loss <span class="ot">=</span> <span class="cf">function</span>(W) <span class="fu">sum</span>((<span class="fu">nn</span>(W)<span class="sc">$</span>yhat <span class="sc">-</span> y)<span class="sc">^</span><span class="dv">2</span>)</span>
 <span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">optim</span>(params, loss, <span class="at">method=</span><span class="st">'BFGS'</span>)</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>par</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>par</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code> -0.24  1.38 -0.83  0.46  0.50  0.18  0.46  0.38</code></pre>
+<pre><code> -0.24  1.39 -0.84  0.46  0.50  0.18  0.45  0.37</code></pre>
 </div>
 </div>
 <p><a href="#fig-relu" class="quarto-xref">Figure&nbsp;<span>19.1</span></a> shows the quadratic function and the neural network model. The solid black line is the neural network model, and the dashed lines are the basis functions. The model fits the data well.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>o <span class="ot">=</span> <span class="fu">nn</span>(res<span class="sc">$</span>par)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>o <span class="ot">=</span> <span class="fu">nn</span>(res<span class="sc">$</span>par)</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x,y); <span class="fu">lines</span>(x,o<span class="sc">$</span>yhat, <span class="at">lwd=</span><span class="dv">2</span>)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">+</span>o<span class="sc">$</span>z0[,<span class="dv">1</span>],<span class="at">col=</span><span class="dv">2</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>); <span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">+</span>o<span class="sc">$</span>z0[,<span class="dv">2</span>],<span class="at">col=</span><span class="dv">3</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>); <span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">+</span>o<span class="sc">$</span>z0[,<span class="dv">3</span>],<span class="at">col=</span><span class="dv">4</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">+</span>o<span class="sc">$</span>z0[,<span class="dv">1</span>],<span class="at">col=</span><span class="dv">2</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>); <span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">+</span>o<span class="sc">$</span>z0[,<span class="dv">2</span>],<span class="at">col=</span><span class="dv">3</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>); <span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">+</span>o<span class="sc">$</span>z0[,<span class="dv">3</span>],<span class="at">col=</span><span class="dv">4</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-relu" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
@@ -706,32 +774,32 @@ Figure&nbsp;19.1: Noisy quadratic function approximated by a neural network with
 </div>
 <p>Let’s try the <span class="math inline">\(\tanh\)</span> function</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">8</span>) <span class="co">#gretzky</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">8</span>) <span class="co">#gretzky</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>params <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="fu">rnorm</span>(<span class="dv">3</span>),<span class="dv">0</span>,<span class="fu">rnorm</span>(<span class="dv">3</span>))</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>loss <span class="ot">=</span> <span class="cf">function</span>(W) <span class="fu">mean</span>((<span class="fu">nn</span>(W,<span class="at">f=</span>tanh)<span class="sc">$</span>yhat <span class="sc">-</span> y)<span class="sc">^</span><span class="dv">2</span>)</span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">optim</span>(params, loss, <span class="at">method=</span><span class="st">'BFGS'</span>)</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>par</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>par</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> -0.98 -0.23  0.83 -1.14  0.84 -0.65  0.59  0.53</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>o <span class="ot">=</span> <span class="fu">nn</span>(res<span class="sc">$</span>par, <span class="at">f=</span>tanh)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>o <span class="ot">=</span> <span class="fu">nn</span>(res<span class="sc">$</span>par, <span class="at">f=</span>tanh)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x,y, <span class="at">ylim=</span><span class="fu">c</span>(<span class="fl">0.4</span>,<span class="fl">0.95</span>)); <span class="fu">lines</span>(x,o<span class="sc">$</span>yhat, <span class="at">lwd=</span><span class="dv">2</span>);</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">*</span>o<span class="sc">$</span>z0[,<span class="dv">1</span>]<span class="sc">+</span><span class="fl">0.9</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">2</span>); <span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">*</span>o<span class="sc">$</span>z0[,<span class="dv">2</span>]<span class="sc">+</span><span class="fl">0.9</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">3</span>); <span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">*</span>o<span class="sc">$</span>z0[,<span class="dv">3</span>]<span class="sc">+</span><span class="fl">0.9</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">*</span>o<span class="sc">$</span>z0[,<span class="dv">1</span>]<span class="sc">+</span><span class="fl">0.9</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">2</span>); <span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">*</span>o<span class="sc">$</span>z0[,<span class="dv">2</span>]<span class="sc">+</span><span class="fl">0.9</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">3</span>); <span class="fu">lines</span>(x,<span class="fl">0.5</span><span class="sc">*</span>o<span class="sc">$</span>z0[,<span class="dv">3</span>]<span class="sc">+</span><span class="fl">0.9</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">4</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="19-nn_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="19-nn_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="576"></p>
 <figcaption>Noisy quadratic function approximated by a neural network with tanh activation function.</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Notice that we did not have to explicitly specify that our model needed to have a quadratic term; the model learned it from the data. This is the power of deep learning. The model is able to learn the structure of the data from the data itself.</p>
-<p>We can apply the same approach to interactions. Say the true model for the data is as follows: <span class="math display">\[
+<p>Notice that we did not need to explicitly specify a quadratic term; the neural network discovered this structure from the data. The model automatically learned an appropriate basis function representation.</p>
+<p>The same approach extends naturally to interaction terms. Consider the following data-generating process: <span class="math display">\[
 y = 0.5 + 0.1x_1 + 0.2x_2  + 0.5x_1x_2+ \epsilon, ~ \epsilon \sim N(0,0.02^2)
 \]</span> We can use the same model as above, but with two input variables. The model will learn the interaction term from the data.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">99</span>) <span class="co">#ovi</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">99</span>) <span class="co">#ovi</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>x1 <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">1</span>,<span class="dv">1</span>,<span class="fl">0.01</span>)</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>x2 <span class="ot">=</span> x1</span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">0.1</span><span class="sc">*</span>x1 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>x2 <span class="sc">+</span> <span class="fl">0.5</span><span class="sc">*</span>x1<span class="sc">*</span>x2 <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="fu">length</span>(x1),<span class="dv">0</span>,<span class="fl">0.02</span>)</span>
@@ -748,36 +816,36 @@ y = 0.5 + 0.1x_1 + 0.2x_2  + 0.5x_1x_2+ \epsilon, ~ \epsilon \sim N(0,0.02^2)
 <span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>W <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="fu">rnorm</span>(<span class="dv">4</span>),<span class="dv">0</span>,<span class="fu">rnorm</span>(<span class="dv">2</span>))</span>
 <span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>loss <span class="ot">=</span> <span class="cf">function</span>(W) <span class="fu">sum</span>((<span class="fu">nn</span>(W, <span class="at">f=</span>tanh)<span class="sc">$</span>yhat <span class="sc">-</span> y)<span class="sc">^</span><span class="dv">2</span>)</span>
 <span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">optim</span>(W, <span class="at">fn=</span>loss, <span class="at">method=</span><span class="st">'BFGS'</span>)</span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>par</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>res<span class="sc">$</span>par</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  0.78  0.49 -1.40  0.63 -0.94 -2.00 -2.79  6.61</code></pre>
+<pre><code>  0.78  0.50 -1.39  0.63 -0.94 -2.08 -2.90  6.85</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>o <span class="ot">=</span> <span class="fu">nn</span>(res<span class="sc">$</span>par, <span class="at">f=</span>tanh)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>o <span class="ot">=</span> <span class="fu">nn</span>(res<span class="sc">$</span>par, <span class="at">f=</span>tanh)</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>s3d<span class="sc">$</span><span class="fu">points3d</span>(x1,x2,o<span class="sc">$</span>yhat, <span class="at">col=</span><span class="dv">2</span>, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">lwd=</span><span class="dv">5</span>)</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>s3d<span class="sc">$</span><span class="fu">points3d</span>(x1,x2,o<span class="sc">$</span>z0[,<span class="dv">1</span>], <span class="at">col=</span><span class="dv">3</span>, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">lwd=</span><span class="dv">5</span>)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>s3d<span class="sc">$</span><span class="fu">points3d</span>(x1,x2,o<span class="sc">$</span>z0[,<span class="dv">2</span>], <span class="at">col=</span><span class="dv">4</span>, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">lwd=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>s3d<span class="sc">$</span><span class="fu">points3d</span>(x1,x2,o<span class="sc">$</span>z0[,<span class="dv">2</span>], <span class="at">col=</span><span class="dv">4</span>, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">lwd=</span><span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="19-nn_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
+<p><img src="19-nn_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>Effectively, you can think of the neural network as a flexible function approximator, equivalent to a nonparametric regression approach which learns the basis functions from data. The model can learn the structure of the data from the data itself. This is the power of deep learning.</p>
+<p>Effectively, neural networks serve as flexible function approximators, analogous to nonparametric regression methods but with the crucial advantage of learning the basis functions directly from data.</p>
 </section>
-<section id="activation-functions" class="level2" data-number="19.3">
-<h2 data-number="19.3" class="anchored" data-anchor-id="activation-functions"><span class="header-section-number">19.3</span> Activation Functions</h2>
+<section id="activation-functions" class="level2" data-number="19.4">
+<h2 data-number="19.4" class="anchored" data-anchor-id="activation-functions"><span class="header-section-number">19.4</span> Activation Functions</h2>
 <p>The last output layer of a neural network has sigmoid activation function for binary output variable (classification) and no activation function for continuous output variable regression. The hidden layers can have different activation functions. The most common activation functions are the hyperbolic tangent function and the rectified linear unit (ReLU) function.</p>
 <p>A typical approach is to use the same activation function for all hidden layers. The hyperbolic tangent function is defined as <span class="math display">\[
 \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}
 \]</span> Notice that the hyperbolic tangent function is a scaled version of the sigmoid function, with <span class="math inline">\(\tanh(0) = 0\)</span>. It is a smooth function which is differentiable everywhere.</p>
-<div class="cell quarto-layout-panel" data-layout-align="center" data-null_prefix="true" data-layout-ncol="3">
+<div class="cell quarto-layout-panel" data-layout-ncol="3" data-null_prefix="true" data-layout-align="center">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="19-nn_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="19-nn_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="576"></p>
 <figcaption>tanh</figcaption>
 </figure>
 </div>
@@ -785,7 +853,7 @@ y = 0.5 + 0.1x_1 + 0.2x_2  + 0.5x_1x_2+ \epsilon, ~ \epsilon \sim N(0,0.02^2)
 <div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="19-nn_files/figure-html/unnamed-chunk-4-2.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="19-nn_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid figure-img" width="576"></p>
 <figcaption>Hard tanh</figcaption>
 </figure>
 </div>
@@ -793,7 +861,7 @@ y = 0.5 + 0.1x_1 + 0.2x_2  + 0.5x_1x_2+ \epsilon, ~ \epsilon \sim N(0,0.02^2)
 <div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="19-nn_files/figure-html/unnamed-chunk-4-3.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="19-nn_files/figure-html/unnamed-chunk-5-3.png" class="img-fluid figure-img" width="576"></p>
 <figcaption>softplus</figcaption>
 </figure>
 </div>
@@ -803,7 +871,7 @@ y = 0.5 + 0.1x_1 + 0.2x_2  + 0.5x_1x_2+ \epsilon, ~ \epsilon \sim N(0,0.02^2)
 <div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="19-nn_files/figure-html/unnamed-chunk-4-4.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="19-nn_files/figure-html/unnamed-chunk-5-4.png" class="img-fluid figure-img" width="576"></p>
 <figcaption>ReLU</figcaption>
 </figure>
 </div>
@@ -811,7 +879,7 @@ y = 0.5 + 0.1x_1 + 0.2x_2  + 0.5x_1x_2+ \epsilon, ~ \epsilon \sim N(0,0.02^2)
 <div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="19-nn_files/figure-html/unnamed-chunk-4-5.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="19-nn_files/figure-html/unnamed-chunk-5-5.png" class="img-fluid figure-img" width="576"></p>
 <figcaption>Leaky ReLU</figcaption>
 </figure>
 </div>
@@ -819,7 +887,7 @@ y = 0.5 + 0.1x_1 + 0.2x_2  + 0.5x_1x_2+ \epsilon, ~ \epsilon \sim N(0,0.02^2)
 <div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="19-nn_files/figure-html/unnamed-chunk-4-6.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="19-nn_files/figure-html/unnamed-chunk-5-6.png" class="img-fluid figure-img" width="576"></p>
 <figcaption>sigmoid</figcaption>
 </figure>
 </div>
@@ -833,8 +901,8 @@ y = 0.5 + 0.1x_1 + 0.2x_2  + 0.5x_1x_2+ \epsilon, ~ \epsilon \sim N(0,0.02^2)
 \text{ReLU}'(z) = \begin{cases} 0 &amp; \text{if } z &lt; 0 \\ 1 &amp; \text{if } z &gt; 0 \end{cases}
 \]</span></p>
 </section>
-<section id="modern-deep-learning-architectures" class="level2" data-number="19.4">
-<h2 data-number="19.4" class="anchored" data-anchor-id="modern-deep-learning-architectures"><span class="header-section-number">19.4</span> Modern Deep Learning Architectures</h2>
+<section id="modern-deep-learning-architectures" class="level2" data-number="19.5">
+<h2 data-number="19.5" class="anchored" data-anchor-id="modern-deep-learning-architectures"><span class="header-section-number">19.5</span> Modern Deep Learning Architectures</h2>
 <p>The evolution of deep learning has led to increasingly sophisticated architectural patterns that go beyond simple stacked layers. Modern systems often combine multiple neural networks, reuse pre-trained components, and employ ensemble methods to achieve state-of-the-art performance. In this section, we explore three key architectural paradigms that have become central to contemporary deep learning practice: transfer learning with pre-trained blocks, mixture of experts models, and ensemble methods.</p>
 <section id="transfer-learning-and-pre-trained-blocks" class="level3">
 <h3 class="anchored" data-anchor-id="transfer-learning-and-pre-trained-blocks">Transfer Learning and Pre-trained Blocks</h3>
@@ -891,6 +959,21 @@ g(X; \phi) = \text{softmax}(W_g X + b_g) \in \mathbb{R}^K
 <h3 class="anchored" data-anchor-id="architectural-innovations">Architectural Innovations</h3>
 <p>These three paradigms—pre-trained blocks, mixture of experts, and ensembles—represent different philosophies for building capable systems. Transfer learning emphasizes knowledge reuse, recognizing that representations learned on large datasets are broadly useful. Mixture of experts emphasizes conditional computation, activating only relevant capacity for each input. Ensembles emphasize diversity and robustness, combining multiple perspectives to improve reliability.</p>
 <p>Modern systems often combine these approaches. For instance, a production system might ensemble multiple models, each of which uses pre-trained components and employs mixture of experts layers for efficiency. The field continues to develop new architectural patterns, but these fundamental ideas—reusing learned knowledge, routing computation dynamically, and aggregating diverse predictions—are likely to remain central to deep learning practice.</p>
+</section>
+</section>
+<section id="summary" class="level2" data-number="19.6">
+<h2 data-number="19.6" class="anchored" data-anchor-id="summary"><span class="header-section-number">19.6</span> Summary</h2>
+<p>In this chapter, we introduced the mathematical foundations of neural networks and deep learning. We began by establishing that neural networks are hierarchical compositions of nonlinear transformations—a framework that extends generalized linear models while providing the flexibility to learn complex patterns from data. Key concepts covered include:</p>
+<ul>
+<li><p><em>Feedforward architecture</em>: A neural network applies successive layers of weighted linear combinations followed by nonlinear activation functions, extracting increasingly abstract features at each layer.</p></li>
+<li><p><em>Activation functions</em>: Functions like ReLU, <span class="math inline">\(\tanh\)</span>, and sigmoid introduce nonlinearity, enabling networks to approximate arbitrary functions. ReLU has become the default choice for hidden layers due to its computational efficiency and favorable gradient properties.</p></li>
+<li><p><em>Auto-encoders</em>: These networks learn compressed representations by training to reconstruct their inputs through a bottleneck layer, providing a powerful approach to unsupervised dimensionality reduction.</p></li>
+<li><p><em>Transfer learning and pre-trained blocks</em>: Knowledge learned on large datasets can be transferred to new tasks, dramatically reducing data and computation requirements.</p></li>
+<li><p><em>Mixture of experts</em>: Conditional computation allows models to activate only relevant sub-networks for each input, enabling massive scale with manageable computational costs.</p></li>
+<li><p><em>Ensemble methods</em>: Combining diverse models improves robustness and reduces variance, with techniques ranging from simple averaging to dropout-based approximations.</p></li>
+</ul>
+<p>The implementations presented in this chapter—from simple classification problems to regression with learned basis functions—demonstrate that neural networks can be understood through the lens of traditional statistical methods while offering capabilities that extend far beyond them.</p>
+<p>Looking ahead, Chapter 23 covers <em>convolutional neural networks</em> (CNNs), which exploit spatial structure in images through weight sharing and local connectivity. Chapters 24 and 25 introduce <em>transformers</em> and <em>large language models</em>, architectures that have revolutionized natural language processing through attention mechanisms and massive scale. These architectures build directly on the principles established in this chapter: layered representations, learned features, and the power of deep hierarchical computation.</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
@@ -980,7 +1063,6 @@ Stroud, Jonathan R., Peter Müller, and Nicholas G. Polson. 2003. <span>“Nonli
 </div>
 </div>
 </section>
-</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -1034,13 +1116,14 @@ Stroud, Jonathan R., Peter Müller, and Nicholas G. Polson. 2003. <span>“Nonli
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

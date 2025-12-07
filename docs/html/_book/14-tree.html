@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -89,14 +89,15 @@ div.csl-indent {
 <link href="./13-logistic.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-680e7c22d93ef26f016bec9199f8e6d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -168,7 +169,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -446,12 +447,20 @@ window.Quarto = {
   <li><a href="#classification-trees" id="toc-classification-trees" class="nav-link" data-scroll-target="#classification-trees"><span class="header-section-number">14.3</span> Classification Trees</a></li>
   <li><a href="#random-forest" id="toc-random-forest" class="nav-link" data-scroll-target="#random-forest"><span class="header-section-number">14.4</span> Random Forest</a></li>
   <li><a href="#boosting" id="toc-boosting" class="nav-link" data-scroll-target="#boosting"><span class="header-section-number">14.5</span> Boosting</a></li>
-  <li><a href="#finding-good-bayes-predictors" id="toc-finding-good-bayes-predictors" class="nav-link" data-scroll-target="#finding-good-bayes-predictors"><span class="header-section-number">14.6</span> Finding Good Bayes Predictors</a></li>
-  <li><a href="#ensemble-averaging-and-1n-rule" id="toc-ensemble-averaging-and-1n-rule" class="nav-link" data-scroll-target="#ensemble-averaging-and-1n-rule"><span class="header-section-number">14.7</span> Ensemble Averaging and <span class="math inline">\(1/N\)</span> Rule</a>
+  <li><a href="#why-ensembles-work-a-geometric-perspective" id="toc-why-ensembles-work-a-geometric-perspective" class="nav-link" data-scroll-target="#why-ensembles-work-a-geometric-perspective"><span class="header-section-number">14.6</span> Why Ensembles Work: A Geometric Perspective</a>
   <ul class="collapse">
+  <li><a href="#smoothing-and-variance-reduction" id="toc-smoothing-and-variance-reduction" class="nav-link" data-scroll-target="#smoothing-and-variance-reduction">Smoothing and Variance Reduction</a></li>
+  <li><a href="#the-problem-of-high-dimensions" id="toc-the-problem-of-high-dimensions" class="nav-link" data-scroll-target="#the-problem-of-high-dimensions">The Problem of High Dimensions</a></li>
+  <li><a href="#trees-as-adaptive-nearest-neighbors" id="toc-trees-as-adaptive-nearest-neighbors" class="nav-link" data-scroll-target="#trees-as-adaptive-nearest-neighbors">Trees as “Adaptive” Nearest Neighbors</a></li>
+  </ul></li>
+  <li><a href="#theoretical-foundations-why-trees-work" id="toc-theoretical-foundations-why-trees-work" class="nav-link" data-scroll-target="#theoretical-foundations-why-trees-work"><span class="header-section-number">14.7</span> Theoretical Foundations: Why Trees Work</a>
+  <ul class="collapse">
+  <li><a href="#ensemble-averaging-and-the-1n-rule" id="toc-ensemble-averaging-and-the-1n-rule" class="nav-link" data-scroll-target="#ensemble-averaging-and-the-1n-rule">Ensemble Averaging and the <span class="math inline">\(1/N\)</span> Rule</a></li>
   <li><a href="#classification-variance-decomposition" id="toc-classification-variance-decomposition" class="nav-link" data-scroll-target="#classification-variance-decomposition">Classification variance decomposition</a></li>
   <li><a href="#conditional-and-unconditional-dependence" id="toc-conditional-and-unconditional-dependence" class="nav-link" data-scroll-target="#conditional-and-unconditional-dependence">Conditional and unconditional dependence</a></li>
+  <li><a href="#the-nearest-neighbor-insight" id="toc-the-nearest-neighbor-insight" class="nav-link" data-scroll-target="#the-nearest-neighbor-insight">The Nearest Neighbor Insight</a></li>
   </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">14.8</span> Conclusion</a></li>
   </ul>
 </nav>
 </nav>
@@ -550,9 +559,9 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 </tbody>
 </table>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(diamonds)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(diamonds)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(diamonds)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="kable-table">
 <table class="caption-top table table-sm table-striped small">
@@ -650,7 +659,7 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 </div>
 <p>Let’s plot price vs carat.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(diamonds, <span class="fu">aes</span>(<span class="at">x =</span> carat, <span class="at">y =</span> price, <span class="at">color =</span> clarity)) <span class="sc">+</span> <span class="fu">geom_point</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(diamonds, <span class="fu">aes</span>(<span class="at">x =</span> carat, <span class="at">y =</span> price, <span class="at">color =</span> clarity)) <span class="sc">+</span> <span class="fu">geom_point</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -661,7 +670,7 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 </div>
 <p>Notice the strong non-linear relationship between carat and price. This suggests that log-transformations might help make the relationship linear.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create log-transformed price for better linear relationships</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create log-transformed price for better linear relationships</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>diamonds <span class="ot">&lt;-</span> diamonds <span class="sc">%&gt;%</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="fu">mutate</span>(<span class="at">log_price =</span> <span class="fu">log</span>(price),</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a> <span class="at">log_carat =</span> <span class="fu">log</span>(carat))</span>
@@ -671,7 +680,7 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a> <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">color =</span> <span class="st">"darkblue"</span>) <span class="sc">+</span></span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a> <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Log-transformed Price vs Carat Shows Linear Relationship"</span>,</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a> <span class="at">x =</span> <span class="st">"Log(Carat)"</span>, <span class="at">y =</span> <span class="st">"Log(Price)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a> <span class="at">x =</span> <span class="st">"Log(Carat)"</span>, <span class="at">y =</span> <span class="st">"Log(Price)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -680,11 +689,11 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 </div>
 </div>
 </div>
-<p>However, as we will see later tree models are not very sensitive to the linearity of the relationship between the predictors and the response. In general, we do not need to transform the variables.</p>
+<p>Unlike linear regression, tree models are naturally indifferent to non-linear relationships between predictors and the response. In general, we do not need to transform the variables.</p>
 <p>Although carat is the most important factor in determining the price of a diamond, it is not the only factor. We can see that there is a lot of variability in the price of diamonds with the same carat.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># use density plot to compare price for different clarity levels</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(diamonds, <span class="fu">aes</span>(<span class="at">x =</span> price, <span class="at">color =</span> clarity)) <span class="sc">+</span> <span class="fu">geom_density</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># use density plot to compare price for different clarity levels</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(diamonds, <span class="fu">aes</span>(<span class="at">x =</span> price, <span class="at">color =</span> clarity)) <span class="sc">+</span> <span class="fu">geom_density</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -695,10 +704,10 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 </div>
 <p>Let’s start with a simple decision tree using just two predictors to visualize how trees partition the feature space:</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart.plot)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>tree_model <span class="ot">&lt;-</span> <span class="fu">rpart</span>(price <span class="sc">~</span> carat <span class="sc">+</span> clarity, <span class="at">data =</span> diamonds)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(tree_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(tree_model)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -717,9 +726,9 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 <p>This simple two-predictor tree demonstrates the key advantages of decision trees: they can handle non-linear relationships, provide interpretable rules, and naturally capture feature interactions without requiring explicit specification of interaction terms.</p>
 <p>Let’s plot the data.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(diamonds, <span class="fu">aes</span>(<span class="at">x=</span>carat, <span class="at">y=</span>clarity, <span class="at">colour=</span>price)) <span class="sc">+</span> </span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(diamonds, <span class="fu">aes</span>(<span class="at">x=</span>carat, <span class="at">y=</span>clarity, <span class="at">colour=</span>price)) <span class="sc">+</span> </span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_gradient</span>(<span class="at">low=</span><span class="st">"blue"</span>, <span class="at">high=</span><span class="st">"red"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_gradient</span>(<span class="at">low=</span><span class="st">"blue"</span>, <span class="at">high=</span><span class="st">"red"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -728,10 +737,10 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 </div>
 </div>
 </div>
-<p>We can see that for small and large diamonds, the price is consistently low and does not depend much on the clarity. However, at around 1 carat, we see some overlap in the price for different clarity levels. Clarity becomes important at this level</p>
+<p>We can see that for small and large diamonds, the price is consistently low and does not depend much on the clarity. However, at around 1 carat, we see some overlap in the price for different clarity levels. Clarity becomes important at this level.</p>
 <p>Now let’s plot the data with the tree regions.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># PLot the rectangle areas that represent the regions of the tree</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the rectangle areas that represent the regions of the tree</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>pred_data <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a> <span class="at">carat =</span> <span class="fu">seq</span>(<span class="fu">min</span>(diamonds<span class="sc">$</span>carat), <span class="fu">max</span>(diamonds<span class="sc">$</span>carat), <span class="at">length.out =</span> <span class="dv">50</span>),</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a> <span class="at">clarity =</span> diamonds<span class="sc">$</span>clarity</span>
@@ -743,7 +752,7 @@ Figure&nbsp;14.1: Elementary tree scheme; visualization of the splitting process
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pred_data, <span class="fu">aes</span>(<span class="at">x =</span> carat, <span class="at">y =</span> clarity, <span class="at">fill =</span> pred_price)) <span class="sc">+</span></span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a> <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
 <span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a> <span class="fu">scale_fill_gradient</span>(<span class="at">low =</span> <span class="st">"blue"</span>, <span class="at">high =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Tree Regions: Carat vs Clarity"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a> <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Tree Regions: Carat vs Clarity"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -804,8 +813,8 @@ D_m = -\sum_{k=1}^Kp_{mk}\log p_{mk}
 \]</span> It is near zero if the <span class="math inline">\(p_mk\)</span>’s are all near zero or near one. Gini index and the cross-entropy led to similar results.</p>
 <p>Now we apply the tree model to the Boston housing dataset.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS); <span class="fu">data</span>(Boston); <span class="fu">attach</span>(Boston)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(Boston)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS); <span class="fu">data</span>(Boston); <span class="fu">attach</span>(Boston)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(Boston)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="kable-table">
 <table class="caption-top table table-sm table-striped small">
@@ -947,29 +956,29 @@ D_m = -\sum_{k=1}^Kp_{mk}\log p_{mk}
 </div>
 <p>First we build a big tree</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tree)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tree)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>temp <span class="ot">=</span> <span class="fu">tree</span>(medv<span class="sc">~</span>lstat,<span class="at">data=</span>Boston,<span class="at">mindev=</span>.<span class="dv">0001</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">unique</span>(temp<span class="sc">$</span>where)) <span class="co"># first big tree size</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">unique</span>(temp<span class="sc">$</span>where)) <span class="co"># first big tree size</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 73</code></pre>
 </div>
 </div>
 <p>Then prune it down to one with 7 leaves</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>boston.tree<span class="ot">=</span><span class="fu">prune.tree</span>(temp,<span class="at">best=</span><span class="dv">7</span>)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">unique</span>(boston.tree<span class="sc">$</span>where)) <span class="co"># pruned tree size</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>boston.tree<span class="ot">=</span><span class="fu">prune.tree</span>(temp,<span class="at">best=</span><span class="dv">7</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">unique</span>(boston.tree<span class="sc">$</span>where)) <span class="co"># pruned tree size</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 7</code></pre>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(boston.tree,<span class="at">col=</span><span class="st">"blue"</span>,<span class="at">label=</span><span class="fu">c</span>(<span class="st">"yval"</span>),<span class="at">cex=</span>.<span class="dv">8</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(boston.tree,<span class="at">col=</span><span class="st">"blue"</span>,<span class="at">label=</span><span class="fu">c</span>(<span class="st">"yval"</span>),<span class="at">cex=</span>.<span class="dv">8</span>)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>boston.fit <span class="ot">=</span> <span class="fu">predict</span>(boston.tree) <span class="co">#get training fitted values</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(Boston<span class="sc">$</span>lstat,Boston<span class="sc">$</span>medv,<span class="at">cex=</span>.<span class="dv">5</span>,<span class="at">pch=</span><span class="dv">16</span>) <span class="co">#plot data</span></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>oo<span class="ot">=</span><span class="fu">order</span>(Boston<span class="sc">$</span>lstat)</span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(Boston<span class="sc">$</span>lstat[oo],boston.fit[oo],<span class="at">col=</span><span class="st">'red'</span>,<span class="at">lwd=</span><span class="dv">3</span>) <span class="co">#step function fit</span></span>
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>cvals<span class="ot">=</span><span class="fu">c</span>(<span class="fl">9.725</span>,<span class="fl">4.65</span>,<span class="fl">3.325</span>,<span class="fl">5.495</span>,<span class="fl">16.085</span>,<span class="fl">19.9</span>) <span class="co">#cutpoints from tree</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(cvals)) <span class="fu">abline</span>(<span class="at">v=</span>cvals[i],<span class="at">col=</span><span class="st">'magenta'</span>,<span class="at">lty=</span><span class="dv">2</span>) <span class="co">#cutpoints</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell quarto-layout-panel" data-layout-ncol="2" data-layout-align="center" data-null_prefix="true">
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(cvals)) <span class="fu">abline</span>(<span class="at">v=</span>cvals[i],<span class="at">col=</span><span class="st">'magenta'</span>,<span class="at">lty=</span><span class="dv">2</span>) <span class="co">#cutpoints</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell quarto-layout-panel" data-layout-ncol="2" data-null_prefix="true" data-layout-align="center">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
@@ -989,28 +998,28 @@ D_m = -\sum_{k=1}^Kp_{mk}\log p_{mk}
 </div>
 <p>Pick off <code>dis,lstat,medv</code></p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>df2<span class="ot">=</span>Boston[,<span class="fu">c</span>(<span class="dv">8</span>,<span class="dv">13</span>,<span class="dv">14</span>)]</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">names</span>(df2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>df2<span class="ot">=</span>Boston[,<span class="fu">c</span>(<span class="dv">8</span>,<span class="dv">13</span>,<span class="dv">14</span>)]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">names</span>(df2))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> "dis"   "lstat" "medv" </code></pre>
 </div>
 </div>
 <p>Build the big tree</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>temp <span class="ot">=</span> <span class="fu">tree</span>(medv<span class="sc">~</span>.,df2,<span class="at">mindev=</span>.<span class="dv">0001</span>)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">unique</span>(temp<span class="sc">$</span>where)) <span class="co">#</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>temp <span class="ot">=</span> <span class="fu">tree</span>(medv<span class="sc">~</span>.,df2,<span class="at">mindev=</span>.<span class="dv">0001</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">unique</span>(temp<span class="sc">$</span>where)) <span class="co">#</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 74</code></pre>
 </div>
 </div>
 <p>Then prune it down to one with 7 leaves</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>boston.tree<span class="ot">=</span><span class="fu">prune.tree</span>(temp,<span class="at">best=</span><span class="dv">7</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>boston.tree<span class="ot">=</span><span class="fu">prune.tree</span>(temp,<span class="at">best=</span><span class="dv">7</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(boston.tree,<span class="at">type=</span><span class="st">"u"</span>)<span class="co"># plot tree and partition in x.</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(boston.tree,<span class="at">type=</span><span class="st">"u"</span>)<span class="co"># plot tree and partition in x.</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(boston.tree,<span class="at">col=</span><span class="st">"blue"</span>,<span class="at">label=</span><span class="fu">c</span>(<span class="st">"yval"</span>),<span class="at">cex=</span>.<span class="dv">8</span>)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">partition.tree</span>(boston.tree)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell quarto-layout-panel" data-layout-ncol="2" data-layout-align="center" data-null_prefix="true">
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">partition.tree</span>(boston.tree)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell quarto-layout-panel" data-layout-ncol="2" data-null_prefix="true" data-layout-align="center">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
@@ -1030,18 +1039,20 @@ D_m = -\sum_{k=1}^Kp_{mk}\log p_{mk}
 </div>
 <p>Get predictions on 2d grid</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>pv<span class="ot">=</span><span class="fu">seq</span>(<span class="at">from=</span>.<span class="dv">01</span>,<span class="at">to=</span>.<span class="dv">99</span>,<span class="at">by=</span>.<span class="dv">05</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>pv<span class="ot">=</span><span class="fu">seq</span>(<span class="at">from=</span>.<span class="dv">01</span>,<span class="at">to=</span>.<span class="dv">99</span>,<span class="at">by=</span>.<span class="dv">05</span>)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>x1q <span class="ot">=</span> <span class="fu">quantile</span>(df2<span class="sc">$</span>lstat,<span class="at">probs=</span>pv)</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>x2q <span class="ot">=</span> <span class="fu">quantile</span>(df2<span class="sc">$</span>dis,<span class="at">probs=</span>pv)</span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>xx <span class="ot">=</span> <span class="fu">expand.grid</span>(x1q,x2q) <span class="co">#matrix with two columns using all combinations of x1q and x2q</span></span>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>dfpred <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">dis=</span>xx[,<span class="dv">2</span>],<span class="at">lstat=</span>xx[,<span class="dv">1</span>])</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>lmedpred <span class="ot">=</span> <span class="fu">predict</span>(boston.tree,dfpred)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>lmedpred <span class="ot">=</span> <span class="fu">predict</span>(boston.tree,dfpred)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Make perspective plot</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">persp</span>(x1q,x2q,<span class="fu">matrix</span>(lmedpred,<span class="at">ncol=</span><span class="fu">length</span>(x2q),<span class="at">byrow=</span>T),</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a> <span class="at">theta=</span><span class="dv">150</span>,<span class="at">xlab=</span><span class="st">'dis'</span>,<span class="at">ylab=</span><span class="st">'lstat'</span>,<span class="at">zlab=</span><span class="st">'medv'</span>,</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a> <span class="at">zlim=</span><span class="fu">c</span>(<span class="fu">min</span>(df2<span class="sc">$</span>medv),<span class="fl">1.1</span><span class="sc">*</span><span class="fu">max</span>(df2<span class="sc">$</span>medv)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a perspective plot (3D surface)</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co"># theta sets the viewing angle, zlim ensures the vertical axis covers the data range</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">persp</span>(x1q, x2q, <span class="fu">matrix</span>(lmedpred, <span class="at">ncol=</span><span class="fu">length</span>(x2q), <span class="at">byrow=</span>T),</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">theta=</span><span class="dv">150</span>, <span class="at">xlab=</span><span class="st">'dis'</span>, <span class="at">ylab=</span><span class="st">'lstat'</span>, <span class="at">zlab=</span><span class="st">'medv'</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">zlim=</span><span class="fu">c</span>(<span class="fu">min</span>(df2<span class="sc">$</span>medv), <span class="fl">1.1</span><span class="sc">*</span><span class="fu">max</span>(df2<span class="sc">$</span>medv)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1054,20 +1065,20 @@ D_m = -\sum_{k=1}^Kp_{mk}\log p_{mk}
 <p><em>Disadvantages of Decision Trees</em>: Large trees can exhibit high variance, meaning that a minor change in the data can lead to a significant change in the final estimated tree, making the model unstable. Conversely, small trees, while more stable, may not be powerful predictors as they might oversimplify the problem. It can be challenging to find a balance between bias and variance when using decision trees. A model with too much bias oversimplifies the problem and performs poorly, while a model with too much variance overfits the data and may not generalize well to unseen data.</p>
 <p>There are several techniques used to address the issue of overfitting in decision trees. We considered the pruning technique which reduces the complexity of the final classifier, and hence improve predictive accuracy by reducing overfitting. Two other methods are random forests and boosting. Random Forests is an ensemble method where multiple decision trees are created and their predictions are averaged (for regression) or majority voting is done (for classification). Boosting is another ensemble technique where trees are built sequentially such that each subsequent tree aims to reduce the bias of the combined classifier.</p>
 <p>In the <strong>bagging</strong> approach, we treat the sample as if it were the population and then take iid draws. That is, you sample with replacement so that you can get the same original sample value more than once in a bootstrap sample.</p>
-<p>To Bootsrap Aggregate (Bag) we:</p>
+<p>To bootsrap aggregate (Bag) we:</p>
 <ul>
 <li>Take <span class="math inline">\(B\)</span> bootstrap samples from the training data, each of the same size as the training data.</li>
 <li>Fit a large tree to each bootstrap sample (we know how to do this fast!). This will give us <span class="math inline">\(B\)</span> trees.</li>
 <li>Combine the results from each of the B trees to get an overall prediction.</li>
 </ul>
 <p>When the target variable <span class="math inline">\(y\)</span> is numeric, the bagging process is straightforward. The final prediction is simply the average of the predictions from each of the <span class="math inline">\(B\)</span> trees. However, when <span class="math inline">\(y\)</span> is categorical, the process of combining results from different trees is less straightforward. One common approach is to use a voting system. In this system, each tree in the ensemble makes a prediction for a given input <span class="math inline">\(x\)</span>. The predicted category that receives the most votes (out of <span class="math inline">\(B\)</span> total votes) is chosen as the final prediction. Another approach is to average the predicted probabilities <span class="math inline">\(\hat p\)</span> from each tree. This method can provide a more nuanced prediction, especially in cases where the voting results are close.</p>
-<p>Despite the potential benefits of averaging predicted probabilities, most software implementations of bagging for decision trees use the voting method. This is likely due to its simplicity and intuitive appeal. However, the best method to use can depend on the specific characteristics of the problem at hand.</p>
+<p>Despite the potential benefits of averaging predicted probabilities, most software implementations of bagging for decision trees use the voting method. This preference stems from its computational simplicity and intuitive alignment with the democratic process. However, the best method to use can depend on the specific characteristics of the problem at hand.</p>
 <p>The simple idea behind every ensemble method is that the variance of the average is lower than the variance of individual models. Say we have <span class="math inline">\(B\)</span> models <span class="math inline">\(f_1(x),\ldots,f_B(x)\)</span> then we combine those <span class="math display">\[
 f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 \]</span> Combining models helps fight overfitting. On the negative side, it is harder to interpret these ensembles</p>
 <p>Let’s experiment with the number of trees in the model</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>n <span class="ot">=</span> <span class="fu">nrow</span>(Boston)</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>ntreev <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">10</span>,<span class="dv">500</span>,<span class="dv">5000</span>)</span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>fmat <span class="ot">=</span> <span class="fu">matrix</span>(<span class="dv">0</span>,n,<span class="dv">3</span>)</span>
@@ -1075,7 +1086,7 @@ f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 <span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a> rffit <span class="ot">=</span> <span class="fu">randomForest</span>(medv<span class="sc">~</span>lstat,<span class="at">data=</span>Boston,<span class="at">ntree=</span>ntreev[i],<span class="at">maxnodes=</span><span class="dv">15</span>)</span>
 <span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a> fmat[,i] <span class="ot">=</span> <span class="fu">predict</span>(rffit)</span>
 <span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a> <span class="fu">print</span>(<span class="fu">mean</span>((fmat[,i] <span class="sc">-</span> Boston<span class="sc">$</span>medv)<span class="sc">^</span><span class="dv">2</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 30
  29
@@ -1083,13 +1094,13 @@ f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 </div>
 </div>
 <p>Let’s plot the results</p>
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>oo <span class="ot">=</span> <span class="fu">order</span>(Boston<span class="sc">$</span>lstat)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>oo <span class="ot">=</span> <span class="fu">order</span>(Boston<span class="sc">$</span>lstat)</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>) {</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a> <span class="fu">plot</span>(Boston<span class="sc">$</span>lstat,Boston<span class="sc">$</span>medv,<span class="at">xlab=</span><span class="st">'lstat'</span>,<span class="at">ylab=</span><span class="st">'medv'</span>,<span class="at">pch=</span><span class="dv">16</span>)</span>
 <span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a> <span class="fu">lines</span>(Boston<span class="sc">$</span>lstat[oo],fmat[oo,i],<span class="at">col=</span>i<span class="sc">+</span><span class="dv">1</span>,<span class="at">lwd=</span><span class="dv">3</span>)</span>
 <span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a> <span class="fu">title</span>(<span class="at">main=</span><span class="fu">paste</span>(<span class="st">'bagging ntrees = '</span>,ntreev[i]))</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell quarto-layout-panel" data-layout-ncol="3" data-layout-align="center" data-null_prefix="true">
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell quarto-layout-panel" data-layout-ncol="3" data-null_prefix="true" data-layout-align="center">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 33.3%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
@@ -1128,8 +1139,8 @@ f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 <p>By decorrelating the trees, Random Forests can often achieve better performance than bagging, especially when there’s a small number of very strong predictors in the dataset. In such cases, bagging can end up with an ensemble of very similar trees that all rely heavily on these strong predictors, while Random Forests can leverage the other, weaker predictors more effectively.</p>
 <p>One of the “interpretation” tools that comes with ensemble models is importance ranking: the total amount that the deviance (loss) is decreased due to splits over a given predictor, averaged over all trees</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>rf.boston <span class="ot">=</span> <span class="fu">randomForest</span>(medv<span class="sc">~</span>.,<span class="at">data=</span>Boston,<span class="at">mtry=</span><span class="dv">4</span>,<span class="at">importance=</span><span class="cn">TRUE</span>,<span class="at">ntree=</span><span class="dv">50</span>)</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">varImpPlot</span>(rf.boston,<span class="at">pch=</span><span class="dv">21</span>,<span class="at">bg=</span><span class="st">"lightblue"</span>,<span class="at">main=</span><span class="st">""</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>rf.boston <span class="ot">=</span> <span class="fu">randomForest</span>(medv<span class="sc">~</span>.,<span class="at">data=</span>Boston,<span class="at">mtry=</span><span class="dv">4</span>,<span class="at">importance=</span><span class="cn">TRUE</span>,<span class="at">ntree=</span><span class="dv">50</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">varImpPlot</span>(rf.boston,<span class="at">pch=</span><span class="dv">21</span>,<span class="at">bg=</span><span class="st">"lightblue"</span>,<span class="at">main=</span><span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1139,11 +1150,11 @@ f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 </div>
 </div>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>rf.boston <span class="ot">=</span> <span class="fu">randomForest</span>(medv<span class="sc">~</span>.,<span class="at">data=</span>Boston,<span class="at">mtry=</span><span class="dv">6</span>,<span class="at">ntree=</span><span class="dv">50</span>, <span class="at">maxnodes=</span><span class="dv">50</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>rf.boston <span class="ot">=</span> <span class="fu">randomForest</span>(medv<span class="sc">~</span>.,<span class="at">data=</span>Boston,<span class="at">mtry=</span><span class="dv">6</span>,<span class="at">ntree=</span><span class="dv">50</span>, <span class="at">maxnodes=</span><span class="dv">50</span>)</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>yhat.rf <span class="ot">=</span> <span class="fu">predict</span>(rf.boston,<span class="at">newdata=</span>Boston)</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>oo<span class="ot">=</span><span class="fu">order</span>(Boston<span class="sc">$</span>lstat)</span>
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(Boston<span class="sc">$</span>lstat[oo],Boston<span class="sc">$</span>medv[oo],<span class="at">pch=</span><span class="dv">21</span>,<span class="at">bg=</span><span class="st">"grey"</span>, <span class="at">xlab=</span><span class="st">"lstat"</span>, <span class="at">ylab=</span><span class="st">"medv"</span>) <span class="co">#plot data</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(Boston<span class="sc">$</span>lstat[oo],yhat.rf[oo],<span class="at">col=</span><span class="st">'red'</span>,<span class="at">lwd=</span><span class="dv">3</span>) <span class="co">#step function fit</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(Boston<span class="sc">$</span>lstat[oo],yhat.rf[oo],<span class="at">col=</span><span class="st">'red'</span>,<span class="at">lwd=</span><span class="dv">3</span>) <span class="co">#step function fit</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1190,18 +1201,19 @@ f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 <li>Update the model <span class="math display">\[f(x) = f(x) +\lambda f_b(x)\]</span></li>
 <li>Update the residuals <span class="math display">\[r_i=r_i - \lambda f_b(x)\]</span></li>
 </ol>
+<p>The parameter <span class="math inline">\(\lambda\)</span> is the <strong>learning rate</strong> or <em>shrinkage</em> parameter. By multiplying the new tree’s contribution by a small number (e.g., 0.01 or 0.1), we prevent the model from adapting too quickly to outliers or noise. We take many small steps towards the solution rather than a few large ones, which generally leads to better generalization.</p>
 <p>Here are some boosting fits where we vary the number of trees, but fix the depth at 2 (suitable with 1 x) and shrinkage = <span class="math inline">\(\lambda\)</span> at .2.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gbm)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gbm)</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>boost.boston<span class="ot">=</span><span class="fu">gbm</span>(medv<span class="sc">~</span>.,<span class="at">data=</span>Boston,<span class="at">distribution=</span><span class="st">"gaussian"</span>,<span class="at">n.trees=</span><span class="dv">5000</span>,<span class="at">interaction.depth=</span><span class="dv">4</span>)</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>yhat.boost<span class="ot">=</span><span class="fu">predict</span>(boost.boston,<span class="at">newdata=</span>Boston,<span class="at">n.trees=</span><span class="dv">5000</span>)</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>((yhat.boost<span class="sc">-</span>Boston<span class="sc">$</span>medv)<span class="sc">^</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>((yhat.boost<span class="sc">-</span>Boston<span class="sc">$</span>medv)<span class="sc">^</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 4e-04</code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(boost.boston, <span class="at">plotit=</span><span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(boost.boston, <span class="at">plotit=</span><span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="kable-table">
 <table class="caption-top table table-sm table-striped small">
@@ -1283,9 +1295,9 @@ f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 </div>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(boost.boston,<span class="at">i=</span><span class="st">"rm"</span>)</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(boost.boston,<span class="at">i=</span><span class="st">"lstat"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell quarto-layout-panel" data-layout-ncol="2" data-layout-align="center" data-null_prefix="true">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(boost.boston,<span class="at">i=</span><span class="st">"rm"</span>)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(boost.boston,<span class="at">i=</span><span class="st">"lstat"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell quarto-layout-panel" data-layout-ncol="2" data-null_prefix="true" data-layout-align="center">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
@@ -1307,16 +1319,35 @@ f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 <p>Disadvantages of Boosting compared to Random Forests include computational complexity, overfitting potential, and sensitivity to outliers and noise. Boosting can be more computationally intensive than Random Forests because trees are built sequentially in Boosting, while in Random Forests they are built independently and can be parallelized. Boosting can overfit the training data if the number of trees is too large or if the trees are too complex. This is less of a problem with Random Forests, which are less prone to overfitting due to the randomness injected into the tree building process. Boosting can also be sensitive to outliers since it tries to correct the mistakes of the predecessors, while Random Forests are more robust to outliers. Finally, Boosting can overemphasize instances that are hard to classify and can overfit to noise, whereas Random Forests are more robust to noise.</p>
 <p>Remember, the choice between Boosting and Random Forests (or any other model) should be guided by the specific requirements of your task, including the nature of your data, the computational resources available, and the trade-off between interpretability and predictive accuracy.</p>
 </section>
-<section id="finding-good-bayes-predictors" class="level2" data-number="14.6">
-<h2 data-number="14.6" class="anchored" data-anchor-id="finding-good-bayes-predictors"><span class="header-section-number">14.6</span> Finding Good Bayes Predictors</h2>
-<p>The ensemble methods we’ve discussed—bagging, random forests, and boosting—all share a common goal: improving predictive performance by combining multiple weak learners. But what is the theoretical foundation for why these methods work so well? And how do we determine the optimal way to combine these predictors? These questions lead us naturally to a Bayesian perspective on prediction, which provides both theoretical justification and practical guidance for ensemble methods.</p>
-<p>Bayesian methods tackle the problem of good predictive performance in a number of ways. The goal is to find a good predictive MSE <span class="math inline">\(E_{Y,\hat{Y}}(\Vert\hat{Y} - Y \Vert^2)\)</span>. First, Stein shrinkage (a.k.a regularization with an <span class="math inline">\(\ell_2\)</span> norm) has long been known to provide good mean squared error properties in estimation, namely <span class="math inline">\(E(||\hat{\theta} - \theta||^2)\)</span> as well. These gains translate into predictive performance (in an iid setting) for <span class="math inline">\(E(||\hat{Y}-Y||^2)\)</span>. One of the main issues is how to tune the amount of regularisation (a.k.a prior hyper-parameters). Stein’s unbiased estimator of risk provides a simple empirical rule to address this problem, as does cross-validation. From a Bayes perspective, the marginal likelihood (and full marginal posterior) provides a natural method for hyper-parameter tuning. The issue is computational tractability and scalability. The posterior for <span class="math inline">\((W,b)\)</span> is extremely high dimensional and multimodal and posterior MAP provides good predictors <span class="math inline">\(\hat{Y}(X)\)</span>.</p>
-<p><em>Bayes conditional averaging</em> can also perform well in high dimensional regression and classification problems. High dimensionality brings with it the curse of dimensionality and it is instructive to understand why certain kernel can perform badly.</p>
-<p>Adaptive Kernel predictors (a.k.a. smart conditional averager) are of the form</p>
-<p><span class="math display">\[
-\hat{Y}(X) = \sum_{r=1}^R K_r ( X_i , X ) \hat{Y}_r (X)
-\]</span></p>
-<p>Here <span class="math inline">\(\hat{Y}_r(X)\)</span> is a deep predictor with its own trained parameters. For tree models, the kernel <span class="math inline">\(K_r( X_i , X)\)</span> is a <em>cylindrical</em> region <span class="math inline">\(R_r\)</span> (open box set). <a href="#fig-cilinder" class="quarto-xref">Figure&nbsp;<span>14.2</span></a> illustrates the implied kernels for trees (cylindrical sets) and random forests. Not many points will be neighbors in high-dimensional input space.</p>
+<section id="why-ensembles-work-a-geometric-perspective" class="level2" data-number="14.6">
+<h2 data-number="14.6" class="anchored" data-anchor-id="why-ensembles-work-a-geometric-perspective"><span class="header-section-number">14.6</span> Why Ensembles Work: A Geometric Perspective</h2>
+<p>The ensemble methods we’ve discussed—bagging, random forests, and boosting—all share a common goal: improving predictive performance by combining multiple weak learners. But why does this work so well? The answer lies in the <strong>bias-variance tradeoff</strong> and the geometry of high-dimensional spaces.</p>
+<section id="smoothing-and-variance-reduction" class="level3">
+<h3 class="anchored" data-anchor-id="smoothing-and-variance-reduction">Smoothing and Variance Reduction</h3>
+<p>In essence, individual decision trees are low-bias but high-variance estimators. They can capture complex patterns (low bias) but are sensitive to noise (high variance). When we average many such trees, as in Bagging or Random Forests, we are effectively performing <strong>smoothing</strong>.</p>
+<p>Quantitatively, if we have <span class="math inline">\(N\)</span> uncorrelated predictors <span class="math inline">\(f_1, \dots, f_N\)</span>, the variance of their average is: <span class="math display">\[
+\text{Var}\left(\frac{1}{N}\sum_{i=1}^N f_i\right) = \frac{1}{N} \text{Var}(f_i)
+\]</span> Averaging <span class="math inline">\(N\)</span> uncorrelated models reduces the variance by a factor of <span class="math inline">\(N\)</span>. In practice, the trees in a forest are correlated, so the reduction isn’t quite <span class="math inline">\(1/N\)</span>, but the principle holds: the more diverse (uncorrelated) the trees, the more variance reduction we get. This is why Random Forests Randomly select features at each split—to force the trees to be different.</p>
+</section>
+<section id="the-problem-of-high-dimensions" class="level3">
+<h3 class="anchored" data-anchor-id="the-problem-of-high-dimensions">The Problem of High Dimensions</h3>
+<p>One might ask: “Why not just use K-Nearest Neighbors (KNN)? It also averages local points.” The problem is the <strong>curse of dimensionality</strong>. In high-dimensional feature spaces, data points become incredibly sparse.</p>
+<p>Consider a 50-dimensional sphere. As shown in <a href="#fig-hd-ball" class="quarto-xref">Figure&nbsp;<span>14.4</span></a>, if we sample points uniformly, almost all of them will reside near the “crust” or surface of the sphere, not in the center.</p>
+<div id="fig-hd-ball" class="quarto-float quarto-figure quarto-figure-center anchored" width="40%">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-hd-ball-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig/hd_ball.svg" id="fig-hd-ball" class="img-fluid figure-img" style="width:40.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-hd-ball-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;14.2
+</figcaption>
+</figure>
+</div>
+<p>This phenomenon means that in high dimensions, “local neighbors” are not actually close to you—they are far away on the other side of the space. A standard KNN algorithm fails because it averages points that aren’t truly similar.</p>
+</section>
+<section id="trees-as-adaptive-nearest-neighbors" class="level3">
+<h3 class="anchored" data-anchor-id="trees-as-adaptive-nearest-neighbors">Trees as “Adaptive” Nearest Neighbors</h3>
+<p>Decision trees solve this by defining “neighbors” differently. Instead of using a fixed distance metric (like Euclidean distance), trees define a neighborhood as a rectangular box (or <strong>cylindrical region</strong>) learned from the data (<a href="#fig-cilinder" class="quarto-xref">Figure&nbsp;<span>14.3</span></a>).</p>
 <div id="fig-cilinder" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-cilinder-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -1330,23 +1361,23 @@ f_{avg}(x) = \dfrac{1}{B}\sum_{b=1}^Bf_b(x)
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cilinder-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;14.2: Cylindrical kernels for trees (left) and random forests (right).
+Figure&nbsp;14.3: Cylindrical kernels for trees (left) and random forests (right).
 </figcaption>
 </figure>
 </div>
 <p>Constructing the regions is fundamental to reducing the curse of dimensionality. It is useful to imagine a very large dataset, e.g., 100k images, and think about how a new image’s input coordinates, <span class="math inline">\(X\)</span>, are “neighbors” to data points in the training set. Our predictor will then be a smart conditional average of the observed outputs, <span class="math inline">\(Y\)</span>, for our neighbors. When <span class="math inline">\(p\)</span> is large, spheres (<span class="math inline">\(L^2\)</span> balls or Gaussian kernels) are terrible: either no points or all points are “neighbors” of the new input variable. Trees are good as not too many “neighbors”.</p>
-<p>To illustrate the problem further, <a href="#fig-hd-ball" class="quarto-xref">Figure&nbsp;<span>14.3</span></a> below shows the 2D image of 1000 uniform samples from a 50-dimensional ball <span class="math inline">\(B_{50}\)</span>. The image is calculated as <span class="math inline">\(w^T Y\)</span>, where <span class="math inline">\(w = (1,1,0,\ldots,0)\)</span> and <span class="math inline">\(Y \sim U(B_{50})\)</span>. Samples are centered around the equators and none of the samples fall close to the boundary of the set.</p>
+<p>To illustrate the problem further, <a href="#fig-hd-ball" class="quarto-xref">Figure&nbsp;<span>14.4</span></a> below shows the 2D image of 1000 uniform samples from a 50-dimensional ball <span class="math inline">\(B_{50}\)</span>. The image is calculated as <span class="math inline">\(w^T Y\)</span>, where <span class="math inline">\(w = (1,1,0,\ldots,0)\)</span> and <span class="math inline">\(Y \sim U(B_{50})\)</span>. Samples are centered around the equators and none of the samples fall close to the boundary of the set.</p>
 <div id="fig-hd-ball" class="quarto-float quarto-figure quarto-figure-center anchored" width="40%">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-hd-ball-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="fig/hd_ball.svg" id="fig-hd-ball" class="img-fluid figure-img" style="width:40.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-hd-ball-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;14.3
+Figure&nbsp;14.4
 </figcaption>
 </figure>
 </div>
-<p>As dimensionality of the space grows, the variance of the marginal distribution goes to zero. We can empirically see it from <a href="#fig-hd-hist" class="quarto-xref">Figure&nbsp;<span>14.4</span></a>, which shows histogram of 1D image of uniform sample from balls of different dimensionality, i.e.&nbsp;<span class="math inline">\(e_1^T Y\)</span>, where <span class="math inline">\(e_1 = (1,0,\ldots,0)\)</span>.</p>
+<p>As dimensionality of the space grows, the variance of the marginal distribution goes to zero. We can empirically see it from <a href="#fig-hd-hist" class="quarto-xref">Figure&nbsp;<span>14.5</span></a>, which shows histogram of 1D image of uniform sample from balls of different dimensionality, i.e.&nbsp;<span class="math inline">\(e_1^T Y\)</span>, where <span class="math inline">\(e_1 = (1,0,\ldots,0)\)</span>.</p>
 <div id="fig-hd-hist" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-hd-hist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -1366,7 +1397,7 @@ Figure&nbsp;14.3
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-hd-hist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;14.4: Histogram of marginal distribution of <span class="math inline">\(Y\sim U(B_p)\)</span> for different dimensions <span class="math inline">\(p\)</span>.
+Figure&nbsp;14.5: Histogram of marginal distribution of <span class="math inline">\(Y\sim U(B_p)\)</span> for different dimensions <span class="math inline">\(p\)</span> (x-axis).
 </figcaption>
 </figure>
 </div>
@@ -1386,31 +1417,25 @@ E l( Y , w^T \hat{Y} ) = \frac{1}{K!} \sum_\pi E l( Y , w^T \hat{Y} ) \geq E l \
 <p>where <span class="math inline">\(\iota = ( 1 , \ldots ,1 )\)</span>. Hence, the randomized multiple predictor with weights <span class="math inline">\(w = (1/K)\iota\)</span> provides close to optimal Bayes predictive performance. We now turn to algorithmic issues.</p>
 <p>An alternative approach is to perform Bayesian model selection. Here we calculate the optimal Bayes weight for each predictor in accordance with Bayes Rule. We formalize the gains in Classification Risk with the following discussion.</p>
 </section>
-<section id="ensemble-averaging-and-1n-rule" class="level2" data-number="14.7">
-<h2 data-number="14.7" class="anchored" data-anchor-id="ensemble-averaging-and-1n-rule"><span class="header-section-number">14.7</span> Ensemble Averaging and <span class="math inline">\(1/N\)</span> Rule</h2>
-<p>In high dimensions, when we have a large number of predictive models that generate uncorrelated predictions, the optimal approach to generate a prediction is to average predictions from those individual models/weak predictors. This is called the <span class="math inline">\(1/N\)</span> rule. The variance in the prediction is reduced by a factor of <span class="math inline">\(N\)</span> when we average out <span class="math inline">\(N\)</span> uncorrelated predictions. <span class="math display">\[
-\mbox{Var} \left ( \frac{1}{N} \sum_{i=1}^N \hat y_i \right ) = \frac{1}{N^2} \mbox{Var} \left ( \hat y_i \right ) + \frac{2}{N^2} \sum_{i \neq j} \mbox{Cov} \left ( \hat y_i, \hat y_j \right )
-\]</span> In high dimensions it is relatively easy to find uncorrelated predictors, and these techniques prove to lead to winning solutions in many machine learning competitions. The <span class="math inline">\(1/N\)</span> rule is optimal due to exchangeability of the weak predictors, see <span class="citation" data-cites="polson2017deep">Polson, Sokolov, et al. (<a href="references.html#ref-polson2017deep" role="doc-biblioref">2017</a>)</span></p>
-<!-- ### Exchangability Result
-The original rule for classification approach was to do k-nearest neighbors. It can be shown that Bayes is the optimal clasifier. Assume, you know $p(y\mid x)$, when
-$$
-p(+1| x)=0.8\\
-p(-1| x)=0.2\\
-$$
-The Best prediction: $y^* = h_\mathrm{opt} = argmax_y p(y\mid x)$, you predict the most likely class. What is the error of the Bayes classifier?
-$$
-\epsilon_{BayesOpt}=1-\mathrm{P}(h_\mathrm{opt}(\mathbf{x})|y) = 1- \mathrm{P}(y^*|\mathbf{x})
-$$ -->
+</section>
+<section id="theoretical-foundations-why-trees-work" class="level2" data-number="14.7">
+<h2 data-number="14.7" class="anchored" data-anchor-id="theoretical-foundations-why-trees-work"><span class="header-section-number">14.7</span> Theoretical Foundations: Why Trees Work</h2>
+<p>The success of tree-based ensembles rests on solid theoretical foundations. Two key principles explain their power: the variance reduction from averaging (the <span class="math inline">\(1/N\)</span> rule) and the surprising efficiency of nearest-neighbor methods.</p>
+<section id="ensemble-averaging-and-the-1n-rule" class="level3">
+<h3 class="anchored" data-anchor-id="ensemble-averaging-and-the-1n-rule">Ensemble Averaging and the <span class="math inline">\(1/N\)</span> Rule</h3>
+<p>In high dimensions, predicting with a single model can be unstable (high variance). When we have <span class="math inline">\(N\)</span> uncorrelated predictors <span class="math inline">\(f_1, \dots, f_N\)</span>, the variance of their average is reduced by a factor of <span class="math inline">\(N\)</span>: <span class="math display">\[
+\text{Var}\left(\frac{1}{N}\sum_{i=1}^N f_i\right) = \frac{1}{N} \text{Var}(f_i) + \frac{N-1}{N}\rho\sigma^2
+\]</span> This is the <strong><span class="math inline">\(1/N\)</span> rule</strong>: averaging independent weak learners dramatically reduces error. The variance of an ensemble depends on the correlation <span class="math inline">\(\rho\)</span> between trees. The optimality of this rule is rooted in the exchangeability of weak predictors (<span class="citation" data-cites="polson2017deep">Polson, Sokolov, et al. (<a href="references.html#ref-polson2017deep" role="doc-biblioref">2017</a>)</span>).</p>
+</section>
 <section id="classification-variance-decomposition" class="level3">
 <h3 class="anchored" data-anchor-id="classification-variance-decomposition">Classification variance decomposition</h3>
-<p>The famous result is due to <span class="citation" data-cites="cover1967nearest">Cover and Hart (<a href="references.html#ref-cover1967nearest" role="doc-biblioref">1967</a>)</span> who proved that k-nearest neighbors are at most twice the bayes risk.</p>
-<p><span class="citation" data-cites="amit2000multiple">Amit, Blanchard, and Wilder (<a href="references.html#ref-amit2000multiple" role="doc-biblioref">2000</a>)</span> use the population conditional probability distribution of a point <span class="math inline">\(X\)</span> given <span class="math inline">\(Y=c\)</span>, denoted by <span class="math inline">\(P_{c}\)</span>, and the associated conditional expectation and variance operators will be denoted <span class="math inline">\(E_{c}\)</span> and <span class="math inline">\(V a r_{c}\)</span>. Define the vectors of average aggregates conditional on class <span class="math inline">\(c\)</span> as <span class="math display">\[
+<p><span class="citation" data-cites="amit2000multiple">Amit, Blanchard, and Wilder (<a href="references.html#ref-amit2000multiple" role="doc-biblioref">2000</a>)</span> provide a rigorous connection between the strength of individual classifiers and their correlation. They use the population conditional probability distribution of a point <span class="math inline">\(X\)</span> given <span class="math inline">\(Y=c\)</span>, denoted by <span class="math inline">\(P_{c}\)</span>, and the associated conditional expectation and variance operators will be denoted <span class="math inline">\(E_{c}\)</span> and <span class="math inline">\(V a r_{c}\)</span>. Define the vectors of average aggregates conditional on class <span class="math inline">\(c\)</span> as <span class="math display">\[
 M_{c}(d)=E_{c}\left[H_{\mathbf{Q}}(X, d)\right]=E\left[H_{\mathbf{Q}}(X, d) \mid Y=c\right]
 \]</span></p>
-<p>for <span class="math inline">\(d=1, \ldots, K\)</span>. The average conditional margin (ACM) for class <span class="math inline">\(c\)</span> is defined as</p>
-<p><span class="math display">\[
+<p>for <span class="math inline">\(d=1, \ldots, K\)</span>. Intuitively, <span class="math inline">\(M_c(d)\)</span> represents the <strong>expected vote share</strong> for class <span class="math inline">\(d\)</span> when the true class is <span class="math inline">\(c\)</span>. Ideally, <span class="math inline">\(M_c(c)\)</span> (votes for the correct class) should be much larger than <span class="math inline">\(M_c(d)\)</span> (votes for incorrect classes).</p>
+<p>The average conditional margin (ACM) for class <span class="math inline">\(c\)</span> is defined as <span class="math display">\[
 \theta_{c}=\min _{d \neq c}\left(M_{c}(c)-M_{c}(d)\right)
-\]</span></p>
+\]</span> This <span class="math inline">\(\theta_c\)</span> measures the “safety gap” between the correct class and the closest competing class. A larger margin means the classifier is more robust.</p>
 <p>We assume that <span class="math inline">\(\theta_{c}&gt;0\)</span>. This assumption is very weak since it involves only the average over the population of class <span class="math inline">\(c\)</span>. It is quite natural since one would not expect good classification results when it is violated. Indeed as shown below it is satisfied in all cases.</p>
 <p>Given that <span class="math inline">\(\theta_{c}&gt;0\)</span>, the error rate for class <span class="math inline">\(c\)</span> depends on the extent to which the aggregate classifier <span class="math inline">\(H_{\mathbf{Q}}(X, d)\)</span> is concentrated around <span class="math inline">\(M_{c}(d)\)</span> for each <span class="math inline">\(d=1, \ldots, K\)</span>. The simplest measure of concentration is the variance of <span class="math inline">\(H_{\mathbf{Q}}(X, d)\)</span> with respect to the distribution <span class="math inline">\(P_{c}\)</span>. Using Chebyshev’s inequality we write a coarse bound on the misclassification probability with respect to <span class="math inline">\(P_{c}\)</span> as follows.</p>
 <p><span class="math display">\[\begin{align*}
@@ -1419,23 +1444,39 @@ P_{c}\left(C_{\mathbf{Q}}(X) \neq c\right) \leq &amp; P_{c}\left(H_{\mathbf{Q}}(
 \leq &amp; \sum_{d=1}^{K} P_{c}\left(\left|H_{\mathbf{Q}}(X, d)-M_{c}(d)\right|&gt;\theta_{c} / 2\right) \\
 \leq &amp; \frac{4}{\theta_{c}^{2}} \sum_{d=1}^{K} \operatorname{Var}_{c}\left[H_{\mathbf{Q}}(X, d)\right] . \tag{10}
 \end{align*}\]</span></p>
-<p>Of course Chebyshev’s inequality is coarse and will not give very sharp results in itself, be we state it here as a landmark pointing to the relative importance of margin and variance, and to the tradeoff between the two quantities.</p>
+<p>Of course Chebyshev’s inequality is coarse and will not give very sharp results in itself, but we state it here as a landmark pointing to the relative importance of margin and variance, and to the tradeoff between the two quantities. To reduce error, we must either <strong>increase the margin</strong> <span class="math inline">\(\theta_c\)</span> (build stronger classifiers) or <strong>decrease the variance</strong> (add more diverse trees).</p>
 <p>We rewrite each of the variance terms of the last equation as</p>
 <p><span class="math display">\[\begin{align*}
 \operatorname{Var}_{c}\left[E_{\mathbf{Q}} h(X, d)\right] &amp; =E_{c}\left[E_{\mathbf{Q}} h(X, d)\right]^{2}-\left[E_{c} E_{\mathbf{Q}} h(X, d)\right]^{2} \\
 &amp; =E_{\mathbf{Q} \otimes \mathbf{Q}} E_{c}\left[h_{1}(X, d) h_{2}(X, d)\right]-E_{\mathbf{Q} \otimes \mathbf{Q}}\left[E_{c}\left[h_{1}(X, d)\right] E_{c}\left[h_{2}(X, d)\right]\right] \\
 &amp; =E_{\mathbf{Q} \otimes \mathbf{Q}} \operatorname{Cov}_{c}\left[h_{1}(X, d), h_{2}(X, d)\right] \doteq \gamma_{c, d} \tag{11}
 \end{align*}\]</span></p>
-<p>where the notation <span class="math inline">\(E_{\mathbf{Q} \otimes \mathbf{Q}}\)</span> means that <span class="math inline">\(h_{1}, h_{2}\)</span> are two classifiers sampled independently from the distribution <span class="math inline">\(\mathbf{Q}\)</span>. We can therefore interpret this variance term as the conditional covariance of two classifiers independently sampled from <span class="math inline">\(\mathbf{Q}\)</span>. We call this quantity the average conditional covariance (ACC). Even if <span class="math inline">\(\mathbf{Q}\)</span> is a discrete distribution, such as that provided by a particular run of <span class="math inline">\(N\)</span> classifiers, when it is supported on a moderate number of classifiers, it is dominated by the conditional covariances of which there are order <span class="math inline">\(N^{2}\)</span>, and not the conditional variances of which there are order <span class="math inline">\(N\)</span>.</p>
+<p>This equation formalizes the intuition: to minimize error, we must minimize the covariance <span class="math inline">\(\gamma_{c, d}\)</span> between trees. This is precisely what <strong>Random Forests</strong> do by randomizing splits (<span class="citation" data-cites="amit2000multiple">Amit, Blanchard, and Wilder (<a href="references.html#ref-amit2000multiple" role="doc-biblioref">2000</a>)</span>).</p>
 </section>
 <section id="conditional-and-unconditional-dependence" class="level3">
 <h3 class="anchored" data-anchor-id="conditional-and-unconditional-dependence">Conditional and unconditional dependence</h3>
-<p>It should be emphasized that two classifiers, provided that they achieve reasonable classification rate (that is, better than just picking a class at random) will not be unconditionally independent. If we do not know the class label of a point, and vector <span class="math inline">\(\left(h_{1}(X, i)\right)_{i}\)</span> is large at class <span class="math inline">\(c\)</span>, then we actually change our expectations regarding <span class="math inline">\(\left(h_{2}(X, i)\right)_{i}\)</span>. On the other hand if we were given in advance the class label <span class="math inline">\(Y\)</span>, then knowing <span class="math inline">\(h_{1}(X)\)</span> would hardly affect our guess about <span class="math inline">\(h_{2}(X)\)</span>. This is the motivation behind the notion of weak conditional dependence.</p>
-<p>This is in contrast to the measure of dependence introduced in Dietterich (1998), which involves the unconditional covariance. The <span class="math inline">\(\kappa\)</span> statistic used there is</p>
+<p>It should be emphasized that two good classifiers will not be unconditionally independent. Since they both aim to predict the true class <span class="math inline">\(Y\)</span>, they will be correlated with <span class="math inline">\(Y\)</span> and thus with each other. If we do not know the class label of a point, knowing one classifier’s output effectively changes our expectation of the other. However, what matters for variance reduction is <strong>conditional independence</strong>: given the class label, do the classifiers make <em>independent errors</em>? This is the relevant quantity for ensemble performance.</p>
+<p>This is in contrast to the measure of dependence introduced in Dietterich (1998), which involves the unconditional covariance via the <span class="math inline">\(\kappa\)</span> statistic:</p>
 <p><span class="math display">\[
 \kappa\left(h_{1}, h_{2}\right)=\frac{\sum_{d} \operatorname{Cov}\left[h_{1}(X, d), h_{2}(X, d)\right]}{1-\sum_{d} E h_{1}(X, d) E h_{2}(X, d)},
 \]</span></p>
-<p>A simple decomposition of the numerator yields: <span class="math inline">\(\operatorname{Cov}\left[h_{1}(X, d), h_{2}(X, d)\right]=E \operatorname{Cov}\left[h_{1}(X, d), h_{2}(X, d) \mid Y\right]+\operatorname{Cov}\left[E\left[h_{1}(X, d) \mid Y\right], E\left[h_{2}(X, d) \mid Y\right]\right]\)</span>.</p>
+</section>
+<section id="the-nearest-neighbor-insight" class="level3">
+<h3 class="anchored" data-anchor-id="the-nearest-neighbor-insight">The Nearest Neighbor Insight</h3>
+<p>Why do trees work so well on complex data? <span class="citation" data-cites="cover1967nearest">Cover and Hart (<a href="references.html#ref-cover1967nearest" role="doc-biblioref">1967</a>)</span> provided a fundamental result for nearest-neighbor classifiers: as sample size grows, the error rate of a simple 1-Nearest Neighbor classifier is bounded by <strong>twice the Bayes Risk</strong> (the irreducible error). <span class="math display">\[
+R^* \le R_{NN} \le 2R^*(1-R^*)
+\]</span> This means that a simple “look at your neighbor” strategy captures at least half the available signal. Decision trees can be viewed as <strong>adaptive nearest-neighbor</strong> models. Instead of using a fixed distance metric (which fails in high dimensions due to sparsity), trees learn a custom metric—dividing space into “blocky” regions based only on relevant features.</p>
+</section>
+</section>
+<section id="conclusion" class="level2" data-number="14.8">
+<h2 data-number="14.8" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">14.8</span> Conclusion</h2>
+<p>Tree-based models are among the most versatile tools in a data scientist’s toolkit. Single decision trees offer unmatched interpretability but suffer from instability. Ensemble methods like Random Forests and Boosting overcome this by combining many trees to reduce variance and bias, respectively.</p>
+<ul>
+<li><strong>Decision Trees</strong>: Interpretability champions, but prone to overfitting.</li>
+<li><strong>Random Forests</strong>: Robust, parallelizable, and easy to tune. Great “out-of-the-box” performance.</li>
+<li><strong>Boosting</strong>: High accuracy, sequential learning. Requires more careful tuning but often wins competitions.</li>
+</ul>
+<p>By understanding the theoretical foundations—whether through the geometry of high-dimensional spaces or the decomposition of variance—we can better appreciate why simple averaging of “weak” trees leads to such powerful “strong” predictors.</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
@@ -1458,7 +1499,6 @@ Milman, Vitali D, and Gideon Schechtman. 2009. <em>Asymptotic Theory of Finite D
 Polson, Nicholas G, Vadim Sokolov, et al. 2017. <span>“Deep <span>Learning</span>: <span>A Bayesian Perspective</span>.”</span> <em>Bayesian Analysis</em> 12 (4): 1275–1304.
 </div>
 </div>
-</section>
 </section>
 
 </main> <!-- /main -->
@@ -1513,13 +1553,14 @@ Polson, Nicholas G, Vadim Sokolov, et al. 2017. <span>“Deep <span>Learning</sp
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

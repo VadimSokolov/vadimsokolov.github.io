@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -89,14 +89,15 @@ div.csl-indent {
 <link href="./15-forecasting.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-680e7c22d93ef26f016bec9199f8e6d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -124,6 +125,9 @@ div.csl-indent {
     "search-label": "Search"
   }
 }</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 <script>
   // Load MathJax with custom macros
   window.MathJax = {
@@ -168,7 +172,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -441,11 +445,14 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#the-question-of-causation" id="toc-the-question-of-causation" class="nav-link active" data-scroll-target="#the-question-of-causation"><span class="header-section-number">16.1</span> The Question of Causation</a></li>
-  <li><a href="#bart-for-causal-inference" id="toc-bart-for-causal-inference" class="nav-link" data-scroll-target="#bart-for-causal-inference"><span class="header-section-number">16.2</span> BART For Causal Inference</a>
+  <li><a href="#split-plot-designs-and-rothamsted" id="toc-split-plot-designs-and-rothamsted" class="nav-link active" data-scroll-target="#split-plot-designs-and-rothamsted"><span class="header-section-number">16.1</span> Split-Plot Designs and Rothamsted</a></li>
+  <li><a href="#the-question-of-causation" id="toc-the-question-of-causation" class="nav-link" data-scroll-target="#the-question-of-causation"><span class="header-section-number">16.2</span> The Question of Causation</a></li>
+  <li><a href="#digital-experimentation-and-observational-data" id="toc-digital-experimentation-and-observational-data" class="nav-link" data-scroll-target="#digital-experimentation-and-observational-data"><span class="header-section-number">16.3</span> Digital Experimentation and Observational Data</a></li>
+  <li><a href="#bart-for-causal-inference" id="toc-bart-for-causal-inference" class="nav-link" data-scroll-target="#bart-for-causal-inference"><span class="header-section-number">16.4</span> BART For Causal Inference</a>
   <ul class="collapse">
   <li><a href="#bart-versus-propensity-score-matching-psm" id="toc-bart-versus-propensity-score-matching-psm" class="nav-link" data-scroll-target="#bart-versus-propensity-score-matching-psm">BART versus Propensity Score Matching (PSM)</a></li>
   </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">16.5</span> Conclusion</a></li>
   </ul>
 </nav>
 </nav>
@@ -475,8 +482,8 @@ window.Quarto = {
 </header>
 
 
-<p>Florence Nightingale (1820-1910) was a heroine of the Crimean War, Patron Saint of Nurses, admirer of Quetelet, and champion of the statistical study of society. She can be called the mother of observational studies. To her, every piece of legislation was an experiment in the laboratory of society deserving study and demanding evaluation. Nightingale recognized the importance of collecting accurate and reliable data to understand healthcare outcomes. She developed standardized methods for collecting data on hospital admissions, deaths, causes of death, and other relevant factors. This systematic data collection allowed for more rigorous and reliable analysis of healthcare practices and their impact on patient outcomes. During the Crimean War (1853-1856), she collected and analyzed data on mortality rates among soldiers. She created statistical diagrams, such as the famous polar area diagram or “coxcomb,” to illustrate the causes of mortality. These visual representations helped to convey complex information in a clear and understandable way. Nightingale’s observations and statistical analyses led her to emphasize the importance of sanitation and hygiene in healthcare settings. She advocated for improvements in cleanliness, ventilation, and sanitation in hospitals, recognizing the impact of these factors on the health and well-being of patients. Beyond the battlefield, Nightingale continued her work in public health. She used statistical evidence to advocate for healthcare reforms and improvements in public health infrastructure. Her efforts played a crucial role in shaping public health policies and practices.</p>
-<p>The work of Nightingale would nowadays be called an <em>observational study</em>. An observational study is a research design where researchers observe and collect data on existing groups of people or phenomena without intervening or manipulating any variables. Unlike randomized controlled trials, researchers do not assign participants to different groups and do not directly influence the outcome.</p>
+<p>Florence Nightingale (1820-1910) was a heroine of the Crimean War, Patron Saint of Nurses, admirer of Quetelet, and champion of the statistical study of society. She can be considered the mother of observational studies. To her, every piece of legislation was an experiment in the laboratory of society deserving study and demanding evaluation. Nightingale recognized the importance of collecting accurate and reliable data to understand healthcare outcomes. She developed standardized methods for collecting data on hospital admissions, deaths, causes of death, and other relevant factors. This systematic data collection allowed for more rigorous and reliable analysis of healthcare practices and their impact on patient outcomes. During the Crimean War (1853-1856), she collected and analyzed data on mortality rates among soldiers. She created statistical diagrams, such as the famous polar area diagram or “coxcomb,” to illustrate the causes of mortality. These visual representations helped to convey complex information in a clear and understandable way. Nightingale’s observations and statistical analyses led her to emphasize the importance of sanitation and hygiene in healthcare settings. She advocated for improvements in cleanliness, ventilation, and sanitation in hospitals, recognizing the impact of these factors on the health and well-being of patients. Beyond the battlefield, Nightingale continued her work in public health. She used statistical evidence to advocate for healthcare reforms and improvements in public health infrastructure. Her efforts played a crucial role in shaping public health policies and practices.</p>
+<p>The work of Nightingale would nowadays be classified as an <em>observational study</em>. An observational study is a research design where researchers observe and collect data on existing groups of people or phenomena without intervening or manipulating any variables. Unlike randomized controlled trials, researchers do not assign participants to different groups and do not directly influence the outcome.</p>
 <p>George Washington (1732-1799), on the other hand, had made an enormous fortune in farming, and one of the distinguishing features of his farming practices was the use of what we nowadays call a <em>controlled experiment</em>. He was deeply interested in improving agricultural techniques and conducted numerous experiments at his Mount Vernon estate. One of his most notable experiments involved dividing his land into plots and testing different crop rotations and fertilization methods. Washington recognized the importance of sustainable agriculture and the detrimental effects of monoculture (growing the same crop year after year) on soil fertility. He observed how tobacco, his primary cash crop at the time, depleted the soil nutrients, leading to diminishing yields. To address this issue and improve the long-term health of his land, he began experimenting with crop rotation and soil management techniques.</p>
 <p>Washington divided his land into several plots, each receiving different treatments. He experimented with various crop rotations, including wheat-fallow, wheat-rye-fallow, and corn-wheat-fallow. These rotations aimed to prevent soil depletion and promote its natural restoration by planting nitrogen-fixing crops like rye and clover. He also tested different fertilizer applications on various plots. He used manure, compost, and even imported materials like gypsum and marl to improve soil fertility and crop yields.</p>
 <p>Washington meticulously documented his experiments in his agricultural diaries. He recorded planting dates, yields, weather conditions, and observations on crop growth and soil health. This meticulous record-keeping allowed him to analyze the effectiveness of different treatments and compare their impact on crop yields and soil quality.</p>
@@ -495,45 +502,83 @@ Figure&nbsp;16.1: Plot layout at the Mount Vernon’s Pioneer Farm
 </div>
 <p>George Washington’s commitment to experimentation and innovation made him a pioneer in American agriculture. His plot-based experiments demonstrated the effectiveness of crop rotation and soil management in promoting sustainable farming practices. His work continues to inspire farmers today and serves as a valuable resource for understanding agricultural history and best practices.</p>
 <p>Later, at the turn of the 20th century, Ronald Fisher (1890-1962) developed the theory of experimental design which allowed for controlled experiments, known as randomized controlled trials (RCT). Fisher’s work laid the foundation for modern experimental design and analysis, providing a rigorous statistical framework for conducting randomized controlled trials. His contributions to experimental design and ANOVA were crucial in establishing the importance of randomized trials in research. He emphasized the importance of randomization and control groups in experimental design, recognizing their crucial role in establishing causal relationships.</p>
-<p>The modern randomized controlled trial (RCT) in medicine is most often attributed to Sir Austin Bradford Hill. In 1948, Hill published a landmark paper titled “Streptomycin Treatment of Pulmonary Tuberculosis” in the British Medical Journal, which described the first fully randomized, double-blind clinical trial. This study is considered a turning point in the history of medical research and established the RCT as the gold standard for evaluating the effectiveness of medical treatments.</p>
+<section id="split-plot-designs-and-rothamsted" class="level2" data-number="16.1">
+<h2 data-number="16.1" class="anchored" data-anchor-id="split-plot-designs-and-rothamsted"><span class="header-section-number">16.1</span> Split-Plot Designs and Rothamsted</h2>
+<p>While Fisher championed randomization, practical constraints in agriculture often made complete randomization difficult. At the Rothamsted Experimental Station, where Fisher worked, researchers frequently encountered situations where some factors were difficult or expensive to randomize across small individual plots, while others were easy.</p>
+<p>For example, consider an experiment testing the effects of two factors: <strong>irrigation methods</strong> (Factor A) and <strong>fertilizer types</strong> (Factor B). Applying different irrigation methods (e.g., flood vs.&nbsp;drip) typically requires large equipment and infrastructure, making it impractical to switch methods for every small plot of land. In contrast, changing fertilizer types is relatively easy and can be done by hand on smaller patches.</p>
+<p>If we were to use a completely randomized design, we would have to randomly assign irrigation and fertilizer combinations to every small plot, which might require an impossible amount of plumbing/setup changes. Fisher and his colleagues formalized the <strong>Split-Plot Design</strong> to handle this.</p>
+<p>In a split-plot design, the experimental units are nested: 1. <strong>Whole Plots</strong>: Large areas of land to which the “hard-to-change” factor (e.g., irrigation) is applied. 2. <strong>Subplots</strong>: Smaller divisions within each whole plot to which the “easy-to-change” factor (e.g., fertilizer) is applied.</p>
+<p>This design is a compromise. By restricting randomization of the main factor to larger blocks, we sacrifice some precision in estimating the main effect of Factor A (irrigation). However, we gain higher precision in estimating the effect of Factor B (fertilizer) and the <em>interaction</em> between A and B, because comparisons between fertilizers are made within the same whole plot, holding the irrigation method constant.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">graph TD
+    subgraph Whole_Plot_1 [Whole Plot 1: Irrigation Method A]
+        Subplot_1_1[Subplot 1: Fertilizer X]
+        Subplot_1_2[Subplot 2: Fertilizer Y]
+    end
+    subgraph Whole_Plot_2 [Whole Plot 2: Irrigation Method B]
+        Subplot_2_1[Subplot 1: Fertilizer Y]
+        Subplot_2_2[Subplot 2: Fertilizer X]
+    end
+    style Whole_Plot_1 fill:#e1f5fe,stroke:#01579b
+    style Whole_Plot_2 fill:#fff3e0,stroke:#ff6f00
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>This hierarchical structure is not limited to agriculture. In modern industrial and medical experiments, we often see similar structures. For instance, in a hospital trial, a new sanitation protocol (Factor A) might be applied to entire hospital wings (Whole Plots) because it’s hard to have different protocols for adjacent rooms, while individual patients within those wings (Subplots) might be randomized to receive different medications (Factor B). Understanding these constraints is crucial ensuring that the statistical analysis accounts for the correlations among subplots within the same whole plot; ignoring this nesting leads to underestimated standard errors and overconfident conclusions.</p>
+</section>
+<section id="the-question-of-causation" class="level2" data-number="16.2">
+<h2 data-number="16.2" class="anchored" data-anchor-id="the-question-of-causation"><span class="header-section-number">16.2</span> The Question of Causation</h2>
+<p>Randomized controlled trials (RCTs) and field experiments are widely considered the gold standard for establishing causation because they allow researchers to isolate the effect of a specific intervention or treatment from other confounding factors. The main principle of RCTs and field experiments is randomization, which ensures that the treatment and control groups are similar in all respects except for the treatment. This allows researchers to attribute any differences in outcomes between the two groups to the treatment, rather than to other factors.</p>
+<p>Randomization helps to control for <em>confounding variables</em>, which are factors that are associated with both the treatment and the outcome variable. By randomly assigning participants to groups, researchers can ensure that any confounding variables are evenly distributed between the groups. The control group serves as a baseline for comparison. It is a group that is not exposed to the treatment or intervention being studied. By comparing the outcomes of the treatment group and the control group, researchers can isolate the effect of the treatment. Any differences in the outcomes between the two groups can be attributed to the treatment.</p>
+<p>The modern randomized controlled trial (RCT) in medicine is most often attributed to Sir Austin Bradford Hill. In 1948, Hill published a landmark paper titled “Streptomycin Treatment of Pulmonary Tuberculosis” in the <em>British Medical Journal</em>, which described the first fully randomized, double-blind clinical trial. This study is considered a turning point in the history of medical research and established the RCT as the gold standard for evaluating the effectiveness of medical treatments.</p>
 <p>Randomized trials and observational studies are two distinct approaches to gathering and analyzing data in research studies. Here’s a breakdown of their key differences:</p>
 <div class="quarto-layout-panel" data-layout-ncol="2">
 <div class="quarto-layout-row">
 <div class="column quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
-<p><strong>Randomized Trials</strong>:</p>
+<section id="randomized-trials" class="level3">
+<h3 class="anchored" data-anchor-id="randomized-trials">Randomized Trials</h3>
 <ul>
-<li>Definition: Participants are randomly assigned to different groups, with one group receiving the intervention being studied and the other group receiving a control intervention or placebo.</li>
-<li>Purpose: Determine whether the intervention causes the observed outcome by controlling for other factors that might influence the results.</li>
-<li>Strengths: High internal validity, strong causal inference due to randomization, allows for isolating the effect of the intervention, minimizes selection bias through random assignment.</li>
-<li>Weaknesses: Can be expensive and time-consuming to conduct, may not be ethical or feasible for all interventions, may not be generalizable to real-world settings.</li>
+<li><em>Definition</em>: Participants are randomly assigned to different groups, with one group receiving the intervention being studied and the other group receiving a control intervention or placebo.</li>
+<li><em>Purpose</em>: Determine whether the intervention causes the observed outcome by controlling for other factors that might influence the results.</li>
+<li><em>Strengths</em>: High internal validity, strong causal inference due to randomization, allows for isolating the effect of the intervention, minimizes selection bias through random assignment.</li>
+<li><em>Weaknesses</em>: Can be expensive and time-consuming to conduct, may not be ethical or feasible for all interventions, may not be generalizable to real-world settings.</li>
 </ul>
+</section>
 </div>
 <div class="column quarto-layout-cell" style="flex-basis: 50.0%;justify-content: flex-start;">
-<p><strong>Observational Data</strong>:</p>
+<section id="observational-data" class="level3">
+<h3 class="anchored" data-anchor-id="observational-data">Observational Data</h3>
 <ul>
-<li>Definition: Data is collected on existing groups of people without any intervention being implemented. Researchers observe and analyze the data to identify relationships between variables.</li>
-<li>Purpose: Explore potential associations between variables, generate hypotheses for further research, and investigate the natural course of or phenomenon.</li>
-<li>Strengths: Often less expensive and time-consuming, can provide insights into real-world settings, can investigate interventions that are not ethically feasible to test in randomized trials.</li>
-<li>Weaknesses: Lower internal validity, susceptibility to confounding variables, cannot establish causal relationships conclusively.</li>
+<li><em>Definition</em>: Data is collected on existing groups of people without any intervention being implemented. Researchers observe and analyze the data to identify relationships between variables.</li>
+<li><em>Purpose</em>: Explore potential associations between variables, generate hypotheses for further research, and investigate the natural course of a phenomenon.</li>
+<li><em>Strengths</em>: Often less expensive and time-consuming, can provide insights into real-world settings, can investigate interventions that are not ethically feasible to test in randomized trials.</li>
+<li><em>Weaknesses</em>: Lower internal validity, susceptibility to confounding variables, cannot establish causal relationships conclusively.</li>
 </ul>
+</section>
 </div>
 </div>
 </div>
-<p>If you happen to have a choice between randomized trials and observational data (often you do not have that choice), which one should you choose? Here are a few things to consider:</p>
+<p>If you happen to have a choice between randomized trials and observational data (often you do not have that choice), which one should you choose? Consider the following:</p>
 <ul>
-<li>Research question: If the research question aims to establish causation, a randomized trial is generally preferred. However, if the goal is to explore associations or generate hypotheses, observational data may be sufficient.</li>
-<li>Available resources: Randomized trials require significant resources, while observational studies can be less expensive and time-consuming.</li>
-<li>Ethical considerations: Randomizing individuals to certain interventions may be unethical, making observational data the only option in such cases.</li>
-<li>Generalizability: Randomized trials often involve carefully controlled environments, which may limit their generalizability to real-world settings. Observational data can provide insights into how interventions work in real-world situations.</li>
+<li><em>Research question</em>: If the research question aims to establish causation, a randomized trial is generally preferred. However, if the goal is to explore associations or generate hypotheses, observational data may be sufficient.</li>
+<li><em>Available resources</em>: Randomized trials require significant resources, while observational studies can be less expensive and time-consuming.</li>
+<li><em>Ethical considerations</em>: Randomizing individuals to certain interventions may be unethical, making observational data the only option.</li>
+<li><em>Generalizability</em>: Randomized trials often involve carefully controlled environments, which may limit their generalizability to real-world settings. Observational data can provide insights into how interventions work in real-world situations.</li>
 </ul>
-<p>Ultimately, both randomized trials and observational data play crucial roles in research. Combining these two approaches can provide a more comprehensive understanding of the relationship between interventions and outcomes.</p>
-<p>Rothamsted t-ratios split-plot designs</p>
+<p>Ultimately, both randomized trials and observational data play crucial roles in research. Combining these two approaches provides a more comprehensive understanding of the relationship between interventions and outcomes.</p>
 <div id="exm-russianfraud" class="theorem example">
 <p><span class="theorem-title"><strong>Example 16.1 (Russian Election Fraud: A Field Experiment)</strong></span> <span class="citation" data-cites="enikolopov2013field">Enikolopov et al. (<a href="references.html#ref-enikolopov2013field" role="doc-biblioref">2013</a>)</span> show how a field experiment can be used to estimate electoral fraud in Russian parliamentary elections held on December 4, 2011. They randomly assigned independent observers to 156 of 3,164 polling stations in the city of Moscow. The observers were trained by the nongovernmental organization Citizen Observer. The authors compared the vote shares of the incumbent United Russia party at polling stations with and without observers. They found that the presence of observers decreased the reported vote share of United Russia by almost 11 percentage points. This suggests that the extent of the fraud was sufficient to have changed the outcome of the elections.</p>
-<div class="cell" data-layout-nrow="3" data-layout-align="center" data-null_prefix="true">
+<div class="cell" data-layout-nrow="3" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data//PNAS_data_2011.csv"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data//PNAS_data_2011.csv"</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>d <span class="sc">%&gt;%</span> <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>er_share, <span class="at">fill=</span><span class="fu">as.factor</span>(s))) <span class="sc">+</span> </span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha=</span><span class="fl">0.6</span>, <span class="at">color=</span><span class="st">"#e9ecef"</span>) <span class="sc">+</span> </span>
@@ -564,7 +609,7 @@ Figure&nbsp;16.1: Plot layout at the Mount Vernon’s Pioneer Farm
 <span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha=</span><span class="fl">0.6</span>, <span class="at">color=</span><span class="st">"#e9ecef"</span>) <span class="sc">+</span> </span>
 <span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">fill=</span><span class="st">""</span>) <span class="sc">+</span> </span>
 <span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"beta"</span>) <span class="sc">+</span> </span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"#69b3a2"</span>, <span class="st">"#404080"</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"#69b3a2"</span>, <span class="st">"#404080"</span>)) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div id="fig-russianfraud" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
@@ -654,10 +699,10 @@ Figure&nbsp;16.2: Histogram comparison of the share of votes received by differe
 </figure>
 </div>
 </div>
-<div class="cell" data-layout-align="center" data-null_prefix="true">
+<div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>dl <span class="ot">=</span> d <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">ends_with</span>(<span class="st">"_share"</span>),s,uik)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>dl <span class="ot">=</span> d <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">ends_with</span>(<span class="st">"_share"</span>),s,uik)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>dl <span class="ot">=</span> dl <span class="sc">%&gt;%</span> <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(er_share,apple_share,turnout_share,sr_share,ldpr_share,com_share),<span class="at">names_to =</span> <span class="st">"party"</span>,<span class="at">values_to =</span> <span class="st">"share"</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>df2 <span class="ot">=</span> dl <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(party,s) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">mu =</span> <span class="fu">mean</span>(share),<span class="at">sd =</span> <span class="fu">sd</span>(share)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">n</span>()))</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df2, <span class="fu">aes</span>(<span class="at">x=</span>party, <span class="at">y=</span>mu, <span class="at">fill=</span><span class="fu">as.factor</span>(s)))<span class="sc">+</span></span>
@@ -666,7 +711,7 @@ Figure&nbsp;16.2: Histogram comparison of the share of votes received by differe
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"#69b3a2"</span>, <span class="st">"#404080"</span>),<span class="at">name =</span> <span class="st">""</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Control group"</span>, <span class="st">"Treatment Group"</span>)) <span class="sc">+</span></span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_discrete</span>(<span class="at">labels=</span><span class="fu">c</span>(<span class="st">'Yabloko'</span>, <span class="st">'Communist'</span>,<span class="st">'United Russia'</span>,<span class="st">'LDPR'</span>,<span class="st">'Just Russia'</span>,<span class="st">'Turnout'</span>)) <span class="sc">+</span> </span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Mean Share"</span>) <span class="sc">+</span> <span class="fu">xlab</span>(<span class="st">""</span>) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">90</span>, <span class="at">hjust =</span> <span class="dv">1</span>)) <span class="sc">+</span> </span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>,<span class="at">legend.box =</span> <span class="st">"vertical"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>,<span class="at">legend.box =</span> <span class="st">"vertical"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-russianfraud2" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -700,24 +745,24 @@ Figure&nbsp;16.3: Bar plot comparison of the share of votes received by differen
 </thead>
 <tbody>
 <tr class="odd">
-<td><strong>Random Assignment</strong></td>
+<td><em>Random Assignment</em></td>
 <td>Auditors were randomly assigned to plants (rather than plants choosing their auditors)</td>
 </tr>
 <tr class="even">
-<td><strong>Central Payment</strong></td>
+<td><em>Central Payment</em></td>
 <td>Auditors were paid from a central pool at a fixed rate</td>
 </tr>
 <tr class="odd">
-<td><strong>Random Backchecks</strong></td>
+<td><em>Random Backchecks</em></td>
 <td>Independent technical agencies conducted random backchecks of auditor reports</td>
 </tr>
 <tr class="even">
-<td><strong>Incentive Pay</strong></td>
+<td><em>Incentive Pay</em></td>
 <td>In the second year, incentive pay was provided for accurate reporting</td>
 </tr>
 </tbody>
 </table>
-<p>Simply speaking, in the control group the auditors were paid by the plants they audited, which created a conflict of interest that led to systematic misreporting of pollution levels. In contrast, the treatment group had auditors paid from a central pool, reducing this conflict and incentivizing more accurate reporting. The random backchecks served as a deterrent against misreporting, while the incentive pay in the second year further encouraged truthful reporting.</p>
+<p>In the control group, auditors were paid by the plants they audited. This created a blatant conflict of interest: plants could simply hire auditors who would provide favorable reports, leading to systematic misreporting of pollution levels. In contrast, the treatment group broke this client-auditor relationship by paying auditors from a central pool and independently verifying their work. The random backchecks served as a robust deterrent against misreporting, while the incentive pay further encouraged honesty.</p>
 <p>Further, researchers performed backchecks, which are independent verification. Backchecks are follow-up visits conducted by independent technical agencies to verify the accuracy of pollution readings reported by third-party auditors. They serve as a quality control mechanism to monitor whether auditors are truthfully reporting actual pollution levels or manipulating data to show false compliance with regulatory standards.</p>
 <p>The figure below (copied from the original paper) displays the distribution of Suspended Particulate Matter (SPM) concentrations measured in boiler-stack samples during the midline survey. Left plot presents the distributions of readings from both audits and backchecks at control plants, while right plot presents the corresponding distributions for treatment plants. A vertical line indicates the regulatory maximum concentration limit of 150 mg/N m3 for SPM, with the region between 75% and 100% of this limit highlighted in gray shading.</p>
 <div class="quarto-layout-panel" data-layout-ncol="2">
@@ -746,33 +791,31 @@ Figure&nbsp;16.3: Bar plot comparison of the share of votes received by differen
 <p>The Gujarat environmental audit experiment exemplifies how RCTs can uncover hidden mechanisms—in this case, corruption in regulatory reporting—and test solutions that might not have been evident from observational data alone. The study’s findings demonstrate that reformed incentives for third-party auditors can improve their reporting and make regulation more effective, with tangible benefits for environmental quality.</p>
 <p>As RCTs continue to evolve and spread across different domains of economics, they promise to further strengthen the evidence base for policy decisions, ultimately leading to more effective interventions and better outcomes for society.</p>
 </div>
-<section id="the-question-of-causation" class="level2" data-number="16.1">
-<h2 data-number="16.1" class="anchored" data-anchor-id="the-question-of-causation"><span class="header-section-number">16.1</span> The Question of Causation</h2>
-<p>Randomized controlled trials (RCTs) and field experiments are considered the gold standard for establishing causation because they allow researchers to isolate the effect of a specific intervention or treatment from other confounding factors. The main principle of RCTs and field experiments is randomization, which ensures that the treatment and control groups are similar in all respects except for the treatment. This allows researchers to attribute any differences in outcomes between the two groups to the treatment, rather than to other factors. Randomization helps to control for <em>confounding variables</em>, which are factors that are associated with both the treatment and the outcome variable. By randomly assigning participants to groups, researchers can ensure that any confounding variables are evenly distributed between the groups. The control group serves as a baseline for comparison. It is a group that is not exposed to the treatment or intervention being studied. By comparing the outcomes of the treatment group and the control group, researchers can isolate the effect of the treatment. Any differences in the outcomes between the two groups can be attributed to the treatment, rather than to other factors.</p>
+</section>
+<section id="digital-experimentation-and-observational-data" class="level2" data-number="16.3">
+<h2 data-number="16.3" class="anchored" data-anchor-id="digital-experimentation-and-observational-data"><span class="header-section-number">16.3</span> Digital Experimentation and Observational Data</h2>
 <p>For many years, the main areas of application of randomized trials were medicine and agriculture. In medicine, randomized trials are used to test the effectiveness of new drugs and treatments. In agriculture, randomized trials are used to test the effectiveness of new fertilizers, pesticides, and other agricultural inputs. However, with the rise of the internet, randomized trials have become increasingly popular for testing the effectiveness of online interventions, such as email campaigns, website designs, and social media ads. When applied to user experience and marketing, randomized trials are often called A/B tests. The idea of A/B testing is the same: randomly assign users to different versions of a website or an email campaign and compare the outcomes. However, the level or “rigor” of designing the experiment is often lower than in medicine or agriculture. There are fewer strict rules about ethics, randomization, sample size, and statistical analysis. For example, randomization is sometimes completely ignored in A/B testing. Instead of assigning users randomly to groups, they are divided into groups based on factors like time of day, location, or browsing history. This can introduce bias into the results, as the groups may not be comparable. As a result, A/B testing is cheap and quick to conduct, as it can be done online without the need for IRB approval or recruitment of participants. Participants most of the time do not even know that they are participating in an A/B experiment. Furthermore, A/B testing is primarily focused on measuring the comparative performance of variations without necessarily establishing a causal relationship. It answers questions like, “Which version of our web page leads to more clicks?”</p>
 <p>Yet another area where RCTs are becoming popular is economic studies. For example, randomized trials are used to test the effectiveness of educational interventions, such as tutoring programs and online courses. In recent years, randomized trials have been used to study a wide range of other phenomena, including education, economics, and public policy.</p>
-<p>While RCTs and field experiments are powerful tools for establishing causation, they are not always feasible or ethical. In some cases, observational studies may be the best way to study a particular phenomenon. However, even in observational studies, researchers can use techniques such as matching and instrumental variables to try to control for confounding variables. It is important to remember that even RCTs and field experiments cannot definitively prove causation. However, they provide the strongest evidence possible for a causal relationship between a treatment or intervention and an outcome.</p>
 <p>Diane Lambert was the original statistician who promoted the ideas of proper statistical usage of observational data among internet companies. She has presented on how to detect selection bias in data streams drawn from transaction logs, ad-systems, etc.; diagnostics to judge when bias overwhelms signal; and practical fixes such as propensity-score weighting, doubly-robust estimators, post-stratification, and simulation so that credible causal conclusions can still be drawn from field/observational data. For example, at JSM 2011 (Miami) she co-authored the session “The Effectiveness of Display Ads,” contrasting large-scale field experiments with observational analyses of ad-click logs.</p>
 <p>The advent of digital data has fundamentally transformed the practice of statistics, shifting the field from a discipline focused on small, carefully collected samples to one that must grapple with massive, often messy datasets generated as byproducts of digital systems. In the pre-digital era, statisticians worked primarily with structured, purposefully collected data through surveys, experiments, and clinical trials, where the sample size was a critical constraint and every observation was expensive to obtain. Today, organizations routinely collect terabytes of data from web traffic, sensor networks, financial transactions, and social media interactions, creating what some have called a “data deluge.” This shift has necessitated new statistical approaches that can handle high-dimensional data, complex dependencies, and the computational challenges of scale. Machine learning algorithms, once considered separate from traditional statistics, have become essential tools for extracting patterns from these vast datasets. However, this transition has also introduced new challenges: the need to distinguish correlation from causation in observational data, the importance of addressing selection bias in non-random samples, and the ethical considerations of privacy and algorithmic fairness. The field has evolved to embrace both the opportunities presented by big data—such as the ability to detect subtle patterns and make real-time predictions—and the responsibility to develop robust methods that can provide reliable insights despite the inherent noise and complexity of digital data sources.</p>
-<p>Markets give signals in the form of betting odds, e.g., Polymarket uses collective thought to produce a signal. It often happens that the collective thought outperforms the best experts.</p>
 </section>
-<section id="bart-for-causal-inference" class="level2" data-number="16.2">
-<h2 data-number="16.2" class="anchored" data-anchor-id="bart-for-causal-inference"><span class="header-section-number">16.2</span> BART For Causal Inference</h2>
+<section id="bart-for-causal-inference" class="level2" data-number="16.4">
+<h2 data-number="16.4" class="anchored" data-anchor-id="bart-for-causal-inference"><span class="header-section-number">16.4</span> BART For Causal Inference</h2>
 <p>Estimating the causal effect of an intervention, such as a new drug, a marketing campaign, or a public policy, is a central goal across science and industry. While the gold standard for causal inference is the Randomized Controlled Trial (RCT), it is often infeasible, unethical, or too expensive to conduct. Researchers must therefore turn to observational data, where the assignment of treatment is not controlled by the investigator. This introduces a fundamental challenge: individuals who receive the treatment may be systematically different from those who do not, a problem known as confounding. Separating the true effect of the treatment from these pre-existing differences is the primary task of causal inference from observational data.</p>
 <p>To formalize causal questions, we rely on the Rubin Causal Model (RCM), also known as the potential outcomes framework. For a binary treatment <span class="math inline">\(Z\)</span> (where <span class="math inline">\(Z_i=1\)</span> if individual <span class="math inline">\(i\)</span> receives the treatment and <span class="math inline">\(Z_i=0\)</span> otherwise), we posit that each individual <span class="math inline">\(i\)</span> has two potential outcomes: * <span class="math inline">\(Y_i(1)\)</span>: The outcome that would be observed if individual <span class="math inline">\(i\)</span> were exposed to the treatment. * <span class="math inline">\(Y_i(0)\)</span>: The outcome that would be observed if individual <span class="math inline">\(i\)</span> were exposed to the control (no treatment).</p>
 <p>This framework leads directly to what Holland (1986) termed the “fundamental problem of causal inference”: for any given individual, we can only ever observe one of these two potential outcomes. The outcome we do not see is the <em>counterfactual</em>. Causal inference can thus be viewed as a missing data problem, where the goal is to estimate the values of the unobserved potential outcomes.</p>
 <p>From this foundation, we can define several key causal quantities, or <em>estimands</em>:</p>
 <ul>
-<li>Individual Treatment Effect (ITE): The effect for a single individual, defined as <span class="math display">\[\tau_i = Y_i(1) - Y_i(0).\]</span> This is typically unobservable.</li>
-<li>Average Treatment Effect (ATE): The average effect across the entire population, <span class="math display">\[\tau_{ATE} = E[Y(1) - Y(0)].\]</span> This is often the primary estimand of interest for broad policy questions.</li>
-<li>Average Treatment Effect on the Treated (ATT): The average effect for those who actually received the treatment, <span class="math display">\[\tau_{ATT} = E[Y(1) - Y(0) | Z=1].\]</span></li>
-<li>Conditional Average Treatment Effect (CATE): The average effect for a subpopulation defined by a set of covariates <span class="math inline">\(X=x\)</span>, <span class="math display">\[\tau(x) = E[Y(1) - Y(0) | X=x].\]</span> Understanding the CATE allows for the exploration of treatment effect heterogeneity.</li>
+<li><em>Individual Treatment Effect (ITE)</em>: The effect for a single individual, defined as <span class="math display">\[\tau_i = Y_i(1) - Y_i(0).\]</span> This is typically unobservable.</li>
+<li><em>Average Treatment Effect (ATE)</em>: The average effect across the entire population, <span class="math display">\[\tau_{ATE} = \E[Y(1) - Y(0)].\]</span> This is often the primary estimand of interest for broad policy questions.</li>
+<li><em>Average Treatment Effect on the Treated (ATT)</em>: The average effect for those who actually received the treatment, <span class="math display">\[\tau_{ATT} = \E[Y(1) - Y(0) \mid Z=1].\]</span></li>
+<li><em>Conditional Average Treatment Effect (CATE)</em>: The average effect for a subpopulation defined by a set of covariates <span class="math inline">\(X=x\)</span>, <span class="math display">\[\tau(x) = \E[Y(1) - Y(0) \mid X=x].\]</span> Understanding the CATE allows for the exploration of treatment effect heterogeneity.</li>
 </ul>
 <p>To estimate these causal estimands from observational data, we must rely on a set of critical, untestable assumptions that connect the observed data to the unobserved potential outcomes. These are known as identification assumptions.</p>
 <ol type="1">
-<li>Stable Unit Treatment Value Assumption (SUTVA): This assumption has two parts. First, it assumes there is no interference between units, meaning one individual’s treatment status does not affect another’s outcome. Second, it assumes there are no hidden variations of the treatment; the treatment assigned to one individual is the same as the treatment assigned to any other.</li>
-<li>Ignorability (or Unconfoundedness): This is the most crucial assumption. It states that, conditional on a set of observed pre-treatment covariates <span class="math inline">\(X\)</span>, treatment assignment <span class="math inline">\(Z\)</span> is independent of the potential outcomes: <span class="math display">\[(Y(0), Y(1)) \perp Z | X\]</span>. In essence, it assumes that we have measured all the common causes of both treatment selection and the outcome. If this holds, then within any stratum defined by the covariates <span class="math inline">\(X\)</span>, the treatment assignment is “as-if” random.</li>
-<li>Positivity (or Overlap/Common Support): This assumption requires that for any set of covariate values <span class="math inline">\(x\)</span> present in the population, there is a non-zero probability of being in either the treatment or the control group: <span class="math inline">\(0 &lt; P(Z=1 | X=x) &lt; 1\)</span>. This ensures that we can find both treated and control individuals with similar characteristics, making comparison meaningful and avoiding extrapolation to regions with no data.</li>
+<li><em>Stable Unit Treatment Value Assumption (SUTVA)</em>: This assumption has two parts. First, it assumes there is no interference between units, meaning one individual’s treatment status does not affect another’s outcome. Second, it assumes there are no hidden variations of the treatment; the treatment assigned to one individual is the same as the treatment assigned to any other.</li>
+<li><em>Ignorability (or Unconfoundedness)</em>: This is the most crucial assumption. It states that, conditional on a set of observed pre-treatment covariates <span class="math inline">\(X\)</span>, treatment assignment <span class="math inline">\(Z\)</span> is independent of the potential outcomes: <span class="math display">\[(Y(0), Y(1)) \perp Z \mid X\]</span>. In essence, it assumes that we have measured all the common causes of both treatment selection and the outcome. If this holds, then within any stratum defined by the covariates <span class="math inline">\(X\)</span>, the treatment assignment is “as-if” random.</li>
+<li><em>Positivity (or Overlap/Common Support)</em>: This assumption requires that for any set of covariate values <span class="math inline">\(x\)</span> present in the population, there is a non-zero probability of being in either the treatment or the control group: <span class="math inline">\(0 &lt; P(Z=1 \mid X=x) &lt; 1\)</span>. This ensures that we can find both treated and control individuals with similar characteristics, making comparison meaningful and avoiding extrapolation to regions with no data.</li>
 </ol>
 <p>To demonstrate the application of Bayesian methods to this challenge, we use the famous Lalonde dataset, a canonical benchmark in the causal inference literature. The dataset addresses a real-world policy question: evaluating the effectiveness of the National Supported Work (NSW) Demonstration, a federally funded job training program implemented in the US from 1975-1979. The program was designed to help individuals facing significant social and economic barriers (e.g., former drug addicts, ex-convicts, high school dropouts) improve their labor market prospects. The treatment (<span class="math inline">\(treat\)</span>) is participation in this program, and the primary outcome (<span class="math inline">\(re78\)</span>) is the individual’s real earnings in 1978, after the program.</p>
 <p>The historical importance of this dataset stems from Robert Lalonde’s 1986 paper, which delivered a powerful critique of the non-experimental methods used at the time. Lalonde started with data from an actual RCT, which provided an unbiased estimate of the program’s effect. He then took the treated group from the experiment but replaced the experimental control group with a non-experimental comparison group drawn from large public surveys—the Panel Study of Income Dynamics (PSID) and the Current Population Survey (CPS). He showed that the standard econometric models of the era failed to replicate the experimental benchmark when applied to this new, confounded dataset, casting serious doubt on their reliability for policy evaluation. Our task is to see if a modern, flexible Bayesian method—Bayesian Additive Regression Trees (BART)—can succeed where these earlier methods failed.</p>
@@ -855,21 +898,21 @@ Table&nbsp;16.1: Covariate Balance in the Lalonde Non-Experimental Dataset. <em>
 <p>In most machine learning algorithms, overfitting is controlled through techniques like cross-validation or complexity penalties. BART, being a fully Bayesian method, achieves this through a carefully specified set of <em>regularization priors</em>. These priors are designed to keep each tree simple and prevent any single tree from dominating the overall fit.</p>
 <p>The key priors are:</p>
 <ol type="1">
-<li>Prior on Tree Structure: This prior strongly encourages shallow trees. It is defined by a rule governing the probability that a node at a certain depth <span class="math inline">\(d\)</span> will be split further. This probability is typically modeled as <span class="math display">\[p(T_j) = \alpha(1+d)^{-\beta},\]</span> where <span class="math inline">\(\alpha \in (0,1)\)</span> and <span class="math inline">\(\beta \ge 0\)</span> are hyperparameters. Setting <span class="math inline">\(\beta\)</span> to a value like 2 ensures that the probability of splitting decreases rapidly with depth, keeping the trees small.</li>
-<li>Prior on Terminal Node Parameters: After the response variable <span class="math inline">\(Y\)</span> is centered and scaled, the values <span class="math inline">\(\mu_{jk}\)</span> in the terminal nodes of each tree are given a Normal prior, <span class="math display">\[
+<li><em>Prior on Tree Structure</em>: This prior strongly encourages shallow trees. It is defined by a rule governing the probability that a node at a certain depth <span class="math inline">\(d\)</span> will be split further. This probability is typically modeled as <span class="math display">\[p(T_j) = \alpha(1+d)^{-\beta},\]</span> where <span class="math inline">\(\alpha \in (0,1)\)</span> and <span class="math inline">\(\beta \ge 0\)</span> are hyperparameters. Setting <span class="math inline">\(\beta\)</span> to a value like 2 ensures that the probability of splitting decreases rapidly with depth, keeping the trees small.</li>
+<li><em>Prior on Terminal Node Parameters</em>: After the response variable <span class="math inline">\(Y\)</span> is centered and scaled, the values <span class="math inline">\(\mu_{jk}\)</span> in the terminal nodes of each tree are given a Normal prior, <span class="math display">\[
 \mu_{jk} \sim N(0, \sigma_{\mu}^2).
 \]</span> This prior shrinks the predictions within each leaf towards zero. Because the final prediction is a sum over <span class="math inline">\(m\)</span> trees, this shrinkage ensures that the contribution of each individual tree is small.</li>
-<li>Prior on Error Variance: The residual variance <span class="math inline">\(\sigma^2\)</span> is typically given a conjugate Inverse-Gamma prior. This prior is usually chosen to be weakly informative, allowing the data to dominate the posterior estimate of the noise level, but it still constrains the variance to be reasonable.</li>
+<li><em>Prior on Error Variance</em>: The residual variance <span class="math inline">\(\sigma^2\)</span> is typically given a conjugate Inverse-Gamma prior. This prior is usually chosen to be weakly informative, allowing the data to dominate the posterior estimate of the noise level, but it still constrains the variance to be reasonable.</li>
 </ol>
 <p>Together, these priors act as a sophisticated regularization mechanism that allows BART to fit complex functions while being highly resistant to overfitting.</p>
-<p>BART models are fit using a Markov chain Monte Carlo (MCMC) algorithm, specifically a form of Gibbs sampler known as Bayesian backfitting. The algorithm does not find a single “best” model. Instead, it generates thousands of samples from the joint posterior distribution of all model parameters: <span class="math inline">\(p(T_1,\ldots,T_m, M_1,\ldots,M_m, \sigma | Y, X)\)</span>.</p>
+<p>BART models are fit using a Markov chain Monte Carlo (MCMC) algorithm, specifically a form of Gibbs sampler known as Bayesian backfitting. The algorithm does not find a single “best” model. Instead, it generates thousands of samples from the joint posterior distribution of all model parameters: <span class="math inline">\(p(T_1,\ldots,T_m, M_1,\ldots,M_m, \sigma \mid Y, X)\)</span>.</p>
 <p>The fitting process works iteratively :</p>
 <ol type="1">
 <li>Initialize all <span class="math inline">\(m\)</span> trees and <span class="math inline">\(\sigma\)</span>.</li>
 <li>For each tree <span class="math inline">\(j\)</span> from 1 to <span class="math inline">\(m\)</span>:
 <ol type="a">
 <li>Calculate the “partial residual” by subtracting the predictions of all other trees from the outcome: <span class="math display">\[R_j = Y - \sum_{k \neq j} g(x; T_k, M_k)\]</span>.</li>
-<li>Draw a new tree structure <span class="math inline">\(T_j\)</span> and its leaf parameters <span class="math inline">\(M_j\)</span> from their posterior distribution conditional on this partial residual, <span class="math display">\[p(T_j, M_j | R_j, \sigma).\]</span></li>
+<li>Draw a new tree structure <span class="math inline">\(T_j\)</span> and its leaf parameters <span class="math inline">\(M_j\)</span> from their posterior distribution conditional on this partial residual, <span class="math display">\[p(T_j, M_j \mid R_j, \sigma).\]</span></li>
 </ol></li>
 <li>After iterating through all trees, draw a new value for <span class="math inline">\(\sigma\)</span> from its posterior conditional on the current residuals.</li>
 <li>Repeat steps 2 and 3 for thousands of iterations.</li>
@@ -877,7 +920,7 @@ Table&nbsp;16.1: Covariate Balance in the Lalonde Non-Experimental Dataset. <em>
 <p>The output of this process is not one set of trees, but a collection of (e.g., 5000) sets of trees, where each set represents a plausible regression function drawn from the posterior distribution. This collection of draws is the key to quantifying uncertainty in a Bayesian way.</p>
 <p>The power of BART for causal inference lies in how it leverages the full posterior distribution to estimate counterfactuals. The strategy aligns perfectly with the Bayesian view of causal inference as a missing data problem, as articulated by Rubin (1978).</p>
 <p>The standard approach for causal inference with BART is to model the outcome <span class="math inline">\(Y\)</span> as a function of both the covariates <span class="math inline">\(X\)</span> and the treatment indicator <span class="math inline">\(Z\)</span>. The model learns a single, flexible response surface:</p>
-<p><span class="math display">\[E[Y | X, Z] = f(X, Z)\]</span></p>
+<p><span class="math display">\[E[Y \mid X, Z] = f(X, Z)\]</span></p>
 <p>Here, the treatment <span class="math inline">\(Z\)</span> is included as if it were “just another covariate” in the set of predictors fed to the BART algorithm. The model is free to discover how the effect of <span class="math inline">\(Z\)</span> varies with <span class="math inline">\(X\)</span> through the tree-splitting process. The Conditional Average Treatment Effect (CATE) is then simply the difference in the predictions from this learned function:</p>
 <p><span class="math display">\[\tau(x) = f(x, Z=1) - f(x, Z=0)\]</span></p>
 <p>The core of the estimation process is a predictive step that is repeated for each draw from the MCMC sampler. Suppose the MCMC algorithm has produced <span class="math inline">\(S\)</span> posterior draws of the function <span class="math inline">\(f\)</span>. For each draw <span class="math inline">\(s = 1,\ldots, S\)</span>:</p>
@@ -900,8 +943,8 @@ Table&nbsp;16.1: Covariate Balance in the Lalonde Non-Experimental Dataset. <em>
 <p>This is a profoundly powerful result. Instead of a single point estimate and a standard error, the Bayesian approach yields a full probability distribution for the unknown causal effect. From this posterior distribution, we can easily calculate a posterior mean (our best point estimate) and a 95% <em>credible interval</em>. Unlike a frequentist confidence interval, the Bayesian credible interval has a direct and intuitive probabilistic interpretation: given our data and model, there is a 95% probability that the true value of the ATE lies within this range. This propagation of uncertainty from the model parameters all the way to the final causal estimate is a hallmark of the Bayesian approach.</p>
 <p>We now apply this framework to the Lalonde dataset to estimate the causal effect of the NSW job training program on 1978 earnings.</p>
 <p>The analysis is streamlined by using the <code>bartCause</code> package in <code>R</code>, which is specifically designed for causal inference with BART. The package provides a wrapper around the core <code>dbarts</code> implementation, simplifying the process of fitting the model and generating counterfactuals. A typical function call would look like this:</p>
-<div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the package and data</span></span>
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the package and data</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bartCause)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(lalonde)</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -915,7 +958,7 @@ Table&nbsp;16.1: Covariate Balance in the Lalonde Non-Experimental Dataset. <em>
 <span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">confounders =</span> lalonde[, confounders],</span>
 <span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimand =</span> <span class="st">"ate"</span>,</span>
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">commonSup.rule =</span> <span class="st">"sd"</span> <span class="co"># Rule to handle poor overlap</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>In this call, we specify the outcome (<code>re78</code>), the binary treatment (treat), and the matrix of pre-treatment confounders. We set estimand = <code>ate</code> to target the Average Treatment Effect</p>
 <p>Before interpreting the causal estimates, it is essential to perform MCMC diagnostics to ensure the algorithm has converged to a stable posterior distribution. The bartCause package provides plotting functions for this purpose. Trace plots for key parameters, such as the posterior draws of the ATE and the residual standard deviation (<span class="math inline">\(\sigma\)</span>), should be examined. These plots should show the chains mixing well and exploring a consistent region of the parameter space, without long-term drifts or stuck periods, indicating that the sampler has converged.</p>
@@ -976,11 +1019,11 @@ Table&nbsp;16.2: Comparison of ATE Estimates for the NSW Program. Note: Estimate
 <p>Because BART provides a posterior predictive distribution of potential outcomes for every individual in the dataset, we can estimate an Individual Conditional Average Treatment Effect (ICATE) for each person. By plotting a histogram of the posterior means of these ICATEs, we can visualize the distribution of effects across the sample. This reveals whether the effect is consistent for everyone or if there is substantial variation, with some individuals benefiting much more than others.</p>
 <p>To understand what drives this heterogeneity, we can examine how the estimated CATE varies as a function of key pre-treatment covariates. These relationships are often visualized using partial dependence plots. For the Lalonde data, such analyses have revealed that the effect of the job training program is not constant but varies non-linearly with characteristics like age and pre-treatment income (re74). For instance, the program’s benefit might increase with age up to a certain point and then decline, or it might be most effective for individuals with low-to-moderate prior earnings but less so for those with very low or higher earnings. These are nuanced, data-driven insights that would be completely missed by a standard linear regression model that only estimates a single average effect.</p>
 <p>A subtle but important issue can arise when using flexible regularized models like BART for causal inference in the presence of strong confounding, as is the case here. The regularization priors, which are designed to prevent overfitting, can shrink the estimated effects of the confounders towards zero. Because the treatment Z is highly correlated with these confounders, the model may mistakenly attribute some of the effect of the confounders to the treatment, leading to a bias known as Regularization-Induced Confounding (RIC).</p>
-<p>A powerful solution, proposed by <span class="citation" data-cites="hahn2020bayesian">Hahn, Murray, and Carvalho (<a href="references.html#ref-hahn2020bayesian" role="doc-biblioref">2020</a>)</span>, is to first estimate the propensity score, <span class="math inline">\(\pi(x) = P(Z=1|X)\)</span>, which is the probability of receiving treatment given the covariates X. This score serves as a one-dimensional summary of all confounding information. This estimated propensity score is then included as an additional predictor in the BART outcome model. By providing this confounding summary directly to the model, we help the BART algorithm differentiate between the prognostic effects of the covariates (captured by <span class="math inline">\(\pi(x)\)</span>) and the causal effect of the treatment Z, thereby mitigating RIC. This “ps-BART” approach is considered state-of-the-art and is easily implemented in the <code>bartCause</code> package by setting the argument <code>p.scoreAsCovariate = TRUE</code></p>
+<p>A powerful solution, proposed by <span class="citation" data-cites="hahn2020bayesian">Hahn, Murray, and Carvalho (<a href="references.html#ref-hahn2020bayesian" role="doc-biblioref">2020</a>)</span>, is to first estimate the propensity score, <span class="math inline">\(\pi(x) = P(Z=1 \mid X)\)</span>, which is the probability of receiving treatment given the covariates X. This score serves as a one-dimensional summary of all confounding information. This estimated propensity score is then included as an additional predictor in the BART outcome model. By providing this confounding summary directly to the model, we help the BART algorithm differentiate between the prognostic effects of the covariates (captured by <span class="math inline">\(\pi(x)\)</span>) and the causal effect of the treatment Z, thereby mitigating RIC. This “ps-BART” approach is considered state-of-the-art and is easily implemented in the <code>bartCause</code> package by setting the argument <code>p.scoreAsCovariate = TRUE</code></p>
 <section id="bart-versus-propensity-score-matching-psm" class="level3">
 <h3 class="anchored" data-anchor-id="bart-versus-propensity-score-matching-psm">BART versus Propensity Score Matching (PSM)</h3>
 <p>BART is one of several methods for causal inference from observational data. It is instructive to compare its philosophy with that of another widely used technique: Propensity Score Matching (PSM). BART and PSM represent two different philosophies for tackling confounding. Propensity Score Matching (PSM): This approach focuses on the design of the study. The goal is to use the observed data to construct a new sample in which the treatment and control groups are balanced on their observed covariates, thereby mimicking the properties of an RCT. The propensity score is the central tool used to achieve this balance. The analysis of the outcome is then performed on this newly created, “balanced” dataset.</p>
-<p>BART focuses on the analysis stage. The goal is to build a highly flexible and accurate predictive model for the outcome that explicitly includes the treatment and confounders, <span class="math inline">\(E[Y|X,Z]\)</span>. It uses the full dataset and relies on the model’s ability to correctly adjust for the confounding variables to isolate the causal effect.</p>
+<p>BART focuses on the analysis stage. The goal is to build a highly flexible and accurate predictive model for the outcome that explicitly includes the treatment and confounders, <span class="math inline">\(E[Y \mid X,Z]\)</span>. It uses the full dataset and relies on the model’s ability to correctly adjust for the confounding variables to isolate the causal effect.</p>
 <p>Each approach has its own set of advantages and disadvantages. PSM is often praised for its transparency; one can assess the quality of the covariate balance achieved by the matching procedure before ever looking at the outcome variable, reducing the risk of “p-hacking” or specification searching. However, PSM can be inefficient, as it often requires discarding a significant portion of the control group that does not have good matches in the treated group (i.e., poor overlap). It can also suffer from residual confounding if the matches are not sufficiently close. BART, on the other hand, is highly efficient as it uses all available data. Its main strengths are its flexibility in capturing unknown functional forms and interactions, its ability to easily estimate heterogeneous effects, and its principled framework for uncertainty quantification. Its primary weakness is that it can be perceived as a “black box” if not diagnosed carefully. Its validity, like all modeling approaches, depends on the untestable ignorability assumption, and as discussed, it can be susceptible to regularization-induced confounding if not applied with care.</p>
 <p>In modern practice, the line between these two philosophies is blurring. It is now common to see them used in conjunction. For example, many practitioners use flexible machine learning models, including BART itself, to estimate the propensity scores used for matching or weighting, which can improve the quality of the covariate balance over simpler logistic regression models. Conversely, the state-of-the-art application of BART for causal inference (ps-BART) incorporates the propensity score directly into the outcome model. This convergence reflects a mature understanding that both balancing the data structure and flexibly modeling the outcome are complementary and powerful tools for robust causal inference.</p>
 <table class="caption-top table">
@@ -1049,19 +1092,28 @@ Table&nbsp;16.2: Comparison of ATE Estimates for the NSW Program. Note: Estimate
 </thead>
 <tbody>
 <tr class="odd">
-<td><strong>Philosophical Coherence</strong></td>
+<td><em>Philosophical Coherence</em></td>
 <td>BART provides a method for causal inference that is deeply integrated with Bayesian principles. It seamlessly frames the estimation of causal effects as a posterior predictive imputation of missing potential outcomes, propagating all sources of parameter uncertainty into the final result.</td>
 </tr>
 <tr class="even">
-<td><strong>Robustness to Misspecification</strong></td>
+<td><em>Robustness to Misspecification</em></td>
 <td>By using a flexible sum-of-trees ensemble, BART avoids the need for strong parametric assumptions about the functional form of the relationship between the covariates and the outcome. This provides robust protection against model misspecification bias, which is a major concern in observational studies where these relationships are complex and unknown.</td>
 </tr>
 <tr class="odd">
-<td><strong>Richness of Inference</strong></td>
+<td><em>Richness of Inference</em></td>
 <td>BART naturally yields a full posterior distribution for any causal estimand of interest. This allows for a more complete and intuitive quantification of uncertainty through credible intervals and facilitates the exploration of heterogeneous treatment effects, moving the analysis from a single average number to a nuanced understanding of for whom an intervention works.</td>
 </tr>
 </tbody>
 </table>
+</section>
+</section>
+<section id="conclusion" class="level2" data-number="16.5">
+<h2 data-number="16.5" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">16.5</span> Conclusion</h2>
+<p>This chapter has traced the evolution of experimental design from the careful observational studies of Florence Nightingale and the early agricultural experiments of George Washington to the modern landscape of randomized controlled trials and Bayesian causal inference. The journey reveals a fundamental tension that runs through the entire field: the desire for clean, unbiased causal conclusions versus the messy realities of the world in which we must conduct our experiments.</p>
+<p>Ronald Fisher’s formalization of randomization at Rothamsted provided the theoretical bedrock for modern experimentation, establishing principles that remain central to scientific inquiry today. Yet even Fisher recognized that pure randomization is not always feasible. The split-plot design, born from the practical constraints of agricultural research, exemplifies how thoughtful compromises can be reached when certain factors are difficult or expensive to randomize. This same logic extends to contemporary settings—from hospital trials where entire wards must share a protocol, to online A/B tests where user experience considerations limit what can be randomized.</p>
+<p>The examples from economics and political science—detecting electoral fraud in Russia and uncovering corruption in Indian environmental audits—demonstrate the power of well-designed field experiments to reveal truths that observational data alone could never establish. These studies, recognized by the 2019 Nobel Prize in Economics, have fundamentally changed how we approach questions of causality in complex social systems.</p>
+<p>When randomization is not possible, as is often the case with historical data or ethical constraints, we must turn to observational methods. The Lalonde dataset serves as a sobering reminder that naive comparisons can lead to deeply misleading conclusions. However, modern Bayesian methods like BART offer a principled path forward. By combining flexible non-parametric modeling with rigorous uncertainty quantification, these methods can, under the right assumptions, recover causal effects that approach the quality of experimental benchmarks.</p>
+<p>The key lesson is that no single method is a panacea. The validity of any causal conclusion—whether from an RCT or an observational study—rests on assumptions that must be carefully articulated and defended. For RCTs, we assume proper randomization and no interference between units. For observational methods, we must believe that we have measured and controlled for all relevant confounders. The Bayesian framework, with its emphasis on transparent modeling assumptions and honest uncertainty quantification, provides a coherent language for navigating these challenges. As data continues to proliferate and the questions we ask become ever more complex, the ability to reason carefully about causation—distinguishing what we can learn from what we merely hope to learn—will remain an essential skill for any practitioner of statistical science.</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
@@ -1072,7 +1124,6 @@ Enikolopov, Ruben, Vasily Korovkin, Maria Petrova, Konstantin Sonin, and Alexei 
 Hahn, P. Richard, Jared S. Murray, and Carlos M. Carvalho. 2020. <span>“Bayesian <span>Regression Tree Models</span> for <span>Causal Inference</span>: <span>Regularization</span>, <span>Confounding</span>, and <span>Heterogeneous Effects</span> (with <span>Discussion</span>).”</span> <em>Bayesian Analysis</em> 15 (3): 965–1056.
 </div>
 </div>
-</section>
 </section>
 
 </main> <!-- /main -->
@@ -1127,13 +1178,14 @@ Hahn, P. Richard, Jared S. Murray, and Carlos M. Carvalho. 2020. <span>“Bayesi
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

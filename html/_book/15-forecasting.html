@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -89,14 +89,15 @@ div.csl-indent {
 <link href="./14-tree.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-680e7c22d93ef26f016bec9199f8e6d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -124,9 +125,6 @@ div.csl-indent {
     "search-label": "Search"
   }
 }</script>
-<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
-<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
-<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 <script>
   // Load MathJax with custom macros
   window.MathJax = {
@@ -171,7 +169,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -444,7 +442,8 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#a-motivating-example-epidemic-forecasting" id="toc-a-motivating-example-epidemic-forecasting" class="nav-link active" data-scroll-target="#a-motivating-example-epidemic-forecasting">A Motivating Example: Epidemic Forecasting</a></li>
+  <li><a href="#epidemic-forecasting-a-motivating-example" id="toc-epidemic-forecasting-a-motivating-example" class="nav-link active" data-scroll-target="#epidemic-forecasting-a-motivating-example">Epidemic Forecasting: A Motivating Example</a></li>
+  <li><a href="#the-bsts-package" id="toc-the-bsts-package" class="nav-link" data-scroll-target="#the-bsts-package">The <code>bsts</code> Package</a></li>
   <li><a href="#structural-time-series-models" id="toc-structural-time-series-models" class="nav-link" data-scroll-target="#structural-time-series-models"><span class="header-section-number">15.1</span> Structural time series models</a></li>
   <li><a href="#regression-with-spike-and-slab-priors" id="toc-regression-with-spike-and-slab-priors" class="nav-link" data-scroll-target="#regression-with-spike-and-slab-priors"><span class="header-section-number">15.2</span> Regression with spike and slab priors</a></li>
   <li><a href="#model-diagnostics-did-the-google-data-help" id="toc-model-diagnostics-did-the-google-data-help" class="nav-link" data-scroll-target="#model-diagnostics-did-the-google-data-help"><span class="header-section-number">15.3</span> Model diagnostics: did the Google data help?</a></li>
@@ -460,8 +459,12 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#the-particle-learning-algorithm" id="toc-the-particle-learning-algorithm" class="nav-link" data-scroll-target="#the-particle-learning-algorithm">The Particle Learning Algorithm</a></li>
   </ul></li>
-  <li><a href="#modern-era-forecasting" id="toc-modern-era-forecasting" class="nav-link" data-scroll-target="#modern-era-forecasting"><span class="header-section-number">15.7</span> Modern Era Forecasting</a></li>
+  <li><a href="#alternative-approaches" id="toc-alternative-approaches" class="nav-link" data-scroll-target="#alternative-approaches"><span class="header-section-number">15.7</span> Alternative Approaches</a>
+  <ul class="collapse">
+  <li><a href="#modern-era-forecasting" id="toc-modern-era-forecasting" class="nav-link" data-scroll-target="#modern-era-forecasting">Modern Era Forecasting</a></li>
+  </ul></li>
   <li><a href="#quantile-regression-forests." id="toc-quantile-regression-forests." class="nav-link" data-scroll-target="#quantile-regression-forests."><span class="header-section-number">15.8</span> Quantile Regression Forests.</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">15.9</span> Conclusion</a></li>
   </ul>
 </nav>
 </nav>
@@ -491,15 +494,6 @@ window.Quarto = {
 </header>
 
 
-<p>Time series data are everywhere, but time series modeling is a fairly specialized area within statistics and data science. This chapter describes the <code>bsts</code> software package, which makes it easy to fit some fairly sophisticated time series models with just a few lines of R code.</p>
-<p>The BSTS (Bayesian Structural Time Series) section of this chapter is adapted from the excellent blog post by Steven Scott: <a href="https://www.unofficialgoogledatascience.com/2017/07/fitting-bayesian-structural-time-series.html">“Fitting Bayesian structural time series with the bsts R package”</a>. We thank Steven for making this material available and for his contributions to the time series community.</p>
-<p>Time series data are encountered across a wide range of fields, including business, the sciences, healthcare, and engineering. While forecasting future values (such as predicting next month’s sales) is a common application, time series analysis is also used to understand the factors that influence these values. Recently, time series forecasting has gained increased attention in the technology sector, with tools like Facebook’s “Prophet” (<span class="citation" data-cites="seanj.taylor2017prophet">Sean J. Taylor and Ben Letham (<a href="references.html#ref-seanj.taylor2017prophet" role="doc-biblioref">2017</a>)</span>) and Google’s forecasting system (<span class="citation" data-cites="erictassone2017our">Eric Tassone and Farzan Rohani (<a href="references.html#ref-erictassone2017our" role="doc-biblioref">2017</a>)</span>) being highlighted in various tech blogs.</p>
-<p>In this chapter, we introduce the <code>bsts</code> package for R, which provides a framework for fitting Bayesian structural time series models. These models, also referred to as “state space models,” “structural time series,” “Kalman filter models,” or “dynamic linear models,” are highly flexible and can be approached from both Bayesian and non-Bayesian perspectives. The <code>bsts</code> package, however, is specifically designed to leverage Bayesian posterior sampling.</p>
-<p>As an open-source package available on CRAN (installable via <code>install.packages("bsts")</code>), <code>bsts</code> shares some similarities with the forecasting systems developed by Facebook and Google, but it was created with different objectives. Whereas the Facebook and Google tools are optimized for large-scale, automated forecasting—particularly for daily data and across many time series—<code>bsts</code> is intended to be more customizable. The focus of those large-scale systems is on automating analysis to handle many series efficiently, often by using techniques like regularized regression (Facebook) or ensemble averaging (Google), and by carefully accounting for holidays.</p>
-<p>While <code>bsts</code> can be set up for automated forecasting and is even used as part of Google’s ensemble approach, it is also well-suited for analysts who want to tailor models to specific needs. This includes decisions about forecasting horizons, handling of seasonality, and whether the primary goal is prediction or explanation.</p>
-<section id="a-motivating-example-epidemic-forecasting" class="level3">
-<h3 class="anchored" data-anchor-id="a-motivating-example-epidemic-forecasting">A Motivating Example: Epidemic Forecasting</h3>
-<p>Before delving into the technical details of structural time series models, consider a classic application that illustrates both the power and challenges of dynamic forecasting: modeling infectious disease spread.</p>
 <p>In 1766, Daniel Bernoulli developed the first mathematical model of disease transmission for smallpox, writing: <em>“I wish simply that, in matters which so closely concern the well being of the human race, no decision shall be made without all knowledge which a little analysis and calculation can provide.”</em> This pioneering work laid the foundation for epidemic modeling that continues to inform public health decisions today.</p>
 <p>One of the most famous early applications involved the London Plague of 1665-1666, particularly in the village of Eyam near Sheffield. The data, shown below, tracked susceptible individuals (<span class="math inline">\(S\)</span>) and infected individuals (<span class="math inline">\(I\)</span>) over time:</p>
 <table class="caption-top table">
@@ -559,56 +553,24 @@ window.Quarto = {
 </tbody>
 </table>
 <p>The initial population was <span class="math inline">\(N=261\)</span>, and by the end of the outbreak, 83 individuals remained susceptible (never infected). This simple dataset illustrates a fundamental challenge in time series forecasting: understanding the <em>mechanism</em> driving the dynamics.</p>
-<p>The minister of the local church in Eyam, John Ashton, kept detailed records of the outbreak. The missing record on Oct 3 is due to the fact that John Ashton himself was infected and died on that day. The interesting part is that he understood the importance of quarantine and did not allow anyone to visit him or his family until he was dead. Also he understood the importance of recording the data daily and did it long before Nightingale’s time.</p>
-<p>The susceptible-exposed-infectious-recovered (SEIR) model extends earlier approaches by explicitly modeling disease transmission dynamics. The model tracks four compartments:</p>
-<div class="cell" data-fig-width="6" data-layout-align="center">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">graph LR
-    S[Susceptible&lt;br/&gt;S] --&gt;|beta*S*I| E[Exposed&lt;br/&gt;E]
-    E --&gt;|alpha*E| I[Infectious&lt;br/&gt;I]
-    I --&gt;|gamma*I| R[Recovered&lt;br/&gt;R]
-    
-    style S fill:#e1f5ff
-    style E fill:#fff4e1
-    style I fill:#ffe1e1
-    style R fill:#e1ffe1
-</pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
-<p>The dynamics are governed by a system of coupled differential equations:</p>
-<p><span class="math display">\[\begin{align*}
-\frac{dS}{dt} &amp;= -\beta S I \\
-\frac{dE}{dt} &amp;= \beta S I - \alpha E \\
-\frac{dI}{dt} &amp;= \alpha E - \gamma I \\
-\frac{dR}{dt} &amp;= \gamma I
-\end{align*}\]</span></p>
-<p>where <span class="math inline">\(S_t + E_t + I_t + R_t = N\)</span> (constant population). The parameters have intuitive interpretations:</p>
-<ul>
-<li><span class="math inline">\(\beta = \beta_1 \beta_2\)</span>: transmission rate (contact rate <span class="math inline">\(\times\)</span> infection probability)</li>
-<li><span class="math inline">\(\alpha\)</span>: rate at which exposed individuals become infectious</li>
-<li><span class="math inline">\(\gamma\)</span>: recovery rate</li>
-</ul>
-<p>A key quantity in epidemic modeling is the <em>basic reproductive ratio</em> <span class="math inline">\(R_0 := \beta S_0 / \gamma\)</span>, which represents the mean number of secondary infections produced by one infectious person in a completely susceptible population. When <span class="math inline">\(R_0 &gt; 1\)</span>, an epidemic can occur; when <span class="math inline">\(R_0 &lt; 1\)</span>, the disease dies out.</p>
-<p>For the Eyam plague data, researchers fitted a simpler SI model (without the exposed and recovered compartments) and estimated: <span class="math display">\[
-\frac{\beta}{\alpha} = 6.54 \times 10^{-3}, \quad \frac{\alpha}{\beta} = 1.53
-\]</span> using the relationship: <span class="math display">\[
-\frac{\hat{\beta}}{\alpha} = \frac{\ln(S_0/S_\infty)}{S_0 - S_\infty}
-\]</span></p>
-<p>The model predicted a maximum of 30.4 infected individuals, remarkably close to the observed peak of 29.</p>
-<p>This example highlights several themes central to this chapter:</p>
+<p>The minister of the local church in Eyam, John Ashton, kept detailed records of the outbreak. The missing record on Oct 3 is due to the fact that John Ashton himself was infected and died on that day. Crucially, Ashton recognized the necessity of isolation; he strictly enforced a quarantine on his own household until his death. He also meticulously recorded daily infection counts, pioneering data collection practices nearly two centuries before Florence Nightingale.</p>
+<p>Time series data are encountered across a wide range of fields, including business, the sciences, healthcare, and engineering. While forecasting future values (such as predicting next month’s sales) is a common application, time series analysis is also used to understand the factors that influence these values.</p>
+<p>This chapter describes the <code>bsts</code> software package, which makes it easy to fit some fairly sophisticated time series models with just a few lines of R code. The BSTS (Bayesian Structural Time Series) section of this chapter is adapted from the excellent blog post by Steven Scott: <a href="https://www.unofficialgoogledatascience.com/2017/07/fitting-bayesian-structural-time-series.html">“Fitting Bayesian structural time series with the bsts R package”</a>. We thank Steven for making this material available and for his contributions to the time series community.</p>
+<section id="epidemic-forecasting-a-motivating-example" class="level3">
+<h3 class="anchored" data-anchor-id="epidemic-forecasting-a-motivating-example">Epidemic Forecasting: A Motivating Example</h3>
+<p>The Eyam example highlights several themes central to this chapter:</p>
 <ol type="1">
 <li><em>Self-reinforcing dynamics</em>: Disease spread accelerates with more infectants, creating nonlinear feedback loops</li>
 <li><em>State-space structure</em>: The compartments (<span class="math inline">\(S, E, I, R\)</span>) represent latent states that evolve according to known dynamics</li>
 <li><em>Parameter uncertainty</em>: Even with detailed data, parameters like <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span> must be estimated</li>
 <li><em>Retrospective vs.&nbsp;prospective</em>: The Eyam analysis was performed in hindsight with complete data; real-time forecasting during an outbreak is considerably more challenging</li>
 </ol>
-<p>Modern epidemic forecasting, as demonstrated during the COVID-19 pandemic, combines SEIR-type models with Bayesian methods to quantify uncertainty, incorporate real-time data, and inform policy decisions. While epidemic models differ from the business and economic time series we’ll focus on in this chapter, they share the fundamental state-space structure that makes Bayesian structural time series models so powerful.</p>
+<p>Modern epidemic forecasting combinines SEIR-type models with Bayesian methods to quantify uncertainty. While epidemic models differ from the business and economic time series we’ll focus on in this chapter, they share the fundamental state-space structure that makes Bayesian structural time series models so powerful.</p>
+</section>
+<section id="the-bsts-package" class="level3">
+<h3 class="anchored" data-anchor-id="the-bsts-package">The <code>bsts</code> Package</h3>
+<p>In this chapter, we introduce the <code>bsts</code> package for R, which provides a framework for fitting Bayesian structural time series models. These models, also referred to as “state space models,” “structural time series,” “Kalman filter models,” or “dynamic linear models,” are highly flexible and can be approached from both Bayesian and non-Bayesian perspectives. The <code>bsts</code> package, however, is specifically designed to leverage Bayesian posterior sampling.</p>
+<p>As an open-source package available on CRAN (installable via <code>install.packages("bsts")</code>), <code>bsts</code> shares some similarities with the forecasting systems developed by Facebook and Google (“Prophet”), but it is intended to be more customizable.</p>
 <p>The foundation of <code>bsts</code> is the structural time series model, which will be outlined in the next section. The chapter then proceeds with several detailed examples that showcase advanced features of the package. The first example, <strong>Nowcasting</strong>, covers local linear trend and seasonal models, as well as spike-and-slab priors for high-dimensional regression. The second example, <strong>Long-term forecasting</strong>, addresses cases where standard local level or trend models are insufficient and introduces the semilocal linear trend model. The third example, <strong>Recession modeling</strong>, demonstrates how to handle non-Gaussian response variables and focuses on controlling for serial dependence in explanatory modeling. The chapter concludes with a brief overview of additional features in <code>bsts</code> that are not covered in depth.</p>
 </section>
 <section id="structural-time-series-models" class="level2" data-number="15.1">
@@ -624,7 +586,7 @@ y_t = Z_t^T\alpha_t + \epsilon_t.
 y_t = &amp;\mu_t + \epsilon_t\\
 \mu_{t+1} = &amp;\mu_t + \eta_t.
 \end{align*}\]</span> Here <span class="math inline">\(\alpha_t=\mu_t\)</span>, and <span class="math inline">\(Z_t\)</span>, <span class="math inline">\(T_t\)</span>, and <span class="math inline">\(R_t\)</span> all collapse to the scalar value 1. Similar to Bayesian hierarchical models for nested data, the local level model is a compromise between two extremes. The compromise is determined by variances of <span class="math inline">\(\epsilon_t \sim N(0,\sigma^2)\)</span> and <span class="math inline">\(\eta_t \sim N(0,\tau^2)\)</span>. If <span class="math inline">\(\tau^2=0\)</span> then <span class="math inline">\(\mu_t\)</span> is a constant, so the data are IID Gaussian noise. In that case the best estimator of <span class="math inline">\(y_{t+1}\)</span> is the mean of <span class="math inline">\(y_1,\ldots,y_t\)</span>. Conversely, if <span class="math inline">\(\sigma^2=0\)</span> then the data follow a random walk, in which case the best estimator of <span class="math inline">\(y_{t+1}\)</span> is <span class="math inline">\(y_t\)</span>. Notice that in one case the estimator depends on all past data (weighted equally) while in the other it depends only on the most recent data point, giving past data zero weight. If both variances are positive then the optimal estimator of <span class="math inline">\(y_{t+1}\)</span> winds up being “exponential smoothing,” where past data are forgotten at an exponential rate determined by the ratio of the two variances. Also notice that while the state in this model is Markov (i.e.&nbsp;it only depends on the previous state), the dependence among the observed data extends to the beginning of the series.</p>
-<div class="cell quarto-layout-panel" data-layout-ncol="2" data-layout-align="center">
+<div class="cell quarto-layout-panel" data-layout-align="center" data-layout-ncol="2">
 <div class="quarto-layout-row">
 <div class="cell-output-display quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <div id="fig-randomwalk-1" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -657,9 +619,9 @@ Figure&nbsp;15.2: Apple Adjusted Closing Price
 <div id="exm-Nowcasting" class="theorem example">
 <p><span class="theorem-title"><strong>Example 15.1 (Nowcasting)</strong></span> <span class="citation" data-cites="scott2014predicting">S. Scott and Varian (<a href="references.html#ref-scott2014predicting" role="doc-biblioref">2014</a>)</span> and <span class="citation" data-cites="scott2015bayesian">Steven L. Scott and Varian (<a href="references.html#ref-scott2015bayesian" role="doc-biblioref">2015</a>)</span> used structural time series models to show how Google search data can be used to improve short-term forecasts (“nowcasts”) of economic time series. The figure below shows the motivating data set from <span class="citation" data-cites="scott2014predicting">S. Scott and Varian (<a href="references.html#ref-scott2014predicting" role="doc-biblioref">2014</a>)</span>, which is also included with the <code>bsts</code> package. The data consist of the weekly initial claims for unemployment insurance in the US, as reported by the US Federal Reserve. Like many official statistics, they are released with delay and subject to revision. At the end of the week, the economic activity determining these numbers has taken place, but the official numbers are not published until several days later. For economic decisions based on these and similar numbers, it would help to have an early forecast of the current week’s number as of the close of the week. Thus the output of this analysis is truly a “nowcast” of data that has already happened rather than a “forecast” of data that will happen in the future.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bsts)     <span class="co"># load the bsts package</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bsts)     <span class="co"># load the bsts package</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(iclaims)     <span class="co"># bring the initial.claims data into scope</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(initial.claims<span class="sc">$</span>iclaimsNSA, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">ylab=</span><span class="st">"Unemployment claims (thousand)"</span>, <span class="at">col=</span><span class="st">"blue"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(initial.claims<span class="sc">$</span>iclaimsNSA, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">ylab=</span><span class="st">"Unemployment claims (thousand)"</span>, <span class="at">col=</span><span class="st">"blue"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-bsts" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
@@ -691,14 +653,14 @@ y_t = &amp; \mu_t + \tau_t + \beta^T x_t + \epsilon_t\\
 <p>The best way to understand the seasonal component <span class="math inline">\(\tau_t\)</span> is in terms of a regression with seasonal dummy variables. Suppose you had quarterly data, so that <span class="math inline">\(S=4\)</span>. You might include the annual seasonal cycle using 3 dummy variables, with one left out as a baseline. Alternatively, you could include all four dummy variables but constrain their coefficients to sum to zero. The seasonal state model takes the latter approach, but the constraint is that the <span class="math inline">\(S\)</span> most recent seasonal effects must sum to zero in expectation. This allows the seasonal pattern to slowly evolve. Scott and Varian described the annual cycle in the weekly initial claims data using a seasonal state component with <span class="math inline">\(S=52\)</span>. Of course weeks don’t neatly divide years, but given the small number of years for which Google data are available the occasional one-period seasonal discontinuity was deemed unimportant.</p>
 <p>Let’s ignore the regression component for now and fit a <code>bsts</code> model with just the trend and seasonal components.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ss <span class="ot">&lt;-</span> <span class="fu">AddLocalLinearTrend</span>(<span class="fu">list</span>(), initial.claims<span class="sc">$</span>iclaimsNSA)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ss <span class="ot">&lt;-</span> <span class="fu">AddLocalLinearTrend</span>(<span class="fu">list</span>(), initial.claims<span class="sc">$</span>iclaimsNSA)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ss <span class="ot">&lt;-</span> <span class="fu">AddSeasonal</span>(ss, initial.claims<span class="sc">$</span>iclaimsNSA, <span class="at">nseasons =</span> <span class="dv">52</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>model1 <span class="ot">&lt;-</span> <span class="fu">bsts</span>(initial.claims<span class="sc">$</span>iclaimsNSA,<span class="at">state.specification =</span> ss,<span class="at">niter =</span> <span class="dv">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>model1 <span class="ot">&lt;-</span> <span class="fu">bsts</span>(initial.claims<span class="sc">$</span>iclaimsNSA,<span class="at">state.specification =</span> ss,<span class="at">niter =</span> <span class="dv">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The first thing to do when fitting a <code>bsts</code> model is to specify the contents of the latent state vector <span class="math inline">\(\alpha_t\)</span>. The <code>bsts</code> package offers a library of state models, which are included by adding them to a state specification (which is just a list with a particular format). The call to <code>AddLocalLinearTrend</code> above adds a local linear trend state component to an empty state specification (the <code>list()</code> in its first argument). The call to <code>AddSeasonal</code> adds a seasonal state component with 52 seasons to the state specification created on the previous line. The state vector <span class="math inline">\(\alpha_t\)</span> is formed by concatenating the state from each state model. Similarly, the vector <span class="math inline">\(Z_t\)</span> is formed by concatenating the <span class="math inline">\(Z\)</span> vectors from the two state models, while the matrices <span class="math inline">\(T_t\)</span> and <span class="math inline">\(R_t\)</span> are combined in block-diagonal fashion.</p>
 <p>The state specification is passed as an argument to <code>bsts</code>, along with the data and the desired number of MCMC iterations. The model is fit using an MCMC algorithm, which in this example takes about 20 seconds to produce 1000 MCMC iterations. The returned object is a list (with class attribute <code>bsts</code>). You can see its contents by typing</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(model1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(model1)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##  [1] "sigma.obs"                  "sigma.trend.level"         
 ##  [3] "sigma.trend.slope"          "sigma.seasonal.52"         
@@ -713,9 +675,9 @@ y_t = &amp; \mu_t + \tau_t + \beta^T x_t + \epsilon_t\\
 <p>The first few elements contain the MCMC draws of the model parameters. Most of the other elements are data structures needed by various S3 methods (<code>plot, print, predict</code>, etc.) that can be used with the returned object. MCMC output is stored in vectors (for scalar parameters) or arrays (for vector or matrix parameters) where the first index in the array corresponds to MCMC iteration number, and the remaining indices correspond to dimension of the deviate being drawn.</p>
 <p>Most users won’t need to look inside the returned <code>bsts</code> object because standard tasks like plotting and prediction are available through familiar S3 methods. For example, there are several plot methods available.</p>
 <div class="cell" data-layout-nrow="2" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">2</span>,<span class="dv">0</span>))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">2</span>,<span class="dv">0</span>))</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(model1,<span class="at">col.actuals=</span><span class="st">"blue"</span>, <span class="at">col.predictions=</span><span class="st">"red"</span>)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(model1, <span class="st">"components"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(model1, <span class="st">"components"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div id="fig-claims" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-claims-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -758,9 +720,9 @@ Figure&nbsp;15.4: Structural time series model for unemployment claims
 <p>The default plot method plots the posterior distribution of the conditional mean <span class="math inline">\(Z_t^T\alpha_t\)</span> given the full data <span class="math inline">\(y=y_1,\ldots,y_T\)</span>. Other plot methods can be accessed by passing a string to the plot function. For example, to see the contributions of the individual state components, pass the string “components” as a second argument, as shown above. The figure below shows the output of these two plotting functions. You can get a list of all available plots by passing the string <code>help</code> as the second argument.</p>
 <p>To predict future values there is a <code>predict</code> method. For example, to predict the next 12 time points you would use the following commands.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>pred1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(model1, <span class="at">horizon =</span> <span class="dv">12</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pred1, <span class="at">plot.original =</span> <span class="dv">156</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pred1, <span class="at">plot.original =</span> <span class="dv">156</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -778,15 +740,15 @@ Figure&nbsp;15.4: Structural time series model for unemployment claims
 <p>A spike and slab prior is a prior on a set of regression coefficients that assigns each coefficient a positive probability of being zero. Upon observing data, Bayes’ theorem updates the inclusion probability of each coefficient. When sampling from the posterior distribution of a regression model under a spike and slab prior, many of the simulated regression coefficients will be exactly zero. This is unlike the “lasso” prior (the Laplace, or double-exponential distribution), which yields MAP estimates at zero but where posterior simulations will be all nonzero. You can read about the mathematical details of spike and slab priors in <span class="citation" data-cites="scott2014predicting">S. Scott and Varian (<a href="references.html#ref-scott2014predicting" role="doc-biblioref">2014</a>)</span>.</p>
 <p>When fitting <code>bsts</code> models that contain a regression component, extra arguments captured by <code>...</code> are passed to the SpikeSlabPrior function from the BoomSpikeSlab package. This allows the analyst to adjust the default prior settings for the regression component from the <code>bsts</code> function call. To include a regression component in a <code>bsts</code> model, simply pass a model formula as the first argument.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit a `bsts` model with expected model size 1, the default.</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit a `bsts` model with expected model size 1, the default.</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>model2 <span class="ot">&lt;-</span> <span class="fu">bsts</span>(iclaimsNSA <span class="sc">~</span> .,<span class="at">state.specification =</span> ss,<span class="at">niter =</span> <span class="dv">1000</span>,<span class="at">data =</span> initial.claims)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit a `bsts` model with expected model size 5, to include more coefficients.</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>model3 <span class="ot">&lt;-</span> <span class="fu">bsts</span>(iclaimsNSA <span class="sc">~</span> .,<span class="at">state.specification =</span> ss,<span class="at">niter =</span> <span class="dv">1000</span>,<span class="at">data =</span> initial.claims,<span class="at">expected.model.size =</span> <span class="dv">5</span>)  <span class="co"># Passed to SpikeSlabPrior.</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>model3 <span class="ot">&lt;-</span> <span class="fu">bsts</span>(iclaimsNSA <span class="sc">~</span> .,<span class="at">state.specification =</span> ss,<span class="at">niter =</span> <span class="dv">1000</span>,<span class="at">data =</span> initial.claims,<span class="at">expected.model.size =</span> <span class="dv">5</span>)  <span class="co"># Passed to SpikeSlabPrior.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>To examine the output you can use the same plotting functions as before. For example, to see the contribution of each state component you can type</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">3</span>,<span class="dv">0</span>))</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(model2, <span class="st">"comp"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">3</span>,<span class="dv">0</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(model2, <span class="st">"comp"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -797,9 +759,9 @@ Figure&nbsp;15.4: Structural time series model for unemployment claims
 </div>
 <p>It produces the contribution of each state component to the initial claims data, assuming a regression component with default prior. Compare to the previous model. The regression component is explaining a substantial amount of variation in the initial claims series.</p>
 <p>There are also plotting functions that you can use to visualize the regression coefficients. The following commands plot posterior inclusion probabilities for predictors in the “initial claims” nowcasting example assuming an expected model size of 1 and 5.</p>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(model2, <span class="st">"coef"</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(model3, <span class="st">"coef"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(model3, <span class="st">"coef"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div id="fig-model23" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-model23-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -837,12 +799,12 @@ Figure&nbsp;15.5: Variable Importance
 </div>
 <p>The search term “unemployment office” shows up with high probability in both models. Increasing the expected model size from 1 (the default) to 5 allows other variables into the model, though “Idaho unemployment” is the only one that shows up with high probability.</p>
 <p>Those probabilities are calculated from the histogram of the samples of each <span class="math inline">\(\beta\)</span> calculated by the estimation algorithm (MCMC)</p>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># unemployment.office</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(model3<span class="sc">$</span>coefficients[,<span class="dv">10</span>], <span class="at">breaks =</span> <span class="dv">40</span>, <span class="at">main=</span><span class="st">""</span>,<span class="at">xlab=</span><span class="st">"unemployment.office"</span>, <span class="at">col=</span><span class="st">"lightblue"</span>)</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># pennsylvania.unemployment</span></span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(model3<span class="sc">$</span>coefficients[,<span class="dv">3</span>], <span class="at">breaks =</span> <span class="dv">40</span>, <span class="at">main =</span> <span class="st">""</span>, <span class="at">xlab=</span><span class="st">"pennsylvania.unemployment"</span>, <span class="at">col=</span><span class="st">"lightblue"</span>)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(model2<span class="sc">$</span>coefficients[,<span class="dv">3</span>], <span class="at">breaks =</span> <span class="dv">40</span>, <span class="at">main =</span> <span class="st">""</span>, <span class="at">xlab=</span><span class="st">"pennsylvania.unemployment"</span>, <span class="at">col=</span><span class="st">"lightblue"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(model2<span class="sc">$</span>coefficients[,<span class="dv">3</span>], <span class="at">breaks =</span> <span class="dv">40</span>, <span class="at">main =</span> <span class="st">""</span>, <span class="at">xlab=</span><span class="st">"pennsylvania.unemployment"</span>, <span class="at">col=</span><span class="st">"lightblue"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div id="fig-bstshist" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-bstshist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -896,10 +858,10 @@ Figure&nbsp;15.6: Sample from the distribution over two beta parameters
 <p>As part of the model fitting process, the algorithm generates the one-step-ahead prediction errors <span class="math inline">\(y_t - E(y_t | Y_{t-1}, \theta)\)</span>, where <span class="math inline">\(Y_{t-1}=y_1,\ldots,y_{t-1}\)</span>, and the vector of model parameters <span class="math inline">\(\theta\)</span> is fixed at its current value in the MCMC algorithm. The one-step-ahead prediction errors can be obtained from the <code>bsts</code> model by calling <code>bsts.prediction.errors(model1)</code>.</p>
 <p>The one step prediction errors are a useful diagnostic for comparing several <code>bsts</code> models that have been fit to the same data. They are used to implement the function <code>CompareBstsModels</code>, which is called as shown below.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">CompareBstsModels</span>(<span class="fu">list</span>(<span class="st">"Model 1"</span> <span class="ot">=</span> model1,</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">CompareBstsModels</span>(<span class="fu">list</span>(<span class="st">"Model 1"</span> <span class="ot">=</span> model1,</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>               <span class="st">"Model 2"</span> <span class="ot">=</span> model2,</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>               <span class="st">"Model 3"</span> <span class="ot">=</span> model3),</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">colors =</span> <span class="fu">c</span>(<span class="st">"black"</span>, <span class="st">"red"</span>, <span class="st">"blue"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>          <span class="at">colors =</span> <span class="fu">c</span>(<span class="st">"black"</span>, <span class="st">"red"</span>, <span class="st">"blue"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -925,10 +887,10 @@ Figure&nbsp;15.6: Sample from the distribution over two beta parameters
 \delta_{t+1}=&amp; D+\rho(\delta_t-D)+\eta_{1t}
 \end{align*}\]</span> The <span class="math inline">\(D\)</span> parameter is the long-run slope of the trend component, to which <span class="math inline">\(\delta_t\)</span> will eventually revert. However, <span class="math inline">\(\delta_t\)</span> can have short-term autoregressive deviations from the long-term trend, with memory determined by <span class="math inline">\(\rho\)</span>. Values of <span class="math inline">\(\rho\)</span> close to 1 will lead to long deviations from <span class="math inline">\(D\)</span>. To see the impact this can have on long-term forecasts, consider the time series of daily closing values for the S&amp;P 500 stock market index over the last 5 years, shown below.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>GSPC <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/GSPC.csv"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>GSPC <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/GSPC.csv"</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>GSPC <span class="ot">=</span> <span class="fu">xts</span>(GSPC, <span class="at">order.by =</span> <span class="fu">as.Date</span>(<span class="fu">rownames</span>(GSPC), <span class="st">"%Y-%m-%d"</span>))</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">head</span>(GSPC))</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GSPC<span class="sc">$</span>GSPC.Adjusted, <span class="at">main=</span><span class="st">""</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(GSPC<span class="sc">$</span>GSPC.Adjusted, <span class="at">main=</span><span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -940,19 +902,19 @@ Figure&nbsp;15.6: Sample from the distribution over two beta parameters
 </div>
 <p>Consider two forecasts of the daily values of this series for the next 360 days. The first assumes the local linear trend model. The second assumes the semilocal linear trend.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>sp500 <span class="ot">=</span> GSPC<span class="sc">$</span>GSPC.Adjusted</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>sp500 <span class="ot">=</span> GSPC<span class="sc">$</span>GSPC.Adjusted</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>ss1 <span class="ot">&lt;-</span> <span class="fu">AddLocalLinearTrend</span>(<span class="fu">list</span>(), sp500)</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>model1 <span class="ot">&lt;-</span> <span class="fu">bsts</span>(sp500, <span class="at">state.specification =</span> ss1, <span class="at">niter =</span> <span class="dv">1000</span>)</span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>ss2 <span class="ot">&lt;-</span> <span class="fu">AddSemilocalLinearTrend</span>(<span class="fu">list</span>(), sp500)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>model2 <span class="ot">&lt;-</span> <span class="fu">bsts</span>(sp500, <span class="at">state.specification =</span> ss2, <span class="at">niter =</span> <span class="dv">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>model2 <span class="ot">&lt;-</span> <span class="fu">bsts</span>(sp500, <span class="at">state.specification =</span> ss2, <span class="at">niter =</span> <span class="dv">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The figure below shows long-term forecasts of the S&amp;P 500 closing values under the (left) local linear trend and (right) semilocal linear trend state models.</p>
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="st">"../data/timeseries/model12-sp500.RData"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="st">"../data/timeseries/model12-sp500.RData"</span>)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">1</span>))</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>pred1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(model1, <span class="at">horizon =</span> <span class="dv">360</span>)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>pred2 <span class="ot">&lt;-</span> <span class="fu">predict</span>(model2, <span class="at">horizon =</span> <span class="dv">360</span>)</span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pred2, <span class="at">plot.original =</span> <span class="dv">360</span>, <span class="at">ylim =</span> <span class="fu">range</span>(pred1))</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pred1, <span class="at">plot.original =</span> <span class="dv">360</span>, <span class="at">ylim =</span> <span class="fu">range</span>(pred1))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(pred1, <span class="at">plot.original =</span> <span class="dv">360</span>, <span class="at">ylim =</span> <span class="fu">range</span>(pred1))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div id="fig-sp500" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-sp500-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -995,9 +957,9 @@ Figure&nbsp;15.7: S&amp;P 500 Prediction
 <p>To see how non-Gaussian errors can be useful, consider the analysis done by <span class="citation" data-cites="berge2016which">Berge, Sinha, and Smolyansky (<a href="references.html#ref-berge2016which" role="doc-biblioref">2016</a>)</span>, who used Bayesian model averaging (BMA) to investigate which of several economic indicators would best predict the presence or absence of a recession. We will focus on their nowcasting example, which models the probability of a recession at the same time point as the predictor variables. <span class="citation" data-cites="berge2016which">Berge, Sinha, and Smolyansky (<a href="references.html#ref-berge2016which" role="doc-biblioref">2016</a>)</span> also analyzed the data with the predictors at several lags.</p>
 <p>The model used in <span class="citation" data-cites="berge2016which">Berge, Sinha, and Smolyansky (<a href="references.html#ref-berge2016which" role="doc-biblioref">2016</a>)</span> was a probit regression, with Bayesian model averaging used to determine which predictors should be included. The response variable was the presence or absence of a recession (as determined by NBER).</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"../data/timeseries/rec_data_20160613.csv"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"../data/timeseries/rec_data_20160613.csv"</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>rec <span class="ot">=</span> <span class="fu">ts</span>(dat<span class="sc">$</span>nber, <span class="at">start=</span><span class="fu">c</span>(<span class="dv">1973</span>, <span class="dv">1</span>), <span class="at">end=</span><span class="fu">c</span>(<span class="dv">2016</span>, <span class="dv">5</span>), <span class="at">frequency=</span><span class="dv">12</span>)</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(rec, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">col=</span><span class="st">'blue'</span>, <span class="at">ylab=</span><span class="st">"Recession"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(rec, <span class="at">type=</span><span class="st">'l'</span>, <span class="at">col=</span><span class="st">'blue'</span>, <span class="at">ylab=</span><span class="st">"Recession"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1125,18 +1087,18 @@ Figure&nbsp;15.7: S&amp;P 500 Prediction
 </table>
 <p>First, we prepare the data by shifting it by <span class="math inline">\(h\)</span>, which is the forecast horizon.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>h<span class="ot">=</span><span class="dv">0</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>h<span class="ot">=</span><span class="dv">0</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># predict h months ahead</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>y.h <span class="ot">&lt;-</span> dat<span class="sc">$</span>nber[<span class="sc">-</span>(<span class="dv">1</span><span class="sc">:</span>h)]</span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>hh <span class="ot">&lt;-</span> <span class="fu">length</span>(dat<span class="sc">$</span>nber) <span class="sc">-</span> h</span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>dat.h <span class="ot">&lt;-</span> dat[<span class="dv">1</span><span class="sc">:</span>hh,<span class="sc">-</span><span class="dv">1</span>]</span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co"># h=0 is a special case</span></span>
 <span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(h<span class="sc">==</span><span class="dv">0</span>) y.h   <span class="ot">&lt;-</span> dat<span class="sc">$</span>nber</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(h<span class="sc">==</span><span class="dv">0</span>) dat.h <span class="ot">&lt;-</span> dat[,<span class="sc">-</span><span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(h<span class="sc">==</span><span class="dv">0</span>) dat.h <span class="ot">&lt;-</span> dat[,<span class="sc">-</span><span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>To fit this model, we can issue the commands shown below.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Because 'y' is 0/1 and the state is on the logit scale the default prior</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Because 'y' is 0/1 and the state is on the logit scale the default prior</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># assumed by AddLocalLevel won't work here, so we need to explicitly set the</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># priors for the variance of the state innovation errors and the initial value</span></span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co"># of the state at time 0.  The 'SdPrior' and 'NormalPrior' functions used to</span></span>
@@ -1151,14 +1113,14 @@ Figure&nbsp;15.7: S&amp;P 500 Prediction
 <span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">initial.state.prior =</span> <span class="fu">NormalPrior</span>(<span class="dv">0</span>, <span class="dv">5</span>))</span>
 <span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Tell bsts that the observation equation should be a logistic regression by</span></span>
 <span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="co"># passing the 'family = "logit"' argument.</span></span>
-<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>ts.model <span class="ot">&lt;-</span> <span class="fu">bsts</span>(y.h <span class="sc">~</span> ., ss, <span class="at">data =</span> dat.h, <span class="at">niter =</span> <span class="dv">20000</span>,<span class="at">family =</span> <span class="st">"logit"</span>, <span class="at">expected.model.size =</span> <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>ts.model <span class="ot">&lt;-</span> <span class="fu">bsts</span>(y.h <span class="sc">~</span> ., ss, <span class="at">data =</span> dat.h, <span class="at">niter =</span> <span class="dv">20000</span>,<span class="at">family =</span> <span class="st">"logit"</span>, <span class="at">expected.model.size =</span> <span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now let’s plot the results</p>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ts.model,<span class="st">"coef"</span>)</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ts.model)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(y.h, <span class="at">lwd=</span><span class="dv">3</span>,<span class="at">col=</span><span class="st">"blue"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell quarto-layout-panel" data-layout-ncol="2" data-layout-align="center">
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(y.h, <span class="at">lwd=</span><span class="dv">3</span>,<span class="at">col=</span><span class="st">"blue"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell quarto-layout-panel" data-layout-align="center" data-layout-ncol="2">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
@@ -1177,7 +1139,7 @@ Figure&nbsp;15.7: S&amp;P 500 Prediction
 </div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ts.model,<span class="st">"predictors"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ts.model,<span class="st">"predictors"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1203,6 +1165,8 @@ y_{it} = &amp;\beta^T x_{it} + Z_t^T\alpha_t + \epsilon_{it}\\
 </section>
 <section id="algorithms" class="level2" data-number="15.5">
 <h2 data-number="15.5" class="anchored" data-anchor-id="algorithms"><span class="header-section-number">15.5</span> Algorithms</h2>
+<p>The models we have discussed in the <code>bsts</code> framework are all special cases of the <strong>linear Gaussian state space model</strong> (also known as the Dynamic Linear Model). While <code>bsts</code> provides a convenient high-level interface to fit these models using MCMC, understanding the underlying machinery provides deeper insight into how these forecasts are generated and updated as new data arrives.</p>
+<p>The core algorithm for exact inference in linear Gaussian systems is the <strong>Kalman Filter</strong>. Originally developed for control engineering, it is the mathematical engine that computes the posterior distribution of the latent state <span class="math inline">\(\alpha_t\)</span> (or <span class="math inline">\(x_t\)</span> in general notation) given the data up to time <span class="math inline">\(t\)</span>. The recursive nature of the Kalman Filter—updating the state estimate with each new observation—is what allows structural time series models to adapt dynamically to changing trends and seasonal patterns.</p>
 <p>The classic filtering and prediction algorithms for linear and Gaussian systems are described in <span class="citation" data-cites="kalman1960new">Rudolph Emil Kalman (<a href="references.html#ref-kalman1960new" role="doc-biblioref">1960</a>)</span> and <span class="citation" data-cites="kalman1961new">R. E. Kalman and Bucy (<a href="references.html#ref-kalman1961new" role="doc-biblioref">1961</a>)</span>. Early work on discrete recursions for hidden Markov models are in <span class="citation" data-cites="baum1970maximization">Baum et al. (<a href="references.html#ref-baum1970maximization" role="doc-biblioref">1970</a>)</span> who use an EM-type algorithm, <span class="citation" data-cites="viterbi1967error">Viterbi (<a href="references.html#ref-viterbi1967error" role="doc-biblioref">1967</a>)</span> who provides a modal state filter estimate and recursions developed in <span class="citation" data-cites="lindgren1978markov">Lindgren (<a href="references.html#ref-lindgren1978markov" role="doc-biblioref">1978</a>)</span>. While these can be used to evaluate the marginal likelihood for the parameters they are computationally too intensive to solve the filtering and learning, <span class="citation" data-cites="lindgren1978markov">Lindgren (<a href="references.html#ref-lindgren1978markov" role="doc-biblioref">1978</a>)</span>. <span class="citation" data-cites="scott2002bayesian">Steven L. Scott (<a href="references.html#ref-scott2002bayesian" role="doc-biblioref">2002</a>)</span> provides a review of FFBS algorithms for discrete HMMs.</p>
 <p>Markov chain Monte Carlo (MCMC) algorithms for parameter learning in nonlinear non-Gaussian state space models were developed by <span class="citation" data-cites="carlin1992monte">Carlin, Polson, and Stoffer (<a href="references.html#ref-carlin1992monte" role="doc-biblioref">1992</a>)</span>. For linear and Gaussian systems, <span class="citation" data-cites="carter1994gibbs">Carter and Kohn (<a href="references.html#ref-carter1994gibbs" role="doc-biblioref">1994</a>)</span> introduced the filter forward and backwards sample (FFBS) algorithm, which efficiently draws the entire block of hidden states. For handling multinomial logit models, <span class="citation" data-cites="scott2002bayesian">Steven L. Scott (<a href="references.html#ref-scott2002bayesian" role="doc-biblioref">2002</a>)</span> and <span class="citation" data-cites="fruhwirth-schnatter2008improved">Frühwirth-Schnatter et al. (<a href="references.html#ref-fruhwirth-schnatter2008improved" role="doc-biblioref">2008</a>)</span> developed mixture of normals approximation methods. Additionally, <span class="citation" data-cites="west1997bayesian">West and Harrison (<a href="references.html#ref-west1997bayesian" role="doc-biblioref">1997</a>)</span> proposed conditionally conjugate priors that allow parameters to be marginalized out of the updating equations, leading to more efficient inference procedures.</p>
 <section id="kalman-filtering" class="level3">
@@ -1360,7 +1324,7 @@ K_{t} &amp;= A \Sigma_t G^T (G \Sigma_t G^T + R)^{-1}\\
 \Sigma_0 = \begin{bmatrix} 0.4 &amp; 0.3 \\ 0.3 &amp; 0.45 \end{bmatrix}.
 \]</span> The prior distribution of the robot’s position can be visualized in R with a contour plot.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mnormt)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mnormt)</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>xhat <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.2</span>, <span class="sc">-</span><span class="fl">0.2</span>)</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>Sigma <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="fl">0.4</span>, <span class="fl">0.3</span>, </span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                  <span class="fl">0.3</span>, <span class="fl">0.45</span>), <span class="at">ncol=</span><span class="dv">2</span>)</span>
@@ -1374,7 +1338,7 @@ K_{t} &amp;= A \Sigma_t G^T (G \Sigma_t G^T + R)^{-1}\\
 <span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">xlab=</span><span class="fu">expression</span>(<span class="st">'x'</span>[<span class="dv">1</span>]), <span class="at">ylab=</span><span class="fu">expression</span>(<span class="st">'x'</span>[<span class="dv">2</span>]))</span>
 <span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a><span class="fu">contour</span>(x1,x2,z, <span class="at">add=</span><span class="cn">TRUE</span>)</span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fl">0.2</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="at">pch=</span><span class="dv">19</span>)</span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">0.1</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="at">labels =</span> <span class="fu">expression</span>(<span class="fu">hat</span>(x)), <span class="at">adj =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">0.1</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="at">labels =</span> <span class="fu">expression</span>(<span class="fu">hat</span>(x)), <span class="at">adj =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1387,7 +1351,7 @@ K_{t} &amp;= A \Sigma_t G^T (G \Sigma_t G^T + R)^{-1}\\
 y_t = Gx_t + \nu_t = x_t + \nu, \quad \nu \sim N(0, R).
 \]</span></p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>R <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> Sigma</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>R <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> Sigma</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>z2 <span class="ot">&lt;-</span> <span class="fu">outer</span>(x1,x2, f, <span class="at">mean=</span><span class="fu">c</span>(<span class="fl">2.3</span>, <span class="sc">-</span><span class="fl">1.9</span>), <span class="at">varcov=</span>R)</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">image</span>(x1, x2, z2, <span class="at">col=</span>mycols, <span class="at">main=</span><span class="st">"Sensor density"</span>)</span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="fu">contour</span>(x1, x2, z2, <span class="at">add=</span><span class="cn">TRUE</span>)</span>
@@ -1395,7 +1359,7 @@ y_t = Gx_t + \nu_t = x_t + \nu, \quad \nu \sim N(0, R).
 <span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">2.2</span>, <span class="sc">-</span><span class="fl">1.9</span>, <span class="at">labels =</span> <span class="st">"y"</span>, <span class="at">adj =</span> <span class="dv">1</span>)</span>
 <span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="fu">contour</span>(x1, x2,z, <span class="at">add=</span><span class="cn">TRUE</span>)</span>
 <span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fl">0.2</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="at">pch=</span><span class="dv">19</span>)</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">0.1</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="at">labels =</span> <span class="fu">expression</span>(<span class="fu">hat</span>(x)), <span class="at">adj =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">0.1</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="at">labels =</span> <span class="fu">expression</span>(<span class="fu">hat</span>(x)), <span class="at">adj =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1433,7 +1397,7 @@ y_t = Gx_t + \nu_t = x_t + \nu, \quad \nu \sim N(0, R).
 \end{aligned}
 \]</span></p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>G <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="dv">2</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>G <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="dv">2</span>)</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">2.4</span>, <span class="sc">-</span><span class="fl">1.9</span>)</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>xhatf <span class="ot">&lt;-</span> xhat <span class="sc">+</span> Sigma <span class="sc">%*%</span> <span class="fu">t</span>(G) <span class="sc">%*%</span> <span class="fu">solve</span>(G <span class="sc">%*%</span> Sigma <span class="sc">%*%</span> <span class="fu">t</span>(G) <span class="sc">+</span> R) <span class="sc">%*%</span> (y <span class="sc">-</span> G <span class="sc">%*%</span> xhat)</span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>Sigmaf <span class="ot">&lt;-</span> Sigma <span class="sc">-</span> Sigma <span class="sc">%*%</span> <span class="fu">t</span>(G) <span class="sc">%*%</span> <span class="fu">solve</span>(G <span class="sc">%*%</span> Sigma <span class="sc">%*%</span> <span class="fu">t</span>(G) <span class="sc">+</span> R) <span class="sc">%*%</span> G <span class="sc">%*%</span> Sigma</span>
@@ -1451,7 +1415,7 @@ y_t = Gx_t + \nu_t = x_t + \nu, \quad \nu \sim N(0, R).
 <span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">0.1</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="at">labels =</span> <span class="fu">expression</span>(<span class="fu">hat</span>(x)), <span class="at">adj =</span> <span class="dv">1</span>, <span class="at">col=</span>lb)</span>
 <span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="fu">contour</span>(x1, x2, z2, <span class="at">add=</span><span class="cn">TRUE</span>, <span class="at">col=</span>lb)</span>
 <span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fl">2.3</span>, <span class="sc">-</span><span class="fl">1.9</span>, <span class="at">pch=</span><span class="dv">19</span>, <span class="at">col=</span>lb)</span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">2.2</span>, <span class="sc">-</span><span class="fl">1.9</span>,<span class="at">labels =</span> <span class="st">"y"</span>, <span class="at">adj =</span> <span class="dv">1</span>, <span class="at">col=</span>lb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">2.2</span>, <span class="sc">-</span><span class="fl">1.9</span>,<span class="at">labels =</span> <span class="st">"y"</span>, <span class="at">adj =</span> <span class="dv">1</span>, <span class="at">col=</span>lb)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1482,7 +1446,7 @@ Q = 0.3 \Sigma
 \end{split}
 \]</span> Here <span class="math inline">\(K = A \Sigma G^T (G \Sigma G^T + R)^{-1}\)</span> is so-called Kalman gain matrix.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="fl">1.2</span>, <span class="dv">0</span>,</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="fl">1.2</span>, <span class="dv">0</span>,</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>              <span class="dv">0</span>, <span class="sc">-</span><span class="fl">0.2</span>), <span class="at">ncol=</span><span class="dv">2</span>)</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>Q <span class="ot">&lt;-</span> <span class="fl">0.3</span> <span class="sc">*</span> Sigma</span>
 <span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>K <span class="ot">&lt;-</span> A <span class="sc">%*%</span> Sigma <span class="sc">%*%</span> <span class="fu">t</span>(G) <span class="sc">%*%</span> <span class="fu">solve</span>(G<span class="sc">%*%</span> Sigma <span class="sc">%*%</span> <span class="fu">t</span>(G) <span class="sc">+</span> R)</span>
@@ -1505,7 +1469,7 @@ Q = 0.3 \Sigma
 <span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">0.1</span>, <span class="sc">-</span><span class="fl">0.2</span>, <span class="at">labels =</span> <span class="fu">expression</span>(<span class="fu">hat</span>(x)), <span class="at">adj =</span> <span class="dv">1</span>, <span class="at">col=</span>lb)</span>
 <span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a><span class="fu">contour</span>(x1, x2, z2, <span class="at">add=</span><span class="cn">TRUE</span>, <span class="at">col=</span>lb)</span>
 <span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(<span class="fl">2.3</span>, <span class="sc">-</span><span class="fl">1.9</span>, <span class="at">pch=</span><span class="dv">19</span>, <span class="at">col=</span>lb)</span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">2.2</span>, <span class="sc">-</span><span class="fl">1.9</span>,<span class="at">labels =</span> <span class="st">"y"</span>, <span class="at">adj =</span> <span class="dv">1</span>, <span class="at">col=</span>lb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fl">2.2</span>, <span class="sc">-</span><span class="fl">1.9</span>,<span class="at">labels =</span> <span class="st">"y"</span>, <span class="at">adj =</span> <span class="dv">1</span>, <span class="at">col=</span>lb)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1778,25 +1742,25 @@ f(y;G) = \int k(y ; \theta) dG(\theta)
 <p><span class="theorem-title"><strong>Example 15.5 (Particle Learning for Poisson Mixture Models)</strong></span> We will implement Particle Learning (PL) for a finite mixture of Poisson distributions based on the example from <span class="citation" data-cites="carvalho2010particlea">Carvalho et al. (<a href="references.html#ref-carvalho2010particlea" role="doc-biblioref">2010</a>)</span>. This example follows Algorithm 1 for finite mixture models from Section 2.1 of the paper.</p>
 <p>We generate data from a mixture of two Poisson distributions (<span class="math inline">\(\lambda_1=2\)</span> with weight 0.7, <span class="math inline">\(\lambda_2\)</span>=10 with weight 0.3).</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">8</span>) <span class="co"># Ovi</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">8</span>) <span class="co"># Ovi</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate data (500 observations)</span></span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>n_obs <span class="ot">&lt;-</span> <span class="dv">500</span></span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>true_z <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, n_obs, <span class="at">replace=</span><span class="cn">TRUE</span>, <span class="at">prob=</span><span class="fu">c</span>(<span class="fl">0.7</span>, <span class="fl">0.3</span>))</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(true_z <span class="sc">==</span> <span class="dv">1</span>, <span class="fu">rpois</span>(n_obs, <span class="dv">2</span>), <span class="fu">rpois</span>(n_obs, <span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(true_z <span class="sc">==</span> <span class="dv">1</span>, <span class="fu">rpois</span>(n_obs, <span class="dv">2</span>), <span class="fu">rpois</span>(n_obs, <span class="dv">10</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot two empirical density plots for each mixture component. Put them in one plot </span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot two empirical density plots for each mixture component. Put them in one plot </span></span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">density</span>(y[true_z <span class="sc">==</span> <span class="dv">1</span>]), <span class="at">xlab =</span> <span class="st">"y"</span>, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">15</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.3</span>), <span class="at">main=</span><span class="st">""</span>)</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(<span class="fu">density</span>(y[true_z <span class="sc">==</span> <span class="dv">2</span>]), <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(<span class="fu">density</span>(y),<span class="at">xlab =</span> <span class="st">"y"</span>, <span class="at">col =</span> <span class="st">"purple"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">15</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.3</span>))</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"Component 1 (Lambda=2)"</span>, <span class="st">"Component 2 (Lambda=10)"</span>, <span class="st">"Mixture Density"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"red"</span>, <span class="st">"purple"</span>), <span class="at">lwd=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"Component 1 (Lambda=2)"</span>, <span class="st">"Component 2 (Lambda=10)"</span>, <span class="st">"Mixture Density"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"red"</span>, <span class="st">"purple"</span>), <span class="at">lwd=</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="15-forecasting_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
+<p><img src="15-forecasting_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576"></p>
 </figure>
 </div>
 </div>
@@ -1806,7 +1770,7 @@ f(y;G) = \int k(y ; \theta) dG(\theta)
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Model parameters</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Model parameters</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>m <span class="ot">&lt;-</span> <span class="dv">2</span>  <span class="co"># Number of components</span></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>alpha <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>)  <span class="co"># Gamma prior shape parameters</span></span>
 <span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>)   <span class="co"># Gamma prior rate parameters</span></span>
@@ -1883,14 +1847,14 @@ f(y;G) = \int k(y ; \theta) dG(\theta)
 <span id="cb27-75"><a href="#cb27-75" aria-hidden="true" tabindex="-1"></a>  </span>
 <span id="cb27-76"><a href="#cb27-76" aria-hidden="true" tabindex="-1"></a>  posterior_lambda[t,] <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(lambda_samples)</span>
 <span id="cb27-77"><a href="#cb27-77" aria-hidden="true" tabindex="-1"></a>  posterior_weights[t,] <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(weight_samples)</span>
-<span id="cb27-78"><a href="#cb27-78" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb27-78"><a href="#cb27-78" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>Now we are ready to plot the results</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert posterior estimates to data frames for ggplot</span></span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>posterior_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
 <span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Observation =</span> <span class="dv">1</span><span class="sc">:</span>n_obs,</span>
@@ -1921,7 +1885,7 @@ f(y;G) = \int k(y ; \theta) dG(\theta)
 <span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Observation"</span>, <span class="at">y =</span> <span class="st">"Weight"</span>) <span class="sc">+</span></span>
 <span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"black"</span>, <span class="st">"red"</span>)) <span class="sc">+</span></span>
 <span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.title =</span> <span class="fu">element_blank</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.title =</span> <span class="fu">element_blank</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="quarto-layout-panel" data-layout-ncol="2">
@@ -1956,8 +1920,11 @@ f(y;G) = \int k(y ; \theta) dG(\theta)
 </div>
 </section>
 </section>
-<section id="modern-era-forecasting" class="level2" data-number="15.7">
-<h2 data-number="15.7" class="anchored" data-anchor-id="modern-era-forecasting"><span class="header-section-number">15.7</span> Modern Era Forecasting</h2>
+<section id="alternative-approaches" class="level2" data-number="15.7">
+<h2 data-number="15.7" class="anchored" data-anchor-id="alternative-approaches"><span class="header-section-number">15.7</span> Alternative Approaches</h2>
+<p>While structural time series models and <code>bsts</code> are powerful tools for interpretable probabilistic forecasting, the field of time series analysis has evolved rapidly, especially in the context of large-scale commercial applications.</p>
+<section id="modern-era-forecasting" class="level3">
+<h3 class="anchored" data-anchor-id="modern-era-forecasting">Modern Era Forecasting</h3>
 <p>A recent post by the Amazon Science group <span class="citation" data-cites="amazon2021history">Amazon (<a href="references.html#ref-amazon2021history" role="doc-biblioref">2021</a>)</span> describes the evolution of the time series algorithms used for forecasting from 2007 to 2021. Figure below shows the entire evolution of the algorithms.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1966,8 +1933,8 @@ f(y;G) = \int k(y ; \theta) dG(\theta)
 </div>
 <p>They went from standard textbook time series forecasting methods to make predictions to the quantile-based transformer models. The main problem of the traditional TS models is that they assume stationary. A stationary time series is one whose properties do not depend on the time at which the series is observed. For example, a white noise series is stationary - it does not matter when you observe it, it should look much the same at any point in time.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>yt <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">100</span>)</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(yt,<span class="at">type=</span><span class="st">'l'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>yt <span class="ot">=</span> <span class="fu">rnorm</span>(<span class="dv">100</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(yt,<span class="at">type=</span><span class="st">'l'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1994,6 +1961,7 @@ Figure&nbsp;15.8: Which of these series are stationary? (a) Dow Jones index on 2
 <p>However, when you try to forecast for a time series with no prior history or non-recurrent “jumps”, like recessions, traditional models are unlikely to work well.</p>
 <p>Amazon used a sequence of “patches” to hack the model and to make it produce useful results. All of those required manual feature engineering and led to less transparent and fragile models. One solution is to use random forests.</p>
 </section>
+</section>
 <section id="quantile-regression-forests." class="level2" data-number="15.8">
 <h2 data-number="15.8" class="anchored" data-anchor-id="quantile-regression-forests."><span class="header-section-number">15.8</span> Quantile Regression Forests.</h2>
 <p>Most estimators during prediction return <span class="math inline">\(E(Y|X)\)</span>, which can be interpreted as the answer to the question, what is the expected value of your output given the input?</p>
@@ -2016,6 +1984,17 @@ Figure&nbsp;15.8: Which of these series are stationary? (a) Dow Jones index on 2
 <figcaption><span class="citation" data-cites="januschowski2022forecasting">Januschowski et al. (<a href="references.html#ref-januschowski2022forecasting" role="doc-biblioref">2022</a>)</span></figcaption>
 </figure>
 </div>
+</section>
+<section id="conclusion" class="level2" data-number="15.9">
+<h2 data-number="15.9" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">15.9</span> Conclusion</h2>
+<p>Forecasting is a vast field where no single method rules supreme. In this chapter, we have focused on <strong>Structural Time Series</strong> models via the <code>bsts</code> package because they offer a sweet spot for many scientific and business applications:</p>
+<ol type="1">
+<li><strong>Interpretability</strong>: Unlike “black box” machine learning models, BSTS models decompose a time series into understandable components—trends, seasonality, and regressor effects. This allows analysts to explain <em>why</em> a forecast is what it is.</li>
+<li><strong>Uncertainty Quantification</strong>: By using a full Bayesian framework, we naturally get credible intervals for our predictions. We don’t just produce a single number; we quantify what we don’t know.</li>
+<li><strong>Flexibility</strong>: The ability to incorporate priors (like spike-and-slab for variable selection) makes them robust even when data is noisy or predictors are numerous.</li>
+</ol>
+<p>However, as seen in the “Alternative Approaches” section, when the goal is pure predictive accuracy on massive datasets with complex, non-linear interactions, modern machine learning techniques like Gradient Boosted Trees and Deep Learning (Transformers) can outperform traditional state-space models. The choice of tool depends on the task: use <code>bsts</code> when you need to understand the mechanism and quantify risk; consider deep learning when you need to squeeze out the last percentage of accuracy from billions of data points.</p>
+<p>Ultimately, the best forecaster is often a pragmatist—able to wield the precision of the Kalman Filter and the raw power of a Random Forest, depending on the problem at hand.</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
@@ -2048,9 +2027,6 @@ Carvalho, Carlos M, Hedibert F Lopes, Nicholas G Polson, and Matt A Taddy. 2010.
 </div>
 <div id="ref-chib1998estimation" class="csl-entry" role="listitem">
 Chib, Siddhartha. 1998. <span>“Estimation and Comparison of Multiple Change-Point Models.”</span> <em>Journal of Econometrics</em> 86 (2): 221–41.
-</div>
-<div id="ref-erictassone2017our" class="csl-entry" role="listitem">
-Eric Tassone, and Farzan Rohani. 2017. <span>“Our Quest for Robust Time Series Forecasting at Scale.”</span>
 </div>
 <div id="ref-fruhwirth-schnatter2007auxiliary" class="csl-entry" role="listitem">
 Frühwirth-Schnatter, Sylvia, and Rudolf Frühwirth. 2007. <span>“Auxiliary Mixture Sampling with Applications to Logistic Models.”</span> <em>Computational Statistics &amp; Data Analysis</em> 51 (April): 3509–28.
@@ -2105,9 +2081,6 @@ Scott, Steven L., and Hal R. Varian. 2015. <span>“Bayesian <span>Variable Sele
 </div>
 <div id="ref-scott2014predicting" class="csl-entry" role="listitem">
 Scott, Steven, and Hal Varian. 2014. <span>“Predicting the <span>Present</span> with <span>Bayesian Structural Time Series</span>.”</span> <em>Int. J. Of Mathematical Modelling and Numerical Optimisation</em> 5 (January): 4–23.
-</div>
-<div id="ref-seanj.taylor2017prophet" class="csl-entry" role="listitem">
-Sean J. Taylor, and Ben Letham. 2017. <span>“Prophet: Forecasting at Scale - <span>Meta Research</span>.”</span> <em>Meta Research</em>. https://research.facebook.com/blog/2017/2/prophet-forecasting-at-scale/.
 </div>
 <div id="ref-smith1975bayesian" class="csl-entry" role="listitem">
 Smith, A. F. M. 1975. <span>“A <span>Bayesian Approach</span> to <span>Inference</span> about a <span>Change-Point</span> in a <span>Sequence</span> of <span>Random Variables</span>.”</span> <em>Biometrika</em> 62 (2): 407–16. <a href="https://www.jstor.org/stable/2335381">https://www.jstor.org/stable/2335381</a>.
@@ -2173,13 +2146,14 @@ West, Mike, and Jeff Harrison. 1997. <em>Bayesian Forecasting and Dynamic Models
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

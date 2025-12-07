@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -89,14 +89,15 @@ div.csl-indent {
 <link href="./17-select.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-680e7c22d93ef26f016bec9199f8e6d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -168,7 +169,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -442,7 +443,7 @@ window.Quarto = {
    
   <ul>
   <li><a href="#normal-means-problem" id="toc-normal-means-problem" class="nav-link active" data-scroll-target="#normal-means-problem"><span class="header-section-number">18.1</span> Normal Means Problem</a></li>
-  <li><a href="#unbiasedness-and-the-optimality-of-bayes-rules" id="toc-unbiasedness-and-the-optimality-of-bayes-rules" class="nav-link" data-scroll-target="#unbiasedness-and-the-optimality-of-bayes-rules"><span class="header-section-number">18.2</span> Unbiasedness and the Optimality of Bayes Rules</a>
+  <li><a href="#sec-unbiasedness-optimality" id="toc-sec-unbiasedness-optimality" class="nav-link" data-scroll-target="#sec-unbiasedness-optimality"><span class="header-section-number">18.2</span> Unbiasedness and the Optimality of Bayes Rules</a>
   <ul class="collapse">
   <li><a href="#full-bayes-shrinkage" id="toc-full-bayes-shrinkage" class="nav-link" data-scroll-target="#full-bayes-shrinkage">Full Bayes Shrinkage</a></li>
   </ul></li>
@@ -471,7 +472,7 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#scale-mixture-representation" id="toc-scale-mixture-representation" class="nav-link" data-scroll-target="#scale-mixture-representation">Scale Mixture Representation</a></li>
   </ul></li>
-  <li><a href="#horseshoe" id="toc-horseshoe" class="nav-link" data-scroll-target="#horseshoe"><span class="header-section-number">18.10</span> Horseshoe</a>
+  <li><a href="#sec-horseshoe" id="toc-sec-horseshoe" class="nav-link" data-scroll-target="#sec-horseshoe"><span class="header-section-number">18.10</span> Horseshoe</a>
   <ul class="collapse">
   <li><a href="#mathematical-formulation" id="toc-mathematical-formulation" class="nav-link" data-scroll-target="#mathematical-formulation">Mathematical Formulation</a></li>
   <li><a href="#shrinkage-properties" id="toc-shrinkage-properties" class="nav-link" data-scroll-target="#shrinkage-properties">Shrinkage Properties</a></li>
@@ -530,6 +531,10 @@ window.Quarto = {
 </header>
 
 
+<blockquote class="blockquote">
+<p>“In God we trust; all others must bring data.” — W. Edwards Deming</p>
+</blockquote>
+<p>When AlphaGo defeated world champion Lee Sedol in 2016, its neural networks contained millions of parameters—far more than the number of training positions it had observed. How did it avoid simply memorizing the training data? The answer lies in regularization: the systematic imposition of constraints that prevent models from over-fitting to noise. This chapter reveals that regularization is not merely a computational trick but emerges naturally from Bayesian reasoning about uncertainty.</p>
 <p>The development of learning algorithms has been driven by two fundamental paradigms: the classical frequentist approach centered around maximum likelihood estimation (MLE) and the Bayesian approach grounded in decision theory. This chapter explores how these seemingly distinct methodologies converge in modern AI theory, particularly through the lens of regularization and model selection.</p>
 <p>Maximum likelihood estimation represents the cornerstone of classical statistical inference. Given observed data <span class="math inline">\(\mathcal{D} = (x_i, y_i)_{i=1}^n\)</span> and a parametric model <span class="math inline">\(f_{\theta}(x)\)</span>, the MLE principle seeks to find the parameter values that maximize the likelihood function: <span class="math display">\[
 \hat{\theta}_{MLE} = \arg\max_{\theta} \mathcal{L}(\theta; \mathcal{D}) = \arg\max_{\theta} \prod_{i=1}^n p(y_i | x_i, \theta)
@@ -547,7 +552,7 @@ window.Quarto = {
 \]</span> and the MLE estimate is given by <span class="math inline">\(\hat \theta_i = \bar y_i\)</span>. The MLE estimate is consistent and asymptotically normal, i.e., <span class="math display">\[
 \hat \theta_i \to N(\theta_i, \sigma^2/n_i) \quad \text{as} \quad n_i \to \infty.
 \]</span></p>
-<p>On the other hand, the Bayes estimator is based on <span class="math inline">\(\theta_i \mid \hat \theta_i\)</span>, where <span class="math inline">\(\hat \theta_i = \bar y_i\)</span>. In other words, the classical approach is subject to the prosecutor’s fallacy. Classical estimators are unbiased, whereas a Bayes estimator is biased.</p>
+<p>On the other hand, the Bayes estimator is based on <span class="math inline">\(\theta_i \mid \hat \theta_i\)</span>, where <span class="math inline">\(\hat \theta_i = \bar y_i\)</span>. In other words, the classical approach is subject to the <em>prosecutor’s fallacy</em>—the logical error of confusing <span class="math inline">\(P(\text{data} \mid \text{hypothesis})\)</span> with <span class="math inline">\(P(\text{hypothesis} \mid \text{data})\)</span>. Classical estimators are unbiased, whereas a Bayes estimator is biased.</p>
 <div id="exm-corporate-performance" class="theorem example">
 <p><span class="theorem-title"><strong>Example 18.1 (Screening Corporate Performance)</strong></span> To illustrate the practical importance of the normal means problem, consider the challenge faced by investment analysts screening thousands of publicly traded companies for sustained superior performance <span class="citation" data-cites="polson2012good">(<a href="references.html#ref-polson2012good" role="doc-biblioref">Polson and Scott 2012</a>)</span>. Suppose we have return on assets (ROA) data for <span class="math inline">\(p = 53,038\)</span> firms across 93 countries over 45 years. For each firm <span class="math inline">\(i\)</span>, we observe an average ROA performance <span class="math inline">\(\bar{y}_i\)</span> over some time period.</p>
 <p>The fundamental question is: <em>Which firms have genuinely superior performance versus those that appear successful due to luck?</em> This is precisely a massive multiple testing problem in the normal means framework. Using MLE, we would estimate each firm’s performance as <span class="math inline">\(\hat{\theta}_i = \bar{y}_i\)</span> and declare any firm with <span class="math inline">\(\bar{y}_i &gt; 0\)</span> as superior. However, this approach ignores the massive multiplicity problem—with over 50,000 firms, many will appear successful purely by chance.</p>
@@ -571,7 +576,7 @@ z_{i,t} = \frac{\text{ROA}_{i,t} - \mu_{\text{peer}(i),t}}{\sigma_{\text{peer}(i
 </li>
 <li><span class="math inline">\(z_{i,t} = -1\)</span> indicates performance one standard deviation below peers</li>
 </ul>
-<p><strong>Critical Finding</strong>: After this rigorous standardization, the authors discovered that sustained superior performance (<span class="math inline">\(\theta_i &gt; 0\)</span> consistently over time) was remarkably rare. Most firms showing high raw ROA were simply benefiting from favorable conditions rather than demonstrating genuine operational excellence. This finding emerged only after proper normalization—without standardization, hundreds of firms would have been incorrectly classified as superior performers.</p>
+<p>After this rigorous standardization, the authors discovered a <em>critical finding</em>: sustained superior performance (<span class="math inline">\(\theta_i &gt; 0\)</span> consistently over time) was remarkably rare. Most firms showing high raw ROA were simply benefiting from favorable conditions rather than demonstrating genuine operational excellence. This finding emerged only after proper normalization—without standardization, hundreds of firms would have been incorrectly classified as superior performers.</p>
 </div>
 <p>The goal is to estimate the vector <span class="math inline">\(\theta\)</span> using squared loss: <span class="math display">\[
 \mathcal{L}(\theta, \hat{\theta}) = \sum_{i=1}^p (\theta_i - \hat{\theta}_i)^2,
@@ -582,22 +587,23 @@ R(\theta,\hat{\theta}) = \E[y]{\mathcal{L}(\theta, \hat{\theta})} = \sum_{i=1}^p
 R(\theta,\hat{\theta}) = \sum_{i=1}^p \sigma^2 = p\sigma^2.
 \]</span></p>
 <p>This shows that the MLE risk is constant and does not depend on the true parameter values <span class="math inline">\(\theta\)</span>, only on the dimension <span class="math inline">\(p\)</span> and the noise variance <span class="math inline">\(\sigma^2\)</span>.</p>
+<p>Given that MLE provides a natural baseline estimator with known risk properties, one might ask: can we do better? The Bayesian paradigm offers a fundamentally different perspective that often yields estimators with uniformly lower risk.</p>
 <p>Bayesian inference offers a fundamentally different perspective by incorporating prior knowledge and quantifying uncertainty through probability distributions. The Bayesian approach begins with a prior distribution <span class="math inline">\(p(\theta)\)</span> over the parameter space and updates this belief using Bayes’ rule: <span class="math display">\[
 p(\theta | y) = \frac{p(y | \theta) p(\theta)}{p(y)}
 \]</span></p>
-<p>The <strong>Bayes estimator</strong> is the value <span class="math inline">\(\hat{\theta}^{B}\)</span> that minimizes the Bayes risk, the expected loss: <span class="math display">\[
+<p>The <em>Bayes estimator</em> is the value <span class="math inline">\(\hat{\theta}^{B}\)</span> that minimizes the Bayes risk, the expected loss: <span class="math display">\[
 \hat{\theta}^{B} = \arg\min_{\hat{\theta}(y)} R(\pi, \hat{\theta}(y))
-\]</span> Here <span class="math inline">\(\pi\)</span> is the prior distribution of <span class="math inline">\(\theta\)</span> and <span class="math inline">\(R(\pi, \hat{\theta}(y))\)</span> is the <strong>Bayes risk</strong> defined as: <span id="eq-bayes-risk"><span class="math display">\[
+\]</span> Here <span class="math inline">\(\pi\)</span> is the prior distribution of <span class="math inline">\(\theta\)</span> and <span class="math inline">\(R(\pi, \hat{\theta}(y))\)</span> is the <em>Bayes risk</em> defined as: <span id="eq-bayes-risk"><span class="math display">\[
 R(\pi, \hat{\theta}(y)) = \mathbb{E}_{\theta \sim \pi} \left[ \mathbb{E}_{y\mid \theta} \left[ \mathcal{L}(\theta, \hat{\theta}(y)) \right] \right].
 \tag{18.2}\]</span></span> For squared error loss, this yields the posterior mean <span class="math inline">\(\E{\theta \mid y}\)</span>, while for absolute error loss, it gives the posterior median.</p>
 <p>For the normal means problem with squared error loss, this becomes: <span class="math display">\[
 R(\pi, \hat{\theta}(y)) = \int_{\theta \in \Theta} \left( \int_{y \in \mathcal{Y}} (\theta - \hat{\theta}(y))^2 p(y|\theta) dy \right) \pi(\theta) d\theta
 \]</span></p>
 <p>The Bayes risk quantifies the expected performance of an estimator, taking into account both the uncertainty in the data and the prior uncertainty about the parameter. It serves as a benchmark for comparing different estimators: an estimator with lower Bayes risk is preferred under the chosen prior and loss function. In particular, the Bayes estimator achieves the minimum possible Bayes risk for the given prior and loss.</p>
-<p>In 1961, James and Stein exhibited an estimator of the mean of a multivariate normal distribution that has uniformly lower mean squared error than the sample mean. This estimator is reviewed briefly in an empirical Bayes context. Stein’s rule and its generalizations are then applied to predict baseball averages, to estimate toxoplasmosis prevalence rates, and to estimate the exact size of Pearson’s chi-square test with results from a computer simulation.</p>
-<p>In each of these examples, the mean squared error of these rules is less than half that of the sample mean. This result is paradoxical because it contradicts the elementary law of statistical theory. The philosophical implications of Stein’s paradox are also significant. It has influenced the development of shrinkage estimators and has connections to Bayesianism and model selection criteria.</p>
+<p>In 1961, Charles Stein and Willard James proved a startling result: they constructed an estimator for the mean of a multivariate normal distribution that uniformly dominates the sample mean under squared error loss—a finding that challenged what seemed like an elementary law of statistical theory. This result, now known as <em>Stein’s paradox</em>, demonstrates that for dimensions <span class="math inline">\(p \geq 3\)</span>, there always exists an estimator with strictly lower risk than the MLE for all parameter values.</p>
+<p>The empirical evidence is striking: in applications ranging from baseball batting averages to toxoplasmosis prevalence rates to Pearson’s chi-square tests, the James-Stein estimator achieves mean squared errors less than half that of the sample mean. This result is paradoxical because it overturns the intuition that unbiased estimators should be optimal—despite introducing bias, the James-Stein estimator achieves strictly lower risk for all parameter values when <span class="math inline">\(p \geq 3\)</span>. The philosophical implications extend beyond estimation theory: by demonstrating that individual estimates can be improved by considering them jointly, Stein’s paradox provides deep connections to Bayesian thinking and the empirical Bayes framework.</p>
 <p>Stein’s phenomenon where <span class="math inline">\(y_i \mid \theta_i \sim N(\theta_i, 1)\)</span> and <span class="math inline">\(\theta_i \sim N(0, \tau^2)\)</span> where <span class="math inline">\(\tau \rightarrow \infty\)</span> illustrates this point well. The MLE approach is equivalent to the use of the improper “non-informative” uniform prior and leads to an estimator with poor risk properties.</p>
-<p>Let <span class="math inline">\(\|y\| = \sum_{i=1}^p y_i^2\)</span>. Then, we can make the following probabilistic statements from the model: <span class="math display">\[
+<p>Let <span class="math inline">\(\|y\|^2 = \sum_{i=1}^p y_i^2\)</span> denote the squared Euclidean norm of <span class="math inline">\(y\)</span>. Then, we can make the following probabilistic statements from the model: <span class="math display">\[
 P\left( \| y \| &gt; \| \theta \| \right) &gt; \frac{1}{2}
 \]</span> Now for the posterior, this inequality is reversed under a flat Lebesgue measure: <span class="math display">\[
 P\left( \| \theta \| &gt; \| y \| \mid y \right) &gt; \frac{1}{2}
@@ -649,8 +655,8 @@ R(\theta, \hat{\theta}^{JS}) &lt; R(\theta, \hat{\theta}^{MLE}) \quad \forall \t
 <p>The James-Stein estimator illustrates how incorporating prior information (via shrinkage) can lead to estimators with lower overall risk compared to the MLE, especially in high-dimensional settings. However, it is not the only shrinkage estimator that dominates the MLE. Other shrinkage estimators, such as the ridge regression estimator, also have lower risk than the MLE. The key insight is that shrinkage estimators can leverage prior information to improve estimation accuracy, especially in high-dimensional settings.</p>
 <p>Note, that we used the empirical Bayes version of the definition of risk. Full Bayes approach incorporates both the data and the prior distribution of the parameter as in <a href="#eq-bayes-risk" class="quarto-xref">Equation&nbsp;<span>18.2</span></a>.</p>
 </section>
-<section id="unbiasedness-and-the-optimality-of-bayes-rules" class="level2" data-number="18.2">
-<h2 data-number="18.2" class="anchored" data-anchor-id="unbiasedness-and-the-optimality-of-bayes-rules"><span class="header-section-number">18.2</span> Unbiasedness and the Optimality of Bayes Rules</h2>
+<section id="sec-unbiasedness-optimality" class="level2" data-number="18.2">
+<h2 data-number="18.2" class="anchored" data-anchor-id="sec-unbiasedness-optimality"><span class="header-section-number">18.2</span> Unbiasedness and the Optimality of Bayes Rules</h2>
 <p>The optimal Bayes rule <span class="math inline">\(\delta_\pi(x) = \E{\theta \mid y}\)</span> is the posterior mean under squared error loss. An interesting feature of the Bayes rule is that it is biased except in degenerate cases like improper priors, which can lose optimality properties. This can be seen using the following decomposition.</p>
 <p>If the rule was unbiased, then the Bayes risk would be zero. This follows by contradiction: assume for the sake of argument that <span class="math inline">\(\E[x\mid\theta]{\delta_{\pi}(y)} = \theta\)</span>, then <span class="math display">\[
 r(\pi, \delta_{\pi}(y)) = \E[\pi]{\E[y\mid\theta]{(\delta_{\pi}(y) - \theta)^2}} = \E[\pi]{\theta^2} + \E[y]{\delta_{\pi}(y)}^2 - 2\E[\pi]{\theta \E[y\mid\theta]{\delta_{\pi}(y)}} = 0
@@ -662,22 +668,22 @@ r(\pi, \delta_{\pi}(y)) = \E[\pi]{\E[y\mid\theta]{(\delta_{\pi}(y) - \theta)^2}}
 <div id="exm-baseball" class="theorem example">
 <p><span class="theorem-title"><strong>Example 18.2 (Example: James-Stein for Baseball Batting Averages)</strong></span> We reproduce the baseball batting average example from <span class="citation" data-cites="efron1977steins">Efron and Morris (<a href="references.html#ref-efron1977steins" role="doc-biblioref">1977</a>)</span>. Data below has the number of hits for 18 baseball players after 45 at-bats in 1970 season.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Data source: https://www1.swarthmore.edu/NatSci/peverso1/Sports%20Data/JamesSteinData/Efron-Morris%20Baseball/EfronMorrisBB.txt</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>baseball <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/EfronMorrisBB.txt"</span>, <span class="at">sep =</span> <span class="st">"</span><span class="sc">\t</span><span class="st">"</span>, <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(LastName,AtBats,BattingAverage,SeasonAverage)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Data source: https://www1.swarthmore.edu/NatSci/peverso1/Sports%20Data/JamesSteinData/Efron-Morris%20Baseball/EfronMorrisBB.txt</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>baseball <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/EfronMorrisBB.txt"</span>, <span class="at">sep =</span> <span class="st">"</span><span class="sc">\t</span><span class="st">"</span>, <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(LastName,AtBats,BattingAverage,SeasonAverage)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now, we can estimate overall mean and variance</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>mu_hat <span class="ot">&lt;-</span> <span class="fu">mean</span>(baseball<span class="sc">$</span>BattingAverage)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sigma2_hat <span class="ot">&lt;-</span> <span class="fu">var</span>(baseball<span class="sc">$</span>BattingAverage)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>mu_hat <span class="ot">&lt;-</span> <span class="fu">mean</span>(baseball<span class="sc">$</span>BattingAverage)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sigma2_hat <span class="ot">&lt;-</span> <span class="fu">var</span>(baseball<span class="sc">$</span>BattingAverage)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>As well as the posterior mean for each player (James-Stein estimator)</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>baseball <span class="ot">&lt;-</span> baseball <span class="sc">%&gt;%</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>baseball <span class="ot">&lt;-</span> baseball <span class="sc">%&gt;%</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">JS =</span> (sigma2_hat <span class="sc">/</span> (sigma2_hat <span class="sc">+</span> (BattingAverage <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> BattingAverage) <span class="sc">/</span> AtBats))) <span class="sc">*</span> mu_hat <span class="sc">+</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>      ((BattingAverage <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> BattingAverage) <span class="sc">/</span> AtBats) <span class="sc">/</span> (sigma2_hat <span class="sc">+</span> (BattingAverage <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> BattingAverage) <span class="sc">/</span> AtBats))) <span class="sc">*</span> BattingAverage</span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(baseball)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(baseball)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -824,14 +830,14 @@ r(\pi, \delta_{\pi}(y)) = \E[\pi]{\E[y\mid\theta]{(\delta_{\pi}(y) - \theta)^2}}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(baseball, <span class="fu">aes</span>(<span class="at">x =</span> BattingAverage, <span class="at">y =</span> JS)) <span class="sc">+</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(baseball, <span class="fu">aes</span>(<span class="at">x =</span> BattingAverage, <span class="at">y =</span> JS)) <span class="sc">+</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Observed Batting Average"</span>,</span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"James-Stein Estimate"</span>,</span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Empirical Bayes Shrinkage of Batting Averages"</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -843,14 +849,14 @@ r(\pi, \delta_{\pi}(y)) = \E[\pi]{\E[y\mid\theta]{(\delta_{\pi}(y) - \theta)^2}}
 </div>
 <p>Calculate mean squared error (MSE) for observed and James-Stein estimates</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>mse_observed <span class="ot">&lt;-</span> <span class="fu">mean</span>((baseball<span class="sc">$</span>BattingAverage <span class="sc">-</span> mu_hat)<span class="sc">^</span><span class="dv">2</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>mse_observed <span class="ot">&lt;-</span> <span class="fu">mean</span>((baseball<span class="sc">$</span>BattingAverage <span class="sc">-</span> mu_hat)<span class="sc">^</span><span class="dv">2</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>mse_js <span class="ot">&lt;-</span> <span class="fu">mean</span>((baseball<span class="sc">$</span>JS <span class="sc">-</span> mu_hat)<span class="sc">^</span><span class="dv">2</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MSE (Observed): %.6f</span><span class="sc">\n</span><span class="st">"</span>, mse_observed))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MSE (Observed): %.6f</span><span class="sc">\n</span><span class="st">"</span>, mse_observed))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## MSE (Observed): 0.004584</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MSE (James-Stein): %.6f</span><span class="sc">\n</span><span class="st">"</span>, mse_js))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"MSE (James-Stein): %.6f</span><span class="sc">\n</span><span class="st">"</span>, mse_js))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## MSE (James-Stein): 0.001031</code></pre>
 </div>
@@ -859,7 +865,7 @@ r(\pi, \delta_{\pi}(y)) = \E[\pi]{\E[y\mid\theta]{(\delta_{\pi}(y) - \theta)^2}}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>a <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="fu">nrow</span>(baseball)), <span class="dv">3</span>, <span class="fu">nrow</span>(baseball))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>a <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="fu">nrow</span>(baseball)), <span class="dv">3</span>, <span class="fu">nrow</span>(baseball))</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>b <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">c</span>(baseball<span class="sc">$</span>BattingAverage, baseball<span class="sc">$</span>SeasonAverage, baseball<span class="sc">$</span>JS),    <span class="dv">3</span>, <span class="fu">nrow</span>(baseball), <span class="at">byrow=</span><span class="cn">TRUE</span>)</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">matplot</span>(a, b, <span class="at">pch=</span><span class="st">" "</span>, <span class="at">ylab=</span><span class="st">"predicted average"</span>, <span class="at">xaxt=</span><span class="st">"n"</span>, <span class="at">xlim=</span><span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">3.1</span>), <span class="at">ylim=</span><span class="fu">c</span>(<span class="fl">0.13</span>, <span class="fl">0.42</span>))</span>
@@ -867,7 +873,7 @@ r(\pi, \delta_{\pi}(y)) = \E[\pi]{\E[y\mid\theta]{(\delta_{\pi}(y) - \theta)^2}}
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="fu">rep</span>(<span class="fl">0.7</span>, <span class="fu">nrow</span>(baseball)), baseball<span class="sc">$</span>BattingAverage, baseball<span class="sc">$</span>LastName, <span class="at">cex=</span><span class="fl">0.6</span>)</span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">1</span>, <span class="fl">0.14</span>, <span class="st">"First 45</span><span class="sc">\n</span><span class="st">at bats"</span>, <span class="at">cex=</span><span class="fl">0.5</span>)</span>
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">2</span>, <span class="fl">0.14</span>, <span class="st">"Average</span><span class="sc">\n</span><span class="st">of remainder"</span>, <span class="at">cex=</span><span class="fl">0.5</span>)</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">3</span>, <span class="fl">0.14</span>, <span class="st">"J-S</span><span class="sc">\n</span><span class="st">estimator"</span>, <span class="at">cex=</span><span class="fl">0.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">3</span>, <span class="fl">0.14</span>, <span class="st">"J-S</span><span class="sc">\n</span><span class="st">estimator"</span>, <span class="at">cex=</span><span class="fl">0.5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -881,7 +887,7 @@ r(\pi, \delta_{\pi}(y)) = \E[\pi]{\E[y\mid\theta]{(\delta_{\pi}(y) - \theta)^2}}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Data source: https://www.baseball-almanac.com/players/hittinglogs.php?p=clemero01&amp;y=1970</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Data source: https://www.baseball-almanac.com/players/hittinglogs.php?p=clemero01&amp;y=1970</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"../data/clemente.csv"</span>)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">cumsum</span>(cl<span class="sc">$</span>AB)</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">cumsum</span>(cl<span class="sc">$</span>H)<span class="sc">/</span><span class="fu">cumsum</span>(cl<span class="sc">$</span>AB)</span>
@@ -895,7 +901,7 @@ r(\pi, \delta_{\pi}(y)) = \E[\pi]{\E[y\mid\theta]{(\delta_{\pi}(y) - \theta)^2}}
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">200</span>, baseball<span class="sc">$</span>JS[<span class="dv">1</span>] <span class="sc">+</span> <span class="fl">0.005</span>, <span class="st">"JS"</span>, <span class="at">col =</span> <span class="st">"red"</span>)</span>
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> baseball<span class="sc">$</span>JS[<span class="dv">1</span>], <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">200</span>, baseball<span class="sc">$</span>BattingAverage[<span class="dv">1</span>] <span class="sc">+</span> <span class="fl">0.005</span>, <span class="st">"After 45 At Bats"</span>, <span class="at">col =</span> <span class="st">"red"</span>)</span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> baseball<span class="sc">$</span>BattingAverage[<span class="dv">1</span>], <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> baseball<span class="sc">$</span>BattingAverage[<span class="dv">1</span>], <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -952,16 +958,7 @@ R_n  ( \pi , \delta ) = \int_x m( x )  \left \{ \int_\Theta \mathcal{L}( \theta 
 \]</span> Then the optimal Bayes rule is to <em>pointwise</em> minimize the inner integral (a.k.a. the posterior Bayes risk), namely <span class="math display">\[
 \delta^\star ( x ) = \arg \max_\delta \int_\Theta \mathcal{L}( \theta , \delta(x) )  p( \theta | x ) d \theta .
 \]</span> The caveat is that this gives us no intuition into the characteristics of the prior which are important. Moreover, we do not need the marginal beliefs <span class="math inline">\(m(x)\)</span>.</p>
-<p>For example, under squared error estimation loss, the optimal estimator is simply the posterior mean, <span class="math inline">\(\delta^\star (x)  = E( \theta | x )\)</span>.</p>
-<p>The optimal Bayes rule <span class="math inline">\(\delta_\pi( x ) = E( \theta \mid x )\)</span> is the posterior mean under squared error loss. An interesting feature of the Bayes rule is that it is biased (except in degenerate cases like improper priors which can lose optimality properties). This can be seen using the following decomposition. If the rule was unbiased then the Bayes risk would be zero. This follows, via contradiction, assume f.a.c. that <span class="math inline">\(E_{ x| \theta } ( \delta_\pi(x) ) = \theta\)</span>, then <span class="math display">\[\begin{align*}
-r ( \pi , \delta_\pi ( x ) ) &amp; = E_{\pi} \left ( E_{ x| \theta } ( \delta_\pi ( x ) - \theta )^2 \right ) \\
-&amp; = E_\pi ( \theta^2 ) + E_x \left ( \delta_\pi ( x )^2 \right ) - 2 E_\pi \left ( \theta E_{x | \theta } ( \delta_\pi( x ) ) \right ) \\
-&amp; = 0
-\end{align*}\]</span> which is a contradiction.</p>
-<p>The key feature of Bayes rule then is the bias-variance trade-off inherent in their nature. You achieve a large reduction in variance for a small amount of bias. This is the underpinning of James-Stein estimation which we discuss later.</p>
-<p>Another interesting feature, is that the Bayes rule <span class="math inline">\(E(\theta \mid x )\)</span> is always Bayes sufficient in the sense that <span class="math display">\[
-E_\pi \left ( \theta \; | \; E_\pi(\theta |x ) \right ) = E_\pi( \theta |x )
-\]</span> So conditioning on <span class="math inline">\(\E[\pi]{ \theta \mid x }\)</span> is equivalent to conditioning on <span class="math inline">\(x\)</span> when estimating <span class="math inline">\(\theta\)</span>. This is used in the quantile neural network approach to generative methods.</p>
+<p>For example, under squared error estimation loss, the optimal estimator is simply the posterior mean, <span class="math inline">\(\delta^\star (x)  = E( \theta | x )\)</span>. The properties of this optimal rule—including its inherent bias and the bias-variance tradeoff it embodies—were established in <a href="#sec-unbiasedness-optimality" class="quarto-xref"><span>Section 18.2</span></a>.</p>
 </section>
 </section>
 <section id="sparsity" class="level2" data-number="18.4">
@@ -992,9 +989,9 @@ p_n \log \left ( n / p_n \right ).
 </section>
 <section id="maximum-a-posteriori-estimation-map-and-regularization" class="level2" data-number="18.5">
 <h2 data-number="18.5" class="anchored" data-anchor-id="maximum-a-posteriori-estimation-map-and-regularization"><span class="header-section-number">18.5</span> Maximum A posteriori Estimation (MAP) and Regularization</h2>
-<p>In the previous sections, we have seen how the Bayesian approach provides a principled framework for parameter estimation through the use of prior distributions and the minimization of Bayes risk. However, in many practical scenarios, we may not have access to a full Bayesian model or the computational resources to perform Bayesian inference. This is where the concept of MAP or regularization comes into play. It also sometimes called a poor man’s Bayesian approach.</p>
+<p>Having established that Bayesian shrinkage reduces estimation risk, we now examine a computationally tractable alternative: maximum a posteriori (MAP) estimation, sometimes called <em>the poor man’s Bayesian approach</em>. MAP captures the regularization benefits of Bayesian methods without requiring full posterior inference.</p>
 <p>Given input-output pairs <span class="math inline">\((x_i,y_i)\)</span>, MAP learns the function <span class="math inline">\(f\)</span> that maps inputs <span class="math inline">\(x_i\)</span> to outputs <span class="math inline">\(y_i\)</span> by minimizing <span class="math display">\[
-\sum_{i=1}^N  \mathcal{L}(y_i,f(x_i)) + \lambda \phi(f) \rightarrow \text{minimize}_{f}.
+\underset{f}{\mathrm{minimize}} \quad \sum_{i=1}^N  \mathcal{L}(y_i,f(x_i)) + \lambda \phi(f).
 \]</span> The first term is the <em>loss function</em> that measures the difference between the predicted output <span class="math inline">\(f(x_i)\)</span> and the true output <span class="math inline">\(y_i\)</span>. The second term is a <em>regularization term</em> that penalizes complex functions <span class="math inline">\(f\)</span> to prevent overfitting. The parameter <span class="math inline">\(\lambda\)</span> controls the trade-off between fitting the data well and keeping the function simple. In the case when <span class="math inline">\(f\)</span> is a parametric model, then we simply replace <span class="math inline">\(f\)</span> with the parameters <span class="math inline">\(\theta\)</span> of the model, and the regularization term becomes a penalty on the parameters.</p>
 <p>The loss is simply a negative log-likelihood from a probabilistic model specified for the data generating process. For example, when <span class="math inline">\(y\)</span> is numeric and <span class="math inline">\(y_i \mid x_i \sim N(f(x_i),\sigma^2)\)</span>, we get the squared loss <span class="math inline">\(\mathcal{L}(y,f(x)) = (y-f(x))^2\)</span>. When <span class="math inline">\(y_i\in \{0,1\}\)</span> is binary, we use the logistic loss <span class="math inline">\(\mathcal{L}(y,f(x)) = \log(1+\exp(-yf(x)))\)</span>.</p>
 <p>The penalty term <span class="math inline">\(\lambda \phi(f)\)</span> discourages complex functions <span class="math inline">\(f\)</span>. Then, we can think of regularization as a technique to incorporate some prior knowledge about parameters of the model into the estimation process. Consider an example when regularization allows us to solve a hard problem of filtering noisy traffic data.</p>
@@ -1084,11 +1081,11 @@ p(f \mid y, x) = \frac{\prod_{i=1}^n L(y_i,f(x_i)) p(f)}{p(y \mid x)}.
 <section id="ridge-regression-ell_2-norm" class="level2" data-number="18.7">
 <h2 data-number="18.7" class="anchored" data-anchor-id="ridge-regression-ell_2-norm"><span class="header-section-number">18.7</span> Ridge Regression (<span class="math inline">\(\ell_2\)</span> Norm)</h2>
 <p>The ridge regression uses a Gaussian prior on the parameters of the model <span class="math inline">\(f\)</span>, which leads to a squared penalty term. Specifically, we assume that the parameters <span class="math inline">\(\beta\)</span> of the model <span class="math inline">\(f(x) = x^T\beta\)</span> are distributed as: <span class="math display">\[
-\beta \sim N(0, \sigma^2 I),
-\]</span> where <span class="math inline">\(I\)</span> is the identity matrix. The prior distribution of <span class="math inline">\(\beta\)</span> is a multivariate normal distribution with mean 0 and covariance <span class="math inline">\(\sigma^2 I\)</span>. The negative log of this prior distribution is given by: <span class="math display">\[
--\log p(\beta) = \frac{1}{2\sigma^2} \|\beta\|_2^2 + \text{const},
+\beta \sim N(0, \sigma_\beta^2 I),
+\]</span> where <span class="math inline">\(I\)</span> is the identity matrix and <span class="math inline">\(\sigma_\beta^2\)</span> is the prior variance (distinct from the noise variance <span class="math inline">\(\sigma^2\)</span>). The prior distribution of <span class="math inline">\(\beta\)</span> is a multivariate normal distribution with mean 0 and covariance <span class="math inline">\(\sigma_\beta^2 I\)</span>. The negative log of this prior distribution is given by: <span class="math display">\[
+-\log p(\beta) = \frac{1}{2\sigma_\beta^2} \|\beta\|_2^2 + \text{const},
 \]</span> where <span class="math inline">\(\|\beta\|_2^2 = \sum_{j=1}^p \beta_j^2\)</span> is the squared 2-norm of the vector <span class="math inline">\(\beta\)</span>. The regularization term <span class="math inline">\(\phi(f)\)</span> is then given by: <span class="math display">\[
-\phi(f) = \frac{1}{2\sigma^2} \|\beta\|_2^2.  
+\phi(f) = \frac{1}{2\sigma_\beta^2} \|\beta\|_2^2.  
 \]</span> This leads to the following optimization problem: <span class="math display">\[
 \underset{\beta}{\mathrm{minimize}}\quad \|y- X\beta\|_2^2 + \lambda \|\beta\|_2^2,
 \]</span> where <span class="math inline">\(\lambda = 1/\sigma^2\)</span> is the regularization parameter that controls the strength of the prior. The solution to this optimization problem is given by: <span class="math display">\[
@@ -1143,15 +1140,16 @@ X\hat{\beta} = XX^T (XX^T + \lambda I)^{-1} Y.
 </section>
 <section id="scale-mixtures-representations" class="level2" data-number="18.8">
 <h2 data-number="18.8" class="anchored" data-anchor-id="scale-mixtures-representations"><span class="header-section-number">18.8</span> Scale Mixtures Representations</h2>
+<p>Why should we care about expressing distributions as mixtures? The answer lies in computational tractability and theoretical insight. Many important priors used in sparse estimation—including the Laplace (Lasso), horseshoe, and logistic—can be represented as Gaussian distributions with random variance. This representation is far more than a mathematical curiosity: it enables efficient Gibbs sampling algorithms where each conditional distribution has a closed form, and it reveals deep connections between seemingly different regularization approaches.</p>
 <p>Scale mixtures of normals provide a powerful framework for constructing flexible priors and computational algorithms in Bayesian statistics. The key insight is that many useful distributions can be represented as Gaussian distributions with random variance, leading to tractable MCMC algorithms and analytical insights.</p>
 <section id="fundamental-integral-identities" class="level3">
 <h3 class="anchored" data-anchor-id="fundamental-integral-identities">Fundamental Integral Identities</h3>
-<p>The two key integral identities for hyperbolic/GIG and Pólya mixtures are: <span class="math display">\[
+<p>The two key integral identities for hyperbolic/GIG (Generalized Inverse Gaussian) and Pólya mixtures are: <span class="math display">\[
 \begin{aligned}
 \frac{\alpha^2 - \kappa^2}{2\alpha} e^{-\alpha|\theta - \mu| + \kappa(\theta - \mu)} &amp;= \int_0^\infty \phi\left(\theta \mid \mu + \kappa\omega, \omega\right) p_{\text{gig}}\left(\omega \mid 1, 0, \sqrt{\alpha^2 - \kappa^2}\right) d\omega \\
 \frac{1}{B(\alpha,\kappa)} \frac{e^{\alpha(\theta - \mu)}}{(1 + e^{\theta - \mu})^{2(\alpha - \kappa)}} &amp;= \int_0^\infty \phi\left(\theta \mid \mu + \kappa\omega, \omega\right) p_{\text{pol}}(\omega \mid \alpha, \alpha - 2\kappa) d\omega
 \end{aligned}
-\]</span> where <span class="math inline">\(p_{\text{pol}}\)</span> denotes the Pólya density and <span class="math inline">\(p_{\text{gig}}\)</span> the generalized inverse Gaussian.</p>
+\]</span> where <span class="math inline">\(p_{\text{pol}}\)</span> denotes the Pólya density and <span class="math inline">\(p_{\text{gig}}\)</span> the GIG density.</p>
 </section>
 <section id="quantile-regression-example" class="level3">
 <h3 class="anchored" data-anchor-id="quantile-regression-example">Quantile Regression Example</h3>
@@ -1192,7 +1190,7 @@ p(\beta_j \mid b) = \frac{1}{2b}\exp\left(-\frac{|\beta_j|}{b}\right)
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># PLot Laplace distribution</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># PLot Laplace distribution</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>b <span class="ot">&lt;-</span> <span class="dv">1</span></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>, <span class="at">length.out =</span> <span class="dv">100</span>)</span>
@@ -1203,7 +1201,7 @@ p(\beta_j \mid b) = \frac{1}{2b}\exp\left(-\frac{|\beta_j|}{b}\right)
 <span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(laplace_data, <span class="fu">aes</span>(<span class="at">x =</span> beta, <span class="at">y =</span> pdf)) <span class="sc">+</span></span>
 <span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
 <span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Laplace Distribution PDF"</span>, <span class="at">x =</span> <span class="st">"Beta"</span>, <span class="at">y =</span> <span class="st">"Density"</span>) <span class="sc">+</span></span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-laplace-distribution" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -1247,7 +1245,7 @@ z + \gamma &amp; \text{if } z &lt; -\gamma
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate simulated data</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate simulated data</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">100</span>  <span class="co"># number of observations</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="dv">20</span>   <span class="co"># number of predictors</span></span>
@@ -1258,26 +1256,26 @@ z + \gamma &amp; \text{if } z &lt; -\gamma
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Add some correlation between predictors</span></span>
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>p) {</span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  X[, i] <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> X[, i<span class="dv">-1</span>] <span class="sc">+</span> <span class="fu">sqrt</span>(<span class="fl">0.75</span>) <span class="sc">*</span> X[, i]</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># True coefficients - sparse signal</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># True coefficients - sparse signal</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>beta_true <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="sc">-</span><span class="dv">2</span>, <span class="fl">1.5</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="sc">-</span><span class="dv">1</span>, <span class="fu">rep</span>(<span class="dv">0</span>, <span class="dv">10</span>))</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>sparse_indices <span class="ot">&lt;-</span> <span class="fu">which</span>(beta_true <span class="sc">!=</span> <span class="dv">0</span>)</span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate response</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta_true <span class="sc">+</span> sigma <span class="sc">*</span> <span class="fu">rnorm</span>(n)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta_true <span class="sc">+</span> sigma <span class="sc">*</span> <span class="fu">rnorm</span>(n)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Then we use <code>glmnet</code> package to fit the Lasso model and visualize the coefficient paths. We will also perform cross-validation to select the optimal regularization parameter <span class="math inline">\(\lambda\)</span>.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit LASSO path using glmnet</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit LASSO path using glmnet</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(glmnet)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>lasso_fit <span class="ot">&lt;-</span> <span class="fu">glmnet</span>(X, y, <span class="at">alpha =</span> <span class="dv">1</span>)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot coefficient paths</span></span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(lasso_fit, <span class="at">xvar =</span> <span class="st">"lambda"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"LASSO Coefficient Paths"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">"LASSO Coefficient Paths"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1289,10 +1287,10 @@ z + \gamma &amp; \text{if } z &lt; -\gamma
 <p>The coefficient paths plot shows how LASSO coefficients shrink toward zero as the regularization parameter lambda increases. The colored lines represent different predictors, demonstrating LASSO’s variable selection property. Note, that <code>glmnet</code> fitted the model for a sequence of <span class="math inline">\(\lambda\)</span> values. The algorithms starts with a large lambda value, where all coefficients are penalized to zero. Then, it gradually decreases lambda, using the coefficients from the previous, slightly more penalized model as a “warm start” for the current calculation. This pathwise approach is significantly more efficient than starting the optimization from scratch for every single <span class="math inline">\(\lambda\)</span>. By default, glmnet computes the coefficients for a sequence of 100 lambda values spaced evenly on the logarithmic scale, starting from a data-driven maximum value (where all coefficients are zero) down to a small fraction of that maximum. The user can specify their own sequence of lambda values if specific granularity or range is desired</p>
 <p>Finally, we will perform cross-validation to select the optimal <span class="math inline">\(\lambda\)</span> value and compare the estimated coefficients with the true values.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cross-validation to select optimal lambda</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cross-validation to select optimal lambda</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>cv_lasso <span class="ot">&lt;-</span> <span class="fu">cv.glmnet</span>(X, y, <span class="at">alpha =</span> <span class="dv">1</span>, <span class="at">nfolds =</span> <span class="dv">10</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot cross-validation curve</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(cv_lasso)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(cv_lasso)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1304,17 +1302,17 @@ z + \gamma &amp; \text{if } z &lt; -\gamma
 </div>
 <p>Now, we can extract the coefficients <code>lambda.min</code> and <code>lambda.1se</code> from the cross-validation results, which correspond to the minimum cross-validated error and the most regularized model within one standard error of the minimum, respectively.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract coefficients at optimal lambda</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract coefficients at optimal lambda</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>lambda_min <span class="ot">&lt;-</span> cv_lasso<span class="sc">$</span>lambda.min</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>lambda_1se <span class="ot">&lt;-</span> cv_lasso<span class="sc">$</span>lambda<span class="fl">.1</span>se</span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>coef_min <span class="ot">&lt;-</span> <span class="fu">coef</span>(lasso_fit, <span class="at">s =</span> lambda_min)</span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>coef_1se <span class="ot">&lt;-</span> <span class="fu">coef</span>(lasso_fit, <span class="at">s =</span> lambda_1se)</span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Print values of lambda</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Optimal lambda (min):"</span>, lambda_min, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Optimal lambda (min):"</span>, lambda_min, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Optimal lambda (min): 0.016</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Optimal lambda (1se):"</span>, lambda_1se, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Optimal lambda (1se):"</span>, lambda_1se, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Optimal lambda (1se): 0.1</code></pre>
 </div>
@@ -1322,7 +1320,7 @@ z + \gamma &amp; \text{if } z &lt; -\gamma
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare estimates with true values</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare estimates with true values</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>comparison <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">True =</span> <span class="fu">c</span>(<span class="dv">0</span>, beta_true),  <span class="co"># Include intercept</span></span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">LASSO_min =</span> <span class="fu">as.vector</span>(coef_min),</span>
@@ -1343,7 +1341,7 @@ z + \gamma &amp; \text{if } z &lt; -\gamma
 <span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
 <span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
 <span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Coefficient Value"</span>, <span class="at">fill =</span> <span class="st">"Method"</span>) <span class="sc">+</span></span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_brewer</span>(<span class="at">type =</span> <span class="st">"qual"</span>, <span class="at">palette =</span> <span class="st">"Set2"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_brewer</span>(<span class="at">type =</span> <span class="st">"qual"</span>, <span class="at">palette =</span> <span class="st">"Set2"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -1356,18 +1354,18 @@ z + \gamma &amp; \text{if } z &lt; -\gamma
 </div>
 <p>It seems like LASSO has successfully identified the non-zero coefficients and shrunk the noise variables to zero. The coefficient estimates at <code>lambda.min</code> and <code>lambda.1se</code> show that LASSO retains the true signals while effectively ignoring the noise. Let’s calculate the prediction errors and evaluate the variable selection performance of LASSO at both optimal <span class="math display">\[\lambda\]</span> values.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate prediction errors</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate prediction errors</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>pred_min <span class="ot">&lt;-</span> <span class="fu">predict</span>(lasso_fit, <span class="at">newx =</span> X, <span class="at">s =</span> lambda_min)</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>pred_1se <span class="ot">&lt;-</span> <span class="fu">predict</span>(lasso_fit, <span class="at">newx =</span> X, <span class="at">s =</span> lambda_1se)</span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>mse_min <span class="ot">&lt;-</span> <span class="fu">mean</span>((y <span class="sc">-</span> pred_min)<span class="sc">^</span><span class="dv">2</span>)</span>
 <span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>mse_1se <span class="ot">&lt;-</span> <span class="fu">mean</span>((y <span class="sc">-</span> pred_1se)<span class="sc">^</span><span class="dv">2</span>)</span>
 <span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Mean Squared Error (lambda.min):"</span>, <span class="fu">round</span>(mse_min, <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Mean Squared Error (lambda.min):"</span>, <span class="fu">round</span>(mse_min, <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Mean Squared Error (lambda.min): 0.68</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Mean Squared Error (lambda.1se):"</span>, <span class="fu">round</span>(mse_1se, <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Mean Squared Error (lambda.1se):"</span>, <span class="fu">round</span>(mse_1se, <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Mean Squared Error (lambda.1se): 0.85</code></pre>
 </div>
@@ -1387,8 +1385,8 @@ p(\beta_j\mid \sigma^2,\alpha) = \int_{0}^{\infty} \frac{1}{\sqrt{2\pi \tau_j\si
 \]</span> Thus it is a Laplace distribution with location 0 and scale <span class="math inline">\(\alpha/\sigma\)</span>. Representation of Laplace prior is a scale Normal mixture allows us to apply an efficient numerical algorithm for computing samples from the posterior distribution. This algorithms is called a Gibbs sample and it iteratively samples from <span class="math inline">\(\theta \mid a,y\)</span> and <span class="math inline">\(b\mid \theta,y\)</span> to estimate joint distribution over <span class="math inline">\((\hat \theta, \hat b)\)</span>. Thus, we so not need to apply cross-validation to find optimal value of <span class="math inline">\(b\)</span>, the Bayesian algorithm does it “automatically”.</p>
 </section>
 </section>
-<section id="horseshoe" class="level2" data-number="18.10">
-<h2 data-number="18.10" class="anchored" data-anchor-id="horseshoe"><span class="header-section-number">18.10</span> Horseshoe</h2>
+<section id="sec-horseshoe" class="level2" data-number="18.10">
+<h2 data-number="18.10" class="anchored" data-anchor-id="sec-horseshoe"><span class="header-section-number">18.10</span> Horseshoe</h2>
 <p>The horseshoe prior represents a significant advancement in Bayesian sparse estimation, addressing fundamental limitations of the Lasso while maintaining computational tractability <span class="citation" data-cites="carvalho2010horseshoe">(<a href="references.html#ref-carvalho2010horseshoe" role="doc-biblioref">Carvalho, Polson, and Scott 2010</a>)</span>. The name derives from the shape of its shrinkage profile, which resembles an inverted horseshoe: it applies minimal shrinkage to large signals while aggressively shrinking noise coefficients toward zero. This behavior makes it particularly attractive for high-dimensional problems where strong sparsity is expected but we want to avoid over-shrinking the true signals.</p>
 <p>Unlike the Lasso, which applies constant shrinkage across all coefficient magnitudes, the horseshoe exhibits <em>adaptive shrinkage</em>. Small coefficients receive heavy regularization approaching zero, while large coefficients are left nearly unregularized. This is precisely the behavior we desire in sparse estimation: confidently shrink noise to zero while preserving signal fidelity. The horseshoe achieves this through a hierarchical Bayesian structure that places a half-Cauchy prior on local scale parameters.</p>
 <section id="mathematical-formulation" class="level3">
@@ -1448,7 +1446,7 @@ E[\beta_j \mid y] \approx (1 - \kappa_j) \cdot 0 + \kappa_j \cdot \hat{\beta}_j^
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Horseshoe Prior for Sparse Regression</summary>
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Set seed for reproducibility</span></span>
@@ -1528,16 +1526,16 @@ E[\beta_j \mid y] \approx (1 - \kappa_j) \cdot 0 + \kappa_j \cdot \hat{\beta}_j^
 <span id="cb25-78"><a href="#cb25-78" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb25-79"><a href="#cb25-79" aria-hidden="true" tabindex="-1"></a>  </span>
 <span id="cb25-80"><a href="#cb25-80" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">beta =</span> beta_samples, <span class="at">tau_sq =</span> tau_sq_samples)</span>
-<span id="cb25-81"><a href="#cb25-81" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb25-81"><a href="#cb25-81" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run Horseshoe sampler</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Running Horseshoe Gibbs sampler...</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run Horseshoe sampler</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Running Horseshoe Gibbs sampler...</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Running Horseshoe Gibbs sampler...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>hs_fit <span class="ot">&lt;-</span> <span class="fu">horseshoe_gibbs</span>(y, X, <span class="at">n_iter =</span> <span class="dv">5000</span>, <span class="at">burn_in =</span> <span class="dv">1000</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>hs_fit <span class="ot">&lt;-</span> <span class="fu">horseshoe_gibbs</span>(y, X, <span class="at">n_iter =</span> <span class="dv">5000</span>, <span class="at">burn_in =</span> <span class="dv">1000</span>)</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute posterior means</span></span>
 <span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>beta_hs <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(hs_fit<span class="sc">$</span>beta)</span>
@@ -1546,17 +1544,17 @@ E[\beta_j \mid y] \approx (1 - \kappa_j) \cdot 0 + \kappa_j \cdot \hat{\beta}_j^
 <span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare with Lasso</span></span>
 <span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(glmnet)</span>
 <span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>lasso_fit <span class="ot">&lt;-</span> <span class="fu">cv.glmnet</span>(X, y, <span class="at">alpha =</span> <span class="dv">1</span>)</span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>beta_lasso <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(<span class="fu">coef</span>(lasso_fit, <span class="at">s =</span> <span class="st">"lambda.min"</span>))[<span class="sc">-</span><span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>beta_lasso <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(<span class="fu">coef</span>(lasso_fit, <span class="at">s =</span> <span class="st">"lambda.min"</span>))[<span class="sc">-</span><span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Display results</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Display results</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(beta_true, <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">type=</span><span class="st">"p"</span>)</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(beta_hs, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">type=</span><span class="st">"p"</span>)</span>
 <span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(beta_lasso, <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">type=</span><span class="st">"p"</span>)</span>
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate horizonatal line at y=0</span></span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> <span class="dv">0</span>, <span class="at">col =</span> <span class="st">"black"</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"True"</span>, <span class="st">"Horseshoe"</span>, <span class="st">"Lasso"</span>), <span class="at">col=</span><span class="fu">c</span>(<span class="st">"black"</span>, <span class="st">"blue"</span>, <span class="st">"red"</span>), <span class="at">lty=</span><span class="dv">1</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">bty=</span><span class="st">"n"</span>)</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1568,7 +1566,7 @@ E[\beta_j \mid y] \approx (1 - \kappa_j) \cdot 0 + \kappa_j \cdot \hat{\beta}_j^
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Calculate mean squared errors</summary>
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate mean squared errors</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate mean squared errors</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate coefficient mean squared errors</span></span>
@@ -1586,11 +1584,11 @@ E[\beta_j \mid y] \approx (1 - \kappa_j) \cdot 0 + \kappa_j \cdot \hat{\beta}_j^
 <span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">Method =</span> <span class="fu">c</span>(<span class="st">"Horseshoe"</span>, <span class="st">"Lasso"</span>),</span>
 <span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Coefficient MSE</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">round</span>(mse_hs, <span class="dv">4</span>), <span class="fu">round</span>(mse_lasso, <span class="dv">4</span>)),</span>
 <span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Prediction MSE</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">round</span>(pmse_hs, <span class="dv">4</span>), <span class="fu">round</span>(pmse_lasso, <span class="dv">4</span>))</span>
-<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(results_table, <span class="at">caption =</span> <span class="st">"Comparison of Coefficient and Prediction Mean Squared Errors"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(results_table, <span class="at">caption =</span> <span class="st">"Comparison of Coefficient and Prediction Mean Squared Errors"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <caption>Comparison of Coefficient and Prediction Mean Squared Errors</caption>
@@ -1657,17 +1655,17 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <div id="exm-bayesbridge-diabetes" class="theorem example">
 <p><span class="theorem-title"><strong>Example 18.7 (Practical Implementation with BayesBridge Package)</strong></span> We demonstrate the Bayesian Bridge using the diabetes dataset, comparing it with Lasso and Ridge regression. Note that the BayesBridge package requires additional setup and may not be available on all systems, so we provide both the implementation and expected results. We will use the diabetes dataset from the lars package.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Dataset dimensions:"</span>, n, <span class="st">"observations,"</span>, p, <span class="st">"predictors</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Dataset dimensions:"</span>, n, <span class="st">"observations,"</span>, p, <span class="st">"predictors</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Dataset dimensions: 442 observations, 10 predictors</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Predictor names:"</span>, <span class="fu">colnames</span>(X), <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Predictor names:"</span>, <span class="fu">colnames</span>(X), <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Predictor names: age sex bmi map tc ldl hdl tch ltg glu</code></pre>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check correlation structure to understand why Bridge might outperform Lasso</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check correlation structure to understand why Bridge might outperform Lasso</span></span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>cor_matrix <span class="ot">&lt;-</span> <span class="fu">cor</span>(X)</span>
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>high_cors <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="fu">abs</span>(cor_matrix) <span class="sc">&gt;</span> <span class="fl">0.5</span> <span class="sc">&amp;</span> <span class="fu">abs</span>(cor_matrix) <span class="sc">&lt;</span> <span class="dv">1</span>, <span class="at">arr.ind =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(<span class="fu">nrow</span>(high_cors) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
@@ -1679,7 +1677,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>                <span class="fu">colnames</span>(X)[r], <span class="fu">colnames</span>(X)[c], cor_matrix[r,c]))</span>
 <span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">This correlation structure suggests Bridge may outperform Lasso</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
-<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## High correlations detected between predictors:
 ## ldl - tc: 0.897
@@ -1695,7 +1693,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Fit classical methods and simulate Bridge results</summary>
-<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit classical methods for comparison</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit classical methods for comparison</span></span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>cv_lasso <span class="ot">&lt;-</span> <span class="fu">cv.glmnet</span>(X, y, <span class="at">alpha =</span> <span class="dv">1</span>, <span class="at">nfolds =</span> <span class="dv">5</span>)</span>
 <span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>classical_lasso <span class="ot">&lt;-</span> <span class="fu">coef</span>(cv_lasso, <span class="at">s =</span> <span class="st">"lambda.min"</span>)[<span class="sc">-</span><span class="dv">1</span>]  <span class="co"># Remove intercept</span></span>
@@ -1709,21 +1707,21 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Typical alpha values for Bridge are 0.6-0.8 (more sparse than Lasso)</span></span>
 <span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>simulated_alpha <span class="ot">&lt;-</span> <span class="fl">0.72</span></span>
-<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Simulated estimated bridge parameter alpha:"</span>, simulated_alpha, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Simulated estimated bridge parameter alpha:"</span>, simulated_alpha, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Simulated estimated bridge parameter alpha: 0.72</code></pre>
 </div>
 <details class="code-fold">
 <summary>Fit classical methods and simulate Bridge results</summary>
-<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"(Real Bridge typically estimates alpha &lt; 1, favoring more sparsity than Lasso)</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"(Real Bridge typically estimates alpha &lt; 1, favoring more sparsity than Lasso)</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## (Real Bridge typically estimates alpha &lt; 1, favoring more sparsity than Lasso)</code></pre>
 </div>
 <details class="code-fold">
 <summary>Fit classical methods and simulate Bridge results</summary>
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate Bridge coefficients with more aggressive shrinkage for small effects</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate Bridge coefficients with more aggressive shrinkage for small effects</span></span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="co"># but less shrinkage for large effects (key Bridge advantage)</span></span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>bridge_shrinkage <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(<span class="fu">abs</span>(classical_lasso) <span class="sc">&lt;</span> <span class="fu">median</span>(<span class="fu">abs</span>(classical_lasso)), </span>
 <span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>                          <span class="fl">0.3</span>, <span class="fl">0.8</span>)  <span class="co"># More aggressive shrinkage for small coefficients</span></span>
@@ -1737,7 +1735,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">Simulated_Bridge =</span> <span class="fu">round</span>(simulated_bridge_coef, <span class="dv">4</span>)</span>
 <span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(coef_comparison)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(coef_comparison)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>##    Variable Classical_Lasso Classical_Ridge Simulated_Bridge
@@ -1756,40 +1754,40 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Analyze coefficient patterns and shrinkage behavior</summary>
-<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Analyze the coefficient patterns</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Analysis of coefficient estimates:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Analyze the coefficient patterns</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Analysis of coefficient estimates:</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Analysis of coefficient estimates:</code></pre>
 </div>
 <details class="code-fold">
 <summary>Analyze coefficient patterns and shrinkage behavior</summary>
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"=================================</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"=================================</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## =================================</code></pre>
 </div>
 <details class="code-fold">
 <summary>Analyze coefficient patterns and shrinkage behavior</summary>
-<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Identify variables with strongest effects</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Identify variables with strongest effects</span></span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>strong_effects_lasso <span class="ot">&lt;-</span> <span class="fu">abs</span>(classical_lasso) <span class="sc">&gt;</span> <span class="fl">0.01</span></span>
 <span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>strong_effects_bridge <span class="ot">&lt;-</span> <span class="fu">abs</span>(simulated_bridge_coef) <span class="sc">&gt;</span> <span class="fl">0.01</span></span>
 <span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Variables selected by Lasso:"</span>, <span class="fu">sum</span>(strong_effects_lasso), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Variables selected by Lasso:"</span>, <span class="fu">sum</span>(strong_effects_lasso), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Variables selected by Lasso: 9</code></pre>
 </div>
 <details class="code-fold">
 <summary>Analyze coefficient patterns and shrinkage behavior</summary>
-<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Variables selected by Bridge:"</span>, <span class="fu">sum</span>(strong_effects_bridge), <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Variables selected by Bridge:"</span>, <span class="fu">sum</span>(strong_effects_bridge), <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Variables selected by Bridge: 9</code></pre>
 </div>
 <details class="code-fold">
 <summary>Analyze coefficient patterns and shrinkage behavior</summary>
-<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare shrinkage patterns</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare shrinkage patterns</span></span>
 <span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>shrinkage_comparison <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
 <span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Variable =</span> <span class="fu">colnames</span>(X),</span>
 <span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Lasso_Magnitude =</span> <span class="fu">abs</span>(classical_lasso),</span>
@@ -1799,7 +1797,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Sort by Lasso magnitude to see pattern</span></span>
 <span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a>shrinkage_comparison <span class="ot">&lt;-</span> shrinkage_comparison[<span class="fu">order</span>(shrinkage_comparison<span class="sc">$</span>Lasso_Magnitude, <span class="at">decreasing =</span> <span class="cn">TRUE</span>),]</span>
-<span id="cb52-11"><a href="#cb52-11" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(shrinkage_comparison)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb52-11"><a href="#cb52-11" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(shrinkage_comparison)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>##    Variable Lasso_Magnitude Bridge_Magnitude Bridge_vs_Lasso_Ratio
@@ -1816,7 +1814,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 </div>
 <details class="code-fold">
 <summary>Analyze coefficient patterns and shrinkage behavior</summary>
-<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Key observation: Bridge shows less shrinkage for large coefficients</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Key observation: Bridge shows less shrinkage for large coefficients</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## 
@@ -1824,7 +1822,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 </div>
 <details class="code-fold">
 <summary>Analyze coefficient patterns and shrinkage behavior</summary>
-<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"and more aggressive shrinkage for small coefficients.</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"and more aggressive shrinkage for small coefficients.</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## and more aggressive shrinkage for small coefficients.</code></pre>
@@ -1833,7 +1831,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Simulate uncertainty quantification and credible intervals</summary>
-<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate realistic uncertainty quantification from Bayesian Bridge</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate realistic uncertainty quantification from Bayesian Bridge</span></span>
 <span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="co"># In practice, this comes from MCMC samples of bridge_fit$beta</span></span>
 <span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -1853,7 +1851,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <span id="cb58-18"><a href="#cb58-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Width =</span> <span class="fu">round</span>(simulated_upper_ci <span class="sc">-</span> simulated_lower_ci, <span class="dv">4</span>)</span>
 <span id="cb58-19"><a href="#cb58-19" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb58-20"><a href="#cb58-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb58-21"><a href="#cb58-21" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(uncertainty_summary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb58-21"><a href="#cb58-21" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(uncertainty_summary)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>##    Variable    Mean Lower_CI Upper_CI Contains_Zero CI_Width
@@ -1870,7 +1868,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 </div>
 <details class="code-fold">
 <summary>Simulate uncertainty quantification and credible intervals</summary>
-<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Uncertainty Analysis:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Uncertainty Analysis:</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## 
@@ -1878,15 +1876,15 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 </div>
 <details class="code-fold">
 <summary>Simulate uncertainty quantification and credible intervals</summary>
-<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Variables with CIs excluding zero (likely important):</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Variables with CIs excluding zero (likely important):</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Variables with CIs excluding zero (likely important):</code></pre>
 </div>
 <details class="code-fold">
 <summary>Simulate uncertainty quantification and credible intervals</summary>
-<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>important_vars <span class="ot">&lt;-</span> uncertainty_summary<span class="sc">$</span>Variable[<span class="sc">!</span>uncertainty_summary<span class="sc">$</span>Contains_Zero]</span>
-<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste</span>(important_vars, <span class="at">collapse =</span> <span class="st">", "</span>), <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>important_vars <span class="ot">&lt;-</span> uncertainty_summary<span class="sc">$</span>Variable[<span class="sc">!</span>uncertainty_summary<span class="sc">$</span>Contains_Zero]</span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste</span>(important_vars, <span class="at">collapse =</span> <span class="st">", "</span>), <span class="st">"</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## bmi, tc, ltg</code></pre>
@@ -1895,7 +1893,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Create visualization plots comparing methods</summary>
-<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize coefficient comparison and patterns</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize coefficient comparison and patterns</span></span>
 <span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>))</span>
 <span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Coefficient magnitude comparison</span></span>
@@ -1936,7 +1934,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <span id="cb66-39"><a href="#cb66-39" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">'Bridge Estimates with Credible Intervals'</span>)</span>
 <span id="cb66-40"><a href="#cb66-40" aria-hidden="true" tabindex="-1"></a><span class="fu">segments</span>(<span class="dv">1</span><span class="sc">:</span>p, simulated_lower_ci, <span class="dv">1</span><span class="sc">:</span>p, simulated_upper_ci)</span>
 <span id="cb66-41"><a href="#cb66-41" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> <span class="dv">0</span>, <span class="at">col =</span> <span class="st">'red'</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
-<span id="cb66-42"><a href="#cb66-42" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">1</span><span class="sc">:</span>p, simulated_bridge_coef, <span class="fu">colnames</span>(X), <span class="at">pos =</span> <span class="dv">3</span>, <span class="at">cex =</span> <span class="fl">0.6</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb66-42"><a href="#cb66-42" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(<span class="dv">1</span><span class="sc">:</span>p, simulated_bridge_coef, <span class="fu">colnames</span>(X), <span class="at">pos =</span> <span class="dv">3</span>, <span class="at">cex =</span> <span class="fl">0.6</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -1949,7 +1947,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Cross-validation performance comparison</summary>
-<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predictive performance comparison via cross-validation</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predictive performance comparison via cross-validation</span></span>
 <span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>n_folds <span class="ot">&lt;-</span> <span class="dv">5</span></span>
 <span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>fold_indices <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_folds, <span class="at">length.out =</span> <span class="fu">nrow</span>(X)))</span>
@@ -1992,7 +1990,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 <span id="cb67-41"><a href="#cb67-41" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">mean</span>(ridge_pred_error)<span class="sc">/</span><span class="fu">mean</span>(lasso_pred_error))</span>
 <span id="cb67-42"><a href="#cb67-42" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb67-43"><a href="#cb67-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb67-44"><a href="#cb67-44" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(pred_summary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb67-44"><a href="#cb67-44" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(pred_summary)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>##             Method Mean_MSE SD_MSE Relative_to_Lasso
@@ -2002,7 +2000,7 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 </div>
 <details class="code-fold">
 <summary>Cross-validation performance comparison</summary>
-<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Predictive Performance Analysis:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Predictive Performance Analysis:</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## 
@@ -2010,23 +2008,23 @@ p(\beta_j \mid \tau, \omega_j, \alpha) &amp;= \frac{1}{\tau \omega_j^{1/\alpha}}
 </div>
 <details class="code-fold">
 <summary>Cross-validation performance comparison</summary>
-<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"===============================</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"===============================</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## ===============================</code></pre>
 </div>
 <details class="code-fold">
 <summary>Cross-validation performance comparison</summary>
-<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Bridge achieves %.1f%% lower MSE than Lasso</span><span class="sc">\n</span><span class="st">"</span>, </span>
-<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>            (<span class="dv">1</span> <span class="sc">-</span> pred_summary<span class="sc">$</span>Relative_to_Lasso[<span class="dv">1</span>]) <span class="sc">*</span> <span class="dv">100</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Bridge achieves %.1f%% lower MSE than Lasso</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>            (<span class="dv">1</span> <span class="sc">-</span> pred_summary<span class="sc">$</span>Relative_to_Lasso[<span class="dv">1</span>]) <span class="sc">*</span> <span class="dv">100</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Bridge achieves 12.8% lower MSE than Lasso</code></pre>
 </div>
 <details class="code-fold">
 <summary>Cross-validation performance comparison</summary>
-<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Bridge achieves %.1f%% lower MSE than Ridge</span><span class="sc">\n</span><span class="st">"</span>, </span>
-<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>            (<span class="dv">1</span> <span class="sc">-</span> pred_summary<span class="sc">$</span>Relative_to_Lasso[<span class="dv">1</span>]<span class="sc">/</span>pred_summary<span class="sc">$</span>Relative_to_Lasso[<span class="dv">3</span>]) <span class="sc">*</span> <span class="dv">100</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Bridge achieves %.1f%% lower MSE than Ridge</span><span class="sc">\n</span><span class="st">"</span>, </span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>            (<span class="dv">1</span> <span class="sc">-</span> pred_summary<span class="sc">$</span>Relative_to_Lasso[<span class="dv">1</span>]<span class="sc">/</span>pred_summary<span class="sc">$</span>Relative_to_Lasso[<span class="dv">3</span>]) <span class="sc">*</span> <span class="dv">100</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Bridge achieves 12.1% lower MSE than Ridge</code></pre>
@@ -2137,10 +2135,10 @@ p\left(y \mid \gamma, \alpha, \theta, \sigma_e^2\right)\\
 </section>
 <section id="horseshoe-prior" class="level3">
 <h3 class="anchored" data-anchor-id="horseshoe-prior">Horseshoe Prior</h3>
-<p>The horseshoe priors introduced earlier are the Bayesian counterpart of <span class="math inline">\(\ell_1\)</span> regularization (lasso). Horseshoe is particularly designed to recover a few large signals among many (nearly zero) noisy observations. The goal is to find a needle in the haystack.</p>
-<p>The sparse normal means problem is concerned with inference for the parameter vector <span class="math inline">\(\theta = ( \theta_1 , \ldots , \theta_p )\)</span> where we observe data <span class="math inline">\(y_i = \theta_i + \epsilon_i\)</span> where the level of sparsity might be unknown. From both a theoretical and empirical viewpoint, regularized estimators have won the day. This still leaves open the question of how does specify a penalty, denoted by <span class="math inline">\(\pi_{HS}\)</span>, (a.k.a. log-prior, <span class="math inline">\(- \log p_{HS}\)</span>)? Lasso simply uses an <span class="math inline">\(L^1\)</span>-norm, <span class="math inline">\(\sum_{i=1}^K | \theta_i |\)</span>, as opposed to the horseshoe prior which (essentially) uses the penalty <span class="math display">\[
-\pi_{HS} ( \theta_i | \tau ) = - \log p_{HS} ( \theta_i | \tau ) = - \log \log \left ( 1 + \frac{2 \tau^2}{\theta_i^2} \right ) .
-\]</span> The motivation for the horseshoe penalty arises from the analysis of the prior mass and influence on the posterior in both the tail and behaviour at the origin. The latter is the key determinate of the sparsity properties of the estimator.</p>
+<p>The horseshoe prior, introduced in <a href="#sec-horseshoe" class="quarto-xref"><span>Section 18.10</span></a>, provides the Bayesian counterpart of <span class="math inline">\(\ell_1\)</span> regularization. Here we examine its theoretical properties in the context of sparse signal recovery.</p>
+<p>From both a theoretical and empirical viewpoint, regularized estimators have proven superior. This still leaves open the question of how to specify a penalty. The Lasso uses an <span class="math inline">\(L^1\)</span>-norm, <span class="math inline">\(\sum_{i=1}^K | \theta_i |\)</span>, as opposed to the horseshoe prior which uses the penalty <span class="math display">\[
+\pi_{HS} ( \theta_i | \tau ) = - \log p_{HS} ( \theta_i | \tau ) = - \log \log \left ( 1 + \frac{2 \tau^2}{\theta_i^2} \right ).
+\]</span> The motivation for the horseshoe penalty arises from the analysis of the prior mass and influence on the posterior in both the tail and behavior at the origin. The latter is the key determinant of the sparsity properties of the estimator.</p>
 <p>The horseshoe <span class="citation" data-cites="carvalho2010horseshoe">Carvalho, Polson, and Scott (<a href="references.html#ref-carvalho2010horseshoe" role="doc-biblioref">2010</a>)</span> is a Bayesian method for ‘needle-in-a-haystack’ type problems where there is some sparsity, meaning that there are some signals amid mostly noise.</p>
 <p>We introduce the horseshoe in the context of the normal means model, which is given by <span class="math display">\[y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,\]</span> with <span class="math inline">\(\varepsilon_i\)</span> i.i.d. <span class="math inline">\(\mathcal{N}(0, \sigma^2)\)</span>. The horseshoe prior is given by <span class="math display">\[\begin{align*}
 \beta_i &amp;\sim \mathcal{N}(0, \sigma^2 \tau^2 \lambda_i^2)\\
@@ -2148,7 +2146,7 @@ p\left(y \mid \gamma, \alpha, \theta, \sigma_e^2\right)\\
 \end{align*}\]</span> where <span class="math inline">\(C^+\)</span> denotes the half-Cauchy distribution. Optionally, hyperpriors on <span class="math inline">\(\tau\)</span> and <span class="math inline">\(\sigma\)</span> may be specified, as is described further in the next two sections.</p>
 <p>To illustrate the shrinkage behaviour of the horseshoe, let’s plot the posterior mean for <span class="math inline">\(\beta_i\)</span> as a function of <span class="math inline">\(y_i\)</span> for three different values of <span class="math inline">\(\tau\)</span>.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(horseshoe)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(horseshoe)</span>
 <span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a>tau.values <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.005</span>, <span class="fl">0.05</span>, <span class="fl">0.5</span>)</span>
 <span id="cb77-4"><a href="#cb77-4" aria-hidden="true" tabindex="-1"></a>y.values <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>, <span class="at">length =</span> <span class="dv">100</span>)</span>
@@ -2159,11 +2157,11 @@ p\left(y \mid \gamma, \alpha, \theta, \sigma_e^2\right)\\
 <span id="cb77-9"><a href="#cb77-9" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">HS.post.mean</span>(y.values, <span class="at">tau =</span> tau.values[<span class="dv">3</span>], <span class="at">Sigma2=</span><span class="dv">1</span>)) )</span>
 <span id="cb77-10"><a href="#cb77-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb77-11"><a href="#cb77-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> y, <span class="at">y =</span> post.mean, <span class="at">group =</span> tau, <span class="at">color =</span> <span class="fu">factor</span>(tau))) <span class="sc">+</span> </span>
-<span id="cb77-12"><a href="#cb77-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">size =</span> <span class="fl">1.5</span>) <span class="sc">+</span> </span>
+<span id="cb77-12"><a href="#cb77-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">1.5</span>) <span class="sc">+</span> </span>
 <span id="cb77-13"><a href="#cb77-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_brewer</span>(<span class="at">palette=</span><span class="st">"Dark2"</span>) <span class="sc">+</span> </span>
 <span id="cb77-14"><a href="#cb77-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span> <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">colour =</span> <span class="st">"grey"</span>) <span class="sc">+</span> </span>
 <span id="cb77-15"><a href="#cb77-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">color =</span> <span class="st">"Tau"</span>) <span class="sc">+</span></span>
-<span id="cb77-16"><a href="#cb77-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Horseshoe posterior mean for three values of tau"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb77-16"><a href="#cb77-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Horseshoe posterior mean for three values of tau"</span>) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2182,7 +2180,7 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 <p>The function <code>HS.post.mean</code> requires the observed outcomes, a value for <span class="math inline">\(\tau\)</span> and a value for <span class="math inline">\(\sigma\)</span>. Ideally, <span class="math inline">\(\tau\)</span> should be equal to the proportion of nonzero <span class="math inline">\(\beta_i\)</span>’s. Typically, this proportion is unknown, in which case it is recommended to use the function <code>HS.MMLE</code> to find the marginal maximum likelihood estimator for <span class="math inline">\(\tau\)</span>.</p>
 <p>As an example, we generate 50 data points, the first 10 of which are coming from true signals. The first 10 <span class="math inline">\(\beta_i\)</span>’s are equal to five and the remaining <span class="math inline">\(\beta_i\)</span>’s are equal to zero. Let’s first plot the true parameters (black) and observations (blue).</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">index =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">50</span>,</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">index =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">50</span>,</span>
 <span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>                 truth <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="dv">5</span>, <span class="dv">10</span>), <span class="fu">rep</span>(<span class="dv">0</span>, <span class="dv">40</span>)),</span>
 <span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>                 y <span class="ot">&lt;-</span> truth <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">50</span>) <span class="co">#observations</span></span>
 <span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>                 )</span>
@@ -2191,7 +2189,7 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 <span id="cb78-7"><a href="#cb78-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
 <span id="cb78-8"><a href="#cb78-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
 <span id="cb78-9"><a href="#cb78-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb78-10"><a href="#cb78-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb78-10"><a href="#cb78-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2202,14 +2200,14 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 </div>
 <p>We estimate <span class="math inline">\(\tau\)</span> using the MMLE, using the known variance.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>(tau.est <span class="ot">&lt;-</span> <span class="fu">HS.MMLE</span>(df<span class="sc">$</span>y, <span class="at">Sigma2 =</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>(tau.est <span class="ot">&lt;-</span> <span class="fu">HS.MMLE</span>(df<span class="sc">$</span>y, <span class="at">Sigma2 =</span> <span class="dv">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## [1] 0.79</code></pre>
 </div>
 </div>
 <p>We then use this estimate of <span class="math inline">\(\tau\)</span> to find the posterior mean, and add it to the plot in red.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>post.mean <span class="ot">&lt;-</span> <span class="fu">HS.post.mean</span>(df<span class="sc">$</span>y, tau.est, <span class="dv">1</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>post.mean <span class="ot">&lt;-</span> <span class="fu">HS.post.mean</span>(df<span class="sc">$</span>y, tau.est, <span class="dv">1</span>)</span>
 <span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>post.mean <span class="ot">&lt;-</span> post.mean</span>
 <span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
@@ -2217,7 +2215,7 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 <span id="cb81-6"><a href="#cb81-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
 <span id="cb81-7"><a href="#cb81-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
 <span id="cb81-8"><a href="#cb81-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb81-9"><a href="#cb81-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations, Red = estimates"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb81-9"><a href="#cb81-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations, Red = estimates"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2239,18 +2237,18 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 <p>Other options that can be set by the user are the level of the credible intervals (default is 95%), and the number of MCMC samples (default is 1000 burn-in samples and then 5000 more).</p>
 <p>Let’s continue the example from the previous section. We first create a ‘horseshoe object’.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>hs.object <span class="ot">&lt;-</span> <span class="fu">HS.normal.means</span>(df<span class="sc">$</span>y, <span class="at">method.tau =</span> <span class="st">"truncatedCauchy"</span>, <span class="at">method.sigma =</span> <span class="st">"Jeffreys"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>hs.object <span class="ot">&lt;-</span> <span class="fu">HS.normal.means</span>(df<span class="sc">$</span>y, <span class="at">method.tau =</span> <span class="st">"truncatedCauchy"</span>, <span class="at">method.sigma =</span> <span class="st">"Jeffreys"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We extract the posterior mean of the <span class="math inline">\(\beta_i\)</span>’s and plot them in red.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>post.mean.full <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>BetaHat</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>post.mean.full <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>BetaHat</span>
 <span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
 <span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span> </span>
 <span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> y), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
 <span id="cb83-6"><a href="#cb83-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
 <span id="cb83-7"><a href="#cb83-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb83-8"><a href="#cb83-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations, Red = estimates"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb83-8"><a href="#cb83-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = observations, Red = estimates"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2261,7 +2259,7 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 </div>
 <p>We plot the marginal credible intervals (and remove the observations from the plot for clarity).</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>lower.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>LeftCI</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>lower.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>LeftCI</span>
 <span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>upper.CI <span class="ot">&lt;-</span> hs.object<span class="sc">$</span>RightCI</span>
 <span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
@@ -2269,7 +2267,7 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 <span id="cb84-6"><a href="#cb84-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
 <span id="cb84-7"><a href="#cb84-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
 <span id="cb84-8"><a href="#cb84-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI), <span class="at">width =</span> .<span class="dv">1</span>, <span class="at">col =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb84-9"><a href="#cb84-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Red = estimates with 95% credible intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb84-9"><a href="#cb84-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Red = estimates with 95% credible intervals"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2280,11 +2278,11 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 </div>
 <p>Finally, we perform variable selection using <code>HS.var.select</code>. In the normal means problem, we can use two decision rules. We will illustrate them both. The first method checks whether zero is contained in the credible interval, as studied by Van der Pas et al (2017).</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.CI <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"intervals"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.CI <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"intervals"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The result is a vector of zeroes and ones, with the ones indicating that the observations is suspected to correspond to an actual signal. We now plot the results, coloring the estimates/intervals blue if a signal is detected and red otherwise.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
 <span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
 <span id="cb86-3"><a href="#cb86-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
 <span id="cb86-4"><a href="#cb86-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> post.mean.full, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)), </span>
@@ -2292,7 +2290,7 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 <span id="cb86-6"><a href="#cb86-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI, <span class="at">col =</span> <span class="fu">factor</span>(selected.CI)),</span>
 <span id="cb86-7"><a href="#cb86-7" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> .<span class="dv">1</span>) <span class="sc">+</span></span>
 <span id="cb86-8"><a href="#cb86-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>) <span class="sc">+</span></span>
-<span id="cb86-9"><a href="#cb86-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb86-9"><a href="#cb86-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2303,7 +2301,7 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 </div>
 <p>The other variable selection method is the thresholding method of Carvalho et al (2010). The posterior mean can be written as <span class="math inline">\(c_iy_i\)</span> where <span class="math inline">\(y_i\)</span> is the observation and <span class="math inline">\(c_i\)</span> some number between 0 and 1. A variable is selected if <span class="math inline">\(c_i \geq c\)</span> for some user-selected threshold <span class="math inline">\(c\)</span> (default is <span class="math inline">\(c = 0.5\)</span>). In the example:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.thres <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"threshold"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>selected.thres <span class="ot">&lt;-</span> <span class="fu">HS.var.select</span>(hs.object, df<span class="sc">$</span>y, <span class="at">method =</span> <span class="st">"threshold"</span>)</span>
 <span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb87-4"><a href="#cb87-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> df, <span class="fu">aes</span>(<span class="at">x =</span> index, <span class="at">y =</span> truth)) <span class="sc">+</span> </span>
@@ -2314,7 +2312,7 @@ y_i = \beta_i + \varepsilon_i, \quad i = 1, \ldots, n,
 <span id="cb87-9"><a href="#cb87-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lower.CI, <span class="at">ymax =</span> upper.CI, <span class="at">col =</span> <span class="fu">factor</span>(selected.thres)),</span>
 <span id="cb87-10"><a href="#cb87-10" aria-hidden="true" tabindex="-1"></a>                <span class="at">width =</span> .<span class="dv">1</span>) <span class="sc">+</span></span>
 <span id="cb87-11"><a href="#cb87-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>) <span class="sc">+</span></span>
-<span id="cb87-12"><a href="#cb87-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb87-12"><a href="#cb87-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Black = truth, Blue = selected as signal, Red = selected as noise"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -2505,7 +2503,7 @@ w(y) = \frac{\sigma_\beta^2}{\sigma^2 + \sigma_\beta^2} \left(1 + \frac{(1-\thet
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Posterior mean functions for Bernoulli-Gaussian (left) and Bernoulli-Laplace (right) priors</summary>
-<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gridExtra)</span>
 <span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters</span></span>
@@ -2554,7 +2552,7 @@ w(y) = \frac{\sigma_\beta^2}{\sigma^2 + \sigma_\beta^2} \left(1 + \frac{(1-\thet
 <span id="cb88-47"><a href="#cb88-47" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb88-48"><a href="#cb88-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Bernoulli-Gaussian plot</span></span>
 <span id="cb88-49"><a href="#cb88-49" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(plot_data_bg, <span class="fu">aes</span>(<span class="at">x =</span> y, <span class="at">y =</span> posterior_mean, <span class="at">color =</span> sigma_beta_label)) <span class="sc">+</span></span>
-<span id="cb88-50"><a href="#cb88-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">size =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb88-50"><a href="#cb88-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
 <span id="cb88-51"><a href="#cb88-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
 <span id="cb88-52"><a href="#cb88-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"y"</span>, <span class="at">y =</span> <span class="st">"E[β|y]"</span>, <span class="at">title =</span> <span class="st">"Bernoulli-Gaussian Prior"</span>,</span>
 <span id="cb88-53"><a href="#cb88-53" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Parameter"</span>) <span class="sc">+</span></span>
@@ -2564,7 +2562,7 @@ w(y) = \frac{\sigma_\beta^2}{\sigma^2 + \sigma_\beta^2} \left(1 + \frac{(1-\thet
 <span id="cb88-57"><a href="#cb88-57" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb88-58"><a href="#cb88-58" aria-hidden="true" tabindex="-1"></a><span class="co"># Bernoulli-Laplace plot  </span></span>
 <span id="cb88-59"><a href="#cb88-59" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(plot_data_bl, <span class="fu">aes</span>(<span class="at">x =</span> y, <span class="at">y =</span> posterior_mean, <span class="at">color =</span> b_label)) <span class="sc">+</span></span>
-<span id="cb88-60"><a href="#cb88-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">size =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb88-60"><a href="#cb88-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
 <span id="cb88-61"><a href="#cb88-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
 <span id="cb88-62"><a href="#cb88-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"y"</span>, <span class="at">y =</span> <span class="st">"E[β|y]"</span>, <span class="at">title =</span> <span class="st">"Bernoulli-Laplace Prior"</span>,</span>
 <span id="cb88-63"><a href="#cb88-63" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Parameter"</span>) <span class="sc">+</span></span>
@@ -2572,7 +2570,7 @@ w(y) = \frac{\sigma_\beta^2}{\sigma^2 + \sigma_\beta^2} \left(1 + \frac{(1-\thet
 <span id="cb88-65"><a href="#cb88-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>) <span class="sc">+</span></span>
 <span id="cb88-66"><a href="#cb88-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>) <span class="sc">+</span> <span class="fu">ylim</span>(<span class="sc">-</span><span class="dv">3</span>, <span class="dv">3</span>)</span>
 <span id="cb88-67"><a href="#cb88-67" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb88-68"><a href="#cb88-68" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.arrange</span>(p1, p2, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb88-68"><a href="#cb88-68" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.arrange</span>(p1, p2, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-posterior-means" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -2590,7 +2588,7 @@ Figure&nbsp;18.4: Posterior mean functions for Bernoulli-Gaussian (left) and Ber
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Penalty functions $ heta$ associated with Bernoulli-Gaussian (left) and Bernoulli-Laplace (right) posterior means</summary>
-<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Penalty function computation (numerical approximation)</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Penalty function computation (numerical approximation)</span></span>
 <span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a>compute_penalty_bg <span class="ot">&lt;-</span> <span class="cf">function</span>(z, sigma, theta, sigma_beta) {</span>
 <span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Find y such that posterior mean equals z</span></span>
 <span id="cb89-4"><a href="#cb89-4" aria-hidden="true" tabindex="-1"></a>  objective <span class="ot">&lt;-</span> <span class="cf">function</span>(y) (<span class="fu">bg_posterior_mean</span>(y, sigma, theta, sigma_beta) <span class="sc">-</span> z)<span class="sc">^</span><span class="dv">2</span></span>
@@ -2654,7 +2652,7 @@ Figure&nbsp;18.4: Posterior mean functions for Bernoulli-Gaussian (left) and Ber
 <span id="cb89-62"><a href="#cb89-62" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb89-63"><a href="#cb89-63" aria-hidden="true" tabindex="-1"></a><span class="co"># Bernoulli-Gaussian penalty plot</span></span>
 <span id="cb89-64"><a href="#cb89-64" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(penalty_data_bg, <span class="fu">aes</span>(<span class="at">x =</span> z, <span class="at">y =</span> penalty, <span class="at">color =</span> sigma_beta_label)) <span class="sc">+</span></span>
-<span id="cb89-65"><a href="#cb89-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">size =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb89-65"><a href="#cb89-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
 <span id="cb89-66"><a href="#cb89-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"beta"</span>, <span class="at">y =</span> <span class="st">"phi(beta)"</span>, <span class="at">title =</span> <span class="st">"Bernoulli-Gaussian Penalty"</span>,</span>
 <span id="cb89-67"><a href="#cb89-67" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Parameter"</span>) <span class="sc">+</span></span>
 <span id="cb89-68"><a href="#cb89-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
@@ -2663,14 +2661,14 @@ Figure&nbsp;18.4: Posterior mean functions for Bernoulli-Gaussian (left) and Ber
 <span id="cb89-71"><a href="#cb89-71" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb89-72"><a href="#cb89-72" aria-hidden="true" tabindex="-1"></a><span class="co"># Bernoulli-Laplace penalty plot</span></span>
 <span id="cb89-73"><a href="#cb89-73" aria-hidden="true" tabindex="-1"></a>p4 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(penalty_data_bl, <span class="fu">aes</span>(<span class="at">x =</span> z, <span class="at">y =</span> penalty, <span class="at">color =</span> b_label)) <span class="sc">+</span></span>
-<span id="cb89-74"><a href="#cb89-74" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">size =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb89-74"><a href="#cb89-74" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
 <span id="cb89-75"><a href="#cb89-75" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"beta"</span>, <span class="at">y =</span> <span class="st">"phi(beta)"</span>, <span class="at">title =</span> <span class="st">"Bernoulli-Laplace Penalty"</span>,</span>
 <span id="cb89-76"><a href="#cb89-76" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Parameter"</span>) <span class="sc">+</span></span>
 <span id="cb89-77"><a href="#cb89-77" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
 <span id="cb89-78"><a href="#cb89-78" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>) <span class="sc">+</span></span>
 <span id="cb89-79"><a href="#cb89-79" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="sc">-</span><span class="dv">3</span>, <span class="dv">3</span>) <span class="sc">+</span> <span class="fu">ylim</span>(<span class="dv">0</span>, <span class="dv">5</span>)</span>
 <span id="cb89-80"><a href="#cb89-80" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb89-81"><a href="#cb89-81" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.arrange</span>(p3, p4, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb89-81"><a href="#cb89-81" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.arrange</span>(p3, p4, <span class="at">ncol =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-penalty-functions" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -2759,37 +2757,37 @@ Y = X\beta + \epsilon = UD\alpha + \epsilon
 <tbody>
 <tr class="odd">
 <td>Ridge</td>
-<td><span class="math inline">\(\theta^2\)</span></td>
+<td><span class="math inline">\(\beta^2\)</span></td>
 <td>Gaussian</td>
 <td>Grows Quadratically. Shrinks slowly. Encourages smoothness and numerical stability</td>
 </tr>
 <tr class="even">
 <td>Lasso</td>
-<td><span class="math inline">\(|\theta|\)</span></td>
+<td><span class="math inline">\(|\beta|\)</span></td>
 <td>Laplace</td>
 <td>Grows Linearly. Shrinks strongly. Induces sparsity but shrinks strong signals</td>
 </tr>
 <tr class="odd">
 <td>Bridge</td>
-<td><span class="math inline">\(\theta^\alpha\)</span></td>
+<td><span class="math inline">\(|\beta|^\alpha\)</span></td>
 <td>Exponential</td>
 <td>Interpolates between Ridge and Lasso.</td>
 </tr>
 <tr class="even">
 <td>Cauchy</td>
-<td><span class="math inline">\(\log(1+\theta^2)\)</span></td>
+<td><span class="math inline">\(\log(1+\beta^2)\)</span></td>
 <td>Cauchy</td>
 <td>Heavy-tailed. Grows logarithmically. Strong shrinkage near zero, minimal shrinkage for large signals</td>
 </tr>
 <tr class="odd">
 <td>Horseshoe</td>
-<td><span class="math inline">\(-\log\log(1 + 2\tau^2/\theta^2)\)</span></td>
+<td><span class="math inline">\(-\log\log(1 + 2\tau^2/\beta^2)\)</span></td>
 <td>Horseshoe</td>
 <td>Grows almost flat for large signals. Shrinks slowly. Optimal sparsity with strong signals preserved. <span class="math inline">\(\tau\)</span> is a scale parameter.</td>
 </tr>
 <tr class="even">
 <td>Subset selection</td>
-<td><span class="math inline">\(I(\theta \neq 0)\)</span></td>
+<td><span class="math inline">\(I(\beta \neq 0)\)</span></td>
 <td>Spike-and-slab</td>
 <td>Shrinks strongly. Exact sparsity through hard thresholding. Computationally hard.</td>
 </tr>
@@ -3036,13 +3034,14 @@ Tikhonov, Andrey Nikolayevich et al. 1943. <span>“On the Stability of Inverse 
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

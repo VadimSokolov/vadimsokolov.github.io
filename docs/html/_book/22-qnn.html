@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -89,14 +89,15 @@ div.csl-indent {
 <link href="./21-sgd.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-680e7c22d93ef26f016bec9199f8e6d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -124,6 +125,9 @@ div.csl-indent {
     "search-label": "Search"
   }
 }</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 <script>
   // Load MathJax with custom macros
   window.MathJax = {
@@ -168,7 +172,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -538,11 +542,34 @@ E[f(\theta)] = \int_0^1 F^{-1}_{f(\theta) | y}(\tau) d\tau
 <p>We begin by developing the theoretical foundations of quantile regression, deriving the loss functions from first principles, and then show how neural networks provide a flexible architecture for learning complex quantile functions in high dimensions.</p>
 <section id="sec-qnn-generative" class="level2" data-number="22.1">
 <h2 data-number="22.1" class="anchored" data-anchor-id="sec-qnn-generative"><span class="header-section-number">22.1</span> From Densities to Quantiles: A Generative Approach</h2>
-<p>Let <span class="math inline">\((X,Y) \sim P_{X,Y}\)</span> be input-output pairs and <span class="math inline">\(P_{X,Y}\)</span> a joint measure from which we can simulate a training dataset <span class="math inline">\((x_i, y_i)_{i=1}^N \sim P_{X,Y}\)</span>. Standard prediction techniques focus on the conditional posterior mean <span class="math inline">\(\hat{X}(Y) = E(X|Y) = f(Y)\)</span> of the input given the output. To do this, consider the multivariate non-parametric regression <span class="math inline">\(X = f(Y) + \epsilon\)</span> and provide methods for estimating the conditional mean. Typical estimators, <span class="math inline">\(\hat{f}\)</span>, include KNN and kernel methods. Recently, deep learners have been proposed and the theoretical properties of superpositions of affine functions (a.k.a. ridge functions) have been provided <span class="citation" data-cites="polson2023generative">N. G. Polson and Sokolov (<a href="references.html#ref-polson2023generative" role="doc-biblioref">2023</a>)</span>.</p>
-<p>Generative methods take this approach one step further. Let <span class="math inline">\(Z \sim P_Z\)</span> be a base measure for a latent variable, <span class="math inline">\(Z\)</span>, typically a standard multivariate normal or vector of uniforms. The goal of generative methods is to characterize the posterior measure <span class="math inline">\(P_{X|Y}\)</span> from the training data <span class="math inline">\((x_i, y_i)_{i=1}^N \sim P_{X,Y}\)</span> where <span class="math inline">\(N\)</span> is chosen to be suitably large. A deep learner is used to estimate <span class="math inline">\(\hat{f}\)</span> via the non-parametric regression <span class="math inline">\(X = f(Y, Z)\)</span>. In the case where <span class="math inline">\(Z\)</span> is uniform, this amounts to inverse CDF sampling, namely <span class="math inline">\(X = F_{X|Y}^{-1}(Z)\)</span>.</p>
+<p>Let <span class="math inline">\((X,Y) \sim P_{X,Y}\)</span> be input-output pairs and <span class="math inline">\(P_{X,Y}\)</span> a joint measure from which we can simulate a training dataset <span class="math inline">\((x_i, y_i)_{i=1}^N \sim P_{X,Y}\)</span>. Standard prediction techniques focus on the conditional posterior mean <span class="math inline">\(\hat{X}(Y) = E(X|Y) = f(Y)\)</span> of the input given the output. The standard approach formulates this as nonparametric regression <span class="math inline">\(X = f(Y) + \epsilon\)</span> and estimates the conditional mean using methods such as kernel smoothing or K-nearest neighbors. Recently, deep learning approaches have been proposed, with theoretical properties established by <span class="citation" data-cites="polson2023generative">N. G. Polson and Sokolov (<a href="references.html#ref-polson2023generative" role="doc-biblioref">2023</a>)</span>.</p>
+<p>Generative methods take this approach one step further. Let <span class="math inline">\(Z \sim P_Z\)</span> be a base measure for a latent variable, <span class="math inline">\(Z\)</span>, typically a standard multivariate normal or vector of uniforms. The goal of generative methods is to characterize the posterior measure <span class="math inline">\(P_{X|Y}\)</span> from the training data <span class="math inline">\((x_i, y_i)_{i=1}^N \sim P_{X,Y}\)</span> where <span class="math inline">\(N\)</span> is chosen to be suitably large. A deep learner is used to estimate <span class="math inline">\(\hat{f}\)</span> via the non-parametric regression <span class="math inline">\(X = f(Y, Z)\)</span>. In the case where <span class="math inline">\(Z\)</span> is uniform, this amounts to inverse CDF sampling, namely <span class="math inline">\(X = F_{X|Y}^{-1}(Z)\)</span>—the <em>quantile function</em> that we develop formally in <a href="#sec-qnn-quantile-regression" class="quarto-xref"><span>Section 22.2</span></a>.</p>
 <p>In general, we characterize the posterior map for <em>any</em> output <span class="math inline">\(Y\)</span>. Simply evaluate the network at any <span class="math inline">\(Y\)</span> via the transport map <span class="math display">\[
 X = H(S(Y), \psi(Z))
 \]</span> Here <span class="math inline">\(\psi\)</span> denotes the embedding function. The deep learners <span class="math inline">\(H\)</span> and <span class="math inline">\(S\)</span> are estimated from the triples <span class="math inline">\((X_i, Y_i, \psi(Z_i))_{i=1}^N \sim P_{X,Y} \times P_Z\)</span>. The ensuing estimator <span class="math inline">\(\hat{H}\)</span> can be thought of as a transport map from the base distribution to the posterior as required.</p>
+<p>The following diagram illustrates the transport map architecture:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div id="fig-transport-map" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-transport-map-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-transport-map">flowchart LR
+    Y["Data Y"] --&gt; S["Statistics S(Y)"]
+    Z["Latent Z ~ Uniform"] --&gt; psi["Embedding ψ(Z)"]
+    S --&gt; H["Transport Map H"]
+    psi --&gt; H
+    H --&gt; X["Posterior Sample X"]
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-transport-map-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;22.1: Transport map architecture for generative inference. Data <span class="math inline">\(Y\)</span> is summarized by statistics <span class="math inline">\(S(Y)\)</span>, while latent variable <span class="math inline">\(Z\)</span> is embedded via <span class="math inline">\(\psi\)</span>. The transport function <span class="math inline">\(H\)</span> maps these inputs to posterior samples.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
 <p>Specifically, the idea of generative methods is straightforward. Let <span class="math inline">\(y\)</span> denote data and <span class="math inline">\(\theta\)</span> a vector of parameters including any hidden states (a.k.a. latent variables) <span class="math inline">\(z\)</span>. First, we generate a “look-up” table of “fake” data <span class="math inline">\(\{y^{(i)}, \theta^{(i)}\}_{i=1}^N\)</span>. By simulating a training dataset of outputs and parameters, we can use deep learning to solve for the inverse map via a supervised learning problem. Generative methods have the advantage of being likelihood-free. For example, our model might be specified by a forward map <span class="math inline">\(y^{(i)} = f(\theta^{(i)})\)</span> rather than a traditional random draw from a likelihood function <span class="math inline">\(y^{(i)} \sim p(y^{(i)}|\theta^{(i)})\)</span>. The base distribution <span class="math inline">\(P_Z\)</span> is typically uniform (for univariate problems) or a very high-dimensional Gaussian vector (for multivariate problems).</p>
 <p>The theoretical foundation for this approach is the <em>noise outsourcing theorem</em>, which guarantees that we can represent any posterior distribution through a deterministic function of the data and a base random variable.</p>
 <p><strong>Noise Outsourcing Theorem</strong> <span class="citation" data-cites="kallenberg1997foundations">(<a href="references.html#ref-kallenberg1997foundations" role="doc-biblioref">Kallenberg 1997</a>)</span>: If <span class="math inline">\((Y, \Theta)\)</span> are random variables in a Borel space <span class="math inline">\((\mathcal{Y}, \Theta)\)</span>, then there exists a random variable <span class="math inline">\(\tau \sim U(0,1)\)</span> which is independent of <span class="math inline">\(Y\)</span> and a function <span class="math inline">\(H: [0,1] \times \mathcal{Y} \rightarrow \Theta\)</span> such that <span class="math display">\[
@@ -561,7 +588,7 @@ X = H(S(Y), \psi(Z))
 <p>It is easy to show that, given observed values <span class="math inline">\(y_1, \ldots, y_n\)</span>, the median is the value that minimizes the expected absolute deviation: <span class="math display">\[
 m = \arg\min_q \frac{1}{n} \sum_{i=1}^n |y_i - q|   = \arg\min_q E[|Y - q|]
 \]</span> Intuitively, the sum of absolute deviations is minimized when the median is the value that is closest to half of the observations.</p>
-<p>What if we want to find quantile <span class="math inline">\(\tau \in (0,1)\)</span>? We can use the generalization of the absolute value function to find the minimizer of the expected absolute deviation: <span class="math display">\[
+<p>The median is the special case <span class="math inline">\(\tau = 0.5\)</span>, but the same principle generalizes to any quantile <span class="math inline">\(\tau \in (0,1)\)</span>. We use a generalization of the absolute value function—the <em>check loss</em> or <em>pinball loss</em>—to find the minimizer: <span class="math display">\[
 q_\tau = \arg\min_q \frac{1}{n} \sum_{i=1}^n \rho_\tau(y_i - q).
 \]</span> Here <span class="math inline">\(\rho_\tau(u)\)</span> is the <em>check loss</em> or <em>pinball loss</em> and is defined as: <span class="math display">\[
 \rho_\tau(u) = u(\tau - I(u &lt; 0)) = \begin{cases}
@@ -574,27 +601,27 @@ q_\tau = \arg\min_q \frac{1}{n} \sum_{i=1}^n \rho_\tau(y_i - q).
 <div id="exm-quantile-regression-r" class="theorem example">
 <p><span class="theorem-title"><strong>Example 22.1 (Linear Quantile Regression)</strong></span> To illustrate quantile regression in practice, we’ll analyze the relationship between engine displacement and fuel efficiency using the classic <code>mtcars</code> dataset. Rather than estimating the mean relationship (as ordinary least squares would), we’ll estimate conditional quantiles to understand how this relationship varies across the distribution of fuel efficiency.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load mtcars dataset</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load mtcars dataset</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(mtcars)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the check loss (pinball loss) function</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>check_loss <span class="ot">&lt;-</span> <span class="cf">function</span>(u, tau) {</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># rho_tau(u) = u * (tau - I(u &lt; 0))</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  u <span class="sc">*</span> (tau <span class="sc">-</span> (u <span class="sc">&lt;</span> <span class="dv">0</span>))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># rho_tau(u) = u * (tau - I(u &lt; 0))</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    u <span class="sc">*</span> (tau <span class="sc">-</span> (u <span class="sc">&lt;</span> <span class="dv">0</span>))</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Objective function: sum of check losses for quantile regression</span></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>quantile_objective <span class="ot">&lt;-</span> <span class="cf">function</span>(beta, X, y, tau) {</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Predicted values</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  y_pred <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Residuals</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  residuals <span class="ot">&lt;-</span> y <span class="sc">-</span> y_pred</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sum of check losses</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>(<span class="fu">check_loss</span>(residuals, tau))</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Predicted values</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    y_pred <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Residuals</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    residuals <span class="ot">&lt;-</span> y <span class="sc">-</span> y_pred</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sum of check losses</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(<span class="fu">check_loss</span>(residuals, tau))</span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare data</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">log</span>(mtcars<span class="sc">$</span>disp))  <span class="co"># Design matrix with intercept</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">log</span>(mtcars<span class="sc">$</span>disp)) <span class="co"># Design matrix with intercept</span></span>
 <span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">log</span>(mtcars<span class="sc">$</span>mpg)</span>
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit quantile regression models using optim()</span></span>
@@ -602,74 +629,80 @@ q_\tau = \arg\min_q \frac{1}{n} \sum_{i=1}^n \rho_\tau(y_i - q).
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (tau <span class="cf">in</span> quantiles) {</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Initial values (use OLS estimates as starting point)</span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  ols_fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(mpg) <span class="sc">~</span> <span class="fu">log</span>(disp), <span class="at">data =</span> mtcars)</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  beta_init <span class="ot">&lt;-</span> <span class="fu">coef</span>(ols_fit)</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Optimize using BFGS (quasi-Newton method)</span></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="co"># We use BFGS because the check loss is non-differentiable at zero,</span></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>  <span class="co"># but BFGS can handle this with numerical approximations</span></span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>  optim_result <span class="ot">&lt;-</span> <span class="fu">optim</span>(</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">par =</span> beta_init,</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">fn =</span> quantile_objective,</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">X =</span> X,</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> y,</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">tau =</span> tau,</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"BFGS"</span></span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>  results[[<span class="fu">as.character</span>(tau)]] <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">coefficients =</span> optim_result<span class="sc">$</span>par,</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">value =</span> optim_result<span class="sc">$</span>value,</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">convergence =</span> optim_result<span class="sc">$</span>convergence</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"tau = %.1f: Convergence = %d, Loss = %.4f</span><span class="sc">\n</span><span class="st">"</span>, </span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>              tau, optim_result<span class="sc">$</span>convergence, optim_result<span class="sc">$</span>value))</span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Initial values (use OLS estimates as starting point)</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    ols_fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(mpg) <span class="sc">~</span> <span class="fu">log</span>(disp), <span class="at">data =</span> mtcars)</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    beta_init <span class="ot">&lt;-</span> <span class="fu">coef</span>(ols_fit)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Optimize using BFGS (quasi-Newton method)</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="co"># We use BFGS because the check loss is non-differentiable at zero,</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># but BFGS can handle this with numerical approximations</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    optim_result <span class="ot">&lt;-</span> <span class="fu">optim</span>(</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>        <span class="at">par =</span> beta_init,</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>        <span class="at">fn =</span> quantile_objective,</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>        <span class="at">X =</span> X,</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>        <span class="at">y =</span> y,</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>        <span class="at">tau =</span> tau,</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>        <span class="at">method =</span> <span class="st">"BFGS"</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    results[[<span class="fu">as.character</span>(tau)]] <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>        <span class="at">coefficients =</span> optim_result<span class="sc">$</span>par,</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>        <span class="at">value =</span> optim_result<span class="sc">$</span>value,</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>        <span class="at">convergence =</span> optim_result<span class="sc">$</span>convergence</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>        <span class="st">"tau = %.1f: Convergence = %d, Loss = %.4f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>        tau, optim_result<span class="sc">$</span>convergence, optim_result<span class="sc">$</span>value</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    ))</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## tau = 0.1: Convergence = 0, Loss = 0.5155
 ## tau = 0.5: Convergence = 0, Loss = 1.5182
 ## tau = 0.9: Convergence = 0, Loss = 0.6907</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Also fit OLS for comparison</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Also fit OLS for comparison</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>ols_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(mpg) <span class="sc">~</span> <span class="fu">log</span>(disp), <span class="at">data =</span> mtcars)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create visualization</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">log</span>(mtcars<span class="sc">$</span>disp), <span class="fu">log</span>(mtcars<span class="sc">$</span>mpg), </span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">pch =</span> <span class="dv">16</span>, <span class="at">col =</span> <span class="st">"gray30"</span>,</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Displacement (cu.in.)"</span>, </span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab =</span> <span class="st">"Miles per Gallon"</span>,</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Quantile Regression: Fuel Efficiency vs. Engine Displacement"</span>)</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Add regression lines</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>disp_range <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fu">min</span>(<span class="fu">log</span>(mtcars<span class="sc">$</span>disp)), <span class="fu">max</span>(<span class="fu">log</span>(mtcars<span class="sc">$</span>disp)), <span class="at">length.out =</span> <span class="dv">100</span>)</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co"># OLS line</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(ols_model, <span class="at">col =</span> <span class="st">"black"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Quantile regression lines</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"darkgreen"</span>, <span class="st">"red"</span>)</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(quantiles)) {</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  tau <span class="ot">&lt;-</span> quantiles[i]</span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  beta <span class="ot">&lt;-</span> results[[<span class="fu">as.character</span>(tau)]]<span class="sc">$</span>coefficients</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Predicted values: y = beta_0 + beta_1 * x</span></span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  pred <span class="ot">&lt;-</span> beta[<span class="dv">1</span>] <span class="sc">+</span> beta[<span class="dv">2</span>] <span class="sc">*</span> disp_range</span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lines</span>(disp_range, pred, <span class="at">col =</span> colors[i], <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Add legend</span></span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, </span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"OLS (Mean)"</span>, </span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">expression</span>(tau <span class="sc">==</span> <span class="fl">0.1</span>),</span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">expression</span>(tau <span class="sc">==</span> <span class="fl">0.5</span> <span class="sc">~</span> <span class="st">"(Median)"</span>),</span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">expression</span>(tau <span class="sc">==</span> <span class="fl">0.9</span>)),</span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"black"</span>, colors),</span>
-<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>       <span class="at">lty =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>),</span>
-<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>       <span class="at">lwd =</span> <span class="dv">2</span>,</span>
-<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>       <span class="at">bg =</span> <span class="st">"white"</span>)</span>
-<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">log</span>(mtcars<span class="sc">$</span>disp), <span class="fu">log</span>(mtcars<span class="sc">$</span>mpg),</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">pch =</span> <span class="dv">16</span>, <span class="at">col =</span> <span class="st">"gray30"</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="st">"Displacement (cu.in.)"</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">ylab =</span> <span class="st">"Miles per Gallon"</span>,</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Quantile Regression: Fuel Efficiency vs. Engine Displacement"</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Add regression lines</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>disp_range <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fu">min</span>(<span class="fu">log</span>(mtcars<span class="sc">$</span>disp)), <span class="fu">max</span>(<span class="fu">log</span>(mtcars<span class="sc">$</span>disp)), <span class="at">length.out =</span> <span class="dv">100</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># OLS line</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(ols_model, <span class="at">col =</span> <span class="st">"black"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Quantile regression lines</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"darkgreen"</span>, <span class="st">"red"</span>)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(quantiles)) {</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    tau <span class="ot">&lt;-</span> quantiles[i]</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> results[[<span class="fu">as.character</span>(tau)]]<span class="sc">$</span>coefficients</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Predicted values: y = beta_0 + beta_1 * x</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    pred <span class="ot">&lt;-</span> beta[<span class="dv">1</span>] <span class="sc">+</span> beta[<span class="dv">2</span>] <span class="sc">*</span> disp_range</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lines</span>(disp_range, pred, <span class="at">col =</span> colors[i], <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Add legend</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>,</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend =</span> <span class="fu">c</span>(</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>        <span class="st">"OLS (Mean)"</span>,</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>        <span class="fu">expression</span>(tau <span class="sc">==</span> <span class="fl">0.1</span>),</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>        <span class="fu">expression</span>(tau <span class="sc">==</span> <span class="fl">0.5</span> <span class="sc">~</span> <span class="st">"(Median)"</span>),</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>        <span class="fu">expression</span>(tau <span class="sc">==</span> <span class="fl">0.9</span>)</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"black"</span>, colors),</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">lty =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>),</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">lwd =</span> <span class="dv">2</span>,</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">bg =</span> <span class="st">"white"</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -678,23 +711,23 @@ q_\tau = \arg\min_q \frac{1}{n} \sum_{i=1}^n \rho_\tau(y_i - q).
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print model summaries</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n\n</span><span class="st">Quantile Regression Results (via optim):</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print model summaries</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n\n</span><span class="st">Quantile Regression Results (via optim):</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## 
 ## 
 ## Quantile Regression Results (via optim):</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"=========================================</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"=========================================</span><span class="sc">\n\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## =========================================</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (tau <span class="cf">in</span> quantiles) {</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Quantile tau = %.1f:</span><span class="sc">\n</span><span class="st">"</span>, tau))</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Intercept: %.4f</span><span class="sc">\n</span><span class="st">"</span>, results[[<span class="fu">as.character</span>(tau)]]<span class="sc">$</span>coefficients[<span class="dv">1</span>]))</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Slope:     %.4f</span><span class="sc">\n</span><span class="st">"</span>, results[[<span class="fu">as.character</span>(tau)]]<span class="sc">$</span>coefficients[<span class="dv">2</span>]))</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (tau <span class="cf">in</span> quantiles) {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Quantile tau = %.1f:</span><span class="sc">\n</span><span class="st">"</span>, tau))</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Intercept: %.4f</span><span class="sc">\n</span><span class="st">"</span>, results[[<span class="fu">as.character</span>(tau)]]<span class="sc">$</span>coefficients[<span class="dv">1</span>]))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Slope:     %.4f</span><span class="sc">\n</span><span class="st">"</span>, results[[<span class="fu">as.character</span>(tau)]]<span class="sc">$</span>coefficients[<span class="dv">2</span>]))</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Quantile tau = 0.1:
 ##   Intercept: 5.6246
@@ -708,15 +741,15 @@ q_\tau = \arg\min_q \frac{1}{n} \sum_{i=1}^n \rho_\tau(y_i - q).
 ##   Intercept: 5.0835
 ##   Slope:     -0.3660</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"OLS Regression:</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"OLS Regression:</span><span class="sc">\n</span><span class="st">"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## OLS Regression:</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Intercept: %.4f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">coef</span>(ols_model)[<span class="dv">1</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Intercept: %.4f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">coef</span>(ols_model)[<span class="dv">1</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Intercept: 5.3810</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Slope:     %.4f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">coef</span>(ols_model)[<span class="dv">2</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Slope:     %.4f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">coef</span>(ols_model)[<span class="dv">2</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Slope:     -0.4586</code></pre>
 </div>
@@ -751,7 +784,7 @@ y_i &amp;\sim \text{AsymmetricLaplace}(f_i, \tau, \sigma) \\
 <h3 class="anchored" data-anchor-id="implementation-with-r">Implementation with R</h3>
 <p>We now demonstrate trend filtering for nonlinear quantile regression using synthetic data with both smooth regions and sharp transitions:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set seed for reproducibility</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set seed for reproducibility</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate nonlinear synthetic data with heteroskedasticity</span></span>
@@ -760,108 +793,118 @@ y_i &amp;\sim \text{AsymmetricLaplace}(f_i, \tau, \sigma) \\
 <span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co"># True function with different regimes</span></span>
 <span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>f_true <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(x <span class="sc">&lt;</span> <span class="dv">3</span>, <span class="dv">1</span> <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> x,</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>                <span class="fu">ifelse</span>(x <span class="sc">&lt;</span> <span class="dv">5</span>, <span class="fl">2.5</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> (x <span class="sc">-</span> <span class="dv">3</span>),</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>                       <span class="fl">6.5</span> <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> (x <span class="sc">-</span> <span class="dv">5</span>)))</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Heteroskedastic noise that increases with x</span></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>sigma <span class="ot">&lt;-</span> <span class="fl">0.3</span> <span class="sc">+</span> <span class="fl">0.1</span> <span class="sc">*</span> x</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> f_true <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, sigma)</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Define second-order difference operator</span></span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>D2 <span class="ot">&lt;-</span> <span class="cf">function</span>(n) {</span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>  D <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n <span class="sc">-</span> <span class="dv">2</span>, n)</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>(n <span class="sc">-</span> <span class="dv">2</span>)) {</span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    D[i, i<span class="sc">:</span>(i <span class="sc">+</span> <span class="dv">2</span>)] <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="sc">-</span><span class="dv">2</span>, <span class="dv">1</span>)</span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(D)</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Trend filtering objective function for quantile regression</span></span>
-<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>trend_filter_obj <span class="ot">&lt;-</span> <span class="cf">function</span>(f, y, lambda, tau, D) {</span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Check loss</span></span>
-<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>  residuals <span class="ot">&lt;-</span> y <span class="sc">-</span> f</span>
-<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>  quantile_loss <span class="ot">&lt;-</span> <span class="fu">sum</span>(residuals <span class="sc">*</span> (tau <span class="sc">-</span> (residuals <span class="sc">&lt;</span> <span class="dv">0</span>)))</span>
-<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># L1 penalty on second differences</span></span>
-<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>  penalty <span class="ot">&lt;-</span> lambda <span class="sc">*</span> <span class="fu">sum</span>(<span class="fu">abs</span>(D <span class="sc">%*%</span> f))</span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(quantile_loss <span class="sc">+</span> penalty)</span>
-<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit trend filtering for multiple quantiles using optim</span></span>
-<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a><span class="co"># For better performance, we use BFGS with box constraints</span></span>
-<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>quantiles <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span>)</span>
-<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fl">2.0</span>  <span class="co"># Smoothing parameter</span></span>
-<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>D <span class="ot">&lt;-</span> <span class="fu">D2</span>(n)</span>
-<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>results_tf <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ifelse</span>(x <span class="sc">&lt;</span> <span class="dv">5</span>, <span class="fl">2.5</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> (x <span class="sc">-</span> <span class="dv">3</span>),</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="fl">6.5</span> <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> (x <span class="sc">-</span> <span class="dv">5</span>)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Heteroskedastic noise that increases with x</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>sigma <span class="ot">&lt;-</span> <span class="fl">0.3</span> <span class="sc">+</span> <span class="fl">0.1</span> <span class="sc">*</span> x</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> f_true <span class="sc">+</span> <span class="fu">rnorm</span>(n, <span class="dv">0</span>, sigma)</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Define second-order difference operator</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>D2 <span class="ot">&lt;-</span> <span class="cf">function</span>(n) {</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    D <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n <span class="sc">-</span> <span class="dv">2</span>, n)</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>(n <span class="sc">-</span> <span class="dv">2</span>)) {</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>        D[i, i<span class="sc">:</span>(i <span class="sc">+</span> <span class="dv">2</span>)] <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="sc">-</span><span class="dv">2</span>, <span class="dv">1</span>)</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(D)</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Trend filtering objective function for quantile regression</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>trend_filter_obj <span class="ot">&lt;-</span> <span class="cf">function</span>(f, y, lambda, tau, D) {</span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Check loss</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>    residuals <span class="ot">&lt;-</span> y <span class="sc">-</span> f</span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>    quantile_loss <span class="ot">&lt;-</span> <span class="fu">sum</span>(residuals <span class="sc">*</span> (tau <span class="sc">-</span> (residuals <span class="sc">&lt;</span> <span class="dv">0</span>)))</span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>    <span class="co"># L1 penalty on second differences</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>    penalty <span class="ot">&lt;-</span> lambda <span class="sc">*</span> <span class="fu">sum</span>(<span class="fu">abs</span>(D <span class="sc">%*%</span> f))</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(quantile_loss <span class="sc">+</span> penalty)</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit trend filtering for multiple quantiles using optim</span></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a><span class="co"># For better performance, we use BFGS with box constraints</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>quantiles <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span>)</span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fl">2.0</span> <span class="co"># Smoothing parameter</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>D <span class="ot">&lt;-</span> <span class="fu">D2</span>(n)</span>
 <span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (tau <span class="cf">in</span> quantiles) {</span>
-<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Initialize with linear quantile regression</span></span>
-<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>  X_init <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, x)</span>
-<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>  init_fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> x)</span>
-<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>  f_init <span class="ot">&lt;-</span> <span class="fu">predict</span>(init_fit)</span>
-<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Optimize using L-BFGS-B</span></span>
-<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>  opt_result <span class="ot">&lt;-</span> <span class="fu">optim</span>(</span>
-<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">par =</span> f_init,</span>
-<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">fn =</span> trend_filter_obj,</span>
-<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> y,</span>
-<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">lambda =</span> lambda,</span>
-<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">tau =</span> tau,</span>
-<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">D =</span> D,</span>
-<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"L-BFGS-B"</span></span>
-<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>  results_tf[[<span class="fu">as.character</span>(tau)]] <span class="ot">&lt;-</span> opt_result<span class="sc">$</span>par</span>
-<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualization</span></span>
-<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
-<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a><span class="co"># Left panel: Data and trend filtering estimates</span></span>
-<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x, y, <span class="at">pch =</span> <span class="dv">16</span>, <span class="at">col =</span> <span class="st">"gray50"</span>, <span class="at">cex =</span> <span class="fl">0.8</span>,</span>
-<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"x"</span>, <span class="at">ylab =</span> <span class="st">"y"</span>,</span>
-<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Trend Filtering Quantile Regression"</span>)</span>
-<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a><span class="co"># True function</span></span>
-<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x, f_true, <span class="at">col =</span> <span class="st">"black"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
-<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a><span class="co"># Quantile estimates</span></span>
-<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a>colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"darkgreen"</span>, <span class="st">"red"</span>)</span>
-<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(quantiles)) {</span>
-<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a>  tau <span class="ot">&lt;-</span> quantiles[i]</span>
-<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lines</span>(x, results_tf[[<span class="fu">as.character</span>(tau)]], </span>
-<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> colors[i], <span class="at">lwd =</span> <span class="fl">2.5</span>)</span>
-<span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-85"><a href="#cb16-85" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>, </span>
-<span id="cb16-86"><a href="#cb16-86" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"True mean"</span>, <span class="st">"tau = 0.1"</span>, <span class="st">"tau = 0.5"</span>, <span class="st">"tau = 0.9"</span>),</span>
-<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"black"</span>, colors),</span>
-<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>       <span class="at">lty =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>),</span>
-<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a>       <span class="at">lwd =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="fl">2.5</span>, <span class="fl">2.5</span>, <span class="fl">2.5</span>),</span>
-<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a>       <span class="at">bg =</span> <span class="st">"white"</span>)</span>
-<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a><span class="co"># Right panel: Uncertainty quantification</span></span>
-<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x, y, <span class="at">pch =</span> <span class="dv">16</span>, <span class="at">col =</span> <span class="st">"gray50"</span>, <span class="at">cex =</span> <span class="fl">0.8</span>,</span>
-<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"x"</span>, <span class="at">ylab =</span> <span class="st">"y"</span>,</span>
-<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Conditional Quantiles and Prediction Intervals"</span>)</span>
-<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-97"><a href="#cb16-97" aria-hidden="true" tabindex="-1"></a><span class="co"># Fill prediction intervals</span></span>
-<span id="cb16-98"><a href="#cb16-98" aria-hidden="true" tabindex="-1"></a><span class="fu">polygon</span>(<span class="fu">c</span>(x, <span class="fu">rev</span>(x)),</span>
-<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a>        <span class="fu">c</span>(results_tf[[<span class="st">"0.1"</span>]], <span class="fu">rev</span>(results_tf[[<span class="st">"0.9"</span>]])),</span>
-<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> <span class="fu">rgb</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">0.3</span>), <span class="at">border =</span> <span class="cn">NA</span>)</span>
-<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a><span class="co"># Quantile curves</span></span>
-<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x, results_tf[[<span class="st">"0.1"</span>]], <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
-<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x, results_tf[[<span class="st">"0.5"</span>]], <span class="at">col =</span> <span class="st">"darkgreen"</span>, <span class="at">lwd =</span> <span class="fl">2.5</span>)</span>
-<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x, results_tf[[<span class="st">"0.9"</span>]], <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
-<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>, </span>
-<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"P50 (Median)"</span>, <span class="st">"P10-P90 (80% interval)"</span>),</span>
-<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"darkgreen"</span>, <span class="fu">rgb</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>)),</span>
-<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a>       <span class="at">lwd =</span> <span class="fu">c</span>(<span class="fl">2.5</span>, <span class="dv">8</span>),</span>
-<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a>       <span class="at">bg =</span> <span class="st">"white"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>results_tf <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (tau <span class="cf">in</span> quantiles) {</span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Initialize with linear quantile regression</span></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>    X_init <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, x)</span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>    init_fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(y <span class="sc">~</span> x)</span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>    f_init <span class="ot">&lt;-</span> <span class="fu">predict</span>(init_fit)</span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Optimize using L-BFGS-B</span></span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    opt_result <span class="ot">&lt;-</span> <span class="fu">optim</span>(</span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>        <span class="at">par =</span> f_init,</span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>        <span class="at">fn =</span> trend_filter_obj,</span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>        <span class="at">y =</span> y,</span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>        <span class="at">lambda =</span> lambda,</span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>        <span class="at">tau =</span> tau,</span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>        <span class="at">D =</span> D,</span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>        <span class="at">method =</span> <span class="st">"L-BFGS-B"</span></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a>    results_tf[[<span class="fu">as.character</span>(tau)]] <span class="ot">&lt;-</span> opt_result<span class="sc">$</span>par</span>
+<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualization</span></span>
+<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a><span class="co"># Left panel: Data and trend filtering estimates</span></span>
+<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x, y,</span>
+<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a>    <span class="at">pch =</span> <span class="dv">16</span>, <span class="at">col =</span> <span class="st">"gray50"</span>, <span class="at">cex =</span> <span class="fl">0.8</span>,</span>
+<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="st">"x"</span>, <span class="at">ylab =</span> <span class="st">"y"</span>,</span>
+<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Trend Filtering Quantile Regression"</span></span>
+<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a><span class="co"># True function</span></span>
+<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x, f_true, <span class="at">col =</span> <span class="st">"black"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a><span class="co"># Quantile estimates</span></span>
+<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"darkgreen"</span>, <span class="st">"red"</span>)</span>
+<span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(quantiles)) {</span>
+<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a>    tau <span class="ot">&lt;-</span> quantiles[i]</span>
+<span id="cb16-85"><a href="#cb16-85" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lines</span>(x, results_tf[[<span class="fu">as.character</span>(tau)]],</span>
+<span id="cb16-86"><a href="#cb16-86" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> colors[i], <span class="at">lwd =</span> <span class="fl">2.5</span></span>
+<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>,</span>
+<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"True mean"</span>, <span class="st">"tau = 0.1"</span>, <span class="st">"tau = 0.5"</span>, <span class="st">"tau = 0.9"</span>),</span>
+<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"black"</span>, colors),</span>
+<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">lty =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>),</span>
+<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a>    <span class="at">lwd =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="fl">2.5</span>, <span class="fl">2.5</span>, <span class="fl">2.5</span>),</span>
+<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a>    <span class="at">bg =</span> <span class="st">"white"</span></span>
+<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-97"><a href="#cb16-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-98"><a href="#cb16-98" aria-hidden="true" tabindex="-1"></a><span class="co"># Right panel: Uncertainty quantification</span></span>
+<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x, y,</span>
+<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a>    <span class="at">pch =</span> <span class="dv">16</span>, <span class="at">col =</span> <span class="st">"gray50"</span>, <span class="at">cex =</span> <span class="fl">0.8</span>,</span>
+<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="st">"x"</span>, <span class="at">ylab =</span> <span class="st">"y"</span>,</span>
+<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Conditional Quantiles and Prediction Intervals"</span></span>
+<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a><span class="co"># Fill prediction intervals</span></span>
+<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a><span class="fu">polygon</span>(<span class="fu">c</span>(x, <span class="fu">rev</span>(x)),</span>
+<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(results_tf[[<span class="st">"0.1"</span>]], <span class="fu">rev</span>(results_tf[[<span class="st">"0.9"</span>]])),</span>
+<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">rgb</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">0.3</span>), <span class="at">border =</span> <span class="cn">NA</span></span>
+<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a><span class="co"># Quantile curves</span></span>
+<span id="cb16-112"><a href="#cb16-112" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x, results_tf[[<span class="st">"0.1"</span>]], <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb16-113"><a href="#cb16-113" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x, results_tf[[<span class="st">"0.5"</span>]], <span class="at">col =</span> <span class="st">"darkgreen"</span>, <span class="at">lwd =</span> <span class="fl">2.5</span>)</span>
+<span id="cb16-114"><a href="#cb16-114" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(x, results_tf[[<span class="st">"0.9"</span>]], <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb16-115"><a href="#cb16-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-116"><a href="#cb16-116" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>,</span>
+<span id="cb16-117"><a href="#cb16-117" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"P50 (Median)"</span>, <span class="st">"P10-P90 (80% interval)"</span>),</span>
+<span id="cb16-118"><a href="#cb16-118" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"darkgreen"</span>, <span class="fu">rgb</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>)),</span>
+<span id="cb16-119"><a href="#cb16-119" aria-hidden="true" tabindex="-1"></a>    <span class="at">lwd =</span> <span class="fu">c</span>(<span class="fl">2.5</span>, <span class="dv">8</span>),</span>
+<span id="cb16-120"><a href="#cb16-120" aria-hidden="true" tabindex="-1"></a>    <span class="at">bg =</span> <span class="st">"white"</span></span>
+<span id="cb16-121"><a href="#cb16-121" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -870,15 +913,15 @@ y_i &amp;\sim \text{AsymmetricLaplace}(f_i, \tau, \sigma) \\
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate empirical coverage</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate empirical coverage</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>coverage <span class="ot">&lt;-</span> <span class="fu">mean</span>(y <span class="sc">&gt;=</span> results_tf[[<span class="st">"0.1"</span>]] <span class="sc">&amp;</span> y <span class="sc">&lt;=</span> results_tf[[<span class="st">"0.9"</span>]])</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Empirical 80%% interval coverage: %.1f%%</span><span class="sc">\n</span><span class="st">"</span>, coverage <span class="sc">*</span> <span class="dv">100</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Empirical 80%% interval coverage: %.1f%%</span><span class="sc">\n</span><span class="st">"</span>, coverage <span class="sc">*</span> <span class="dv">100</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## 
-## Empirical 80% interval coverage: 69.0%</code></pre>
+## Empirical 80% interval coverage: 68.0%</code></pre>
 </div>
 </div>
-<p>Trend filtering for quantile regression exhibits several desirable properties that make it particularly attractive for practical applications, such as computational efficient and flexibility in matching complex patterns.</p>
+<p>Trend filtering for quantile regression offers computational efficiency through sparse linear algebra and flexibility in capturing both smooth regions and abrupt transitions—properties that make it particularly attractive for applications with ordered, low-dimensional data.</p>
 <p>Trend filtering provides an important conceptual bridge to neural quantile networks. Both approaches learn nonlinear functions through composition: trend filtering composes piecewise polynomials, while neural networks compose nonlinear activation functions. The key difference lies in how they handle high-dimensional inputs. Trend filtering is most effective for univariate or low-dimensional problems with ordered inputs, while neural networks excel when inputs are high-dimensional or lack natural ordering.</p>
 <p>For problems with structured, low-dimensional inputs—time series, spatial data along a transect, dose-response curves—trend filtering often provides better interpretability and requires less data than neural networks. For high-dimensional problems—images, text, complex multivariate relationships—neural networks become essential. Understanding both approaches allows practitioners to choose the right tool for their specific problem structure.</p>
 </section>
@@ -970,9 +1013,9 @@ y_1, \ldots, y_n \mid \theta \sim N(\theta, \sigma^2)
 \]</span> <span class="math display">\[
 \theta \sim N(\mu,\alpha^2)
 \]</span></p>
-<p>The sufficient statistic is <span class="math inline">\(S(y) = \bar y = \frac{1}{n} \sum_{i=1}^n y_i\)</span>. The posterior is <span class="math inline">\(\theta \mid y \sim N(\mu_*, \sigma_*^2)\)</span> with <span class="math display">\[
+<p>The sufficient statistic is <span class="math inline">\(S(y) = \bar y = \frac{1}{n} \sum_{i=1}^n y_i\)</span>. Define <span class="math inline">\(t = \sigma^2 + n\alpha^2\)</span>. The posterior is <span class="math inline">\(\theta \mid y \sim N(\mu_*, \sigma_*^2)\)</span> with <span class="math display">\[
 \mu_* = \frac{\sigma^2 \mu + n\alpha^2\bar{y}}{t}, \quad \sigma^2_* = \frac{\alpha^2 \sigma^2}{t}
-\]</span> where <span class="math inline">\(t = \sigma^2 + n\alpha^2\)</span>.</p>
+\]</span></p>
 <p>The remarkable result is that the posterior and prior CDFs are related via a Wang distortion function: <span class="math display">\[
 1-\Phi(\theta; \mu_*,\sigma_*) = g(1 - \Phi(\theta; \mu, \alpha^2))
 \]</span> where <span class="math inline">\(\Phi(\cdot; \mu, \sigma^2)\)</span> denotes the normal CDF. The Wang distortion is: <span class="math display">\[
@@ -980,11 +1023,7 @@ g(p) = \Phi\left(\lambda_1 \Phi^{-1}(p) + \lambda\right)
 \]</span> with distortion parameters: <span class="math display">\[
 \lambda_1 = \frac{\alpha}{\sigma_*}, \quad \lambda = \frac{\alpha\lambda_1(n\bar{y}-n\mu)}{t}
 \]</span></p>
-<p><strong>Proof sketch</strong>: The key is to rewrite the tail probabilities: <span class="math display">\[
-g(1 - \Phi(\theta; \mu, \alpha^2)) = g\left(\Phi\left(-\frac{\theta - \mu}{\alpha}\right)\right) = \Phi\left(\lambda_1 \left(-\frac{\theta - \mu}{\alpha}\right) + \lambda\right)
-\]</span> <span class="math display">\[
-= 1 - \Phi\left(\frac{\theta - (\mu+ \alpha\lambda/\lambda_1)}{\alpha/\lambda_1}\right) = 1-\Phi(\theta; \mu_*,\sigma_*)
-\]</span></p>
+<p>The detailed derivation, provided by <span class="citation" data-cites="wang1996premium">Wang (<a href="references.html#ref-wang1996premium" role="doc-biblioref">1996</a>)</span>, shows that the distortion parameters depend on the sample statistics and prior hyperparameters through the posterior updating formulas.</p>
 <p>This analytical result has several implications:</p>
 <ol type="1">
 <li><p><strong>Wang distortions</strong> are natural: The distortion functions used in risk management <span class="citation" data-cites="wang1996premium">(<a href="references.html#ref-wang1996premium" role="doc-biblioref">Wang 1996</a>)</span> arise naturally from Bayesian updating in the normal case.</p></li>
@@ -1035,7 +1074,7 @@ g(1 - \Phi(\theta; \mu, \alpha^2)) = g\left(\Phi\left(-\frac{\theta - \mu}{\alph
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-wang-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;22.1: The Normal-Normal learning model. Left: Prior, likelihood, and posterior densities. Center: The Wang distortion function <span class="math inline">\(g\)</span> that transforms the prior CDF to the posterior CDF. Right: Survival functions showing how <span class="math inline">\(g\)</span> maps the prior tail probabilities to posterior tail probabilities.
+Figure&nbsp;22.2: The Normal-Normal learning model. Left: Prior, likelihood, and posterior densities. Center: The Wang distortion function <span class="math inline">\(g\)</span> that transforms the prior CDF to the posterior CDF. Right: Survival functions showing how <span class="math inline">\(g\)</span> maps the prior tail probabilities to posterior tail probabilities.
 </figcaption>
 </figure>
 </div>
@@ -1046,8 +1085,8 @@ Figure&nbsp;22.1: The Normal-Normal learning model. Left: Prior, likelihood, and
 <p>A classic application of decision theory in finance is portfolio optimization. Consider an investor allocating wealth between a risk-free asset with return <span class="math inline">\(r_f\)</span> and a risky asset with uncertain return <span class="math inline">\(R\)</span>. Let <span class="math inline">\(\omega \in (0,1)\)</span> denote the fraction allocated to the risky asset. The portfolio return is: <span class="math display">\[
 W = (1-\omega)r_f + \omega R
 \]</span></p>
-<p>With exponential utility <span class="math inline">\(U(W) = -e^{-\gamma W}\)</span> (measuring risk aversion <span class="math inline">\(\gamma &gt; 0\)</span>) and normally distributed returns <span class="math inline">\(R \sim N(\mu, \sigma^2)\)</span>, the expected utility has a closed form due to the moment-generating function of the normal distribution: <span class="math display">\[
-U(\omega) = E[-e^{-\gamma W}] = -\exp\left\{-\gamma \left[(1-\omega)r_f + \omega\mu\right] + \frac{1}{2}\gamma^2\omega^2\sigma^2 \right\}
+<p>With exponential utility <span class="math inline">\(u(W) = -e^{-\gamma W}\)</span> (measuring risk aversion <span class="math inline">\(\gamma &gt; 0\)</span>) and normally distributed returns <span class="math inline">\(R \sim N(\mu, \sigma^2)\)</span>, the expected utility has a closed form due to the moment-generating function of the normal distribution: <span class="math display">\[
+\bar{U}(\omega) = E[-e^{-\gamma W}] = -\exp\left\{-\gamma \left[(1-\omega)r_f + \omega\mu\right] + \frac{1}{2}\gamma^2\omega^2\sigma^2 \right\}
 \]</span></p>
 <p>Maximizing expected utility yields the celebrated <em>Kelly-Merton</em> optimal allocation: <span class="math display">\[
 \omega^* = \frac{\mu - r_f}{\gamma\sigma^2}
@@ -1080,7 +1119,7 @@ E[U(W)] = \int_{0}^{1}F_{U(W)}^{-1}(\tau)d\tau
 \omega^* = \frac{0.15 - 0.05}{2 \times 0.25^2} = \frac{0.10}{0.125} = 0.80
 \]</span></p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>rf <span class="ot">&lt;-</span> <span class="fl">0.05</span></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">&lt;-</span> <span class="fl">0.15</span></span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>sigma <span class="ot">&lt;-</span> <span class="fl">0.25</span></span>
@@ -1088,53 +1127,68 @@ E[U(W)] = \int_{0}^{1}F_{U(W)}^{-1}(\tau)d\tau
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Portfolio utility for different weights</span></span>
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>utility_quantile <span class="ot">&lt;-</span> <span class="cf">function</span>(tau, omega, rf, mu, sigma, gamma) {</span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  W_quantile <span class="ot">&lt;-</span> (<span class="dv">1</span> <span class="sc">-</span> omega) <span class="sc">*</span> rf <span class="sc">+</span> omega <span class="sc">*</span> (mu <span class="sc">+</span> sigma <span class="sc">*</span> <span class="fu">qnorm</span>(tau))</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  U <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">exp</span>(<span class="sc">-</span>gamma <span class="sc">*</span> W_quantile)</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(U)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    W_quantile <span class="ot">&lt;-</span> (<span class="dv">1</span> <span class="sc">-</span> omega) <span class="sc">*</span> rf <span class="sc">+</span> omega <span class="sc">*</span> (mu <span class="sc">+</span> sigma <span class="sc">*</span> <span class="fu">qnorm</span>(tau))</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    U <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">exp</span>(<span class="sc">-</span>gamma <span class="sc">*</span> W_quantile)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(U)</span>
 <span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Expected utility via quantile integration</span></span>
 <span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>expected_utility <span class="ot">&lt;-</span> <span class="cf">function</span>(omega, rf, mu, sigma, gamma, <span class="at">n_quantiles =</span> <span class="dv">1000</span>) {</span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>  tau_grid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.001</span>, <span class="fl">0.999</span>, <span class="at">length.out =</span> n_quantiles)</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  U_quantiles <span class="ot">&lt;-</span> <span class="fu">sapply</span>(tau_grid, utility_quantile, <span class="at">omega =</span> omega, </span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>                       <span class="at">rf =</span> rf, <span class="at">mu =</span> mu, <span class="at">sigma =</span> sigma, <span class="at">gamma =</span> gamma)</span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Integrate using trapezoidal rule</span></span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">mean</span>(U_quantiles))</span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute expected utility for a grid of portfolio weights</span></span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>omega_grid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.01</span>, <span class="fl">0.99</span>, <span class="at">by =</span> <span class="fl">0.01</span>)</span>
-<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>EU_grid <span class="ot">&lt;-</span> <span class="fu">sapply</span>(omega_grid, expected_utility, <span class="at">rf =</span> rf, <span class="at">mu =</span> mu, </span>
-<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>                 <span class="at">sigma =</span> sigma, <span class="at">gamma =</span> gamma)</span>
-<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Find optimal weight</span></span>
-<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>omega_opt <span class="ot">&lt;-</span> omega_grid[<span class="fu">which.max</span>(EU_grid)]</span>
-<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Plotting</span></span>
-<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
-<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 1: Quantile functions for different weights</span></span>
-<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>tau_plot <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.01</span>, <span class="fl">0.99</span>, <span class="at">length.out =</span> <span class="dv">100</span>)</span>
-<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(tau_plot, <span class="fu">utility_quantile</span>(tau_plot, <span class="fl">0.2</span>, rf, mu, sigma, gamma), </span>
-<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>     <span class="at">type =</span> <span class="st">'l'</span>, <span class="at">col =</span> <span class="st">'blue'</span>, <span class="at">lwd =</span> <span class="dv">2</span>,</span>
-<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="fu">expression</span>(tau), <span class="at">ylab =</span> <span class="fu">expression</span>(F[U]<span class="sc">^</span>{<span class="sc">-</span><span class="dv">1</span>}(tau)),</span>
-<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Utility Quantile Functions"</span>)</span>
-<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(tau_plot, <span class="fu">utility_quantile</span>(tau_plot, <span class="fl">0.5</span>, rf, mu, sigma, gamma), </span>
-<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>      <span class="at">col =</span> <span class="st">'green'</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(tau_plot, <span class="fu">utility_quantile</span>(tau_plot, <span class="fl">0.8</span>, rf, mu, sigma, gamma), </span>
-<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>      <span class="at">col =</span> <span class="st">'red'</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"omega = 0.2"</span>, <span class="st">"omega = 0.5"</span>, <span class="st">"omega = 0.8"</span>),</span>
-<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"green"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span>
-<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 2: Expected utility as function of portfolio weight</span></span>
-<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(omega_grid, EU_grid, <span class="at">type =</span> <span class="st">'l'</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">'darkblue'</span>,</span>
-<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="fu">expression</span>(omega), <span class="at">ylab =</span> <span class="st">"Expected Utility"</span>,</span>
-<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Portfolio Optimization"</span>)</span>
-<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> omega_opt, <span class="at">col =</span> <span class="st">'red'</span>, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(omega_opt <span class="sc">+</span> <span class="fl">0.1</span>, <span class="fu">max</span>(EU_grid) <span class="sc">*</span> <span class="fl">0.95</span>, </span>
-<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a>     <span class="fu">paste0</span>(<span class="st">"omega* = "</span>, <span class="fu">round</span>(omega_opt, <span class="dv">2</span>)), <span class="at">col =</span> <span class="st">'red'</span>)</span>
-<span id="cb19-55"><a href="#cb19-55" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    tau_grid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.001</span>, <span class="fl">0.999</span>, <span class="at">length.out =</span> n_quantiles)</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    U_quantiles <span class="ot">&lt;-</span> <span class="fu">sapply</span>(tau_grid, utility_quantile,</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">omega =</span> omega,</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">rf =</span> rf, <span class="at">mu =</span> mu, <span class="at">sigma =</span> sigma, <span class="at">gamma =</span> gamma</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Integrate using trapezoidal rule</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="fu">mean</span>(U_quantiles))</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute expected utility for a grid of portfolio weights</span></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>omega_grid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.01</span>, <span class="fl">0.99</span>, <span class="at">by =</span> <span class="fl">0.01</span>)</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>EU_grid <span class="ot">&lt;-</span> <span class="fu">sapply</span>(omega_grid, expected_utility,</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">rf =</span> rf, <span class="at">mu =</span> mu,</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">sigma =</span> sigma, <span class="at">gamma =</span> gamma</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Find optimal weight</span></span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>omega_opt <span class="ot">&lt;-</span> omega_grid[<span class="fu">which.max</span>(EU_grid)]</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Plotting</span></span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 1: Quantile functions for different weights</span></span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>tau_plot <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.01</span>, <span class="fl">0.99</span>, <span class="at">length.out =</span> <span class="dv">100</span>)</span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(tau_plot, <span class="fu">utility_quantile</span>(tau_plot, <span class="fl">0.2</span>, rf, mu, sigma, gamma),</span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lwd =</span> <span class="dv">2</span>,</span>
+<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="fu">expression</span>(tau), <span class="at">ylab =</span> <span class="fu">expression</span>(F[U]<span class="sc">^</span>{</span>
+<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>        <span class="sc">-</span><span class="dv">1</span></span>
+<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>    }(tau)),</span>
+<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Utility Quantile Functions"</span></span>
+<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(tau_plot, <span class="fu">utility_quantile</span>(tau_plot, <span class="fl">0.5</span>, rf, mu, sigma, gamma),</span>
+<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="st">"green"</span>, <span class="at">lwd =</span> <span class="dv">2</span></span>
+<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(tau_plot, <span class="fu">utility_quantile</span>(tau_plot, <span class="fl">0.8</span>, rf, mu, sigma, gamma),</span>
+<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lwd =</span> <span class="dv">2</span></span>
+<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>,</span>
+<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"omega = 0.2"</span>, <span class="st">"omega = 0.5"</span>, <span class="st">"omega = 0.8"</span>),</span>
+<span id="cb19-55"><a href="#cb19-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"green"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="dv">2</span></span>
+<span id="cb19-56"><a href="#cb19-56" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-57"><a href="#cb19-57" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span>
+<span id="cb19-58"><a href="#cb19-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-59"><a href="#cb19-59" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 2: Expected utility as function of portfolio weight</span></span>
+<span id="cb19-60"><a href="#cb19-60" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(omega_grid, EU_grid,</span>
+<span id="cb19-61"><a href="#cb19-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"darkblue"</span>,</span>
+<span id="cb19-62"><a href="#cb19-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="fu">expression</span>(omega), <span class="at">ylab =</span> <span class="st">"Expected Utility"</span>,</span>
+<span id="cb19-63"><a href="#cb19-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Portfolio Optimization"</span></span>
+<span id="cb19-64"><a href="#cb19-64" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-65"><a href="#cb19-65" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">v =</span> omega_opt, <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb19-66"><a href="#cb19-66" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(omega_opt <span class="sc">+</span> <span class="fl">0.1</span>, <span class="fu">max</span>(EU_grid) <span class="sc">*</span> <span class="fl">0.95</span>,</span>
+<span id="cb19-67"><a href="#cb19-67" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste0</span>(<span class="st">"omega* = "</span>, <span class="fu">round</span>(omega_opt, <span class="dv">2</span>)),</span>
+<span id="cb19-68"><a href="#cb19-68" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="st">"red"</span></span>
+<span id="cb19-69"><a href="#cb19-69" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-70"><a href="#cb19-70" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1164,17 +1218,17 @@ q_\tau = \arg\min_q E_U[\rho_{\tau}(U-q)]
 <section id="combined-loss-function" class="level3">
 <h3 class="anchored" data-anchor-id="combined-loss-function">Combined Loss Function</h3>
 <p>For training neural networks, we use a combination of quantile loss and mean-squared error (MSE). Given training data <span class="math inline">\(\{x_i, y_i\}_{i=1}^N\)</span> and a quantile <span class="math inline">\(\tau\)</span>, the loss is: <span class="math display">\[
-L_{\tau}(\theta) = \sum_{i=1}^N \rho_{\tau}(y_i - f(\tau, x_i, \theta))
+L_{\tau}(\phi) = \sum_{i=1}^N \rho_{\tau}(y_i - f(\tau, x_i, \phi))
 \]</span></p>
-<p>Empirically, adding an MSE term improves stability and predictive accuracy: <span class="math display">\[
-L(\theta) = \alpha L_{\tau}(\theta) + (1-\alpha) \cdot \frac{1}{N} \sum_{i=1}^N (y_i - f(x_i, \theta))^2
+<p>Here <span class="math inline">\(\phi\)</span> denotes the neural network weights, distinct from the model parameters <span class="math inline">\(\theta\)</span> discussed elsewhere. Empirically, adding an MSE term improves stability and predictive accuracy: <span class="math display">\[
+L(\phi) = \alpha L_{\tau}(\phi) + (1-\alpha) \cdot \frac{1}{N} \sum_{i=1}^N (y_i - f(x_i, \phi))^2
 \]</span></p>
 <p>The weighting parameter <span class="math inline">\(\alpha \in [0,1]\)</span> balances quantile accuracy against overall fit. Typical values are <span class="math inline">\(\alpha \in [0.7, 0.9]\)</span>. The MSE term encourages the median prediction (<span class="math inline">\(\tau = 0.5\)</span>) to align with the conditional mean, which often improves generalization.</p>
 </section>
 <section id="learning-multiple-quantiles-simultaneously" class="level3">
 <h3 class="anchored" data-anchor-id="learning-multiple-quantiles-simultaneously">Learning Multiple Quantiles Simultaneously</h3>
 <p>Rather than training separate networks for each quantile <span class="math inline">\(\tau_k\)</span>, it is more efficient to learn all quantiles with a single network that takes <span class="math inline">\(\tau\)</span> as an input. Given quantiles <span class="math inline">\(0 &lt; \tau_1 &lt; \tau_2 &lt; \ldots &lt; \tau_K &lt; 1\)</span>, we minimize: <span class="math display">\[
-L(\theta) = \frac{1}{NK} \sum_{i=1}^N \sum_{k=1}^K \rho_{\tau_k}(y_i - f_{\tau_k}(x_i, \theta))
+L(\phi) = \frac{1}{NK} \sum_{i=1}^N \sum_{k=1}^K \rho_{\tau_k}(y_i - f_{\tau_k}(x_i, \phi))
 \]</span></p>
 <p>This approach has several advantages:</p>
 <ol type="1">
@@ -1262,6 +1316,7 @@ f_{\tau}(x) = \frac{\sin(\pi x)}{\pi x} + \Phi^{-1}(\tau) \sqrt{\frac{\exp(1-x)}
 <li><p><strong>Asymmetric costs</strong>: Different quantiles inform different decisions. The <span class="math inline">\(P_{10}\)</span> quantile is more relevant for safety stock than the mean.</p></li>
 <li><p><strong>Model flexibility</strong>: Neural quantile regression makes no distributional assumptions beyond smoothness.</p></li>
 </ol>
+<p>While production systems at Amazon and similar retailers deploy deep architectures with LSTMs, attention mechanisms, and learned embeddings, the core principles of quantile forecasting remain the same regardless of model complexity. In the following example, we illustrate these principles using interpretable linear quantile regression before discussing how to scale to neural network implementations.</p>
 </section>
 <section id="demand-forecasting-setup" class="level3">
 <h3 class="anchored" data-anchor-id="demand-forecasting-setup">Demand Forecasting Setup</h3>
@@ -1304,14 +1359,46 @@ q_\tau(t) = F^{-1}_{Y_t | X_t}(\tau)
 <li><strong>Quantile head</strong>: Final layer produces <span class="math inline">\(\hat{q}_\tau(t)\)</span> for input <span class="math inline">\(\tau\)</span>, using cosine embedding</li>
 </ol>
 <p>Training uses mini-batches sampling randomly across products and time periods, with the combined quantile + MSE loss we discussed. The model is trained to predict multiple quantiles simultaneously (<span class="math inline">\(\tau \in \{0.1, 0.2, \ldots, 0.9\}\)</span>).</p>
+<p>The following diagram illustrates the neural network architecture for demand forecasting:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div id="fig-demand-nn" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-demand-nn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-demand-nn">flowchart LR
+    subgraph Inputs
+        P["Product ID"] --&gt; E1["Embedding"]
+        C["Category"] --&gt; E2["Embedding"]
+        T["Time Series History"] --&gt; LSTM["LSTM/Transformer"]
+        N["Numeric Features"] 
+    end
+    E1 --&gt; Fusion["Feature Fusion"]
+    E2 --&gt; Fusion
+    LSTM --&gt; Fusion
+    N --&gt; Fusion
+    tau["Quantile τ"] --&gt; Cosine["Cosine Embedding"]
+    Fusion --&gt; QHead["Quantile Head"]
+    Cosine --&gt; QHead
+    QHead --&gt; Q["Quantile Prediction q_τ(t)"]
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-demand-nn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;22.3: Neural network architecture for quantile demand forecasting. Categorical features are embedded, temporal history is encoded, and all features are fused before the quantile head produces conditional quantile predictions.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
 <p>At inference time, for a given product and time period, the model outputs all quantiles instantly, enabling inventory optimization algorithms to compute optimal stock levels.</p>
 </section>
 <section id="r-implementation-demand-forecasting-with-quantile-regression" class="level3">
 <h3 class="anchored" data-anchor-id="r-implementation-demand-forecasting-with-quantile-regression">R Implementation: Demand Forecasting with Quantile Regression</h3>
 <p>We now provide a complete R implementation for demand forecasting using quantile neural networks. This example simulates realistic demand data with seasonality, trends, and promotional effects, then trains a quantile model to forecast the entire demand distribution.</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load required libraries</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(quantreg)  <span class="co"># For quantile regression</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load required libraries</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(quantreg) <span class="co"># For quantile regression</span></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr)</span>
@@ -1321,40 +1408,40 @@ q_\tau(t) = F^{-1}_{Y_t | X_t}(\tau)
 <span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate synthetic demand data for multiple products</span></span>
 <span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>generate_demand_data <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n_days =</span> <span class="dv">365</span> <span class="sc">*</span> <span class="dv">2</span>, <span class="at">n_products =</span> <span class="dv">5</span>) {</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  days <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>n_days</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create data frame</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  data_list <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span>n_products, <span class="cf">function</span>(p) {</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Base parameters varying by product</span></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    base_demand <span class="ot">&lt;-</span> <span class="dv">50</span> <span class="sc">+</span> p <span class="sc">*</span> <span class="dv">20</span></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    trend <span class="ot">&lt;-</span> <span class="fl">0.05</span> <span class="sc">*</span> p</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Seasonal components</span></span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    weekly_pattern <span class="ot">&lt;-</span> <span class="dv">10</span> <span class="sc">*</span> <span class="fu">sin</span>(<span class="dv">2</span> <span class="sc">*</span> pi <span class="sc">*</span> days <span class="sc">/</span> <span class="dv">7</span> <span class="sc">+</span> p)</span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    monthly_pattern <span class="ot">&lt;-</span> <span class="dv">15</span> <span class="sc">*</span> <span class="fu">sin</span>(<span class="dv">2</span> <span class="sc">*</span> pi <span class="sc">*</span> days <span class="sc">/</span> <span class="fl">30.5</span> <span class="sc">+</span> p <span class="sc">*</span> <span class="fl">0.5</span>)</span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Promotional effect (random promotions)</span></span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>    promo <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_days, <span class="dv">1</span>, <span class="fl">0.1</span>)  <span class="co"># 10% of days have promotions</span></span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    promo_effect <span class="ot">&lt;-</span> promo <span class="sc">*</span> (<span class="dv">30</span> <span class="sc">+</span> <span class="dv">20</span> <span class="sc">*</span> p)</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Trend + seasonality + promotions + noise</span></span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>    mu <span class="ot">&lt;-</span> base_demand <span class="sc">+</span> trend <span class="sc">*</span> days <span class="sc">+</span> weekly_pattern <span class="sc">+</span> monthly_pattern <span class="sc">+</span> promo_effect</span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Heteroskedastic noise (variance increases with demand)</span></span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> <span class="dv">5</span> <span class="sc">+</span> <span class="fl">0.1</span> <span class="sc">*</span> mu</span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>    demand <span class="ot">&lt;-</span> <span class="fu">pmax</span>(<span class="dv">0</span>, <span class="fu">rnorm</span>(n_days, mu, sigma))  <span class="co"># Demand can't be negative</span></span>
-<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(</span>
-<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">product =</span> <span class="fu">paste0</span>(<span class="st">"Product_"</span>, p),</span>
-<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>      <span class="at">day =</span> days,</span>
-<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>      <span class="at">demand =</span> demand,</span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>      <span class="at">promo =</span> promo,</span>
-<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>      <span class="at">day_of_week =</span> (days <span class="sc">%%</span> <span class="dv">7</span>) <span class="sc">+</span> <span class="dv">1</span>,</span>
-<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>      <span class="at">day_of_month =</span> ((days <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">%%</span> <span class="dv">30</span>) <span class="sc">+</span> <span class="dv">1</span></span>
-<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>  })</span>
-<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">do.call</span>(rbind, data_list)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    days <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>n_days</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create data frame</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    data_list <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span>n_products, <span class="cf">function</span>(p) {</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Base parameters varying by product</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>        base_demand <span class="ot">&lt;-</span> <span class="dv">50</span> <span class="sc">+</span> p <span class="sc">*</span> <span class="dv">20</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>        trend <span class="ot">&lt;-</span> <span class="fl">0.05</span> <span class="sc">*</span> p</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Seasonal components</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>        weekly_pattern <span class="ot">&lt;-</span> <span class="dv">10</span> <span class="sc">*</span> <span class="fu">sin</span>(<span class="dv">2</span> <span class="sc">*</span> pi <span class="sc">*</span> days <span class="sc">/</span> <span class="dv">7</span> <span class="sc">+</span> p)</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>        monthly_pattern <span class="ot">&lt;-</span> <span class="dv">15</span> <span class="sc">*</span> <span class="fu">sin</span>(<span class="dv">2</span> <span class="sc">*</span> pi <span class="sc">*</span> days <span class="sc">/</span> <span class="fl">30.5</span> <span class="sc">+</span> p <span class="sc">*</span> <span class="fl">0.5</span>)</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Promotional effect (random promotions)</span></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>        promo <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_days, <span class="dv">1</span>, <span class="fl">0.1</span>) <span class="co"># 10% of days have promotions</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>        promo_effect <span class="ot">&lt;-</span> promo <span class="sc">*</span> (<span class="dv">30</span> <span class="sc">+</span> <span class="dv">20</span> <span class="sc">*</span> p)</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Trend + seasonality + promotions + noise</span></span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>        mu <span class="ot">&lt;-</span> base_demand <span class="sc">+</span> trend <span class="sc">*</span> days <span class="sc">+</span> weekly_pattern <span class="sc">+</span> monthly_pattern <span class="sc">+</span> promo_effect</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Heteroskedastic noise (variance increases with demand)</span></span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>        sigma <span class="ot">&lt;-</span> <span class="dv">5</span> <span class="sc">+</span> <span class="fl">0.1</span> <span class="sc">*</span> mu</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>        demand <span class="ot">&lt;-</span> <span class="fu">pmax</span>(<span class="dv">0</span>, <span class="fu">rnorm</span>(n_days, mu, sigma)) <span class="co"># Demand can't be negative</span></span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>        <span class="fu">data.frame</span>(</span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>            <span class="at">product =</span> <span class="fu">paste0</span>(<span class="st">"Product_"</span>, p),</span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>            <span class="at">day =</span> days,</span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>            <span class="at">demand =</span> demand,</span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>            <span class="at">promo =</span> promo,</span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>            <span class="at">day_of_week =</span> (days <span class="sc">%%</span> <span class="dv">7</span>) <span class="sc">+</span> <span class="dv">1</span>,</span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>            <span class="at">day_of_month =</span> ((days <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">%%</span> <span class="dv">30</span>) <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">do.call</span>(rbind, data_list)</span>
 <span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate data</span></span>
@@ -1362,15 +1449,15 @@ q_\tau(t) = F^{-1}_{Y_t | X_t}(\tau)
 <span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Create lagged features</span></span>
 <span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a>demand_data <span class="ot">&lt;-</span> demand_data <span class="sc">%&gt;%</span></span>
-<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(product) <span class="sc">%&gt;%</span></span>
-<span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(day) <span class="sc">%&gt;%</span></span>
-<span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">lag_1 =</span> <span class="fu">lag</span>(demand, <span class="dv">1</span>, <span class="at">default =</span> <span class="cn">NA</span>),</span>
-<span id="cb20-57"><a href="#cb20-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">lag_7 =</span> <span class="fu">lag</span>(demand, <span class="dv">7</span>, <span class="at">default =</span> <span class="cn">NA</span>),</span>
-<span id="cb20-58"><a href="#cb20-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">lag_30 =</span> <span class="fu">lag</span>(demand, <span class="dv">30</span>, <span class="at">default =</span> <span class="cn">NA</span>)</span>
-<span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb20-60"><a href="#cb20-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb20-61"><a href="#cb20-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(lag_30))  <span class="co"># Remove rows with NA lags</span></span>
+<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(product) <span class="sc">%&gt;%</span></span>
+<span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(day) <span class="sc">%&gt;%</span></span>
+<span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a>        <span class="at">lag_1 =</span> <span class="fu">lag</span>(demand, <span class="dv">1</span>, <span class="at">default =</span> <span class="cn">NA</span>),</span>
+<span id="cb20-57"><a href="#cb20-57" aria-hidden="true" tabindex="-1"></a>        <span class="at">lag_7 =</span> <span class="fu">lag</span>(demand, <span class="dv">7</span>, <span class="at">default =</span> <span class="cn">NA</span>),</span>
+<span id="cb20-58"><a href="#cb20-58" aria-hidden="true" tabindex="-1"></a>        <span class="at">lag_30 =</span> <span class="fu">lag</span>(demand, <span class="dv">30</span>, <span class="at">default =</span> <span class="cn">NA</span>)</span>
+<span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span></span>
+<span id="cb20-60"><a href="#cb20-60" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb20-61"><a href="#cb20-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(lag_30)) <span class="co"># Remove rows with NA lags</span></span>
 <span id="cb20-62"><a href="#cb20-62" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-63"><a href="#cb20-63" aria-hidden="true" tabindex="-1"></a><span class="co"># Train/test split</span></span>
 <span id="cb20-64"><a href="#cb20-64" aria-hidden="true" tabindex="-1"></a>train_days <span class="ot">&lt;-</span> <span class="fu">max</span>(demand_data<span class="sc">$</span>day) <span class="sc">-</span> <span class="dv">90</span></span>
@@ -1381,19 +1468,19 @@ q_\tau(t) = F^{-1}_{Y_t | X_t}(\tau)
 <span id="cb20-69"><a href="#cb20-69" aria-hidden="true" tabindex="-1"></a>quantiles <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.3</span>, <span class="fl">0.5</span>, <span class="fl">0.7</span>, <span class="fl">0.9</span>)</span>
 <span id="cb20-70"><a href="#cb20-70" aria-hidden="true" tabindex="-1"></a>models <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
 <span id="cb20-71"><a href="#cb20-71" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-72"><a href="#cb20-72" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Training quantile regression models...</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-72"><a href="#cb20-72" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Training quantile regression models...</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Training quantile regression models...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (q <span class="cf">in</span> quantiles) {</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Quantile %.2f...</span><span class="sc">\n</span><span class="st">"</span>, q))</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  models[[<span class="fu">as.character</span>(q)]] <span class="ot">&lt;-</span> <span class="fu">rq</span>(</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    demand <span class="sc">~</span> product <span class="sc">+</span> day <span class="sc">+</span> promo <span class="sc">+</span> day_of_week <span class="sc">+</span> day_of_month <span class="sc">+</span> </span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>             lag_1 <span class="sc">+</span> lag_7 <span class="sc">+</span> lag_30,</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">tau =</span> q,</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> train_data</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (q <span class="cf">in</span> quantiles) {</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Quantile %.2f...</span><span class="sc">\n</span><span class="st">"</span>, q))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    models[[<span class="fu">as.character</span>(q)]] <span class="ot">&lt;-</span> <span class="fu">rq</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>        demand <span class="sc">~</span> product <span class="sc">+</span> day <span class="sc">+</span> promo <span class="sc">+</span> day_of_week <span class="sc">+</span> day_of_month <span class="sc">+</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>            lag_1 <span class="sc">+</span> lag_7 <span class="sc">+</span> lag_30,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>        <span class="at">tau =</span> q,</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>        <span class="at">data =</span> train_data</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Quantile 0.10...
 ##   Quantile 0.30...
@@ -1401,87 +1488,95 @@ q_\tau(t) = F^{-1}_{Y_t | X_t}(\tau)
 ##   Quantile 0.70...
 ##   Quantile 0.90...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate predictions for test set</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate predictions for test set</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> test_data</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (q <span class="cf">in</span> quantiles) {</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  col_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"q_"</span>, <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, q)))</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  predictions[[col_name]] <span class="ot">&lt;-</span> <span class="fu">predict</span>(models[[<span class="fu">as.character</span>(q)]], <span class="at">newdata =</span> test_data)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    col_name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"q_"</span>, <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, q)))</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    predictions[[col_name]] <span class="ot">&lt;-</span> <span class="fu">predict</span>(models[[<span class="fu">as.character</span>(q)]], <span class="at">newdata =</span> test_data)</span>
 <span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate prediction intervals and coverage</span></span>
 <span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> predictions <span class="sc">%&gt;%</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">in_80_interval =</span> (demand <span class="sc">&gt;=</span> q_010 <span class="sc">&amp;</span> demand <span class="sc">&lt;=</span> q_090),</span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">in_60_interval =</span> (demand <span class="sc">&gt;=</span> q_030 <span class="sc">&amp;</span> demand <span class="sc">&lt;=</span> q_070)</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>        <span class="at">in_80_interval =</span> (demand <span class="sc">&gt;=</span> q_010 <span class="sc">&amp;</span> demand <span class="sc">&lt;=</span> q_090),</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">in_60_interval =</span> (demand <span class="sc">&gt;=</span> q_030 <span class="sc">&amp;</span> demand <span class="sc">&lt;=</span> q_070)</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate metrics</span></span>
 <span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>coverage_80 <span class="ot">&lt;-</span> <span class="fu">mean</span>(predictions<span class="sc">$</span>in_80_interval, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>coverage_60 <span class="ot">&lt;-</span> <span class="fu">mean</span>(predictions<span class="sc">$</span>in_60_interval, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>mae_median <span class="ot">&lt;-</span> <span class="fu">mean</span>(<span class="fu">abs</span>(predictions<span class="sc">$</span>demand <span class="sc">-</span> predictions<span class="sc">$</span>q_050), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Forecast Performance:</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Forecast Performance:</span><span class="sc">\n</span><span class="st">"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## 
 ## Forecast Performance:</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  80%% interval coverage: %.1f%% (target: 80%%)</span><span class="sc">\n</span><span class="st">"</span>, coverage_80 <span class="sc">*</span> <span class="dv">100</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  80%% interval coverage: %.1f%% (target: 80%%)</span><span class="sc">\n</span><span class="st">"</span>, coverage_80 <span class="sc">*</span> <span class="dv">100</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   80% interval coverage: 79.6% (target: 80%)</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  60%% interval coverage: %.1f%% (target: 60%%)</span><span class="sc">\n</span><span class="st">"</span>, coverage_60 <span class="sc">*</span> <span class="dv">100</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  60%% interval coverage: %.1f%% (target: 60%%)</span><span class="sc">\n</span><span class="st">"</span>, coverage_60 <span class="sc">*</span> <span class="dv">100</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   60% interval coverage: 33.7% (target: 60%)</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Median absolute error: %.2f units</span><span class="sc">\n</span><span class="st">"</span>, mae_median))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Median absolute error: %.2f units</span><span class="sc">\n</span><span class="st">"</span>, mae_median))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Median absolute error: 21.94 units</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualization</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualization</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">1</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 1: Training data for one product</span></span>
 <span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>product_1_train <span class="ot">&lt;-</span> train_data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(product <span class="sc">==</span> <span class="st">"Product_1"</span>)</span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(product_1_train<span class="sc">$</span>day, product_1_train<span class="sc">$</span>demand, </span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>     <span class="at">type =</span> <span class="st">'l'</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>, <span class="at">col =</span> <span class="st">'darkblue'</span>,</span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Day"</span>, <span class="at">ylab =</span> <span class="st">"Demand"</span>,</span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Historical Demand (Product 1)"</span>)</span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(product_1_train<span class="sc">$</span>day[product_1_train<span class="sc">$</span>promo <span class="sc">==</span> <span class="dv">1</span>],</span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>       product_1_train<span class="sc">$</span>demand[product_1_train<span class="sc">$</span>promo <span class="sc">==</span> <span class="dv">1</span>],</span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="st">'red'</span>, <span class="at">pch =</span> <span class="dv">16</span>, <span class="at">cex =</span> <span class="fl">0.5</span>)</span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>, <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"Demand"</span>, <span class="st">"Promotion"</span>),</span>
-<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"darkblue"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="cn">NA</span>), <span class="at">pch =</span> <span class="fu">c</span>(<span class="cn">NA</span>, <span class="dv">16</span>))</span>
-<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span>
-<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 2: Forecasts with quantiles (fan chart)</span></span>
-<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>product_1_test <span class="ot">&lt;-</span> predictions <span class="sc">%&gt;%</span> <span class="fu">filter</span>(product <span class="sc">==</span> <span class="st">"Product_1"</span>)</span>
-<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>demand,</span>
-<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>     <span class="at">type =</span> <span class="st">'l'</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">'black'</span>,</span>
-<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Day"</span>, <span class="at">ylab =</span> <span class="st">"Demand"</span>,</span>
-<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">"Demand Forecasts with Quantiles (Product 1)"</span>,</span>
-<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylim =</span> <span class="fu">range</span>(<span class="fu">c</span>(product_1_test<span class="sc">$</span>q_010, product_1_test<span class="sc">$</span>q_090, product_1_test<span class="sc">$</span>demand)))</span>
-<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Add prediction intervals</span></span>
-<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a><span class="fu">polygon</span>(<span class="fu">c</span>(product_1_test<span class="sc">$</span>day, <span class="fu">rev</span>(product_1_test<span class="sc">$</span>day)),</span>
-<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">c</span>(product_1_test<span class="sc">$</span>q_010, <span class="fu">rev</span>(product_1_test<span class="sc">$</span>q_090)),</span>
-<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> <span class="fu">rgb</span>(<span class="fl">0.7</span>, <span class="fl">0.7</span>, <span class="dv">1</span>, <span class="fl">0.3</span>), <span class="at">border =</span> <span class="cn">NA</span>)</span>
-<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a><span class="fu">polygon</span>(<span class="fu">c</span>(product_1_test<span class="sc">$</span>day, <span class="fu">rev</span>(product_1_test<span class="sc">$</span>day)),</span>
-<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a>        <span class="fu">c</span>(product_1_test<span class="sc">$</span>q_030, <span class="fu">rev</span>(product_1_test<span class="sc">$</span>q_070)),</span>
-<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> <span class="fu">rgb</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">0.4</span>), <span class="at">border =</span> <span class="cn">NA</span>)</span>
-<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Add quantile lines</span></span>
-<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>q_010, <span class="at">col =</span> <span class="st">'blue'</span>, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>)</span>
-<span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>q_050, <span class="at">col =</span> <span class="st">'darkblue'</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>q_090, <span class="at">col =</span> <span class="st">'blue'</span>, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>)</span>
-<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Actual demand</span></span>
-<span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>demand, <span class="at">col =</span> <span class="st">'black'</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-41"><a href="#cb32-41" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>, </span>
-<span id="cb32-42"><a href="#cb32-42" aria-hidden="true" tabindex="-1"></a>       <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"Actual"</span>, <span class="st">"P50 (Median)"</span>, <span class="st">"P10-P90 (80%)"</span>, <span class="st">"P30-P70 (60%)"</span>),</span>
-<span id="cb32-43"><a href="#cb32-43" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"black"</span>, <span class="st">"darkblue"</span>, <span class="fu">rgb</span>(<span class="fl">0.7</span>, <span class="fl">0.7</span>, <span class="dv">1</span>), <span class="fu">rgb</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>)),</span>
-<span id="cb32-44"><a href="#cb32-44" aria-hidden="true" tabindex="-1"></a>       <span class="at">lwd =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">8</span>, <span class="dv">8</span>), <span class="at">lty =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>))</span>
-<span id="cb32-45"><a href="#cb32-45" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(product_1_train<span class="sc">$</span>day, product_1_train<span class="sc">$</span>demand,</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>, <span class="at">col =</span> <span class="st">"darkblue"</span>,</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="st">"Day"</span>, <span class="at">ylab =</span> <span class="st">"Demand"</span>,</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Historical Demand (Product 1)"</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(product_1_train<span class="sc">$</span>day[product_1_train<span class="sc">$</span>promo <span class="sc">==</span> <span class="dv">1</span>],</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>    product_1_train<span class="sc">$</span>demand[product_1_train<span class="sc">$</span>promo <span class="sc">==</span> <span class="dv">1</span>],</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">pch =</span> <span class="dv">16</span>, <span class="at">cex =</span> <span class="fl">0.5</span></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>,</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"Demand"</span>, <span class="st">"Promotion"</span>),</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"darkblue"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="cn">NA</span>), <span class="at">pch =</span> <span class="fu">c</span>(<span class="cn">NA</span>, <span class="dv">16</span>)</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 2: Forecasts with quantiles (fan chart)</span></span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>product_1_test <span class="ot">&lt;-</span> predictions <span class="sc">%&gt;%</span> <span class="fu">filter</span>(product <span class="sc">==</span> <span class="st">"Product_1"</span>)</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>demand,</span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">lwd =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"black"</span>,</span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">xlab =</span> <span class="st">"Day"</span>, <span class="at">ylab =</span> <span class="st">"Demand"</span>,</span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">main =</span> <span class="st">"Demand Forecasts with Quantiles (Product 1)"</span>,</span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">ylim =</span> <span class="fu">range</span>(<span class="fu">c</span>(product_1_test<span class="sc">$</span>q_010, product_1_test<span class="sc">$</span>q_090, product_1_test<span class="sc">$</span>demand))</span>
+<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Add prediction intervals</span></span>
+<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a><span class="fu">polygon</span>(<span class="fu">c</span>(product_1_test<span class="sc">$</span>day, <span class="fu">rev</span>(product_1_test<span class="sc">$</span>day)),</span>
+<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(product_1_test<span class="sc">$</span>q_010, <span class="fu">rev</span>(product_1_test<span class="sc">$</span>q_090)),</span>
+<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">rgb</span>(<span class="fl">0.7</span>, <span class="fl">0.7</span>, <span class="dv">1</span>, <span class="fl">0.3</span>), <span class="at">border =</span> <span class="cn">NA</span></span>
+<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a><span class="fu">polygon</span>(<span class="fu">c</span>(product_1_test<span class="sc">$</span>day, <span class="fu">rev</span>(product_1_test<span class="sc">$</span>day)),</span>
+<span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(product_1_test<span class="sc">$</span>q_030, <span class="fu">rev</span>(product_1_test<span class="sc">$</span>q_070)),</span>
+<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">rgb</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">0.4</span>), <span class="at">border =</span> <span class="cn">NA</span></span>
+<span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Add quantile lines</span></span>
+<span id="cb32-41"><a href="#cb32-41" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>q_010, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>)</span>
+<span id="cb32-42"><a href="#cb32-42" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>q_050, <span class="at">col =</span> <span class="st">"darkblue"</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb32-43"><a href="#cb32-43" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>q_090, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">lwd =</span> <span class="fl">1.5</span>)</span>
+<span id="cb32-44"><a href="#cb32-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-45"><a href="#cb32-45" aria-hidden="true" tabindex="-1"></a><span class="co"># Actual demand</span></span>
+<span id="cb32-46"><a href="#cb32-46" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(product_1_test<span class="sc">$</span>day, product_1_test<span class="sc">$</span>demand, <span class="at">col =</span> <span class="st">"black"</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb32-47"><a href="#cb32-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-48"><a href="#cb32-48" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topleft"</span>,</span>
+<span id="cb32-49"><a href="#cb32-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"Actual"</span>, <span class="st">"P50 (Median)"</span>, <span class="st">"P10-P90 (80%)"</span>, <span class="st">"P30-P70 (60%)"</span>),</span>
+<span id="cb32-50"><a href="#cb32-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"black"</span>, <span class="st">"darkblue"</span>, <span class="fu">rgb</span>(<span class="fl">0.7</span>, <span class="fl">0.7</span>, <span class="dv">1</span>), <span class="fu">rgb</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="dv">1</span>)),</span>
+<span id="cb32-51"><a href="#cb32-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">lwd =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">8</span>, <span class="dv">8</span>), <span class="at">lty =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb32-52"><a href="#cb32-52" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-53"><a href="#cb32-53" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1498,42 +1593,42 @@ q_\tau(t) = F^{-1}_{Y_t | X_t}(\tau)
 \tau^* = \frac{c_u}{c_u + c_o}
 \]</span></p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: High-margin product with stockout cost &gt;&gt; overstock cost</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>c_u <span class="ot">&lt;-</span> <span class="dv">50</span>  <span class="co"># Lost profit from stockout</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>c_o <span class="ot">&lt;-</span> <span class="dv">5</span>   <span class="co"># Cost of excess unit (storage, markdown, disposal)</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: High-margin product with stockout cost &gt;&gt; overstock cost</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>c_u <span class="ot">&lt;-</span> <span class="dv">50</span> <span class="co"># Lost profit from stockout</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>c_o <span class="ot">&lt;-</span> <span class="dv">5</span> <span class="co"># Cost of excess unit (storage, markdown, disposal)</span></span>
 <span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>optimal_tau <span class="ot">&lt;-</span> c_u <span class="sc">/</span> (c_u <span class="sc">+</span> c_o)</span>
 <span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Inventory Optimization Example:</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Inventory Optimization Example:</span><span class="sc">\n</span><span class="st">"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## Inventory Optimization Example:</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Underage cost (stockout): $%.2f</span><span class="sc">\n</span><span class="st">"</span>, c_u))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Underage cost (stockout): $%.2f</span><span class="sc">\n</span><span class="st">"</span>, c_u))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Underage cost (stockout): $50.00</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Overage cost (overstock): $%.2f</span><span class="sc">\n</span><span class="st">"</span>, c_o))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Overage cost (overstock): $%.2f</span><span class="sc">\n</span><span class="st">"</span>, c_o))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Overage cost (overstock): $5.00</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Optimal service level (tau): %.1f%%</span><span class="sc">\n</span><span class="st">"</span>, optimal_tau <span class="sc">*</span> <span class="dv">100</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Optimal service level (tau): %.1f%%</span><span class="sc">\n</span><span class="st">"</span>, optimal_tau <span class="sc">*</span> <span class="dv">100</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Optimal service level (tau): 90.9%</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># For low-margin perishable product</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># For low-margin perishable product</span></span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>c_u_perishable <span class="ot">&lt;-</span> <span class="dv">5</span></span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>c_o_perishable <span class="ot">&lt;-</span> <span class="dv">20</span></span>
 <span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>optimal_tau_perishable <span class="ot">&lt;-</span> c_u_perishable <span class="sc">/</span> (c_u_perishable <span class="sc">+</span> c_o_perishable)</span>
 <span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Perishable Product:</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Perishable Product:</span><span class="sc">\n</span><span class="st">"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>## 
 ## Perishable Product:</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Optimal service level (tau): %.1f%%</span><span class="sc">\n</span><span class="st">"</span>, optimal_tau_perishable <span class="sc">*</span> <span class="dv">100</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Optimal service level (tau): %.1f%%</span><span class="sc">\n</span><span class="st">"</span>, optimal_tau_perishable <span class="sc">*</span> <span class="dv">100</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Optimal service level (tau): 20.0%</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Stock at lower quantile to minimize waste</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Stock at lower quantile to minimize waste</span><span class="sc">\n</span><span class="st">"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>##   Stock at lower quantile to minimize waste</code></pre>
 </div>
@@ -1545,7 +1640,7 @@ q_\tau(t) = F^{-1}_{Y_t | X_t}(\tau)
 <li><strong>Lagged features</strong> and <strong>seasonality</strong> are naturally incorporated</li>
 <li><strong>Decision-making</strong> (optimal inventory levels) follows directly from quantile forecasts</li>
 </ol>
-<p>For production systems handling millions of SKUs, this approach scales by using neural networks (e.g., via <code>keras</code> or <code>torch</code> in R) with embeddings for categorical features and recurrent layers for temporal dependencies.</p>
+<p>Production systems handling millions of SKUs replace the linear quantile regression model with deep neural networks—implemented via <code>keras</code> or <code>torch</code>—using learned embeddings for product categories and recurrent layers (LSTMs or Transformers) to capture temporal dependencies. The quantile loss function and forecast interpretation remain identical to the example above.</p>
 </section>
 </section>
 <section id="sec-qnn-rl" class="level2" data-number="22.9">
@@ -1618,11 +1713,11 @@ E[R] = \int_{-\infty}^{\infty} r dF(r) = \int_0^1 F^{-1}(u) du
 <h3 class="anchored" data-anchor-id="connections-to-broader-ai">Connections to Broader AI</h3>
 <p>Quantile methods connect to several contemporary themes in AI and machine learning:</p>
 <ul>
-<li><strong>Generative modeling</strong>: Quantile networks are generative models—sample from uniform, pass through <span class="math inline">\(F^{-1}\)</span>, obtain samples from target distribution</li>
-<li><strong>Implicit distributions</strong>: Like GANs, quantile NNs avoid explicit likelihood computation</li>
-<li><strong>Conformal prediction</strong>: Quantile regression provides natural prediction sets with finite-sample coverage guarantees <span class="citation" data-cites="romano2019conformalized">(<a href="references.html#ref-romano2019conformalized" role="doc-biblioref">Romano, Patterson, and Candes 2019</a>)</span></li>
-<li><strong>Bayesian deep learning</strong>: Quantile NNs offer an alternative to variational inference and MC dropout for uncertainty quantification</li>
-<li><strong>Causal inference</strong>: Quantile treatment effects <span class="citation" data-cites="firpo2009unconditional">(<a href="references.html#ref-firpo2009unconditional" role="doc-biblioref">Firpo, Fortin, and Lemieux 2009</a>)</span> extend average treatment effects, capturing heterogeneous impacts across the outcome distribution</li>
+<li><p><strong>Generative modeling</strong>: Quantile networks are generative models—to sample from the target distribution, draw <span class="math inline">\(\tau \sim U(0,1)\)</span> and pass through <span class="math inline">\(F^{-1}(\tau)\)</span>. This is precisely how normalizing flows and autoregressive models generate data.</p></li>
+<li><p><strong>Implicit distributions</strong>: Like GANs, quantile NNs avoid explicit likelihood computation. Both learn to map a simple base distribution to a complex target, but quantile methods do so with stable training via the check loss.</p></li>
+<li><p><strong>Conformal prediction</strong>: Quantile regression provides natural prediction sets. Given calibration data, quantile predictions can be post-processed to achieve exact finite-sample coverage guarantees <span class="citation" data-cites="romano2019conformalized">(<a href="references.html#ref-romano2019conformalized" role="doc-biblioref">Romano, Patterson, and Candes 2019</a>)</span>, making them valuable for safety-critical applications.</p></li>
+<li><p><strong>Bayesian deep learning</strong>: Quantile NNs offer an alternative to variational inference and MC dropout for uncertainty quantification. Rather than approximating the posterior over weights, they directly model outcome uncertainty—often more useful for decisions.</p></li>
+<li><p><strong>Causal inference</strong>: Quantile treatment effects <span class="citation" data-cites="firpo2009unconditional">(<a href="references.html#ref-firpo2009unconditional" role="doc-biblioref">Firpo, Fortin, and Lemieux 2009</a>)</span> extend average treatment effects by capturing how an intervention affects different parts of the outcome distribution—e.g., does a policy help those at the bottom or top of the income distribution?</p></li>
 </ul>
 </section>
 <section id="future-directions" class="level3">
@@ -1759,13 +1854,14 @@ Yaari, Menahem E. 1987. <span>“The <span>Dual Theory</span> of <span>Choice</s
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

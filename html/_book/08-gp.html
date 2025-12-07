@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -69,14 +69,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="./07-sp.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-680e7c22d93ef26f016bec9199f8e6d8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -148,7 +149,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -451,34 +452,43 @@ window.Quarto = {
 </header>
 
 
-<p>A Gaussian Process (GP) is a collection of random variables, any finite number of which have a joint Gaussian distribution. It is a powerful tool for modelling and prediction in many fields and is particularly useful for regression and classification tasks in machine learning. A finite collection of <span class="math inline">\(n\)</span> points drawn from a Gaussian Process is completely specified by its <span class="math inline">\(n\)</span>-dimensional mean vector <span class="math inline">\(\mu\)</span> and covariance matrix <span class="math inline">\(\Sigma\)</span>. In what follows we assume the process is indexed by a real variable <span class="math inline">\(x\in\mathbb{R}\)</span> and has real-valued outputs. The mean of the process (and a finite collection of points) is defined by function <span class="math inline">\(m(x)\)</span> and covariance is defined by function <span class="math inline">\(k(x, x')\)</span>, where <span class="math inline">\(x\)</span> and <span class="math inline">\(x'\)</span> are points in the index space.</p>
-<p>The mean function defines the average value of the function at point <span class="math inline">\(x\)</span>, and the covariance function, also known as the kernel, defines the extent to which the values of the function at two points <span class="math inline">\(x\)</span> and <span class="math inline">\(x'\)</span> are correlated. In other words, the kernel function is a measure of similarity between two input points. The covariance between two points is higher if they are similar, and lower if they are dissimilar. Thus a Gaussian Process is completely specified by its mean function and covariance function, and an instance of a one-dimensional GP is a function <span class="math inline">\(f(x): \mathbb{R} \rightarrow \mathbb{R}\)</span>. The typical notation is <span class="math display">\[
+<blockquote class="blockquote">
+<p>“<em>It is difficult to predict, especially the future.</em>” —Niels Bohr</p>
+</blockquote>
+<p>In traditional regression, we find a single “best” line that fits the data (e.g., <span class="math inline">\(y = mx + b\)</span>). But what if we want to model not just the trend, but our uncertainty about it? What if we want to consider an infinite number of possible functions consistent with our data?</p>
+<p>A <strong>Gaussian Process (GP)</strong> allows us to do exactly that. Instead of estimating parameters for a specific function, we define a probability distribution over <em>all possible functions</em> that fit the data. It is a powerful, non-parametric tool used extensively in machine learning for tasks ranging from robotic control to geospatial analysis.</p>
+<p>Formally, a GP is a collection of random variables, any finite number of which have a joint Gaussian distribution. A finite collection of <span class="math inline">\(n\)</span> points drawn from a GP is completely specified by its <span class="math inline">\(n\)</span>-dimensional mean vector <span class="math inline">\(\boldsymbol{\mu}\)</span> and covariance matrix <span class="math inline">\(\mathbf{\Sigma}\)</span>. We assume the process is indexed by a real variable <span class="math inline">\(x\in\mathbb{R}\)</span> (e.g., time or space) and has real-valued outputs. The GP is defined by: 1. <strong>Mean function</strong> <span class="math inline">\(m(x) = \mathbb{E}[f(x)]\)</span>: The expected value of the function at point <span class="math inline">\(x\)</span>. 2. <strong>Covariance (Kernel) function</strong> <span class="math inline">\(k(x, x') = \mathbb{E}[(f(x) - m(x))(f(x') - m(x'))]\)</span>: A measure of similarity between values at <span class="math inline">\(x\)</span> and <span class="math inline">\(x'\)</span>.</p>
+<p>We denote this as: <span class="math display">\[
 f(x) \sim \mathcal{GP}(m(x), k(x, x')).
-\]</span> The mean function <span class="math inline">\(m(x) = \mathbb{E}[f(x)]\)</span> represents the expected value of the function at point <span class="math inline">\(x\)</span>, and the covariance function <span class="math inline">\(k(x, x') = \mathbb{E}[(f(x) - m(x))(f(x') - m(x'))]\)</span> describes the amount of dependence between the values of the function at two different points in the input space.</p>
-<p>In practice, the mean function is often less important than the covariance function. It is common to assume a zero mean, <span class="math inline">\(m(x)=0\)</span>, and concentrate on specifying an appropriate covariance kernel. The kernel function is often chosen to be a function of the distance between the two points <span class="math inline">\(|x-x'|\)</span> or <span class="math inline">\(\|x-x'\|_2\)</span> in higher dimensions. The most commonly used kernel function is the squared exponential kernel, which is a function of the squared distance between the two points. The squared exponential kernel is given by: <span class="math display">\[
+\]</span></p>
+<p>Intuitively, the kernel function determines the “shape” and “smoothness” of the functions we expect to see. If <span class="math inline">\(x\)</span> and <span class="math inline">\(x'\)</span> are close, <span class="math inline">\(k(x, x')\)</span> should be high, implying <span class="math inline">\(f(x)\)</span> and <span class="math inline">\(f(x')\)</span> are likely similar.</p>
+<p>In practice, we often assume a zero mean, <span class="math inline">\(m(x)=0\)</span>, and focus on the covariance kernel. The choice of kernel encodes our prior beliefs about the data. The most common choice is the <strong>Squared Exponential (SE)</strong> kernel (also known as the Radial Basis Function or RBF):</p>
+<p><span class="math display">\[
 k(x, x') = \sigma^2 \exp\left(-\frac{(x - x')^2}{2l^2}\right)
-\]</span> where <span class="math inline">\(\sigma^2\)</span> is the variance parameter and <span class="math inline">\(l\)</span> is the length scale parameter. The variance parameter controls the vertical variation of the function (its amplitude), whereas the length-scale parameter governs horizontal variation (the number and width of “bumps”). The length scale parameter determines how far apart two points must be to be considered dissimilar. The larger the length scale, the smoother the function. The length scale parameter is also called the bandwidth parameter. In this case the covariance decays exponentially with the distance between the points. Observe, that <span class="math inline">\(k(x,x) = \sigma^2\)</span> and <span class="math inline">\(k(x,x') \rightarrow 0\)</span> as <span class="math inline">\(|x-x'| \rightarrow \infty\)</span>.</p>
+\]</span></p>
+<p>Here, we have two <strong>hyperparameters</strong>: * <span class="math inline">\(\sigma^2\)</span> (Signal Variance): Controls the vertical amplitude of the function. * <span class="math inline">\(l\)</span> (Length Scale): Controls the horizontal “wiggliness.” A large <span class="math inline">\(l\)</span> implies the function changes slowly (smooth), while a small <span class="math inline">\(l\)</span> allows for rapid variations.</p>
+<p>Observe that <span class="math inline">\(k(x,x) = \sigma^2\)</span> and <span class="math inline">\(k(x,x') \rightarrow 0\)</span> as the distance <span class="math inline">\(|x-x'| \rightarrow \infty\)</span>.</p>
 <p>We can illustrate a GP with a simulated example. First generate a sequence of 100 input points (indices)</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">10</span>, <span class="at">length.out =</span> <span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">10</span>, <span class="at">length.out =</span> <span class="dv">100</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>and then define the mean function and the covariance function</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>mean <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(x))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>mean <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(x))</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sqexpcov <span class="ot">=</span> <span class="cf">function</span>(x, x1, <span class="at">l=</span><span class="dv">1</span>, <span class="at">sigma=</span><span class="dv">1</span>) {</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">exp</span>(<span class="sc">-</span><span class="fl">0.5</span> <span class="sc">*</span> (x <span class="sc">-</span> x1)<span class="sc">^</span><span class="dv">2</span> <span class="sc">/</span> l<span class="sc">^</span><span class="dv">2</span>) <span class="sc">*</span> sigma<span class="sc">^</span><span class="dv">2</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The covariance function depends only on the distance between two points, not on their absolute values. The squared exponential kernel is infinitely differentiable, which means that the GP is a very smooth function. The squared exponential kernel is also called the radial basis function (RBF) kernel. The covariance matrix is then defined as</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>cov_mat <span class="ot">=</span> <span class="fu">outer</span>(x, x, sqexpcov)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>cov_mat <span class="ot">=</span> <span class="fu">outer</span>(x, x, sqexpcov)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>and we can generate a sample from the GP using the <code>mvrnorm</code> function from the <code>MASS</code> package and plot a sample</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">17</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">=</span> <span class="fu">mvrnorm</span>(<span class="dv">1</span>, mean, cov_mat)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x, Y, <span class="at">type=</span><span class="st">"l"</span>, <span class="at">xlab=</span><span class="st">"x"</span>, <span class="at">ylab=</span><span class="st">"y"</span>, <span class="at">ylim=</span><span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.5</span>,<span class="dv">2</span>), <span class="at">lwd=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x, Y, <span class="at">type=</span><span class="st">"l"</span>, <span class="at">xlab=</span><span class="st">"x"</span>, <span class="at">ylab=</span><span class="st">"y"</span>, <span class="at">ylim=</span><span class="fu">c</span>(<span class="sc">-</span><span class="fl">1.5</span>,<span class="dv">2</span>), <span class="at">lwd=</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-gp-sample" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
@@ -495,8 +505,8 @@ Figure&nbsp;8.1: Sample from a Gaussian Process
 <p><a href="#fig-gp-sample" class="quarto-xref">Figure&nbsp;<span>8.1</span></a> displays 100 values of a function <span class="math inline">\(f(x)\)</span> drawn from a GP with zero mean and a squared-exponential kernel at inputs <span class="math inline">\(x=(0,0.1,0.2,\ldots,10)\)</span>. The realisation is smooth, with most values lying between -2 and 2. Because each diagonal element of the covariance matrix equals <span class="math inline">\(\sigma^2=1\)</span>, the marginal variance is one. By properties of the normal distribution, approximately 95 percent of the points of <span class="math inline">\(Y\)</span> should therefore fall within 1.96 standard deviations of the mean. The mild oscillations arise because values with neighbouring indices are highly correlated.</p>
 <p>We can generate a few more samples from the same GP and plot them together</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>Ys <span class="ot">=</span> <span class="fu">mvrnorm</span>(<span class="dv">3</span>, mean, cov_mat)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">matplot</span>(x, <span class="fu">t</span>(Ys), <span class="at">type=</span><span class="st">"l"</span>, <span class="at">ylab=</span><span class="st">"Y"</span>, <span class="at">lwd=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>Ys <span class="ot">=</span> <span class="fu">mvrnorm</span>(<span class="dv">3</span>, mean, cov_mat)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">matplot</span>(x, <span class="fu">t</span>(Ys), <span class="at">type=</span><span class="st">"l"</span>, <span class="at">ylab=</span><span class="st">"Y"</span>, <span class="at">lwd=</span><span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-gp-samples" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
@@ -513,45 +523,53 @@ Figure&nbsp;8.2: Samples from a Gaussian Process
 <p>Each finite sample path differs from the next, yet all share a similar range, a comparable number of bumps, and overall smoothness. That’s what it means to have function realizations under a GP prior: <span class="math inline">\(Y = f(x) \sim \mathcal{GP}(0, k(x, x'))\)</span></p>
 <section id="making-predictions-with-gaussian-processes" class="level2" data-number="8.1">
 <h2 data-number="8.1" class="anchored" data-anchor-id="making-predictions-with-gaussian-processes"><span class="header-section-number">8.1</span> Making Predictions with Gaussian Processes</h2>
-<p>Suppose our observed data, consisting of inputs <span class="math inline">\(X=(x_1,\ldots,x_n)\)</span> and outputs <span class="math inline">\(Y=(y_1,\ldots,y_n)\)</span>, are a realisation of a GP. We can then use the GP to predict the outputs at new inputs <span class="math inline">\(x_* \in \mathbb{R}^q\)</span>. The joint distribution of the observed data <span class="math inline">\(Y\)</span> and the new data <span class="math inline">\(y_*\)</span> is given by <span class="math display">\[
-\begin{bmatrix} Y \\ y_* \end{bmatrix} \sim \mathcal{N} \left ( \begin{bmatrix} \mu \\ \mu_* \end{bmatrix}, \begin{bmatrix} K &amp; K_* \\ K_*^T &amp; K_{**} \end{bmatrix} \right )
-\]</span> where <span class="math inline">\(K = k(X, X)\in \mathbb{R}^{n\times n}\)</span>, <span class="math inline">\(K_* = k(X, x_*)\in \mathbb{R}^{n\times q}\)</span>, <span class="math inline">\(K_{**} = k(x_*, x_*) \in \mathbb{R}^{q\times q}\)</span>, <span class="math inline">\(\mu = \mathbb{E}[Y]\)</span>, and <span class="math inline">\(\mu_* = \mathbb{E}[y_*]\)</span>. The conditional distribution of <span class="math inline">\(y_*\)</span> given <span class="math inline">\(y\)</span> is then given by <span class="math display">\[
-y_* \mid Y \sim \mathcal{N}(\mu_{\mathrm{post}}, \Sigma_{\mathrm{post}}).
-\]</span> The mean of the conditional distribution is given by <span id="eq-mupost"><span class="math display">\[
-\mu_{\mathrm{post}} = \mu_* + K_*^TK^{-1} (Y - \mu)
-\tag{8.1}\]</span></span> and the covariance is given by <span id="eq-Spost"><span class="math display">\[
-\Sigma_{\mathrm{post}} = K_{**} - K_*^T K^{-1} K_*.
+<p>Suppose our observed data consists of <span class="math inline">\(n\)</span> inputs <span class="math inline">\(\mathbf{X}=(x_1,\ldots,x_n)^T\)</span> and outputs <span class="math inline">\(\mathbf{y}=(y_1,\ldots,y_n)^T\)</span>. We assume these are a realization of a GP. Our goal is to predict the outputs <span class="math inline">\(\mathbf{y}_*\)</span> at new inputs <span class="math inline">\(\mathbf{X}_*\)</span>.</p>
+<p>By definition of a GP, the joint distribution of the observed data <span class="math inline">\(\mathbf{y}\)</span> and the predictions <span class="math inline">\(\mathbf{y}_*\)</span> is a multivariate Gaussian:</p>
+<p><span class="math display">\[
+\begin{bmatrix} \mathbf{y} \\ \mathbf{y}_* \end{bmatrix} \sim \mathcal{N} \left ( \begin{bmatrix} \boldsymbol{\mu} \\ \boldsymbol{\mu}_* \end{bmatrix}, \begin{bmatrix} \mathbf{K} &amp; \mathbf{K}_* \\ \mathbf{K}_*^T &amp; \mathbf{K}_{**} \end{bmatrix} \right )
+\]</span></p>
+<p>where: * <span class="math inline">\(\mathbf{K} = k(\mathbf{X}, \mathbf{X})\in \mathbb{R}^{n\times n}\)</span> is the covariance of the training data. * <span class="math inline">\(\mathbf{K}_* = k(\mathbf{X}, \mathbf{X}_*)\in \mathbb{R}^{n\times q}\)</span> is the covariance between training and test data. * <span class="math inline">\(\mathbf{K}_{**} = k(\mathbf{X}_*, \mathbf{X}_*) \in \mathbb{R}^{q\times q}\)</span> is the covariance of the test data. * <span class="math inline">\(\boldsymbol{\mu} = \mathbb{E}[\mathbf{y}]\)</span> and <span class="math inline">\(\boldsymbol{\mu}_* = \mathbb{E}[\mathbf{y}_*]\)</span>.</p>
+<p>The beauty of Gaussians is that conditioning on observed data is closed-form. The conditional distribution of <span class="math inline">\(\mathbf{y}_*\)</span> given <span class="math inline">\(\mathbf{y}\)</span> is:</p>
+<p><span class="math display">\[
+\mathbf{y}_* \mid \mathbf{y}, \mathbf{X}, \mathbf{X}_* \sim \mathcal{N}(\boldsymbol{\mu}_{\mathrm{post}}, \boldsymbol{\Sigma}_{\mathrm{post}})
+\]</span></p>
+<p>The posterior mean <span class="math inline">\(\boldsymbol{\mu}_{\mathrm{post}}\)</span> serves as our prediction, and the posterior covariance <span class="math inline">\(\boldsymbol{\Sigma}_{\mathrm{post}}\)</span> quantifies our uncertainty:</p>
+<p><span id="eq-mupost"><span class="math display">\[
+\boldsymbol{\mu}_{\mathrm{post}} = \boldsymbol{\mu}_* + \mathbf{K}_*^T\mathbf{K}^{-1} (\mathbf{y} - \boldsymbol{\mu})
+\tag{8.1}\]</span></span></p>
+<p><span id="eq-Spost"><span class="math display">\[
+\boldsymbol{\Sigma}_{\mathrm{post}} = \mathbf{K}_{**} - \mathbf{K}_*^T \mathbf{K}^{-1} \mathbf{K}_*
 \tag{8.2}\]</span></span></p>
-<p><a href="#eq-mupost" class="quarto-xref">Equation&nbsp;<span>8.1</span></a> and <a href="#eq-Spost" class="quarto-xref">Equation&nbsp;<span>8.2</span></a> are convenient properties of a <a href="https://en.wikipedia.org/wiki/Multivariate_normal_distribution">multivariate normal distribution</a>.</p>
+<p><a href="#eq-mupost" class="quarto-xref">Equation&nbsp;<span>8.1</span></a> and <a href="#eq-Spost" class="quarto-xref">Equation&nbsp;<span>8.2</span></a> are standard properties of the <a href="https://en.wikipedia.org/wiki/Multivariate_normal_distribution">multivariate normal distribution</a>. Note that the posterior variance <span class="math inline">\(\boldsymbol{\Sigma}_{\mathrm{post}}\)</span> is equal to the prior variance <span class="math inline">\(\mathbf{K}_{**}\)</span> <em>minus</em> a term representing the information gained from the observed data.</p>
 <div id="exm-gpsin" class="theorem example">
 <p><span class="theorem-title"><strong>Example 8.1 (Gaussian Process for <span class="math inline">\(\sin\)</span> function)</strong></span> We can use the GP to make predictions about the output values at new inputs <span class="math inline">\(x_*\)</span>. We use <span class="math inline">\(x\)</span> in the [0,<span class="math inline">\(2\pi\)</span>] range and <span class="math inline">\(y\)</span> to be the <span class="math inline">\(y = \sin(x)\)</span>. We start by simulating the observed <span class="math inline">\(x\)</span>-<span class="math inline">\(y\)</span> pairs.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">=</span> <span class="dv">8</span>; eps<span class="ot">=</span><span class="fl">1e-6</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">=</span> <span class="dv">8</span>; eps<span class="ot">=</span><span class="fl">1e-6</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>X <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">2</span><span class="sc">*</span>pi, <span class="at">length=</span>n), <span class="at">ncol=</span><span class="dv">1</span>)</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">=</span> <span class="fu">sin</span>(X)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>K <span class="ot">=</span> <span class="fu">outer</span>(X[,<span class="dv">1</span>], X[,<span class="dv">1</span>], sqexpcov) <span class="sc">+</span> <span class="fu">diag</span>(eps, n)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>K <span class="ot">=</span> <span class="fu">outer</span>(X[,<span class="dv">1</span>], X[,<span class="dv">1</span>], sqexpcov) <span class="sc">+</span> <span class="fu">diag</span>(eps, n)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The additive term <code>diag(eps, n)</code> <span class="math inline">\(=\epsilon I\)</span> adds a diagonal matrix with the small <span class="math inline">\(\epsilon\)</span> on the diagonal. This addition shifts the spectrum of <span class="math inline">\(K\)</span> slightly and prevents eigenvalues from being exactly zero, ensuring that inverting or solving linear systems involving <span class="math inline">\(K\)</span> remains numerically stable. In machine learning, this term is called jitter. Now we implement a function that calculates the mean and covariance of the posterior distribution of <span class="math inline">\(y_*\)</span> given <span class="math inline">\(Y\)</span>.</p>
 <p>Now we generate a new set of inputs <span class="math inline">\(x_*\)</span> and calculate the covariance matrices <span class="math inline">\(K_*\)</span> and <span class="math inline">\(K_{**}\)</span>.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>q <span class="ot">=</span> <span class="dv">100</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>q <span class="ot">=</span> <span class="dv">100</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>XX <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">seq</span>(<span class="sc">-</span><span class="fl">0.5</span>, <span class="dv">2</span><span class="sc">*</span>pi <span class="sc">+</span> <span class="fl">0.5</span>, <span class="at">length=</span>q), <span class="at">ncol=</span><span class="dv">1</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>KX <span class="ot">=</span> <span class="fu">outer</span>(X[,<span class="dv">1</span>], XX[,<span class="dv">1</span>],sqexpcov)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>KXX <span class="ot">=</span> <span class="fu">outer</span>(XX[,<span class="dv">1</span>],XX[,<span class="dv">1</span>], sqexpcov) <span class="sc">+</span> <span class="fu">diag</span>(eps, q)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>KXX <span class="ot">=</span> <span class="fu">outer</span>(XX[,<span class="dv">1</span>],XX[,<span class="dv">1</span>], sqexpcov) <span class="sc">+</span> <span class="fu">diag</span>(eps, q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Notice that we did not add <span class="math inline">\(\epsilon I\)</span> to <span class="math inline">\(K_*\)</span> = <code>KX</code> matrix, but we add it to <span class="math inline">\(K_{**}\)</span> = <code>KXX</code> to guarantee that the resulting posterior covariance matrix is non-singular (invertible). Now we can calculate the mean and covariance of the posterior distribution of <span class="math inline">\(y_*\)</span> given <span class="math inline">\(Y\)</span>.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>Si <span class="ot">=</span> <span class="fu">solve</span>(K)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>Si <span class="ot">=</span> <span class="fu">solve</span>(K)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>mup <span class="ot">=</span> <span class="fu">t</span>(KX) <span class="sc">%*%</span> Si <span class="sc">%*%</span> Y <span class="co"># we assume mu is 0</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>Sigmap <span class="ot">=</span> KXX <span class="sc">-</span> <span class="fu">t</span>(KX) <span class="sc">%*%</span> Si <span class="sc">%*%</span> KX</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>Sigmap <span class="ot">=</span> KXX <span class="sc">-</span> <span class="fu">t</span>(KX) <span class="sc">%*%</span> Si <span class="sc">%*%</span> KX</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now, we can generate a sample from the posterior distribution over <span class="math inline">\(y_*\)</span>, given <span class="math inline">\(Y\)</span></p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>YY <span class="ot">=</span> <span class="fu">mvrnorm</span>(<span class="dv">100</span>, mup, Sigmap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>YY <span class="ot">=</span> <span class="fu">mvrnorm</span>(<span class="dv">100</span>, mup, Sigmap)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Using our convenience function <code>plot_gp</code> we can plot the posterior distribution over <span class="math inline">\(y_*\)</span>, given <span class="math inline">\(Y\)</span>.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>plot_gp <span class="ot">=</span> <span class="cf">function</span>(mup, Sigmap, X, Y, XX, YY){</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>plot_gp <span class="ot">=</span> <span class="cf">function</span>(mup, Sigmap, X, Y, XX, YY){</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  q1 <span class="ot">=</span> mup <span class="sc">+</span> <span class="fu">qnorm</span>(<span class="fl">0.05</span>, <span class="dv">0</span>, <span class="fu">sqrt</span>(<span class="fu">diag</span>(Sigmap)))</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  q2 <span class="ot">=</span> mup <span class="sc">+</span> <span class="fu">qnorm</span>(<span class="fl">0.95</span>, <span class="dv">0</span>, <span class="fu">sqrt</span>(<span class="fu">diag</span>(Sigmap)))</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">matplot</span>(XX, <span class="fu">t</span>(YY), <span class="at">type=</span><span class="st">"l"</span>, <span class="at">col=</span><span class="st">"gray"</span>, <span class="at">lty=</span><span class="dv">1</span>, <span class="at">xlab=</span><span class="st">"x"</span>, <span class="at">ylab=</span><span class="st">"y"</span>)</span>
@@ -560,10 +578,10 @@ y_* \mid Y \sim \mathcal{N}(\mu_{\mathrm{post}}, \Sigma_{\mathrm{post}}).
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lines</span>(XX, mup, <span class="at">lwd=</span><span class="dv">2</span>)</span>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lines</span>(XX, q1, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">2</span>)</span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lines</span>(XX, q2, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>, <span class="at">col=</span><span class="dv">2</span>)</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_gp</span>(mup, Sigmap, X, Y, XX, YY)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_gp</span>(mup, Sigmap, X, Y, XX, YY)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-gp-sin" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
@@ -579,14 +597,19 @@ Figure&nbsp;8.3: Posterior distribution over <span class="math inline">\(y_*\)</
 </div>
 </div>
 <div id="exm-gp-sim" class="theorem example">
-<p><span class="theorem-title"><strong>Example 8.2 (Gaussian Process for Simulated Data using MLE)</strong></span> In the previous example we assumed that the <span class="math inline">\(x\)</span>-<span class="math inline">\(y\)</span> relations are modeled by a GP with <span class="math inline">\(\sigma^2 = 1\)</span> and <span class="math inline">\(2l^2 = 1\)</span>. However, we can use the observed data to estimate those two parameters. In the context of GP models, they are called hyperparameters. We will use Maximum Likelihood Estimation (MLE) procedure to estimate those hyperparameters. The likelihood of data that follows a multivariate normal distribution is given by <span class="math display">\[
-p(Y \mid X, \sigma, l) = \frac{1}{(2\pi)^{n/2} |K|^{1/2}} \exp \left ( -\frac{1}{2} Y^T K^{-1} Y \right )
-\]</span> where <span class="math inline">\(K = K(X,X)\)</span> is the covariance matrix. We assume the mean is zero, to simplify the formulas. The log-likelihood is given by <span class="math display">\[
-\log p(Y \mid X, \sigma, l) = -\frac{1}{2} \log |K| - \frac{1}{2} Y^T K^{-1} Y - \frac{n}{2} \log 2\pi.
+<p><span class="theorem-title"><strong>Example 8.2 (Gaussian Process for Simulated Data using MLE)</strong></span> In the previous example, we assumed fixed values for the hyperparameters: <span class="math inline">\(\sigma^2 = 1\)</span> and <span class="math inline">\(l^2 = 0.5\)</span> (since <span class="math inline">\(2l^2=1\)</span>). In real applications, we don’t know these values; we must estimate them from the data.</p>
+<p>We use <strong>Maximum Likelihood Estimation (MLE)</strong> to find the parameters that maximize the probability of observing our data. The marginal likelihood of the data <span class="math inline">\(\mathbf{y}\)</span> (integrating out the function values <span class="math inline">\(f\)</span>) is:</p>
+<p><span class="math display">\[
+p(\mathbf{y} \mid \mathbf{X}, \sigma, l) = \frac{1}{(2\pi)^{n/2} |\mathbf{K}|^{1/2}} \exp \left ( -\frac{1}{2} \mathbf{y}^T \mathbf{K}^{-1} \mathbf{y} \right )
 \]</span></p>
+<p>where <span class="math inline">\(\mathbf{K}\)</span> is the covariance matrix computed with hyperparameters <span class="math inline">\(\sigma\)</span> and <span class="math inline">\(l\)</span>. For numerical stability, we typically maximize the <em>log</em>-likelihood:</p>
+<p><span class="math display">\[
+\log p(\mathbf{y} \mid \mathbf{X}, \sigma, l) = -\frac{1}{2} \log |\mathbf{K}| - \frac{1}{2} \mathbf{y}^T \mathbf{K}^{-1} \mathbf{y} - \frac{n}{2} \log 2\pi.
+\]</span></p>
+<p>This equation has a nice interpretation: the <span class="math inline">\(-\frac{1}{2} \mathbf{y}^T \mathbf{K}^{-1} \mathbf{y}\)</span> term penalizes data fit (how well the model explains <span class="math inline">\(\mathbf{y}\)</span>), while the <span class="math inline">\(-\frac{1}{2} \log |\mathbf{K}|\)</span> term penalizes model complexity. MLE automatically balances these two to prevent overfitting.</p>
 <p>We can implement a function that calculates the log-likelihood of the data given the hyperparameters <span class="math inline">\(\sigma\)</span> and <span class="math inline">\(l\)</span> and use <code>optim</code> function to find the maximum of the log-likelihood function.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>loglik <span class="ot">=</span> <span class="cf">function</span>(par, X, Y) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>loglik <span class="ot">=</span> <span class="cf">function</span>(par, X, Y) {</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  sigma <span class="ot">=</span> par[<span class="dv">1</span>]</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  l <span class="ot">=</span> par[<span class="dv">2</span>]</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  K <span class="ot">=</span> <span class="fu">outer</span>(X[,<span class="dv">1</span>],X[,<span class="dv">1</span>], sqexpcov,l,sigma) <span class="sc">+</span> <span class="fu">diag</span>(eps, n)</span>
@@ -594,14 +617,14 @@ p(Y \mid X, \sigma, l) = \frac{1}{(2\pi)^{n/2} |K|^{1/2}} \exp \left ( -\frac{1}
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="sc">-</span>(<span class="sc">-</span><span class="fl">0.5</span> <span class="sc">*</span> <span class="fu">log</span>(<span class="fu">det</span>(K)) <span class="sc">-</span> <span class="fl">0.5</span> <span class="sc">*</span> <span class="fu">t</span>(Y) <span class="sc">%*%</span> Si <span class="sc">%*%</span> Y <span class="sc">-</span> (n<span class="sc">/</span><span class="dv">2</span>)<span class="sc">*</span> <span class="fu">log</span>(<span class="dv">2</span><span class="sc">*</span>pi)))</span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>par <span class="ot">=</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>), loglik, <span class="at">X=</span>X, <span class="at">Y=</span>Y)<span class="sc">$</span>par</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(par)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(par)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 1.5 2.4</code></pre>
 </div>
 </div>
 <p>The <code>optim</code> function returns the hyperparameters that maximize the log-likelihood function. We can now use those hyperparameters to make predictions about the output values at new inputs <span class="math inline">\(x_*\)</span>.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>l <span class="ot">=</span> par[<span class="dv">2</span>]; sigma <span class="ot">=</span> par[<span class="dv">1</span>]</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>l <span class="ot">=</span> par[<span class="dv">2</span>]; sigma <span class="ot">=</span> par[<span class="dv">1</span>]</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>predplot <span class="ot">=</span> <span class="cf">function</span>(X, Y, XX, YY, l, sigma) {</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  K <span class="ot">=</span> <span class="fu">outer</span>(X[,<span class="dv">1</span>],X[,<span class="dv">1</span>], sqexpcov,l,sigma) <span class="sc">+</span> <span class="fu">diag</span>(eps, n)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  KX <span class="ot">=</span> <span class="fu">outer</span>(X[,<span class="dv">1</span>], XX[,<span class="dv">1</span>],sqexpcov,l,sigma)</span>
@@ -612,7 +635,7 @@ p(Y \mid X, \sigma, l) = \frac{1}{(2\pi)^{n/2} |K|^{1/2}} \exp \left ( -\frac{1}
 <span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  YY <span class="ot">=</span> <span class="fu">mvrnorm</span>(<span class="dv">100</span>, mup, Sigmap)</span>
 <span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_gp</span>(mup, Sigmap, X, Y, XX, YY)</span>
 <span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX, YY, l, sigma)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX, YY, l, sigma)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -622,16 +645,11 @@ p(Y \mid X, \sigma, l) = \frac{1}{(2\pi)^{n/2} |K|^{1/2}} \exp \left ( -\frac{1}
 </div>
 </div>
 <p>We can see that our uncertainty is much narrower—the posterior distribution is considerably tighter. This is because we used the observed data to estimate the hyperparameters. We can also see that the posterior mean is closer to the true function <span class="math inline">\(y = \sin(x)\)</span>. Although our initial guess of <span class="math inline">\(\sigma^2 = 1\)</span> and <span class="math inline">\(2l^2 = 1\)</span> was not too far off, the model fits the data much better when we use the estimated hyperparameters.</p>
-<p>The function <code>optim</code> we used above uses a derivative-based optimization algorithm and when derivative is not provided by the user, it uses a numerical approximation. Although we can use numerical methods to calculate the derivative of the log-likelihood function, it is faster and more accurate to use analytical derivatives, when possible. In the case of the GP’s log-likelihood, the derivative can be analytically calculated. To do it, we need a couple of facts from matrix calculus. If elements of matrix <span class="math inline">\(K\)</span> are functions of some parameter <span class="math inline">\(\theta\)</span>, then <span class="math display">\[
-\frac{\partial  Y^T K^{-1} Y}{\partial \theta} =  Y^T \frac{\partial K^{-1}}{\partial \theta} Y.
-\]</span> The derivative of the inverse matrix <span class="math display">\[
-\frac{\partial K^{-1}}{\partial \theta} = -K^{-1} \frac{\partial K}{\partial \theta} K^{-1}.
-\]</span> and the log of the determinant of a matrix <span class="math display">\[
-\frac{\partial \log |K|}{\partial \theta} = \mathrm{tr} \left ( K^{-1} \frac{\partial K}{\partial \theta} \right ),
-\]</span> we can calculate the derivative of the log-likelihood function with respect to <span class="math inline">\(\theta\)</span> <span class="math display">\[
-\frac{\partial \log p(Y \mid X,\theta)}{\partial \theta} = -\frac{1}{2}\frac{\partial \log |K|}{\partial \theta}  + \frac{1}{2} Y^T \frac{\partial K^{-1}}{\partial \theta}  Y.
-\]</span> Putting it all together, we get <span class="math display">\[
-\frac{\partial \log p(Y \mid X,\theta)}{\partial \theta} = -\frac{1}{2} \mathrm{tr} \left ( K^{-1} \frac{\partial K}{\partial \theta} \right ) + \frac{1}{2} Y^T K^{-1} \frac{\partial K}{\partial \theta} K^{-1} Y.
+<p>The default <code>optim</code> function uses numerical approximations for derivatives. While convenient, this can be slow and less precise. For GPs, we can calculate the analytical gradients of the log-likelihood with respect to the hyperparameters, significantly speeding up optimization.</p>
+<p>We rely on two matrix calculus identities: <span class="math display">\[
+\frac{\partial \mathbf{K}^{-1}}{\partial \theta} = -\mathbf{K}^{-1} \frac{\partial \mathbf{K}}{\partial \theta} \mathbf{K}^{-1} \quad \text{and} \quad \frac{\partial \log |\mathbf{K}|}{\partial \theta} = \mathrm{tr} \left ( \mathbf{K}^{-1} \frac{\partial \mathbf{K}}{\partial \theta} \right )
+\]</span> Using these, the gradient of the log-likelihood is: <span class="math display">\[
+\frac{\partial \log p(\mathbf{y} \mid \mathbf{X},\theta)}{\partial \theta} = -\frac{1}{2} \mathrm{tr} \left ( \mathbf{K}^{-1} \frac{\partial \mathbf{K}}{\partial \theta} \right ) + \frac{1}{2} \mathbf{y}^T \mathbf{K}^{-1} \frac{\partial \mathbf{K}}{\partial \theta} \mathbf{K}^{-1} \mathbf{y}
 \]</span> In the case of squared exponential kernel, the elements of the covariance matrix <span class="math inline">\(K\)</span> are given by <span class="math display">\[
 K_{ij} = k(x_i, x_j) = \sigma^2 \exp \left ( -\frac{1}{2} \frac{(x_i - x_j)^2}{l^2} \right ).
 \]</span> The derivative of the covariance matrix with respect to <span class="math inline">\(\sigma\)</span> is given by <span class="math display">\[
@@ -640,7 +658,7 @@ K_{ij} = k(x_i, x_j) = \sigma^2 \exp \left ( -\frac{1}{2} \frac{(x_i - x_j)^2}{l
 \frac{\partial K_{ij}}{\partial l} = \sigma^2 \exp \left ( -\frac{1}{2} \frac{(x_i - x_j)^2}{l^2} \right ) \frac{(x_i - x_j)^2}{l^3};~ \frac{\partial K}{\partial l}  = \frac{(x_i - x_j)^2}{l^3} K.
 \]</span> Now we can implement a function that calculates the derivative of the log-likelihood function with respect to <span class="math inline">\(\sigma\)</span> and <span class="math inline">\(l\)</span>.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Derivative of the log-likelihood function with respect to sigma</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Derivative of the log-likelihood function with respect to sigma</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>dloglik_sigma <span class="ot">=</span> <span class="cf">function</span>(par, X, Y) {</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  sigma <span class="ot">=</span> par[<span class="dv">1</span>]; l <span class="ot">=</span> par[<span class="dv">2</span>]</span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  K <span class="ot">=</span> <span class="fu">outer</span>(X[,<span class="dv">1</span>],X[,<span class="dv">1</span>], sqexpcov,l,sigma) <span class="sc">+</span> <span class="fu">diag</span>(eps, n)</span>
@@ -661,13 +679,13 @@ K_{ij} = k(x_i, x_j) = \sigma^2 \exp \left ( -\frac{1}{2} \frac{(x_i - x_j)^2}{l
 <span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Gradient function that returns a vector of derivatives</span></span>
 <span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>gnlg <span class="ot">=</span> <span class="cf">function</span>(par,X,Y) {</span>
 <span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">c</span>(<span class="fu">dloglik_sigma</span>(par, X, Y), <span class="fu">dloglik_l</span>(par, X, Y)))</span>
-<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now we can use the <code>optim</code> function to find the maximum of the log-likelihood function and provide the derivative function we just implemented.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>par1 <span class="ot">=</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>), <span class="at">fn=</span>loglik, <span class="at">gr=</span>gnlg ,<span class="at">X=</span>X, <span class="at">Y=</span>Y,<span class="at">method=</span><span class="st">"BFGS"</span>)<span class="sc">$</span>par</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>par1 <span class="ot">=</span> <span class="fu">optim</span>(<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>), <span class="at">fn=</span>loglik, <span class="at">gr=</span>gnlg ,<span class="at">X=</span>X, <span class="at">Y=</span>Y,<span class="at">method=</span><span class="st">"BFGS"</span>)<span class="sc">$</span>par</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>l <span class="ot">=</span> par1[<span class="dv">2</span>]; sigma <span class="ot">=</span> par1[<span class="dv">1</span>]</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(par1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(par1)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 1.5 2.4</code></pre>
 </div>
@@ -675,18 +693,18 @@ K_{ij} = k(x_i, x_j) = \sigma^2 \exp \left ( -\frac{1}{2} \frac{(x_i - x_j)^2}{l
 <p>The result is the same compared to when we called <code>optim</code> without the derivative function. Even execution time is the same for our small problem. However, at larger scale, the derivative-based optimization algorithm will be much faster.</p>
 <p>Furthermore, instead of coding our own derivative functions, we can use an existing package, such as the <a href="https://cran.r-project.org/web/packages/laGP/index.html"><code>laGP</code></a> package, developed by Bobby Gramacy to estimate the hyperparameters. The <code>laGP</code> package uses the same optimization algorithm we used above, but it also provides better selection of the covariance functions and implements approximate GP inference algorithms for large scale problems, when <span class="math inline">\(n\)</span> becomes large and inversion of the covariance matrix <span class="math inline">\(K\)</span> is prohibitively expensive.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(laGP)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(laGP)</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>gp <span class="ot">=</span> <span class="fu">newGP</span>(X, Y, <span class="dv">1</span>, <span class="dv">0</span>, <span class="at">dK =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>res <span class="ot">=</span> <span class="fu">mleGP</span>(gp, <span class="at">tmax=</span><span class="dv">20</span>)</span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>l.laGP <span class="ot">=</span> <span class="fu">sqrt</span>(res<span class="sc">$</span>d<span class="sc">/</span><span class="dv">2</span>)</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(l.laGP)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(l.laGP)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> 2.4</code></pre>
 </div>
 </div>
 <p>In the <code>newGP</code> function defines a Gaussian process with square exponential covariance function and assumes <span class="math inline">\(\sigma^2 = 1\)</span>, then <code>mleGP</code> function uses optimization algorithm to maximize the log-likelihood and returns the estimated hyperparameters <code>d</code> = <span class="math inline">\(2l^2\)</span>, we can see that the length scale is close to the one we estimated above. We will use the <code>predplot</code> convenience function to calculate the predictions and plot the data vs fit.</p>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX, YY, l, sigma)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX, YY, l.laGP, <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX, YY, l, sigma)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX, YY, l.laGP, <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div id="fig-gp-sin-mle" class="quarto-layout-panel">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-gp-sin-mle-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -723,9 +741,9 @@ Figure&nbsp;8.4: Posterior distribution over <span class="math inline">\(y_*\)</
 </figure>
 </div>
 <p>We can see that there is visually no difference between the two fits. Thus, it seems irrelevant whether we keep sigma fixed <span class="math inline">\(\sigma=1\)</span> or estimate it using MLE. However, in other applications when uncertainty is larger, the choice of <span class="math inline">\(\sigma\)</span> is important when we use GP for regression and classification tasks. Even for our example, if we ask our model to extrapolate</p>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>XX1 <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">seq</span>(<span class="sc">-</span><span class="dv">4</span><span class="sc">*</span>pi, <span class="dv">6</span><span class="sc">*</span>pi <span class="sc">+</span> <span class="fl">0.5</span>, <span class="at">length=</span>q), <span class="at">ncol=</span><span class="dv">1</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>XX1 <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">seq</span>(<span class="sc">-</span><span class="dv">4</span><span class="sc">*</span>pi, <span class="dv">6</span><span class="sc">*</span>pi <span class="sc">+</span> <span class="fl">0.5</span>, <span class="at">length=</span>q), <span class="at">ncol=</span><span class="dv">1</span>)</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX1, YY, l, sigma)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX1, YY, l.laGP, <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">predplot</span>(X, Y, XX1, YY, l.laGP, <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell quarto-layout-panel" data-null_prefix="true" data-layout-align="center" data-layout-ncol="2">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
@@ -757,15 +775,15 @@ Figure&nbsp;8.4: Posterior distribution over <span class="math inline">\(y_*\)</
 <div id="exm-gp" class="theorem example">
 <p><span class="theorem-title"><strong>Example 8.3 (Gaussian Process for Motorcycle Accident Data)</strong></span> We first estimate the length scale parameter <span class="math inline">\(l\)</span> using the <code>laGP</code> package.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>X <span class="ot">=</span> mcycle<span class="sc">$</span>times</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">=</span> mcycle<span class="sc">$</span>accel</span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>gp <span class="ot">=</span> <span class="fu">newGP</span>(<span class="fu">matrix</span>(X), Y, <span class="dv">2</span>, <span class="fl">1e-6</span>, <span class="at">dK =</span> <span class="cn">TRUE</span>);</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mleGP</span>(gp, <span class="at">tmax=</span><span class="dv">10</span>);</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mleGP</span>(gp, <span class="at">tmax=</span><span class="dv">10</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now we plot the data and the fit using the estimated length scale parameter <span class="math inline">\(l\)</span>.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>XX <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">seq</span>(<span class="fl">2.4</span>, <span class="dv">55</span>, <span class="at">length =</span> <span class="dv">499</span>), <span class="at">ncol=</span><span class="dv">1</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>XX <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">seq</span>(<span class="fl">2.4</span>, <span class="dv">55</span>, <span class="at">length =</span> <span class="dv">499</span>), <span class="at">ncol=</span><span class="dv">1</span>)</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>p <span class="ot">=</span> <span class="fu">predGP</span>(gp, XX)</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>N <span class="ot">=</span> <span class="dv">499</span></span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>q1 <span class="ot">=</span> <span class="fu">qnorm</span>(<span class="fl">0.05</span>, <span class="at">mean =</span> p<span class="sc">$</span>mean, <span class="at">sd =</span> <span class="fu">sqrt</span>(<span class="fu">diag</span>(p<span class="sc">$</span>Sigma)))</span>
@@ -774,7 +792,7 @@ Figure&nbsp;8.4: Posterior distribution over <span class="math inline">\(y_*\)</
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span> </span>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x=</span>X,<span class="at">y=</span>Y)) <span class="sc">+</span> </span>
 <span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">x=</span>XX,<span class="at">y=</span>q3)) <span class="sc">+</span> </span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">x=</span>XX,<span class="at">ymin=</span>q1, <span class="at">ymax=</span>q2), <span class="at">alpha=</span><span class="fl">0.2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">x=</span>XX,<span class="at">ymin=</span>q1, <span class="at">ymax=</span>q2), <span class="at">alpha=</span><span class="fl">0.2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -786,7 +804,7 @@ Figure&nbsp;8.4: Posterior distribution over <span class="math inline">\(y_*\)</
 </div>
 <p>We can see that our model is more confident for time values between 10 and 30. The confidence interval is wider for time values between 0 and 10 and between 30 and 60, and less confident at the end close to the 60 mark. For some reason the acceleration values were not measured evenly. If we look at the histogram of time values, we can see that there are more data points in the middle of the time range.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(X)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -798,7 +816,8 @@ Figure&nbsp;8.4: Posterior distribution over <span class="math inline">\(y_*\)</
 </div>
 <p>The <span class="math inline">\(\sqrt{n}\)</span> decay in variance of the posterior distribution is a property of the squared exponential kernel.</p>
 </div>
-<p>In summary, Gaussian Processes provide a robust and flexible framework for modeling and predicting in situations where uncertainty and correlation among data points play a critical role. Their versatility and powerful predictive capabilities make them a popular choice in various scientific and engineering disciplines. GPs are considered non-parametric, which means they can model functions of arbitrary complexity. Through the choice of the kernel function, GPs can model a wide range of correlations between the data points. The mean and covariance functions can incorporate prior knowledge about the behavior of the function being modeled. There are many areas of applications for GP. The main applications include predictive modeling, optimization, and uncertainty quantification. We will focus on the first two applications in the later sections. In predictive modeling we can use GPs to predict the value of a function at new points, taking into account the uncertainty of the prediction. GPs are particularly useful in spatial data analysis, where the correlation between data points is often related to their physical distance. Thus, GPs are quite often used for environmental modeling to analyze temperature or pollution levels over geographical areas.</p>
+<p>In summary, Gaussian Processes provide a robust and flexible framework for modeling functions where uncertainty is key. By defining a prior over functions and updating it with data, we obtain a posterior distribution that captures both predictions and the confidence in those predictions.</p>
+<p>Key takeaways: * <strong>Non-parametric</strong>: GPs can model functions of arbitrary complexity without a fixed number of parameters. * <strong>Data-efficient</strong>: They work well with small datasets and provide uncertainty estimates that are crucial for decision-making. * <strong>Versatile</strong>: Through the choice of the kernel function, GPs can capture various structures (smoothness, periodicity, etc.) and are used in fields ranging from environmental modeling to hyperparameter optimization in deep learning (“Bayesian Optimization”).</p>
 
 
 </section>
@@ -855,13 +874,14 @@ Figure&nbsp;8.4: Posterior distribution over <span class="math inline">\(y_*\)</
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
