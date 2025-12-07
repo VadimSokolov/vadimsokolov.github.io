@@ -450,15 +450,10 @@ window.Quarto = {
   <li><a href="#roc-curve-and-confounding-variables" id="toc-roc-curve-and-confounding-variables" class="nav-link" data-scroll-target="#roc-curve-and-confounding-variables"><span class="header-section-number">13.3</span> ROC Curve and Confounding Variables</a></li>
   <li><a href="#imbalanced-data" id="toc-imbalanced-data" class="nav-link" data-scroll-target="#imbalanced-data"><span class="header-section-number">13.4</span> Imbalanced Data</a></li>
   <li><a href="#kernel-trick" id="toc-kernel-trick" class="nav-link" data-scroll-target="#kernel-trick"><span class="header-section-number">13.5</span> Kernel Trick</a></li>
-  <li><a href="#sec-bayes-logistic" id="toc-sec-bayes-logistic" class="nav-link" data-scroll-target="#sec-bayes-logistic"><span class="header-section-number">13.6</span> Bayesian Logistic Regression</a>
+  <li><a href="#sec-bayes-logistic" id="toc-sec-bayes-logistic" class="nav-link" data-scroll-target="#sec-bayes-logistic"><span class="header-section-number">13.6</span> Bayesian Logistic Regression with The Polya-Gamma Distribution</a>
   <ul class="collapse">
-  <li><a href="#the-polya-gamma-distribution" id="toc-the-polya-gamma-distribution" class="nav-link" data-scroll-target="#the-polya-gamma-distribution">The Polya-Gamma Distribution</a></li>
   <li><a href="#the-data-augmentation-strategy" id="toc-the-data-augmentation-strategy" class="nav-link" data-scroll-target="#the-data-augmentation-strategy">The Data-Augmentation Strategy</a></li>
-  </ul></li>
-  <li><a href="#bayeslogit-package" id="toc-bayeslogit-package" class="nav-link" data-scroll-target="#bayeslogit-package"><span class="header-section-number">13.7</span> BayesLogit Package</a>
-  <ul class="collapse">
-  <li><a href="#implementing-bayesian-logistic-regression" id="toc-implementing-bayesian-logistic-regression" class="nav-link" data-scroll-target="#implementing-bayesian-logistic-regression">Implementing Bayesian Logistic Regression</a></li>
-  <li><a href="#modern-applications" id="toc-modern-applications" class="nav-link" data-scroll-target="#modern-applications">Modern Applications</a></li>
+  <li><a href="#theoretical-guarantees" id="toc-theoretical-guarantees" class="nav-link" data-scroll-target="#theoretical-guarantees">Theoretical Guarantees</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -504,12 +499,8 @@ p_i  = &amp; \sigma(f_{\beta}(x_i)) =  \frac{e^{f_{\beta}(x_i)}}{1+e^{f_{\beta}(
 <div aria-describedby="fig-sigmoid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div>
 <pre class="mermaid mermaid-js" data-label="fig-sigmoid">graph LR
-    subgraph " "
-    direction LR
-    x[Linear Predictor z] --&gt; s[Sigmoid Function]
-    s --&gt; p[Probability P]
-    end
-    style s fill:#f9f,stroke:#333,stroke-width:2px
+x[Linear Predictor z] --&gt; s[Sigmoid Function]
+s --&gt; p[Probability P]
 </pre>
 </div>
 </div>
@@ -520,28 +511,8 @@ Figure&nbsp;13.1: The Sigmoid Function
 </div>
 </div>
 </div>
+<!-- ![Sigmoid Function](fig/sigmoid.png) -->
 <p>To visualize this, consider the sigmoid curve:</p>
-<div class="cell" data-layout-align="center">
-<div class="cell-output-display">
-<div id="fig-sigmoid-plot" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-sigmoid-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div>
-<pre class="mermaid mermaid-js" data-label="fig-sigmoid-plot">xychart-beta
-    title "Logistic Function sigma(z)"
-    x-axis "z (Linear Predictor)" -6 --&gt; 6
-    y-axis "sigma(z) (Probability)" 0 --&gt; 1
-    line [-6, 0.002] [-5, 0.006] [-4, 0.018] [-3, 0.047] [-2, 0.119] [-1, 0.269] [0, 0.5] [1, 0.731] [2, 0.881] [3, 0.953] [4, 0.982] [5, 0.993] [6, 0.998]
-</pre>
-</div>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sigmoid-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;13.2: The Logistic Sigmoid Function
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
 <div class="cell" data-layout-align="center">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">10</span>,<span class="dv">10</span>,<span class="at">length.out =</span> <span class="dv">100</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x, <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">+</span><span class="fu">exp</span>(<span class="sc">-</span>x)), <span class="at">type=</span><span class="st">'l'</span>, <span class="at">col=</span><span class="st">"red"</span>, <span class="at">xlab=</span><span class="st">"x"</span>, <span class="at">ylab=</span><span class="st">"p"</span>, <span class="at">lwd=</span><span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -737,7 +708,7 @@ p_i  = \sigma(\beta^Tx_i) =  \frac{e^{\beta^Tx_i}}{1+e^{\beta^Tx_i}},
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(NBA<span class="sc">$</span>spread[NBA<span class="sc">$</span>favwin<span class="sc">==</span><span class="dv">0</span>], <span class="at">add=</span><span class="cn">TRUE</span>, <span class="at">col=</span><span class="dv">6</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"favwin=1"</span>, <span class="st">"favwin=0"</span>), <span class="at">fill=</span><span class="fu">c</span>(<span class="dv">5</span>,<span class="dv">6</span>), <span class="at">bty=</span><span class="st">"n"</span>)</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">boxplot</span>(NBA<span class="sc">$</span>spread <span class="sc">~</span> NBA<span class="sc">$</span>favwin, <span class="at">col=</span><span class="fu">c</span>(<span class="dv">6</span>,<span class="dv">5</span>), <span class="at">horizontal=</span><span class="cn">TRUE</span>, <span class="at">ylab=</span><span class="st">"favwin"</span>, <span class="at">xlab=</span><span class="st">"spread"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell quarto-layout-panel" data-layout-align="center" data-layout-ncol="2">
+<div class="cell quarto-layout-panel" data-layout-ncol="2" data-layout-align="center">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <div class="quarto-figure quarto-figure-center">
@@ -1732,14 +1703,14 @@ Further, if the cost function $J(\beta)$ is minimized by some setting of the par
 <li>Worked for <span class="math inline">\(10\)</span> more years. <span class="math inline">\(15\)</span>%. A <span class="math inline">\(2\)</span>X effect.</li>
 </ol>
 <p>Choices and Impact (Person B) are shown below</p>
-<p>Choices and Impact (Person B) are shown below in <a href="#fig-choice" class="quarto-xref">Figure&nbsp;<span>13.3</span></a>. The chart illustrates the marginal impact of each individual strategic choice (e.g., getting an MBA, moving to NYC) on the probability of becoming an executive, compared to Person B’s baseline of 15%. When all these positive choices are combined, the probability skyrockets to 81%.</p>
+<p>Choices and Impact (Person B) are shown below in <a href="#fig-choice" class="quarto-xref">Figure&nbsp;<span>13.2</span></a>. The chart illustrates the marginal impact of each individual strategic choice (e.g., getting an MBA, moving to NYC) on the probability of becoming an executive, compared to Person B’s baseline of 15%. When all these positive choices are combined, the probability skyrockets to 81%.</p>
 <div id="fig-choice" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-choice-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="fig/choice.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-choice-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;13.3: Choices and Impact (Person B)
+Figure&nbsp;13.2: Choices and Impact (Person B)
 </figcaption>
 </figure>
 </div>
@@ -1797,19 +1768,19 @@ F1 = 2\dfrac{\mathrm{precision} \times \mathrm{recall}}{\mathrm{precision} + \ma
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>d <span class="ot">=</span> <span class="fu">gencircledata</span>(<span class="at">numSamples=</span><span class="dv">200</span>, <span class="at">radius=</span><span class="dv">1</span>, <span class="at">noise=</span><span class="fl">0.001</span>)</span>
 <span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(d[,<span class="dv">2</span>],d[,<span class="dv">3</span>], <span class="at">col=</span>d[,<span class="dv">1</span>]<span class="sc">+</span><span class="dv">1</span>, <span class="at">pch=</span><span class="dv">19</span>, <span class="at">xlab=</span><span class="st">"x"</span>, <span class="at">ylab=</span><span class="st">"y"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
-<div id="fig-circle-data" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center" width="576">
+<div id="fig-circle-data" class="quarto-float quarto-figure quarto-figure-center anchored" width="576" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-circle-data-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="13-logistic_files/figure-html/fig-circle-data-1.png" id="fig-circle-data" class="img-fluid quarto-figure quarto-figure-center anchored figure-img" width="576">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-circle-data-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;13.4
+Figure&nbsp;13.3
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>The data on the left in <a href="#fig-circle-data" class="quarto-xref">Figure&nbsp;<span>13.4</span></a> is clearly not linearly separable. However, if we map it to a three-dimensional space using the transformation: <span class="math display">\[
+<p>The data on the left in <a href="#fig-circle-data" class="quarto-xref">Figure&nbsp;<span>13.3</span></a> is clearly not linearly separable. However, if we map it to a three-dimensional space using the transformation: <span class="math display">\[
 \begin{aligned}
 \phi: R^{2} &amp; \longrightarrow R^{3} \\
 \left(x_{1}, x_{2}\right) &amp; \longmapsto\left(z_{1}, z_{2}, z_{3}\right)=\left(x_{1}^{2}, \sqrt{2} x_{1} x_{2}, x_{2}^{2}\right),
@@ -1875,37 +1846,8 @@ K = \left[\begin{array}{ccc}
 </div>
 </section>
 <section id="sec-bayes-logistic" class="level2" data-number="13.6">
-<h2 data-number="13.6" class="anchored" data-anchor-id="sec-bayes-logistic"><span class="header-section-number">13.6</span> Bayesian Logistic Regression</h2>
-<section id="the-polya-gamma-distribution" class="level3">
-<h3 class="anchored" data-anchor-id="the-polya-gamma-distribution">The Polya-Gamma Distribution</h3>
+<h2 data-number="13.6" class="anchored" data-anchor-id="sec-bayes-logistic"><span class="header-section-number">13.6</span> Bayesian Logistic Regression with The Polya-Gamma Distribution</h2>
 <p>To perform Bayesian inference for logistic regression, we often need to sample from the posterior distribution of the coefficients <span class="math inline">\(\beta\)</span>. However, the logistic likelihood does not have a conjugate prior, making this difficult. A powerful modern approach uses <strong>data augmentation</strong> with Polya-Gamma variables to make the sampling exact and efficient.</p>
-<p>We can visualize the hierarchical structure of this data augmentation strategy as follows:</p>
-<div class="cell" data-layout-align="center">
-<div class="cell-output-display">
-<div id="fig-pg-dag" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-pg-dag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div>
-<pre class="mermaid mermaid-js" data-label="fig-pg-dag">graph TD
-    B[beta: Coefficients] --&gt; P[psi: Linear Predictor]
-    X[Data X] --&gt; P
-    P --&gt; O[omega: Polya-Gamma Auxiliary]
-    P --&gt; Y[y: Observed Outcomes]
-    O --&gt; Y
-    
-    style B fill:#e1f5fe
-    style O fill:#fff9c4
-    style Y fill:#e8f5e9
-</pre>
-</div>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pg-dag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;13.5: Hierarchical structure of Polya-Gamma Data Augmentation
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
 <p>The Polya-Gamma distribution, denoted as PG(b,c), is carefully constructed as a subset of infinite convolutions of gamma distributions (essentially, a weighted sum of an infinite number of independent Gamma variables)<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. A random variable X follows a Polya-Gamma distribution with parameters <span class="math inline">\(b &gt; 0\)</span> and <span class="math inline">\(c \in \mathbb{R}\)</span> if:</p>
 <p><span class="math display">\[
 X \stackrel{d}{=} \frac{1}{2\pi^2} \sum_{k=1}^{\infty} \frac{g_k}{(k-1/2)^2 + c^2/(4\pi^2)}
@@ -1935,7 +1877,6 @@ X \stackrel{d}{=} \frac{1}{2\pi^2} \sum_{k=1}^{\infty} \frac{g_k}{(k-1/2)^2 + c^
 <p>The known moments and convolution properties make the Polya-Gamma distribution computationally tractable and theoretically well-behaved.</p>
 </div>
 </div>
-</section>
 <section id="the-data-augmentation-strategy" class="level3">
 <h3 class="anchored" data-anchor-id="the-data-augmentation-strategy">The Data-Augmentation Strategy</h3>
 <p>The core of the Polya-Gamma methodology rests on a fundamental integral identity that represents binomial likelihoods as mixtures of Gaussians<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. The key theorem states:</p>
@@ -1957,6 +1898,33 @@ X \stackrel{d}{=} \frac{1}{2\pi^2} \sum_{k=1}^{\infty} \frac{g_k}{(k-1/2)^2 + c^
 </ul></li>
 </ol>
 <p>This approach requires only Gaussian draws for the main parameters and Polya-Gamma draws for a single layer of latent variables, making it significantly simpler than previous methods<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
+<p>We can visualize the hierarchical structure of this data augmentation strategy as follows:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div id="fig-pg-dag" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-pg-dag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-pg-dag">graph LR
+    B[beta: Coefficients] --&gt; P[psi: Linear Predictor]
+    X[Data X] --&gt; P
+    P --&gt; O[omega: Polya-Gamma Auxiliary]
+    P --&gt; Y[y: Observed Outcomes]
+    O --&gt; Y
+    
+    style B fill:#e1f5fe
+    style O fill:#fff9c4
+    style Y fill:#e8f5e9
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pg-dag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;13.4: Hierarchical structure of Polya-Gamma Data Augmentation
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
 <p>The practical success of the Polya-Gamma method depends on efficient simulation of Polya-Gamma random variables<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. The authors developed a sophisticated accept-reject sampler based on the alternating-series method of Devroye (1986)<span class="citation" data-cites="devroye1986nonuniform">(<a href="references.html#ref-devroye1986nonuniform" role="doc-biblioref">Devroye 1986</a>)</span>. For the fundamental PG(1,c) case, the sampler:</p>
 <ul>
 <li>Uses exponential and inverse-Gaussian draws as proposals</li>
@@ -1965,99 +1933,106 @@ X \stackrel{d}{=} \frac{1}{2\pi^2} \sum_{k=1}^{\infty} \frac{g_k}{(k-1/2)^2 + c^
 <li>Evaluates acceptance using iterative partial sums</li>
 </ul>
 <p>For integer values of b, PG(b,z) random variables are generated by summing b independent PG(1,z) draws, exploiting the convolution property. This approach maintains efficiency for moderate values of b, though computational cost scales linearly with the total number of counts in negative binomial applications.</p>
-</section>
-</section>
-<section id="bayeslogit-package" class="level2" data-number="13.7">
-<h2 data-number="13.7" class="anchored" data-anchor-id="bayeslogit-package"><span class="header-section-number">13.7</span> BayesLogit Package</h2>
 <p>The <code>BayesLogit</code> package provides efficient tools for sampling from the Polya-Gamma distribution. The current version (2.1) focuses on core functionality: sampling from the Polya-Gamma distribution through the <code>rpg()</code> function and its variants.</p>
-<p>The package offers several sampling methods:</p>
+<p>We demonstrate the <code>BayesLogit</code> using a simulated data example. We generate <span class="math inline">\(n = 100\)</span> observations with two predictors (plus an intercept term). The predictor matrix <span class="math inline">\(X\)</span> consists of an intercept column and two columns of independent standard normal random variables. The true regression coefficients are set to <span class="math inline">\(\beta = (-0.5,1.2,-0.8)\)</span>. The binary outcomes <span class="math inline">\(y_i\)</span> are generated from a binomial distribution where the success probability for each observation follows the logistic transformation <span class="math inline">\(p_i = 1/(1 + \exp(-x_i^T\beta))\)</span>. This setup allows us to verify that the Bayesian inference procedure can recover the true parameter values from the simulated data.</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Bayesian Logistic Regression with Polya-Gamma Data Augmentation</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"BayesLogit"</span>)</span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Bayesian Logistic Regression with Polya-Gamma Data Augmentation</span></span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>bayesian_logit_pg <span class="ot">&lt;-</span> <span class="cf">function</span>(y, X, <span class="at">n_iter=</span><span class="dv">5000</span>, <span class="at">burn_in=</span><span class="dv">1000</span>) {</span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
+<span id="cb74-6"><a href="#cb74-6" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
+<span id="cb74-7"><a href="#cb74-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Prior specification (weakly informative)</span></span>
+<span id="cb74-8"><a href="#cb74-8" aria-hidden="true" tabindex="-1"></a>  beta_prior_mean <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, p)</span>
+<span id="cb74-9"><a href="#cb74-9" aria-hidden="true" tabindex="-1"></a>  beta_prior_prec <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="fl">0.01</span>, p)  <span class="co"># Precision matrix</span></span>
+<span id="cb74-10"><a href="#cb74-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb74-11"><a href="#cb74-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Storage for samples</span></span>
+<span id="cb74-12"><a href="#cb74-12" aria-hidden="true" tabindex="-1"></a>  beta_samples <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n_iter, p)</span>
+<span id="cb74-13"><a href="#cb74-13" aria-hidden="true" tabindex="-1"></a>  omega_samples <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n_iter, n)</span>
+<span id="cb74-14"><a href="#cb74-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb74-15"><a href="#cb74-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Initialize</span></span>
+<span id="cb74-16"><a href="#cb74-16" aria-hidden="true" tabindex="-1"></a>  beta <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, p)</span>
+<span id="cb74-17"><a href="#cb74-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb74-18"><a href="#cb74-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(iter <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_iter) {</span>
+<span id="cb74-19"><a href="#cb74-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 1: Sample omega (auxiliary variables)</span></span>
+<span id="cb74-20"><a href="#cb74-20" aria-hidden="true" tabindex="-1"></a>    psi <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta</span>
+<span id="cb74-21"><a href="#cb74-21" aria-hidden="true" tabindex="-1"></a>    omega <span class="ot">&lt;-</span> <span class="fu">rpg</span>(n, <span class="at">h=</span><span class="dv">1</span>, <span class="at">z=</span>psi)</span>
+<span id="cb74-22"><a href="#cb74-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb74-23"><a href="#cb74-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 2: Sample beta (regression coefficients)</span></span>
+<span id="cb74-24"><a href="#cb74-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Posterior precision and mean</span></span>
+<span id="cb74-25"><a href="#cb74-25" aria-hidden="true" tabindex="-1"></a>    V_omega <span class="ot">&lt;-</span> <span class="fu">solve</span>(<span class="fu">t</span>(X) <span class="sc">%*%</span> <span class="fu">diag</span>(omega) <span class="sc">%*%</span> X <span class="sc">+</span> beta_prior_prec)</span>
+<span id="cb74-26"><a href="#cb74-26" aria-hidden="true" tabindex="-1"></a>    kappa <span class="ot">&lt;-</span> y <span class="sc">-</span> <span class="fl">0.5</span></span>
+<span id="cb74-27"><a href="#cb74-27" aria-hidden="true" tabindex="-1"></a>    m_omega <span class="ot">&lt;-</span> V_omega <span class="sc">%*%</span> (<span class="fu">t</span>(X) <span class="sc">%*%</span> kappa <span class="sc">+</span> beta_prior_prec <span class="sc">%*%</span> beta_prior_mean)</span>
+<span id="cb74-28"><a href="#cb74-28" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb74-29"><a href="#cb74-29" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample from multivariate normal</span></span>
+<span id="cb74-30"><a href="#cb74-30" aria-hidden="true" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> <span class="fu">mvrnorm</span>(<span class="dv">1</span>, m_omega, V_omega)</span>
+<span id="cb74-31"><a href="#cb74-31" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb74-32"><a href="#cb74-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Store samples</span></span>
+<span id="cb74-33"><a href="#cb74-33" aria-hidden="true" tabindex="-1"></a>    beta_samples[iter, ] <span class="ot">&lt;-</span> beta</span>
+<span id="cb74-34"><a href="#cb74-34" aria-hidden="true" tabindex="-1"></a>    omega_samples[iter, ] <span class="ot">&lt;-</span> omega</span>
+<span id="cb74-35"><a href="#cb74-35" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb74-36"><a href="#cb74-36" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb74-37"><a href="#cb74-37" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Return samples after burn-in</span></span>
+<span id="cb74-38"><a href="#cb74-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb74-39"><a href="#cb74-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">beta =</span> beta_samples[(burn_in<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>n_iter, ],</span>
+<span id="cb74-40"><a href="#cb74-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">omega =</span> omega_samples[(burn_in<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>n_iter, ],</span>
+<span id="cb74-41"><a href="#cb74-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_samples =</span> n_iter <span class="sc">-</span> burn_in</span>
+<span id="cb74-42"><a href="#cb74-42" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb74-43"><a href="#cb74-43" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb74-44"><a href="#cb74-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-45"><a href="#cb74-45" aria-hidden="true" tabindex="-1"></a><span class="co"># Example usage with simulated data</span></span>
+<span id="cb74-46"><a href="#cb74-46" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb74-47"><a href="#cb74-47" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb74-48"><a href="#cb74-48" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n<span class="sc">*</span><span class="dv">2</span>), n, <span class="dv">2</span>))  <span class="co"># Intercept + 2 predictors</span></span>
+<span id="cb74-49"><a href="#cb74-49" aria-hidden="true" tabindex="-1"></a>beta_true <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">0.5</span>, <span class="fl">1.2</span>, <span class="sc">-</span><span class="fl">0.8</span>)</span>
+<span id="cb74-50"><a href="#cb74-50" aria-hidden="true" tabindex="-1"></a>logits <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta_true</span>
+<span id="cb74-51"><a href="#cb74-51" aria-hidden="true" tabindex="-1"></a>probs <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>logits))</span>
+<span id="cb74-52"><a href="#cb74-52" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, probs)</span>
+<span id="cb74-53"><a href="#cb74-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-54"><a href="#cb74-54" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit model</span></span>
+<span id="cb74-55"><a href="#cb74-55" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">bayesian_logit_pg</span>(y, X, <span class="at">n_iter=</span><span class="dv">3000</span>, <span class="at">burn_in=</span><span class="dv">500</span>)</span>
+<span id="cb74-56"><a href="#cb74-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-57"><a href="#cb74-57" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior summaries</span></span>
+<span id="cb74-58"><a href="#cb74-58" aria-hidden="true" tabindex="-1"></a>posterior_means <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(results<span class="sc">$</span>beta)</span>
+<span id="cb74-59"><a href="#cb74-59" aria-hidden="true" tabindex="-1"></a>posterior_sds <span class="ot">&lt;-</span> <span class="fu">apply</span>(results<span class="sc">$</span>beta, <span class="dv">2</span>, sd)</span>
+<span id="cb74-60"><a href="#cb74-60" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize posterior distributions</span></span>
+<span id="cb74-61"><a href="#cb74-61" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">3</span>))</span>
+<span id="cb74-62"><a href="#cb74-62" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>) {</span>
+<span id="cb74-63"><a href="#cb74-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">hist</span>(results<span class="sc">$</span>beta[,j], </span>
+<span id="cb74-64"><a href="#cb74-64" aria-hidden="true" tabindex="-1"></a>       <span class="at">breaks=</span><span class="dv">30</span>, </span>
+<span id="cb74-65"><a href="#cb74-65" aria-hidden="true" tabindex="-1"></a>       <span class="at">main=</span><span class="fu">paste0</span>(<span class="st">"Posterior: β"</span>, j<span class="dv">-1</span>),</span>
+<span id="cb74-66"><a href="#cb74-66" aria-hidden="true" tabindex="-1"></a>       <span class="at">xlab=</span><span class="fu">paste0</span>(<span class="st">"β"</span>, j<span class="dv">-1</span>),</span>
+<span id="cb74-67"><a href="#cb74-67" aria-hidden="true" tabindex="-1"></a>       <span class="at">col=</span><span class="st">"lightblue"</span>,</span>
+<span id="cb74-68"><a href="#cb74-68" aria-hidden="true" tabindex="-1"></a>       <span class="at">border=</span><span class="st">"white"</span>)</span>
+<span id="cb74-69"><a href="#cb74-69" aria-hidden="true" tabindex="-1"></a>  <span class="fu">abline</span>(<span class="at">v=</span>beta_true[j], <span class="at">col=</span><span class="st">"red"</span>, <span class="at">lwd=</span><span class="dv">2</span>, <span class="at">lty=</span><span class="dv">2</span>)</span>
+<span id="cb74-70"><a href="#cb74-70" aria-hidden="true" tabindex="-1"></a>  <span class="fu">abline</span>(<span class="at">v=</span>posterior_means[j], <span class="at">col=</span><span class="st">"blue"</span>, <span class="at">lwd=</span><span class="dv">2</span>)</span>
+<span id="cb74-71"><a href="#cb74-71" aria-hidden="true" tabindex="-1"></a>  <span class="fu">legend</span>(<span class="st">"topright"</span>, </span>
+<span id="cb74-72"><a href="#cb74-72" aria-hidden="true" tabindex="-1"></a>         <span class="at">legend=</span><span class="fu">c</span>(<span class="st">"True value"</span>, <span class="st">"Posterior mean"</span>),</span>
+<span id="cb74-73"><a href="#cb74-73" aria-hidden="true" tabindex="-1"></a>         <span class="at">col=</span><span class="fu">c</span>(<span class="st">"red"</span>, <span class="st">"blue"</span>),</span>
+<span id="cb74-74"><a href="#cb74-74" aria-hidden="true" tabindex="-1"></a>         <span class="at">lty=</span><span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">1</span>),</span>
+<span id="cb74-75"><a href="#cb74-75" aria-hidden="true" tabindex="-1"></a>         <span class="at">lwd=</span><span class="dv">2</span>,</span>
+<span id="cb74-76"><a href="#cb74-76" aria-hidden="true" tabindex="-1"></a>         <span class="at">cex=</span><span class="fl">0.8</span>)</span>
+<span id="cb74-77"><a href="#cb74-77" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="13-logistic_files/figure-html/bayesian-logit-implementation-1.png" class="img-fluid figure-img" width="576"></p>
+<figcaption>Bayesian Logistic Regression with Polya-Gamma Data Augmentation</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The package offers several sampling methods for <span class="math inline">\(\omega\)</span>.</p>
 <ul>
 <li><code>rpg()</code>: Main function that automatically selects the best method</li>
-<li><code>rpg.devroye()</code>: Devroye-like method for integer h values</li>
+<li><code>rpg.devroye()</code>: Devroye-like method for integer <span class="math inline">\(h\)</span> values</li>
 <li><code>rpg.gamma()</code>: Sum of gammas method (slower but works for all parameters)</li>
 <li><code>rpg.sp()</code>: Saddlepoint approximation method</li>
 </ul>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Install from CRAN</span></span>
-<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"BayesLogit"</span>)</span>
-<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(BayesLogit)</span>
-<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Basic usage examples</span></span>
-<span id="cb74-6"><a href="#cb74-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample from PG(1, 0)</span></span>
-<span id="cb74-7"><a href="#cb74-7" aria-hidden="true" tabindex="-1"></a>samples1 <span class="ot">&lt;-</span> <span class="fu">rpg</span>(<span class="dv">1000</span>, <span class="at">h=</span><span class="dv">1</span>, <span class="at">z=</span><span class="dv">0</span>)</span>
-<span id="cb74-8"><a href="#cb74-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb74-9"><a href="#cb74-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample with tilting parameter</span></span>
-<span id="cb74-10"><a href="#cb74-10" aria-hidden="true" tabindex="-1"></a>samples2 <span class="ot">&lt;-</span> <span class="fu">rpg</span>(<span class="dv">1000</span>, <span class="at">h=</span><span class="dv">1</span>, <span class="at">z=</span><span class="fl">2.5</span>)</span>
-<span id="cb74-11"><a href="#cb74-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb74-12"><a href="#cb74-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Multiple shape parameters</span></span>
-<span id="cb74-13"><a href="#cb74-13" aria-hidden="true" tabindex="-1"></a>h_values <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
-<span id="cb74-14"><a href="#cb74-14" aria-hidden="true" tabindex="-1"></a>z_values <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
-<span id="cb74-15"><a href="#cb74-15" aria-hidden="true" tabindex="-1"></a>samples3 <span class="ot">&lt;-</span> <span class="fu">rpg</span>(<span class="dv">100</span>, <span class="at">h=</span>h_values, <span class="at">z=</span>z_values)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<section id="implementing-bayesian-logistic-regression" class="level3">
-<h3 class="anchored" data-anchor-id="implementing-bayesian-logistic-regression">Implementing Bayesian Logistic Regression</h3>
-<p>Here’s a complete implementation of Bayesian logistic regression using the Polya-Gamma methodology:</p>
-<div class="cell" data-layout-align="center">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bayesian Logistic Regression with Polya-Gamma Data Augmentation</span></span>
-<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>bayesian_logit_pg <span class="ot">&lt;-</span> <span class="cf">function</span>(y, X, <span class="at">n_iter=</span><span class="dv">5000</span>, <span class="at">burn_in=</span><span class="dv">1000</span>) {</span>
-<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
-<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">ncol</span>(X)</span>
-<span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Prior specification (weakly informative)</span></span>
-<span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>  beta_prior_mean <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, p)</span>
-<span id="cb75-8"><a href="#cb75-8" aria-hidden="true" tabindex="-1"></a>  beta_prior_prec <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="fl">0.01</span>, p)  <span class="co"># Precision matrix</span></span>
-<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb75-10"><a href="#cb75-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Storage for samples</span></span>
-<span id="cb75-11"><a href="#cb75-11" aria-hidden="true" tabindex="-1"></a>  beta_samples <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n_iter, p)</span>
-<span id="cb75-12"><a href="#cb75-12" aria-hidden="true" tabindex="-1"></a>  omega_samples <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n_iter, n)</span>
-<span id="cb75-13"><a href="#cb75-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb75-14"><a href="#cb75-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Initialize</span></span>
-<span id="cb75-15"><a href="#cb75-15" aria-hidden="true" tabindex="-1"></a>  beta <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">0</span>, p)</span>
-<span id="cb75-16"><a href="#cb75-16" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb75-17"><a href="#cb75-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(iter <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_iter) {</span>
-<span id="cb75-18"><a href="#cb75-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 1: Sample omega (auxiliary variables)</span></span>
-<span id="cb75-19"><a href="#cb75-19" aria-hidden="true" tabindex="-1"></a>    psi <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta</span>
-<span id="cb75-20"><a href="#cb75-20" aria-hidden="true" tabindex="-1"></a>    omega <span class="ot">&lt;-</span> <span class="fu">rpg</span>(n, <span class="at">h=</span><span class="dv">1</span>, <span class="at">z=</span>psi)</span>
-<span id="cb75-21"><a href="#cb75-21" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb75-22"><a href="#cb75-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 2: Sample beta (regression coefficients)</span></span>
-<span id="cb75-23"><a href="#cb75-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Posterior precision and mean</span></span>
-<span id="cb75-24"><a href="#cb75-24" aria-hidden="true" tabindex="-1"></a>    V_omega <span class="ot">&lt;-</span> <span class="fu">solve</span>(<span class="fu">t</span>(X) <span class="sc">%*%</span> <span class="fu">diag</span>(omega) <span class="sc">%*%</span> X <span class="sc">+</span> beta_prior_prec)</span>
-<span id="cb75-25"><a href="#cb75-25" aria-hidden="true" tabindex="-1"></a>    kappa <span class="ot">&lt;-</span> y <span class="sc">-</span> <span class="fl">0.5</span></span>
-<span id="cb75-26"><a href="#cb75-26" aria-hidden="true" tabindex="-1"></a>    m_omega <span class="ot">&lt;-</span> V_omega <span class="sc">%*%</span> (<span class="fu">t</span>(X) <span class="sc">%*%</span> kappa <span class="sc">+</span> beta_prior_prec <span class="sc">%*%</span> beta_prior_mean)</span>
-<span id="cb75-27"><a href="#cb75-27" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb75-28"><a href="#cb75-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample from multivariate normal</span></span>
-<span id="cb75-29"><a href="#cb75-29" aria-hidden="true" tabindex="-1"></a>    beta <span class="ot">&lt;-</span> <span class="fu">mvrnorm</span>(<span class="dv">1</span>, m_omega, V_omega)</span>
-<span id="cb75-30"><a href="#cb75-30" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb75-31"><a href="#cb75-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Store samples</span></span>
-<span id="cb75-32"><a href="#cb75-32" aria-hidden="true" tabindex="-1"></a>    beta_samples[iter, ] <span class="ot">&lt;-</span> beta</span>
-<span id="cb75-33"><a href="#cb75-33" aria-hidden="true" tabindex="-1"></a>    omega_samples[iter, ] <span class="ot">&lt;-</span> omega</span>
-<span id="cb75-34"><a href="#cb75-34" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb75-35"><a href="#cb75-35" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb75-36"><a href="#cb75-36" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Return samples after burn-in</span></span>
-<span id="cb75-37"><a href="#cb75-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb75-38"><a href="#cb75-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">beta =</span> beta_samples[(burn_in<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>n_iter, ],</span>
-<span id="cb75-39"><a href="#cb75-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">omega =</span> omega_samples[(burn_in<span class="sc">+</span><span class="dv">1</span>)<span class="sc">:</span>n_iter, ],</span>
-<span id="cb75-40"><a href="#cb75-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_samples =</span> n_iter <span class="sc">-</span> burn_in</span>
-<span id="cb75-41"><a href="#cb75-41" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb75-42"><a href="#cb75-42" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb75-43"><a href="#cb75-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-44"><a href="#cb75-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Example usage with simulated data</span></span>
-<span id="cb75-45"><a href="#cb75-45" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb75-46"><a href="#cb75-46" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">100</span></span>
-<span id="cb75-47"><a href="#cb75-47" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n<span class="sc">*</span><span class="dv">2</span>), n, <span class="dv">2</span>))  <span class="co"># Intercept + 2 predictors</span></span>
-<span id="cb75-48"><a href="#cb75-48" aria-hidden="true" tabindex="-1"></a>beta_true <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="sc">-</span><span class="fl">0.5</span>, <span class="fl">1.2</span>, <span class="sc">-</span><span class="fl">0.8</span>)</span>
-<span id="cb75-49"><a href="#cb75-49" aria-hidden="true" tabindex="-1"></a>logits <span class="ot">&lt;-</span> X <span class="sc">%*%</span> beta_true</span>
-<span id="cb75-50"><a href="#cb75-50" aria-hidden="true" tabindex="-1"></a>probs <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>logits))</span>
-<span id="cb75-51"><a href="#cb75-51" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, probs)</span>
-<span id="cb75-52"><a href="#cb75-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-53"><a href="#cb75-53" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit model</span></span>
-<span id="cb75-54"><a href="#cb75-54" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">bayesian_logit_pg</span>(y, X, <span class="at">n_iter=</span><span class="dv">3000</span>, <span class="at">burn_in=</span><span class="dv">500</span>)</span>
-<span id="cb75-55"><a href="#cb75-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-56"><a href="#cb75-56" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior summaries</span></span>
-<span id="cb75-57"><a href="#cb75-57" aria-hidden="true" tabindex="-1"></a>posterior_means <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(results<span class="sc">$</span>beta)</span>
-<span id="cb75-58"><a href="#cb75-58" aria-hidden="true" tabindex="-1"></a>posterior_sds <span class="ot">&lt;-</span> <span class="fu">apply</span>(results<span class="sc">$</span>beta, <span class="dv">2</span>, sd)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p><strong>Computational Advantages</strong></p>
+<p>In the example above we use the automatic function <code>rpg</code>.</p>
 <p>Extensive benchmarking studies demonstrate the superior performance of the Polya-Gamma method across various scenarios:</p>
 <ol type="1">
 <li><strong>Simple logistic models</strong>: Competitive with well-tuned Metropolis-Hastings samplers</li>
@@ -2065,13 +2040,12 @@ X \stackrel{d}{=} \frac{1}{2\pi^2} \sum_{k=1}^{\infty} \frac{g_k}{(k-1/2)^2 + c^
 <li><strong>Mixed models</strong>: Provides substantial efficiency gains over traditional approaches</li>
 <li><strong>Spatial models</strong>: Shows dramatic improvements for Gaussian process spatial models</li>
 </ol>
-<p><strong>Theoretical Guarantees</strong></p>
-<p>The Polya-Gamma Gibbs sampler enjoys strong theoretical properties<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>:</p>
-<ul>
-<li><strong>Uniform ergodicity</strong>: Proven by Choi and Hobert (2013), guaranteeing convergence and central limit theorems for Monte Carlo averages</li>
-<li><strong>No tuning required</strong>: Unlike Metropolis-Hastings methods, the sampler requires no manual tuning</li>
-<li><strong>Exact sampling</strong>: Produces draws from the correct posterior distribution without approximation</li>
-</ul>
+</section>
+<section id="theoretical-guarantees" class="level3">
+<h3 class="anchored" data-anchor-id="theoretical-guarantees">Theoretical Guarantees</h3>
+<p>The Polya-Gamma Gibbs sampler enjoys strong theoretical properties that distinguish it from many other MCMC approaches <span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. Perhaps most importantly, <span class="citation" data-cites="choi2013polya">Choi and Hobert (<a href="references.html#ref-choi2013polya" role="doc-biblioref">2013</a>)</span> proved that the sampler is <em>uniformly ergodic</em>, a property that guarantees geometric convergence to the stationary distribution regardless of the starting point. This uniform ergodicity result ensures that central limit theorems hold for Monte Carlo averages computed from the sampler output, enabling valid inference and standard error calculations for posterior quantities of interest.</p>
+<p>The property of requiring no tuning parameters represents a significant practical advantage. Traditional Metropolis-Hastings algorithms demand careful calibration of proposal distributions, a task that typically requires pilot runs, domain expertise, and iterative adjustment <span class="citation" data-cites="roberts2001optimal">(<a href="references.html#ref-roberts2001optimal" role="doc-biblioref">Roberts and Rosenthal 2001</a>)</span>. Poorly tuned proposals can lead to slow mixing or even apparent convergence to incorrect distributions, and diagnosing such failures often proves difficult. The Polya-Gamma sampler sidesteps these concerns entirely: each conditional distribution in the Gibbs sampling scheme is fully specified by the model, leaving no algorithmic parameters for the practitioner to adjust. This makes the method accessible to users without deep expertise in MCMC diagnostics and eliminates a common source of errors in applied Bayesian analysis.</p>
+<p>Equally important is the property of exact sampling from the target posterior distribution. Many popular alternatives to MCMC, such as variational inference or Laplace approximations, sacrifice exactness for computational speed, producing samples from an approximating distribution rather than the true posterior. While such approximations work well in many settings, they can introduce systematic biases that are difficult to quantify, particularly in hierarchical models where the posterior may exhibit complex dependencies. The Polya-Gamma Gibbs sampler, by contrast, produces draws from the exact posterior distribution. Combined with the ergodicity guarantee, this means that averages of the sampled values converge to true posterior expectations as the number of iterations increases, providing asymptotically exact inference without the approximation errors inherent in alternative methods</p>
 <div class="callout callout-style-default callout-warning no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -2085,31 +2059,21 @@ X \stackrel{d}{=} \frac{1}{2\pi^2} \sum_{k=1}^{\infty} \frac{g_k}{(k-1/2)^2 + c^
 <p>The theoretical guarantees hold under standard regularity conditions, and the method requires proper prior specification for optimal performance.</p>
 </div>
 </div>
-<p><strong>Beyond Binary Logistic Regression</strong></p>
-<p>The Polya-Gamma methodology extends naturally to various related models<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>:</p>
-<ol type="1">
-<li>Negative binomial regression: Direct application using the same data-augmentation scheme</li>
-<li>Multinomial logistic models: Extended through partial difference of random utility models<span class="citation" data-cites="windle2014sampling">(<a href="references.html#ref-windle2014sampling" role="doc-biblioref">Windle, Polson, and Scott 2014</a>)</span></li>
-<li>Mixed effects models: Seamless incorporation of random effects structures</li>
-<li>Spatial models: Efficient inference for spatial count data models</li>
-</ol>
-</section>
-<section id="modern-applications" class="level3">
-<h3 class="anchored" data-anchor-id="modern-applications">Modern Applications</h3>
-<p>Recent developments have expanded the methodology’s applicability[<span class="citation" data-cites="windle2014sampling">Windle, Polson, and Scott (<a href="references.html#ref-windle2014sampling" role="doc-biblioref">2014</a>)</span>]<span class="citation" data-cites="zhang2018scalable">(<a href="references.html#ref-zhang2018scalable" role="doc-biblioref">Zhang, Datta, and Banerjee 2018</a>)</span>:</p>
-<ul>
-<li>Gaussian process classification: Scalable variational approaches using Polya-Gamma augmentation</li>
-<li>Deep learning: Integration with neural network architectures for Bayesian deep learning</li>
-<li>State-space models: Application to dynamic binary time series models</li>
-</ul>
-<p>The Polya-Gamma methodology represents a fundamental advancement in Bayesian computation for logistic models, combining theoretical elegance with practical efficiency<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>. Its introduction of the Polya-Gamma distribution class and the associated data-augmentation strategy has enabled routine application of Bayesian methods to complex hierarchical models that were previously computationally prohibitive<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
-<p>The <code>BayesLogit</code> package provides researchers and practitioners with efficient, well-tested implementations of these methods<span class="citation" data-cites="windle2023bayeslogit">(<a href="references.html#ref-windle2023bayeslogit" role="doc-biblioref">Windle 2023</a>)</span>. The combination of exact inference, computational efficiency, and theoretical guarantees makes the Polya-Gamma approach the method of choice for Bayesian logistic regression in most practical applications<span class="citation" data-cites="polson2013bayesian">(<a href="references.html#ref-polson2013bayesian" role="doc-biblioref">Polson, Scott, and Windle 2013</a>)</span>.</p>
-<p>As computational demands continue to grow and models become increasingly complex, the Polya-Gamma methodology’s advantages become even more pronounced, establishing it as an essential tool in the modern Bayesian statistician’s toolkit (<span class="citation" data-cites="tiao2019polyagamma">Tiao (<a href="references.html#ref-tiao2019polyagamma" role="doc-biblioref">2019</a>)</span>). Ongoing research continues to extend the Polya-Gamma methodology to new domains, including high-dimensional settings, nonparametric models, and integration with modern machine learning frameworks.</p>
+<p>The Polya-Gamma methodology extends naturally to negative binomial regression through direct application of the same data-augmentation scheme. For multinomial logistic models, the approach can be extended through partial difference of random utility models<span class="citation" data-cites="windle2014sampling">(<a href="references.html#ref-windle2014sampling" role="doc-biblioref">Windle, Polson, and Scott 2014</a>)</span>. The framework also allows seamless incorporation of random effects structures in mixed effects models, and provides efficient inference for spatial count data models.</p>
+<p>Recent developments have expanded the methodology’s applicability. <span class="citation" data-cites="zhang2018scalable">Zhang, Datta, and Banerjee (<a href="references.html#ref-zhang2018scalable" role="doc-biblioref">2018</a>)</span> applied it to Gaussian process classification that relies on scalable variational approaches using Polya-Gamma augmentation. <span class="citation" data-cites="ye2023calibration">Ye et al. (<a href="references.html#ref-ye2023calibration" role="doc-biblioref">2023</a>)</span> demonstrated integration with neural network architectures by adding a Gaussian process layer with Pólya-Gamma augmentation to deep neural retrieval models for improved calibration and uncertainty estimation. <span class="citation" data-cites="fruhwirth-schnatter2010stochastic">Frühwirth-Schnatter and Wagner (<a href="references.html#ref-fruhwirth-schnatter2010stochastic" role="doc-biblioref">2010</a>)</span> showed application to dynamic binary time series models through state-space formulations.</p>
+<p>The Polya-Gamma methodology represents a fundamental advancement in Bayesian computation for logistic models, combining theoretical elegance with practical efficiency. Its introduction of the Polya-Gamma distribution class and the associated data-augmentation strategy has enabled routine application of Bayesian methods to complex hierarchical models that were previously computationally prohibitive.</p>
+<p>As computational demands continue to grow and models become increasingly complex, the Polya-Gamma methodology’s advantages become even more pronounced, establishing it as an essential tool in the modern Bayesian statistician’s toolkit <span class="citation" data-cites="tiao2019polyagamma">(<a href="references.html#ref-tiao2019polyagamma" role="doc-biblioref">Tiao 2019</a>)</span>. Ongoing research continues to extend the Polya-Gamma methodology to new domains, including high-dimensional settings, nonparametric models, and integration with modern machine learning frameworks.</p>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-choi2013polya" class="csl-entry" role="listitem">
+Choi, Hee Min, and James P. Hobert. 2013. <span>“The <span>Pólya-Gamma Gibbs</span> Sampler for <span>Bayesian</span> Logistic Regression Is Uniformly Ergodic.”</span> <em>Electronic Journal of Statistics</em> 7: 2054–64. <a href="https://doi.org/10.1214/13-EJS837">https://doi.org/10.1214/13-EJS837</a>.
+</div>
 <div id="ref-devroye1986nonuniform" class="csl-entry" role="listitem">
 Devroye, Luc. 1986. <em>Non-Uniform Random Variate Generation</em>. Springer Science &amp; Business Media.
+</div>
+<div id="ref-fruhwirth-schnatter2010stochastic" class="csl-entry" role="listitem">
+Frühwirth-Schnatter, Sylvia, and Helga Wagner. 2010. <span>“Stochastic Model Specification Search for <span>Gaussian</span> and Partial Non-<span>Gaussian</span> State Space Models.”</span> <em>Journal of Econometrics</em> 154: 85–100.
 </div>
 <div id="ref-gan2016how" class="csl-entry" role="listitem">
 Gan, Link, and Alan Fritzler. 2016. <span>“How to Become an Executive.”</span>
@@ -2120,14 +2084,17 @@ Irwin, Neil. 2016. <span>“How to <span>Become</span> a <span>C</span>.<span>E<
 <div id="ref-polson2013bayesian" class="csl-entry" role="listitem">
 Polson, Nicholas G., James G. Scott, and Jesse Windle. 2013. <span>“Bayesian <span>Inference</span> for <span>Logistic Models Using Pólya</span>–<span>Gamma Latent Variables</span>.”</span> <em>Journal of the American Statistical Association</em> 108 (504): 1339–49.
 </div>
+<div id="ref-roberts2001optimal" class="csl-entry" role="listitem">
+Roberts, Gareth O., and Jeffrey S. Rosenthal. 2001. <span>“Optimal Scaling for Various <span>Metropolis-Hastings</span> Algorithms.”</span> <em>Statistical Science</em> 16 (4): 351–67.
+</div>
 <div id="ref-tiao2019polyagamma" class="csl-entry" role="listitem">
 Tiao, Louis. 2019. <span>“Pólya-<span>Gamma Bayesian</span> Logistic Regression.”</span> Blog post.
 </div>
-<div id="ref-windle2023bayeslogit" class="csl-entry" role="listitem">
-Windle, Jesse. 2023. <span>“<span>BayesLogit</span>: <span>Bayesian</span> Logistic Regression.”</span> R package version 2.1.
-</div>
 <div id="ref-windle2014sampling" class="csl-entry" role="listitem">
 Windle, Jesse, Nicholas G. Polson, and James G. Scott. 2014. <span>“Sampling <span>Polya-Gamma</span> Random Variates: Alternate and Approximate Techniques.”</span> arXiv. <a href="https://arxiv.org/abs/1405.0506">https://arxiv.org/abs/1405.0506</a>.
+</div>
+<div id="ref-ye2023calibration" class="csl-entry" role="listitem">
+Ye, Tong, Shijing Si, Jianzong Wang, Ning Cheng, Zhitao Li, and Jing Xiao. 2023. <span>“On the Calibration and Uncertainty with <span>Pólya-Gamma</span> Augmentation for Dialog Retrieval Models.”</span> In <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>. <a href="https://arxiv.org/abs/2303.08606">https://arxiv.org/abs/2303.08606</a>.
 </div>
 <div id="ref-zhang2018scalable" class="csl-entry" role="listitem">
 Zhang, Yichi, Anirban Datta, and Sudipto Banerjee. 2018. <span>“Scalable <span>Gaussian</span> Process Classification with <span>Pólya-Gamma</span> Data Augmentation.”</span> <em>arXiv Preprint arXiv:1802.06383</em>. <a href="https://arxiv.org/abs/1802.06383">https://arxiv.org/abs/1802.06383</a>.
