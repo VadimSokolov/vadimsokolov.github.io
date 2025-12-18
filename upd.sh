@@ -4,7 +4,7 @@
 # quarto render index.qmd
 # quarto render research.qmd
 # quarto render course/568.qmd
-
+quarto render courses/caio/topic-overview-caio.qmd
 
 # quarto publish --no-render gh-pages
 

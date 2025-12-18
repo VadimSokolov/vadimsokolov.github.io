@@ -1,0 +1,698 @@
+---
+title: "Final Project Guide"
+subtitle: "Orange Juice Pricing Analytics Agent"
+author: "CAIO Executive Program"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    theme: cosmo
+    code-fold: false
+    code-tools: true
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+execute:
+  eval: false
+  echo: true
+---
+
+## Overview
+
+In this project, you will build an AI agent that helps a retail pricing analyst make decisions about orange juice pricing and promotions. The agent will:
+
+1. Load and explore sales data
+2. Build a regression model to predict sales
+3. Answer business questions using natural language
+
+**Time Required:** ~2 hours
+
+**Prerequisites:** 
+
+- Cursor IDE installed (see `cursor-setup-guide.md`)
+- Basic familiarity with Cursor from Zoom Session 1
+- Download the [project template](project_template.py) to get started quickly
+
+---
+
+## Part 1: Project Setup
+
+### Step 1.1: Create Your Project Folder
+
+1. Open Cursor IDE
+2. Click **File → Open Folder**
+3. Create a new folder called `oj-pricing-agent` on your computer
+4. Select that folder to open it in Cursor
+
+### Step 1.2: Create the Main Python File
+
+1. In the Cursor sidebar, right-click and select **New File**
+2. Name it `oj_agent.py`
+3. You'll see an empty file open in the editor
+
+### Step 1.3: Copy the Dataset
+
+Download the [oj_data.csv](oj_data.csv) file and copy it into your `oj-pricing-agent` folder.
+
+---
+
+## Part 2: Data Loading and Exploration
+
+### Step 2.1: Load the Required Libraries
+
+In your `oj_agent.py` file, start by adding these lines at the top:
+
+```{python eval=false}
+# Required libraries
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+import warnings
+warnings.filterwarnings('ignore')
+```
+
+**What this does:** These libraries help us work with data (pandas), do math (numpy), and build models (sklearn).
+
+### Step 2.2: Load the Data
+
+Add the following code to load the orange juice sales data:
+
+```{python eval=false}
+# Load the orange juice dataset
+print("Loading data...")
+df = pd.read_csv('oj_data.csv')
+
+# Display basic information
+print(f"Dataset has {len(df)} rows and {len(df.columns)} columns")
+print(f"\nColumns: {list(df.columns)}")
+print(f"\nBrands in dataset: {df['brand'].unique()}")
+print(f"\nPrice range: ${df['price'].min():.2f} - ${df['price'].max():.2f}")
+print(f"\nSample of data:")
+print(df.head())
+```
+
+### Step 2.3: Run Your Code (First Test)
+
+1. Save the file (Ctrl+S or Cmd+S)
+2. Open the terminal in Cursor: **View → Terminal**
+3. Run the script:
+
+```bash
+python oj_agent.py
+```
+
+You should see output showing:
+
+- The dataset has ~28,000 rows
+- Three brands: Tropicana, Minute Maid, Dominick's
+- Price ranges from about $1 to $4
+
+**Troubleshooting:** If you get an error about missing packages, run:
+
+```bash
+pip install pandas numpy scikit-learn
+```
+
+---
+
+## Part 3: Building the Regression Model
+
+### Step 3.1: Understanding the Model
+
+We're building a model that predicts **log of sales volume** based on:
+
+- **Price:** Higher price → lower sales (negative relationship)
+- **Featured (feat):** If the product is in the weekly ad circular (1 = yes, 0 = no)
+- **Brand:** Different brands have different base sales levels
+- **Price × Brand interaction:** Price sensitivity varies by brand
+
+### Step 3.2: Prepare the Data for Modeling
+
+Add this code to prepare features for the model:
+
+```{python eval=false}
+# ============================================
+# PART 3: BUILD THE REGRESSION MODEL
+# ============================================
+
+print("\n" + "="*50)
+print("Building the pricing model...")
+print("="*50)
+
+# Create dummy variables for brand (one-hot encoding)
+# This converts 'brand' text into numbers the model can use
+brand_dummies = pd.get_dummies(df['brand'], prefix='brand', drop_first=False)
+
+# Create the feature matrix
+# We include: price, feat, brand dummies, and price*brand interactions
+X = pd.DataFrame({
+    'price': df['price'],
+    'feat': df['feat'],
+    'brand_minute.maid': brand_dummies['brand_minute.maid'],
+    'brand_tropicana': brand_dummies['brand_tropicana'],
+    # Interaction terms: price effect varies by brand
+    'price_x_minute.maid': df['price'] * brand_dummies['brand_minute.maid'],
+    'price_x_tropicana': df['price'] * brand_dummies['brand_tropicana']
+})
+
+# Target variable: log of sales (logmove)
+y = df['logmove']
+
+print(f"Features: {list(X.columns)}")
+print(f"Target: logmove (log of sales volume)")
+```
+
+### Step 3.3: Fit the Model
+
+Add code to train the regression model:
+
+```{python eval=false}
+# Fit the linear regression model
+model = LinearRegression()
+model.fit(X, y)
+
+# Display the coefficients
+print("\nModel Coefficients:")
+print("-" * 40)
+for feature, coef in zip(X.columns, model.coef_):
+    print(f"  {feature}: {coef:.4f}")
+print(f"  intercept: {model.intercept_:.4f}")
+
+# Calculate R-squared (how well the model fits)
+r_squared = model.score(X, y)
+print(f"\nModel R-squared: {r_squared:.3f}")
+print("(This means the model explains {:.1f}% of sales variation)".format(r_squared * 100))
+```
+
+### Step 3.4: Run and Verify the Model
+
+Save and run the script again. You should see coefficients like:
+
+- **price:** negative (higher price = lower sales)
+- **feat:** positive (being featured increases sales)
+- **brand coefficients:** capture baseline differences between brands
+- **interaction terms:** show how price sensitivity differs by brand
+
+---
+
+## Part 4: Creating Helper Functions for the Agent
+
+### Step 4.1: Add Prediction Functions
+
+Add these functions that the agent will use to answer questions:
+
+```{python eval=false}
+# ============================================
+# PART 4: HELPER FUNCTIONS FOR THE AGENT
+# ============================================
+
+def predict_sales(brand, price, featured=0):
+    """
+    Predict sales volume for a given brand, price, and feature status.
+    
+    Args:
+        brand: 'tropicana', 'minute.maid', or 'dominicks'
+        price: price in dollars (e.g., 2.50)
+        featured: 1 if in ad circular, 0 if not
+    
+    Returns:
+        Predicted sales volume (not log-transformed)
+    """
+    # Create feature vector
+    features = {
+        'price': price,
+        'feat': featured,
+        'brand_minute.maid': 1 if brand.lower() == 'minute.maid' else 0,
+        'brand_tropicana': 1 if brand.lower() == 'tropicana' else 0,
+        'price_x_minute.maid': price if brand.lower() == 'minute.maid' else 0,
+        'price_x_tropicana': price if brand.lower() == 'tropicana' else 0
+    }
+    
+    # Convert to dataframe for prediction
+    X_pred = pd.DataFrame([features])
+    
+    # Predict log sales, then convert back
+    log_sales = model.predict(X_pred)[0]
+    sales = np.exp(log_sales)
+    
+    return sales
+
+
+def get_price_elasticity(brand):
+    """
+    Calculate the price elasticity for a given brand.
+    
+    Price elasticity tells us: if price increases by 1%, 
+    how much does quantity demanded change (in %)?
+    
+    A more negative number means more price-sensitive.
+    """
+    # Base price coefficient
+    base_coef = model.coef_[0]  # price coefficient
+    
+    # Add brand-specific interaction if applicable
+    if brand.lower() == 'minute.maid':
+        interaction_coef = model.coef_[4]  # price_x_minute.maid
+    elif brand.lower() == 'tropicana':
+        interaction_coef = model.coef_[5]  # price_x_tropicana
+    else:  # dominicks (base case)
+        interaction_coef = 0
+    
+    total_elasticity = base_coef + interaction_coef
+    return total_elasticity
+
+
+def get_advertising_lift(brand):
+    """
+    Calculate the sales lift from being featured in advertising.
+    Returns the percentage increase in sales.
+    """
+    # The 'feat' coefficient tells us the log-sales increase
+    feat_coef = model.coef_[1]  # feat coefficient
+    
+    # Convert from log to percentage change
+    percentage_lift = (np.exp(feat_coef) - 1) * 100
+    return percentage_lift
+
+
+def find_optimal_price(brand, min_price=1.0, max_price=4.0, featured=0):
+    """
+    Find the price that maximizes revenue for a brand.
+    Revenue = Price × Quantity
+    """
+    best_price = min_price
+    best_revenue = 0
+    
+    # Search through price range
+    for price in np.arange(min_price, max_price, 0.05):
+        sales = predict_sales(brand, price, featured)
+        revenue = price * sales
+        
+        if revenue > best_revenue:
+            best_revenue = revenue
+            best_price = price
+    
+    return best_price, best_revenue
+
+
+def compare_elasticities():
+    """
+    Compare price elasticity across all three brands.
+    """
+    brands = ['dominicks', 'minute.maid', 'tropicana']
+    results = {}
+    
+    for brand in brands:
+        elasticity = get_price_elasticity(brand)
+        results[brand] = elasticity
+    
+    return results
+```
+
+### Step 4.2: Test the Helper Functions
+
+Add test code to verify the functions work:
+
+```{python eval=false}
+# ============================================
+# TEST THE HELPER FUNCTIONS
+# ============================================
+
+print("\n" + "="*50)
+print("Testing helper functions...")
+print("="*50)
+
+# Test prediction
+test_sales = predict_sales('tropicana', 2.50, featured=0)
+print(f"\nPredicted sales for Tropicana at $2.50 (no ad): {test_sales:.0f} units")
+
+# Test elasticity
+elasticities = compare_elasticities()
+print("\nPrice Elasticities by Brand:")
+for brand, elast in elasticities.items():
+    print(f"  {brand}: {elast:.3f}")
+
+# Test advertising lift
+lift = get_advertising_lift('minute.maid')
+print(f"\nAdvertising lift: {lift:.1f}% increase in sales")
+
+# Test optimal price
+opt_price, opt_rev = find_optimal_price('dominicks')
+print(f"\nOptimal price for Dominick's: ${opt_price:.2f} (revenue: ${opt_rev:.2f})")
+```
+
+Run the script again to verify all functions work correctly.
+
+---
+
+## Part 5: Creating the AI Agent
+
+### Step 5.1: Add the Agent Logic
+
+Now we'll create the agent that interprets natural language questions and calls the appropriate functions. Add this code:
+
+```{python eval=false}
+# ============================================
+# PART 5: THE AI AGENT
+# ============================================
+
+def answer_question(question):
+    """
+    Simple agent that answers business questions about OJ pricing.
+    
+    This is a rule-based agent that matches keywords in the question
+    to determine which analysis to perform.
+    """
+    question_lower = question.lower()
+    
+    # Question 1: Predict sales for specific scenario
+    if 'predict' in question_lower or 'sales volume' in question_lower:
+        # Extract brand and price from question if possible
+        if 'tropicana' in question_lower:
+            brand = 'tropicana'
+        elif 'minute maid' in question_lower:
+            brand = 'minute.maid'
+        else:
+            brand = 'dominicks'
+        
+        # Look for price (default to $2.50 if not found)
+        import re
+        price_match = re.search(r'\$?(\d+\.?\d*)', question_lower)
+        price = float(price_match.group(1)) if price_match else 2.50
+        
+        # Check for advertising
+        featured = 1 if 'advertis' in question_lower or 'feature' in question_lower else 0
+        if 'no advertis' in question_lower or 'without advertis' in question_lower:
+            featured = 0
+        
+        sales = predict_sales(brand, price, featured)
+        
+        response = f"""
+**Predicted Sales Analysis**
+
+Brand: {brand.title().replace('.', ' ')}
+Price: ${price:.2f}
+Featured in Ad: {'Yes' if featured else 'No'}
+
+**Predicted Sales Volume: {sales:,.0f} units**
+
+This prediction is based on our regression model that accounts for:
+- Base demand for this brand
+- Price sensitivity (elasticity)  
+- Advertising effects
+"""
+        return response
+    
+    # Question 2: Which brand is most price-sensitive?
+    elif 'price-sensitive' in question_lower or 'price sensitive' in question_lower or 'most sensitive' in question_lower:
+        elasticities = compare_elasticities()
+        
+        # Find most price-sensitive (most negative elasticity)
+        most_sensitive = min(elasticities, key=elasticities.get)
+        
+        response = f"""
+**Price Sensitivity Analysis**
+
+Price Elasticity by Brand:
+"""
+        for brand, elast in sorted(elasticities.items(), key=lambda x: x[1]):
+            sensitivity = "HIGH" if elast < -3 else "MEDIUM" if elast < -2 else "LOW"
+            response += f"- {brand.title().replace('.', ' ')}: {elast:.3f} ({sensitivity} sensitivity)\n"
+        
+        response += f"""
+**Most Price-Sensitive: {most_sensitive.title().replace('.', ' ')}**
+
+Interpretation: A 1% price increase leads to a {abs(elasticities[most_sensitive]):.1f}% decrease in sales for {most_sensitive.title().replace('.', ' ')}.
+
+Business Implication: Be careful with price increases on {most_sensitive.title().replace('.', ' ')} - customers are very responsive to price changes.
+"""
+        return response
+    
+    # Question 3: Should we feature a brand in advertising?
+    elif 'feature' in question_lower or 'ad circular' in question_lower or 'advertising' in question_lower:
+        if 'minute maid' in question_lower:
+            brand = 'minute.maid'
+        elif 'tropicana' in question_lower:
+            brand = 'tropicana'
+        else:
+            brand = 'dominicks'
+        
+        lift = get_advertising_lift(brand)
+        
+        # Calculate example impact
+        base_sales = predict_sales(brand, 2.50, featured=0)
+        featured_sales = predict_sales(brand, 2.50, featured=1)
+        
+        response = f"""
+**Advertising Impact Analysis for {brand.title().replace('.', ' ')}**
+
+Expected Sales Lift from Featuring: **{lift:.1f}%**
+
+Example at $2.50:
+- Without advertising: {base_sales:,.0f} units
+- With advertising: {featured_sales:,.0f} units  
+- Additional sales: {featured_sales - base_sales:,.0f} units
+
+**Recommendation:** {'Yes, feature this product!' if lift > 20 else 'Consider the advertising cost vs. the sales lift.'}
+
+The advertising effect is consistent across price points. Factor in your advertising costs to determine if the sales lift justifies the expense.
+"""
+        return response
+    
+    # Question 4: Optimal price for a brand
+    elif 'optimal price' in question_lower or 'maximize revenue' in question_lower or 'best price' in question_lower:
+        if 'minute maid' in question_lower:
+            brand = 'minute.maid'
+        elif 'tropicana' in question_lower:
+            brand = 'tropicana'
+        else:
+            brand = 'dominicks'
+        
+        opt_price, opt_revenue = find_optimal_price(brand)
+        opt_sales = predict_sales(brand, opt_price, featured=0)
+        
+        # Compare with current average price
+        avg_price = df[df['brand'] == brand]['price'].mean()
+        avg_revenue = avg_price * predict_sales(brand, avg_price, featured=0)
+        
+        response = f"""
+**Revenue Optimization for {brand.title().replace('.', ' ')}**
+
+**Optimal Price: ${opt_price:.2f}**
+
+At optimal price:
+- Predicted sales: {opt_sales:,.0f} units
+- Revenue per store-week: ${opt_revenue:,.2f}
+
+Comparison with current average (${avg_price:.2f}):
+- Current revenue: ${avg_revenue:,.2f}
+- Potential improvement: ${opt_revenue - avg_revenue:,.2f} ({((opt_revenue/avg_revenue)-1)*100:.1f}%)
+
+Note: This optimization assumes no competitor response and stable market conditions.
+"""
+        return response
+    
+    # Question 5: Compare elasticities across brands
+    elif 'compare' in question_lower or 'elasticity' in question_lower or 'across' in question_lower:
+        elasticities = compare_elasticities()
+        
+        response = """
+**Price Elasticity Comparison Across Brands**
+
+| Brand | Elasticity | Interpretation |
+|-------|------------|----------------|
+"""
+        for brand, elast in sorted(elasticities.items(), key=lambda x: x[1]):
+            interp = f"1% price ↑ → {abs(elast):.1f}% sales ↓"
+            response += f"| {brand.title().replace('.', ' ')} | {elast:.3f} | {interp} |\n"
+        
+        response += """
+**Key Insights:**
+
+1. **Dominick's** (store brand) is least price-sensitive - customers buying store brands may prioritize value and be less responsive to small price changes.
+
+2. **Tropicana** shows moderate price sensitivity - as a premium brand, some customers are loyal but others will switch if prices rise.
+
+3. **Minute Maid** is most price-sensitive - positioned between store and premium brands, these customers actively compare prices.
+
+**Strategic Implications:**
+- Use competitive pricing on Minute Maid to capture price-sensitive shoppers
+- Tropicana can sustain moderate price premiums
+- Dominick's margins can be optimized with less risk of volume loss
+"""
+        return response
+    
+    else:
+        return """
+I can help you with these types of questions:
+
+1. **Sales Prediction:** "What is the predicted sales volume if we price Tropicana at $2.50?"
+2. **Price Sensitivity:** "Which brand is most price-sensitive?"
+3. **Advertising Impact:** "Should we feature Minute Maid in the ad circular?"
+4. **Price Optimization:** "What price should we set for Dominick's to maximize revenue?"
+5. **Elasticity Comparison:** "Compare the price elasticity across brands"
+
+Please try one of these questions!
+"""
+```
+
+### Step 5.2: Add the Interactive Interface
+
+Finally, add code to let users interact with the agent:
+
+```{python eval=false}
+# ============================================
+# PART 6: INTERACTIVE AGENT INTERFACE
+# ============================================
+
+def run_agent():
+    """
+    Run the interactive agent interface.
+    """
+    print("\n" + "="*60)
+    print("🍊 ORANGE JUICE PRICING ANALYTICS AGENT 🍊")
+    print("="*60)
+    print("\nHello! I'm your pricing analytics assistant.")
+    print("I can help you analyze orange juice pricing and promotions.")
+    print("\nTry asking me questions like:")
+    print("  - What is the predicted sales if we price Tropicana at $2.50?")
+    print("  - Which brand is most price-sensitive?")
+    print("  - Should we feature Minute Maid in the ad circular?")
+    print("  - What price maximizes revenue for Dominick's?")
+    print("  - Compare price elasticity across brands")
+    print("\nType 'quit' to exit.\n")
+    
+    while True:
+        question = input("Your question: ").strip()
+        
+        if question.lower() in ['quit', 'exit', 'q']:
+            print("\nThank you for using the OJ Pricing Agent. Goodbye!")
+            break
+        
+        if not question:
+            continue
+        
+        print("\n" + "-"*50)
+        response = answer_question(question)
+        print(response)
+        print("-"*50 + "\n")
+
+
+# ============================================
+# MAIN: RUN THE AGENT
+# ============================================
+
+if __name__ == "__main__":
+    # Run the interactive agent
+    run_agent()
+```
+
+---
+
+## Part 6: Testing Your Agent
+
+### Step 6.1: Run the Complete Script
+
+Save the file and run:
+
+```bash
+python oj_agent.py
+```
+
+### Step 6.2: Test All Five Required Questions
+
+Test your agent with these exact questions:
+
+1. **"What is the predicted sales volume if we price Tropicana at $2.50 with no advertising?"**
+
+2. **"Which brand is most price-sensitive?"**
+
+3. **"Should we feature Minute Maid in this week's ad circular? What's the expected sales lift?"**
+
+4. **"What price should we set for Dominick's brand to maximize revenue?"**
+
+5. **"Compare the price elasticity across the three brands."**
+
+Record the answers for your summary document.
+
+---
+
+## Part 7: Writing Your Summary
+
+Create a 1-page document (Word or PDF) that includes:
+
+### Section 1: Key Findings (half page)
+
+- Which brand is most/least price-sensitive and why this matters
+- The impact of advertising on sales
+- The optimal pricing recommendations
+
+### Section 2: Surprises and Insights (quarter page)
+
+- What surprised you about the results?
+- How do these findings compare to your intuition?
+
+### Section 3: Business Implications (quarter page)
+
+- How would you recommend a retailer use these insights?
+- What additional data would make this analysis more useful?
+
+---
+
+## Part 8: Preparing Your Demo
+
+For Zoom Session 3, prepare a 2-3 minute demonstration:
+
+1. **Setup (30 sec):** Briefly explain what the agent does
+2. **Demo (1.5 min):** Show 2-3 questions and responses
+3. **Insight (1 min):** Share your most interesting finding
+
+**Tips:**
+
+- Have your script running before you share screen
+- Pre-type a question so you're not typing live
+- Focus on business insights, not technical details
+
+---
+
+## Troubleshooting
+
+### "ModuleNotFoundError: No module named 'pandas'"
+
+Run: `pip install pandas numpy scikit-learn`
+
+### "FileNotFoundError: oj_data.csv"
+
+Make sure the data file is in the same folder as your Python script.
+
+### "Model coefficients look wrong"
+
+Check that your data loaded correctly - you should have ~28,000 rows.
+
+### "Agent doesn't understand my question"
+
+Try rephrasing using keywords like "predict", "price-sensitive", "feature", "optimal", or "compare".
+
+---
+
+## Complete Code Reference
+
+The complete `oj_agent.py` file should be approximately 350-400 lines. If you get stuck, ask Cursor's AI assistant for help by selecting your code and pressing Cmd+K (Mac) or Ctrl+K (Windows), then describing your issue.
+
+---
+
+## Next Steps (Optional Enhancements)
+
+If you finish early and want to explore further:
+
+1. **Add more questions:** What other business questions could the agent answer?
+2. **Improve the NLP:** Use fuzzy matching to better understand varied phrasings
+3. **Add visualizations:** Create charts showing price vs. sales by brand
+4. **Connect to an LLM:** Use the OpenAI API to make the agent truly conversational
+
+Good luck with your project! 🍊
+
