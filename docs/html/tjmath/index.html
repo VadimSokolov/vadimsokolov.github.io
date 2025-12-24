@@ -6,6 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>TJ Math Quiz</title>
+    <!-- Version: 2.0.2 - Fixed numeric substring matching - Cache bust: 20251224-2 -->
     <style>
         * {
             margin: 0;
@@ -748,7 +749,7 @@
 
         <!-- Focus Area Selection Screen -->
         <div id="selectionScreen" class="screen">
-            <h1>TJ Math Quiz</h1>
+            <h1>TJ Math Quiz <span style="font-size: 0.4em; color: #999;">v2.1.2</span></h1>
             <p class="subtitle">Select the focus areas you want to practice</p>
 
             <div class="select-all-container">
@@ -1166,10 +1167,20 @@
 
         function checkAnswer(studentAnswer, correctAnswer) {
             // ===================================================================
-            // ULTRA-ROBUST ANSWER CHECKER
+            // ULTRA-ROBUST ANSWER CHECKER v2.0.2
             // Handles: fractions, percentages, decimals, multiple answers,
             // blood types, units, spacing, capitalization, punctuation
             // ===================================================================
+            
+            // IMPORTANT: Check for time format BEFORE normalization (which removes colons)
+            const looksLikeTime = (str) => /\d+:\d+|am|pm|minutes?|hours?|o'clock/i.test(str);
+            const isTimeBased = looksLikeTime(studentAnswer) || looksLikeTime(correctAnswer);
+            
+            // DEBUG: Log to console
+            console.log('=== Answer Checker v2.1.2 ===');
+            console.log('Student:', studentAnswer);
+            console.log('Correct:', correctAnswer);
+            console.log('isTimeBased:', isTimeBased);
             
             // Step 1: Aggressive normalization
             const aggressiveNormalize = (str) => {
@@ -1195,7 +1206,7 @@
             const ultraNormalize = (str) => {
                 return str
                     .toLowerCase()
-                    .replace(/[^a-z0-9./%-]/g, '');  // Keep only letters, numbers, /, ., %, -
+                    .replace(/[^a-z0-9./%-:]/g, '');  // Keep only letters, numbers, /, ., %, -, :
             };
 
             const studentUltra = ultraNormalize(studentAnswer);
@@ -1204,6 +1215,7 @@
             if (studentUltra === correctUltra) return true;
 
             // Step 4: Numeric comparison with units
+            // Extract numbers first (needed by multiple steps)
             const extractNumber = (str) => {
                 const match = str.match(/[-+]?[0-9]*\.?[0-9]+/);
                 return match ? parseFloat(match[0]) : NaN;
@@ -1212,9 +1224,14 @@
             const studentNum = extractNumber(student);
             const correctNum = extractNumber(correct);
             
-            if (!isNaN(studentNum) && !isNaN(correctNum)) {
-                // Allow small floating point differences
-                if (Math.abs(studentNum - correctNum) < 0.01) return true;
+            // SKIP numeric comparison if either answer is time-based
+            if (!isTimeBased) {
+                if (!isNaN(studentNum) && !isNaN(correctNum)) {
+                    // For numeric answers, require the numbers to actually match
+                    // Allow small floating point differences (0.1 for rounding)
+                    const tolerance = Math.max(0.1, Math.abs(correctNum) * 0.01); // 1% or 0.1, whichever is larger
+                    if (Math.abs(studentNum - correctNum) <= tolerance) return true;
+                }
             }
 
             // Step 5: Fraction to percentage conversion (and vice versa)
@@ -1327,11 +1344,19 @@
                 const allElementsPresent = correctElements.every(elem => 
                     studentElements.some(sElem => {
                         if (sElem === elem) return true;
-                        if (sElem.includes(elem) || elem.includes(sElem)) return true;
-                        // Check numeric equivalence
+                        
+                        // Check numeric equivalence FIRST before substring matching
                         const sNum = parseFloat(sElem);
                         const cNum = parseFloat(elem);
-                        if (!isNaN(sNum) && !isNaN(cNum) && Math.abs(sNum - cNum) < 0.01) return true;
+                        
+                        // If both are numbers, only match if they're actually equal
+                        if (!isNaN(sNum) && !isNaN(cNum)) {
+                            return Math.abs(sNum - cNum) < 0.01;
+                        }
+                        
+                        // Only do substring matching for non-numeric text
+                        if (sElem.includes(elem) || elem.includes(sElem)) return true;
+                        
                         return false;
                     })
                 );
@@ -1341,9 +1366,46 @@
                 }
             }
 
-            // Step 9: Substring matching (for units)
-            if (correct.includes(student) || student.includes(correct)) {
-                return true;
+            // Step 9: Extract quantity and units, compare separately
+            // BUT: Skip this for time-based answers (they need exact format matching)
+            // ALSO: Skip if correct answer is a fraction (handled in Step 5)
+            const isFraction = (str) => /\d+\/\d+/.test(str);
+            
+            if (!isTimeBased && !isFraction(correct)) {
+                const extractQuantityAndUnits = (str) => {
+                    const numMatch = str.match(/[-+]?[0-9]*\.?[0-9]+/);
+                    const quantity = numMatch ? parseFloat(numMatch[0]) : NaN;
+                    const units = str.replace(/[-+]?[0-9]*\.?[0-9]+/g, '').trim();
+                    return { quantity, units };
+                };
+                
+                const studentParts = extractQuantityAndUnits(student);
+                const correctParts = extractQuantityAndUnits(correct);
+                
+                // If both have quantities, they must match (within tolerance)
+                if (!isNaN(studentParts.quantity) && !isNaN(correctParts.quantity)) {
+                    const tolerance = Math.max(0.1, Math.abs(correctParts.quantity) * 0.01);
+                    const quantitiesMatch = Math.abs(studentParts.quantity - correctParts.quantity) <= tolerance;
+                    
+                    // If quantities match, check if units are compatible
+                    if (quantitiesMatch) {
+                        // Units match if they're the same or one contains the other (for abbreviations)
+                        const unitsMatch = studentParts.units === correctParts.units ||
+                                         studentParts.units.includes(correctParts.units) ||
+                                         correctParts.units.includes(studentParts.units) ||
+                                         studentParts.units === '' ||  // Student didn't provide units
+                                         correctParts.units === '';     // Correct answer has no units
+                        
+                        if (unitsMatch) return true;
+                    }
+                }
+                
+                // For non-numeric answers, do substring matching
+                if (isNaN(studentParts.quantity) && isNaN(correctParts.quantity)) {
+                    if (correct.includes(student) || student.includes(correct)) {
+                        return true;
+                    }
+                }
             }
 
             // Step 10: Try removing all non-alphanumeric except decimal points and slashes
@@ -1356,16 +1418,33 @@
             }
 
             // Step 11: Last resort - check if the numeric values and key words match
-            if (!isNaN(studentNum) && !isNaN(correctNum) && Math.abs(studentNum - correctNum) < 0.01) {
-                // Numbers match, check if units/words are similar
-                const studentWords = student.replace(/[0-9.]/g, '').trim();
-                const correctWords = correct.replace(/[0-9.]/g, '').trim();
+            // But NOT for time-based answers
+            if (!isTimeBased) {
+                const extractNumber = (str) => {
+                    const match = str.match(/[-+]?[0-9]*\.?[0-9]+/);
+                    return match ? parseFloat(match[0]) : NaN;
+                };
                 
-                if (studentWords === correctWords || 
-                    studentWords.includes(correctWords) || 
-                    correctWords.includes(studentWords) ||
-                    studentWords === '' || correctWords === '') {
-                    return true;
+                const studentNum = extractNumber(student);
+                const correctNum = extractNumber(correct);
+                const tolerance = Math.max(0.1, Math.abs(correctNum) * 0.01);
+                
+                if (!isNaN(studentNum) && !isNaN(correctNum) && Math.abs(studentNum - correctNum) <= tolerance) {
+                    // Numbers match within tolerance, check if units/words are similar
+                    const studentWords = student.replace(/[0-9.]/g, '').trim();
+                    const correctWords = correct.replace(/[0-9.]/g, '').trim();
+                    
+                    // Accept if units match or are similar
+                    if (studentWords === correctWords || 
+                        studentWords.includes(correctWords) || 
+                        correctWords.includes(studentWords)) {
+                        return true;
+                    }
+                    
+                    // Only accept missing units if the number is small (< 1000) and exact
+                    if ((studentWords === '' || correctWords === '') && Math.abs(studentNum - correctNum) < 0.01) {
+                        return true;
+                    }
                 }
             }
 
