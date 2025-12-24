@@ -263,13 +263,200 @@ This will:
 
 ### Adding New Problem Types
 
-To add new problem templates:
+To add new problem templates to existing packets:
 
 1. Open `scripts/generate_bank.py`
 2. Find the relevant packet function (e.g., `packet5_punnett()`)
 3. Add new template in the `if template == X:` section
 4. Ensure proper parameter randomization and solution calculation
 5. Run generator to test new problems
+
+### Adding a New Packet
+
+To add a completely new packet (e.g., Packet 7) with new focus areas:
+
+**Step 1: Create Source Packet File**
+
+Create a new text file in the `packets/` directory:
+```
+packets/Packet 7 - Your Topic Names.txt
+```
+
+Structure it with sections:
+```
+PACKET 7 – Your Topic Names
+
+PROBLEMS
+Section A: First Topic
+1. Example problem 1...
+2. Example problem 2...
+...
+
+Section B: Second Topic
+11. Example problem 11...
+...
+
+Section C: Third Topic
+21. Example problem 21...
+...
+
+SOLUTIONS
+Section A: First Topic
+1. Solution: Step-by-step explanation...
+   * Answer: 42
+...
+```
+
+**Step 2: Implement Generator Functions**
+
+Open `scripts/generate_bank.py` and add three new functions (one per section):
+
+```python
+def packet7_first_topic(packet, section, count):
+    """First topic problems"""
+    problems = []
+    
+    for i in range(count):
+        variant = i + 1
+        template = i % 10  # 10 templates
+        
+        if template == 0:
+            # Generate parameters
+            param1 = random.choice([10, 20, 30, 40])
+            param2 = random.randint(5, 15)
+            
+            # Calculate answer
+            answer = param1 * param2
+            
+            # Create problem
+            problems.append({
+                "id": generate_problem_id(packet, section, variant),
+                "prompt": f"Your problem text with {param1} and {param2}...",
+                "answer": f"{answer} units",
+                "solution": f"Step 1: Multiply {param1} × {param2}\nAnswer: {answer}",
+                "source": f"Packet {packet}, Section {section}"
+            })
+        
+        elif template == 1:
+            # Second template...
+            pass
+        
+        # Add templates 2-9...
+    
+    return problems
+
+def packet7_second_topic(packet, section, count):
+    """Second topic problems"""
+    # Similar structure...
+    pass
+
+def packet7_third_topic(packet, section, count):
+    """Third topic problems"""
+    # Similar structure...
+    pass
+```
+
+**Step 3: Update Main Generation Code**
+
+In `generate_bank.py`, find the main generation section and add your packet:
+
+```python
+# After existing packet generation code, add:
+
+print("Generating Packet 7...")
+packet7_problems = []
+
+# Section A: First Topic
+print("  Section A: First Topic")
+section_a = packet7_first_topic(7, 'A', 100)
+packet7_problems.append({
+    "section": "A",
+    "name": "First Topic",
+    "problems": section_a
+})
+
+# Section B: Second Topic
+print("  Section B: Second Topic")
+section_b = packet7_second_topic(7, 'B', 100)
+packet7_problems.append({
+    "section": "B",
+    "name": "Second Topic",
+    "problems": section_b
+})
+
+# Section C: Third Topic
+print("  Section C: Third Topic")
+section_c = packet7_third_topic(7, 'C', 100)
+packet7_problems.append({
+    "section": "C",
+    "name": "Third Topic",
+    "problems": section_c
+})
+
+packets.append({
+    "packetNumber": 7,
+    "title": "Your Topic Names",
+    "focusAreas": packet7_problems
+})
+```
+
+**Step 4: Update Metadata**
+
+Update the metadata at the top of the generation code:
+
+```python
+meta = {
+    "generated": datetime.now().isoformat(),
+    "generator_version": "1.0",
+    "random_seed": 42,
+    "total_packets": 7,  # Changed from 6
+    "total_focus_areas": 21,  # Changed from 18
+    "problems_per_focus_area": 100
+}
+```
+
+**Step 5: Test Generation**
+
+Run the generator to create the new problems:
+```bash
+cd /Users/vsokolov/www/html/tjmath
+python3 scripts/generate_bank.py
+```
+
+Verify the output:
+- Check `bank.json` has 2,100 problems (was 1,800)
+- Verify Packet 7 problems display correctly
+- Test a few problems manually for correctness
+
+**Step 6: Update Quiz Interface**
+
+The quiz app (`index.html`) automatically reads all packets from `bank.json`, so it will automatically show the new focus areas. No code changes needed!
+
+**Step 7: Update Documentation**
+
+Update this README.md:
+- Add Packet 7 to the "Available Focus Areas" section
+- Update problem counts (2,100 total, 21 focus areas)
+- Add implementation details in the "Key Implementation Details" section
+
+**Tips for New Packets**:
+- Start with 10 simple templates, add complexity later
+- Test each template individually before generating all 100
+- Use realistic parameter ranges based on your source problems
+- Include units in answers where appropriate
+- Show all work in solutions for educational value
+- Verify mathematical correctness for all edge cases
+
+**Quick Checklist for Adding Packet 7**:
+- [ ] Create `packets/Packet 7 - Topic Names.txt` with problems and solutions
+- [ ] Add `packet7_section_a()`, `packet7_section_b()`, `packet7_section_c()` functions
+- [ ] Implement 10 templates per function (templates 0-9)
+- [ ] Add packet generation code to main section
+- [ ] Update metadata (total_packets=7, total_focus_areas=21)
+- [ ] Run `python3 scripts/generate_bank.py`
+- [ ] Verify `bank.json` has 2,100 problems
+- [ ] Test problems in quiz interface at http://localhost:8000
+- [ ] Update README.md with new packet details
 
 ### Template Pattern
 
