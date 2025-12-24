@@ -937,19 +937,109 @@
             // Exact match
             if (student === correct) return true;
 
-            // Try numeric comparison
-            const studentNum = parseFloat(student);
-            const correctNum = parseFloat(correct);
+            // Try numeric comparison with units
+            const extractNumber = (str) => {
+                const match = str.match(/[-+]?[0-9]*\.?[0-9]+/);
+                return match ? parseFloat(match[0]) : NaN;
+            };
+            
+            const studentNum = extractNumber(student);
+            const correctNum = extractNumber(correct);
             
             if (!isNaN(studentNum) && !isNaN(correctNum)) {
                 // Allow small floating point differences
-                return Math.abs(studentNum - correctNum) < 0.01;
+                if (Math.abs(studentNum - correctNum) < 0.01) return true;
+            }
+
+            // Convert fractions to percentages and compare
+            const fractionToPercent = (str) => {
+                const match = str.match(/(\d+)\/(\d+)/);
+                if (match) {
+                    return (parseInt(match[1]) / parseInt(match[2])) * 100;
+                }
+                return null;
+            };
+
+            const studentFrac = fractionToPercent(student);
+            const correctFrac = fractionToPercent(correct);
+            
+            // Check if student gave fraction and answer is percentage (or vice versa)
+            if (studentFrac !== null && correctNum !== null && correct.includes('%')) {
+                if (Math.abs(studentFrac - correctNum) < 0.01) return true;
+            }
+            if (correctFrac !== null && studentNum !== null && student.includes('%')) {
+                if (Math.abs(studentNum - correctFrac) < 0.01) return true;
+            }
+            if (studentFrac !== null && correctFrac !== null) {
+                if (Math.abs(studentFrac - correctFrac) < 0.01) return true;
+            }
+
+            // Handle blood type answers - normalize "OO" to "O"
+            const normalizeBloodTypes = (str) => {
+                return str.replace(/\boo\b/gi, 'O')
+                          .replace(/type\s*/gi, '')
+                          .replace(/,?\s*or\s*/gi, ',')
+                          .replace(/\s+/g, '')
+                          .toLowerCase();
+            };
+
+            // Check if this looks like a blood type answer
+            if (/type|blood/i.test(correct) || /\b[abo]+\b/i.test(correct)) {
+                const studentBlood = normalizeBloodTypes(student);
+                const correctBlood = normalizeBloodTypes(correct);
+                
+                // Split into sets and compare
+                const studentSet = new Set(studentBlood.split(',').map(s => s.trim()).filter(s => s));
+                const correctSet = new Set(correctBlood.split(',').map(s => s.trim()).filter(s => s));
+                
+                // Check if sets are equal
+                if (studentSet.size === correctSet.size && 
+                    [...studentSet].every(item => correctSet.has(item))) {
+                    return true;
+                }
+            }
+
+            // Handle multiple acceptable answers separated by commas or "or"
+            const splitAnswers = (str) => {
+                return str.split(/,|\bor\b/i)
+                          .map(s => normalize(s))
+                          .filter(s => s.length > 0);
+            };
+
+            const correctOptions = splitAnswers(correct);
+            const studentOptions = splitAnswers(student);
+
+            // Check if student provided all correct options (order doesn't matter)
+            if (correctOptions.length > 1 && studentOptions.length > 0) {
+                const allMatch = studentOptions.every(sOpt => 
+                    correctOptions.some(cOpt => {
+                        // Check for substring match or numeric equivalence
+                        if (cOpt.includes(sOpt) || sOpt.includes(cOpt)) return true;
+                        const sNum = extractNumber(sOpt);
+                        const cNum = extractNumber(cOpt);
+                        if (!isNaN(sNum) && !isNaN(cNum) && Math.abs(sNum - cNum) < 0.01) return true;
+                        return false;
+                    })
+                );
+                if (allMatch && studentOptions.length === correctOptions.length) return true;
             }
 
             // Check if student answer is contained in correct answer (for units)
             if (correct.includes(student) || student.includes(correct)) {
                 return true;
             }
+
+            // Remove common words and check again
+            const removeCommonWords = (str) => {
+                return str.replace(/\b(the|a|an|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|should|could|may|might|must|can)\b/gi, ' ')
+                          .replace(/\s+/g, ' ')
+                          .trim();
+            };
+
+            const studentClean = removeCommonWords(student);
+            const correctClean = removeCommonWords(correct);
+
+            if (studentClean === correctClean) return true;
 
             return false;
         }

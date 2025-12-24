@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Answer Checker Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Answer Checker Tests</h1>
+    <div id="results"></div>
+
+    <script>
+        function checkAnswer(studentAnswer, correctAnswer) {
+            // Normalize both answers
+            const normalize = (str) => str.toLowerCase().trim().replace(/\s+/g, ' ');
+            const student = normalize(studentAnswer);
+            const correct = normalize(correctAnswer);
+
+            // Exact match
+            if (student === correct) return true;
+
+            // Try numeric comparison with units
+            const extractNumber = (str) => {
+                const match = str.match(/[-+]?[0-9]*\.?[0-9]+/);
+                return match ? parseFloat(match[0]) : NaN;
+            };
+            
+            const studentNum = extractNumber(student);
+            const correctNum = extractNumber(correct);
+            
+            if (!isNaN(studentNum) && !isNaN(correctNum)) {
+                // Allow small floating point differences
+                if (Math.abs(studentNum - correctNum) < 0.01) return true;
+            }
+
+            // Convert fractions to percentages and compare
+            const fractionToPercent = (str) => {
+                const match = str.match(/(\d+)\/(\d+)/);
+                if (match) {
+                    return (parseInt(match[1]) / parseInt(match[2])) * 100;
+                }
+                return null;
+            };
+
+            const studentFrac = fractionToPercent(student);
+            const correctFrac = fractionToPercent(correct);
+            
+            // Check if student gave fraction and answer is percentage (or vice versa)
+            if (studentFrac !== null && correctNum !== null && correct.includes('%')) {
+                if (Math.abs(studentFrac - correctNum) < 0.01) return true;
+            }
+            if (correctFrac !== null && studentNum !== null && student.includes('%')) {
+                if (Math.abs(studentNum - correctFrac) < 0.01) return true;
+            }
+            if (studentFrac !== null && correctFrac !== null) {
+                if (Math.abs(studentFrac - correctFrac) < 0.01) return true;
+            }
+
+            // Handle blood type answers - normalize "OO" to "O"
+            const normalizeBloodTypes = (str) => {
+                return str.replace(/\boo\b/gi, 'O')
+                          .replace(/type\s*/gi, '')
+                          .replace(/,?\s*or\s*/gi, ',')
+                          .replace(/\s+/g, '')
+                          .toLowerCase();
+            };
+
+            // Check if this looks like a blood type answer
+            if (/type|blood/i.test(correct) || /\b[abo]+\b/i.test(correct)) {
+                const studentBlood = normalizeBloodTypes(student);
+                const correctBlood = normalizeBloodTypes(correct);
+                
+                // Split into sets and compare
+                const studentSet = new Set(studentBlood.split(',').map(s => s.trim()).filter(s => s));
+                const correctSet = new Set(correctBlood.split(',').map(s => s.trim()).filter(s => s));
+                
+                // Check if sets are equal
+                if (studentSet.size === correctSet.size && 
+                    [...studentSet].every(item => correctSet.has(item))) {
+                    return true;
+                }
+            }
+
+            // Handle multiple acceptable answers separated by commas or "or"
+            const splitAnswers = (str) => {
+                return str.split(/,|\bor\b/i)
+                          .map(s => normalize(s))
+                          .filter(s => s.length > 0);
+            };
+
+            const correctOptions = splitAnswers(correct);
+            const studentOptions = splitAnswers(student);
+
+            // Check if student provided all correct options (order doesn't matter)
+            if (correctOptions.length > 1 && studentOptions.length > 0) {
+                const allMatch = studentOptions.every(sOpt => 
+                    correctOptions.some(cOpt => {
+                        // Check for substring match or numeric equivalence
+                        if (cOpt.includes(sOpt) || sOpt.includes(cOpt)) return true;
+                        const sNum = extractNumber(sOpt);
+                        const cNum = extractNumber(cOpt);
+                        if (!isNaN(sNum) && !isNaN(cNum) && Math.abs(sNum - cNum) < 0.01) return true;
+                        return false;
+                    })
+                );
+                if (allMatch && studentOptions.length === correctOptions.length) return true;
+            }
+
+            // Check if student answer is contained in correct answer (for units)
+            if (correct.includes(student) || student.includes(correct)) {
+                return true;
+            }
+
+            // Remove common words and check again
+            const removeCommonWords = (str) => {
+                return str.replace(/\b(the|a|an|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|should|could|may|might|must|can)\b/gi, ' ')
+                          .replace(/\s+/g, ' ')
+                          .trim();
+            };
+
+            const studentClean = removeCommonWords(student);
+            const correctClean = removeCommonWords(correct);
+
+            if (studentClean === correctClean) return true;
+
+            return false;
+        }
+
+        // Test cases
+        const tests = [
+            // Blood type tests
+            {
+                student: "Type A Type B Type AB Type OO",
+                correct: "Type A, Type B, Type AB, or Type O",
+                expected: true,
+                description: "Blood types with OO instead of O"
+            },
+            {
+                student: "Type A, Type B, Type AB, Type O",
+                correct: "Type A, Type B, Type AB, or Type O",
+                expected: true,
+                description: "Blood types exact match"
+            },
+            {
+                student: "A B AB O",
+                correct: "Type A, Type B, Type AB, or Type O",
+                expected: true,
+                description: "Blood types without 'Type' prefix"
+            },
+            
+            // Fraction vs percentage tests
+            {
+                student: "1/4",
+                correct: "25%",
+                expected: true,
+                description: "Fraction 1/4 equals 25%"
+            },
+            {
+                student: "25%",
+                correct: "1/4",
+                expected: true,
+                description: "Percentage 25% equals 1/4"
+            },
+            {
+                student: "1/2",
+                correct: "50%",
+                expected: true,
+                description: "Fraction 1/2 equals 50%"
+            },
+            {
+                student: "3/4",
+                correct: "75%",
+                expected: true,
+                description: "Fraction 3/4 equals 75%"
+            },
+            {
+                student: "1/16",
+                correct: "6.25%",
+                expected: true,
+                description: "Fraction 1/16 equals 6.25%"
+            },
+            
+            // Numeric tests
+            {
+                student: "42",
+                correct: "42",
+                expected: true,
+                description: "Exact numeric match"
+            },
+            {
+                student: "42.5",
+                correct: "42.5",
+                expected: true,
+                description: "Decimal match"
+            },
+            {
+                student: "100 miles",
+                correct: "100 miles",
+                expected: true,
+                description: "Number with units"
+            },
+            {
+                student: "100",
+                correct: "100 miles",
+                expected: true,
+                description: "Number without units (correct has units)"
+            },
+            
+            // Should fail tests
+            {
+                student: "1/4",
+                correct: "50%",
+                expected: false,
+                description: "Wrong fraction (should fail)"
+            },
+            {
+                student: "Type A",
+                correct: "Type A, Type B, Type AB, or Type O",
+                expected: false,
+                description: "Incomplete blood type list (should fail)"
+            }
+        ];
+
+        // Run tests
+        const results = document.getElementById('results');
+        let passed = 0;
+        let failed = 0;
+
+        tests.forEach((test, index) => {
+            const result = checkAnswer(test.student, test.correct);
+            const success = result === test.expected;
+            
+            if (success) passed++;
+            else failed++;
+
+            const div = document.createElement('div');
+            div.className = 'test';
+            div.innerHTML = `
+                <div><strong>Test ${index + 1}:</strong> ${test.description}</div>
+                <div>Student: "${test.student}"</div>
+                <div>Correct: "${test.correct}"</div>
+                <div>Expected: ${test.expected}, Got: ${result}</div>
+                <div class="${success ? 'pass' : 'fail'}">${success ? '✓ PASS' : '✗ FAIL'}</div>
+            `;
+            results.appendChild(div);
+        });
+
+        // Summary
+        const summary = document.createElement('div');
+        summary.style.marginTop = '20px';
+        summary.style.padding = '20px';
+        summary.style.background = passed === tests.length ? '#d4edda' : '#f8d7da';
+        summary.style.border = '2px solid ' + (passed === tests.length ? '#28a745' : '#dc3545');
+        summary.innerHTML = `
+            <h2>Summary</h2>
+            <div>Passed: ${passed}/${tests.length}</div>
+            <div>Failed: ${failed}/${tests.length}</div>
+        `;
+        results.insertBefore(summary, results.firstChild);
+    </script>
+</body>
+</html>
