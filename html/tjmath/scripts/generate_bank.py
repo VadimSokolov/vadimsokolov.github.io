@@ -960,11 +960,443 @@ def generate_packet2_sectionC(packet_num: int, section: str, count: int) -> List
 
 
 # ============================================================================
-# PACKET 3-6: Simplified generators (placeholder with basic templates)
+# PACKET 3: Mixtures, Density, and Sequences
 # ============================================================================
 
+def generate_packet3_sectionA(packet_num: int, section: str, count: int) -> List[Dict]:
+    """Mixture Problems"""
+    problems = []
+    templates = 10
+    
+    for i in range(count):
+        template_idx = i % templates
+        variant_num = i + 1
+        
+        if template_idx == 0:  # Add pure substance to increase concentration
+            initial_vol = random.choice([8, 10, 12, 15, 20])
+            initial_pct = random.choice([20, 25, 30, 35, 40])
+            target_pct = random.choice([45, 50, 55, 60])
+            # initial_vol * initial_pct + x = (initial_vol + x) * target_pct
+            x = (initial_vol * initial_pct - initial_vol * target_pct) / (target_pct - 100)
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A {initial_vol}-liter solution is {initial_pct}% acid. How many liters of pure acid must be added to make it a {target_pct}% acid solution?",
+                "answer": f"{x:.2f} liters",
+                "solution": f"Initial acid: {initial_vol} × {initial_pct/100} = {initial_vol * initial_pct/100} L\nLet x = liters added\n({initial_vol * initial_pct/100} + x) / ({initial_vol} + x) = {target_pct/100}\nSolving: x = {x:.2f} liters",
+                "source": f"Packet {packet_num}, Section {section}, Template 1"
+            })
+        
+        elif template_idx == 1:  # Add water to dilute
+            initial_vol = random.choice([4, 5, 6, 8])
+            initial_pct = random.choice([40, 50, 60])
+            target_pct = random.choice([20, 25, 30])
+            x = initial_vol * (initial_pct - target_pct) / target_pct
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"How many liters of water should be added to {initial_vol} liters of a {initial_pct}% salt solution to reduce it to a {target_pct}% salt solution?",
+                "answer": f"{x:.2f} liters",
+                "solution": f"Salt: {initial_vol} × {initial_pct/100} = {initial_vol * initial_pct/100} L\n{initial_vol * initial_pct/100} / ({initial_vol} + x) = {target_pct/100}\nx = {x:.2f} liters",
+                "source": f"Packet {packet_num}, Section {section}, Template 2"
+            })
+        
+        elif template_idx == 2:  # Drain and replace
+            vol = random.choice([15, 20, 25])
+            initial_pct = random.choice([25, 30, 35])
+            target_pct = random.choice([10, 12, 15])
+            x = vol * (initial_pct - target_pct) / initial_pct
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A tank contains {vol} liters of a {initial_pct}% sugar solution. How much of the solution must be drained and replaced with pure water to get a {target_pct}% sugar solution?",
+                "answer": f"{x:.2f} liters",
+                "solution": f"Sugar: {vol} × {initial_pct/100} = {vol * initial_pct/100} L\nDraining x removes {initial_pct/100}x sugar\n({vol * initial_pct/100} - {initial_pct/100}x) / {vol} = {target_pct/100}\nx = {x:.2f} liters",
+                "source": f"Packet {packet_num}, Section {section}, Template 3"
+            })
+        
+        elif template_idx == 3:  # Mix two solutions
+            vol1 = random.choice([3, 4, 5])
+            pct1 = random.choice([10, 15, 20])
+            vol2 = random.choice([5, 6, 7])
+            pct2 = random.choice([25, 30, 35])
+            result_pct = (vol1 * pct1 + vol2 * pct2) / (vol1 + vol2)
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"You mix {vol1} liters of a {pct1}% acid solution with {vol2} liters of a {pct2}% acid solution. What is the concentration of the resulting mixture?",
+                "answer": f"{result_pct:.1f}%",
+                "solution": f"Acid from first: {vol1} × {pct1/100} = {vol1 * pct1/100} L\nAcid from second: {vol2} × {pct2/100} = {vol2 * pct2/100} L\nTotal: {vol1 * pct1/100 + vol2 * pct2/100} / {vol1 + vol2} = {result_pct:.1f}%",
+                "source": f"Packet {packet_num}, Section {section}, Template 4"
+            })
+        
+        elif template_idx == 4:  # Find amount to mix
+            vol1 = random.choice([2, 3, 4])
+            pct1 = random.choice([30, 35, 40])
+            pct2 = random.choice([60, 70, 80])
+            target = random.choice([45, 50, 55])
+            x = vol1 * (target - pct1) / (pct2 - target)
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"How much of a {pct2}% alcohol solution should be mixed with {vol1} liters of a {pct1}% solution to get a {target}% solution?",
+                "answer": f"{x:.2f} liters",
+                "solution": f"{pct1/100}×{vol1} + {pct2/100}×x = {target/100}×({vol1} + x)\nSolving: x = {x:.2f} liters",
+                "source": f"Packet {packet_num}, Section {section}, Template 5"
+            })
+        
+        elif template_idx == 5:  # Two unknowns
+            total = random.choice([8, 10, 12])
+            pct1 = random.choice([20, 25, 30])
+            pct2 = random.choice([50, 60, 70])
+            target = random.choice([35, 40, 45])
+            x = total * (target - pct1) / (pct2 - pct1)
+            y = total - x
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A chemist wants {total} liters of a {target}% solution. She has only {pct1}% and {pct2}% solutions. How much of each should she use?",
+                "answer": f"{x:.2f} L of {pct2}%, {y:.2f} L of {pct1}%",
+                "solution": f"Let x = {pct2}% solution, y = {pct1}% solution\nx + y = {total}\n{pct2/100}x + {pct1/100}y = {target/100}×{total}\nSolving: x = {x:.2f} L, y = {y:.2f} L",
+                "source": f"Packet {packet_num}, Section {section}, Template 6"
+            })
+        
+        elif template_idx == 6:  # Add water to existing solution
+            vol = random.choice([10, 12, 15])
+            pct = random.choice([30, 35, 40])
+            water = random.choice([2, 3, 4])
+            new_pct = (vol * pct) / (vol + water)
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A {vol}-liter solution is {pct}% salt. If {water} liters of pure water are added, what is the new concentration?",
+                "answer": f"{new_pct:.1f}%",
+                "solution": f"Salt: {vol} × {pct/100} = {vol * pct/100} L\nNew volume: {vol + water} L\nNew %: {vol * pct/100} / {vol + water} = {new_pct:.1f}%",
+                "source": f"Packet {packet_num}, Section {section}, Template 7"
+            })
+        
+        elif template_idx == 7:  # Find amount of pure substance
+            vol1 = random.choice([2, 3, 4])
+            pct1 = random.choice([40, 50, 60])
+            target = random.choice([65, 70, 75])
+            x = vol1 * (target - pct1) / (100 - target)
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"{vol1} liters of a {pct1}% acid solution is mixed with x liters of pure acid to get a {target}% acid solution. Find x.",
+                "answer": f"{x:.2f} liters",
+                "solution": f"Acid: {vol1} × {pct1/100} + x = {target/100}({vol1} + x)\n{vol1 * pct1/100} + x = {target/100 * vol1} + {target/100}x\nx = {x:.2f} liters",
+                "source": f"Packet {packet_num}, Section {section}, Template 8"
+            })
+        
+        elif template_idx == 8:  # Fraction to percentage
+            vol = random.choice([6, 9, 12])
+            frac_num = 1
+            frac_den = random.choice([3, 4])
+            target = 50
+            current = vol * frac_num / frac_den
+            x = (vol * target/100 - current) / (1 - target/100)
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A {vol}-liter mix is {frac_num}/{frac_den} oil. How much oil must be added to make it {target}% oil?",
+                "answer": f"{x:.2f} liters",
+                "solution": f"Current oil: {vol} × {frac_num}/{frac_den} = {current} L\n({current} + x) / ({vol} + x) = {target/100}\nx = {x:.2f} liters",
+                "source": f"Packet {packet_num}, Section {section}, Template 9"
+            })
+        
+        else:  # Drain and replace
+            vol = random.choice([15, 20, 25])
+            pct = random.choice([35, 40, 45])
+            drained = random.choice([4, 5, 6])
+            new_pct = (vol * pct/100 - drained * pct/100) / vol * 100
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A tank has a {vol}-liter mixture that is {pct}% vinegar. If {drained} liters are drained and replaced with water, what is the new concentration?",
+                "answer": f"{new_pct:.1f}%",
+                "solution": f"Vinegar: {vol} × {pct/100} = {vol * pct/100} L\nRemoved: {drained} × {pct/100} = {drained * pct/100} L\nRemaining: {vol * pct/100 - drained * pct/100} / {vol} = {new_pct:.1f}%",
+                "source": f"Packet {packet_num}, Section {section}, Template 10"
+            })
+    
+    return problems
+
+
+def generate_packet3_sectionB(packet_num: int, section: str, count: int) -> List[Dict]:
+    """Density Problems"""
+    problems = []
+    templates = 10
+    
+    for i in range(count):
+        template_idx = i % templates
+        variant_num = i + 1
+        
+        if template_idx == 0:  # Basic density calculation
+            mass = random.choice([150, 200, 250, 300])
+            volume = random.choice([40, 50, 60, 75])
+            density = mass / volume
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A metal block has mass {mass} g and volume {volume} cm³. What is its density?",
+                "answer": f"{density:.1f} g/cm³",
+                "solution": f"Density = Mass / Volume = {mass} / {volume} = {density:.1f} g/cm³",
+                "source": f"Packet {packet_num}, Section {section}, Template 1"
+            })
+        
+        elif template_idx == 1:  # Find volume from density and mass
+            density = random.choice([1.5, 2, 2.5, 3])
+            mass = random.choice([300, 400, 500, 600])
+            volume = mass / density
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"An object has a density of {density} g/cm³ and a mass of {mass} g. What is its volume?",
+                "answer": f"{volume:.0f} cm³",
+                "solution": f"Volume = Mass / Density = {mass} / {density} = {volume:.0f} cm³",
+                "source": f"Packet {packet_num}, Section {section}, Template 2"
+            })
+        
+        elif template_idx == 2:  # Water displacement
+            mass = random.choice([120, 150, 180, 200])
+            volume = random.choice([50, 60, 75, 80])
+            density = mass / volume
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A {mass} g rock displaces {volume} cm³ of water. What is its density?",
+                "answer": f"{density:.2f} g/cm³",
+                "solution": f"Volume of rock = volume displaced = {volume} cm³\nDensity = {mass} / {volume} = {density:.2f} g/cm³",
+                "source": f"Packet {packet_num}, Section {section}, Template 3"
+            })
+        
+        elif template_idx == 3:  # Cube density
+            side = random.choice([2, 3, 4])
+            mass = random.choice([160, 216, 270, 320])
+            volume = side ** 3
+            density = mass / volume
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A cube has side length {side} cm and mass {mass} g. Find the density.",
+                "answer": f"{density:.1f} g/cm³",
+                "solution": f"Volume = {side}³ = {volume} cm³\nDensity = {mass} / {volume} = {density:.1f} g/cm³",
+                "source": f"Packet {packet_num}, Section {section}, Template 4"
+            })
+        
+        elif template_idx == 4:  # Find mass from density and volume
+            density = random.choice([0.8, 1.2, 1.5, 2])
+            volume = random.choice([200, 250, 300])
+            mass = density * volume
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A liquid has a density of {density} g/mL. What is the mass of {volume} mL?",
+                "answer": f"{mass:.0f} g",
+                "solution": f"Mass = Density × Volume = {density} × {volume} = {mass:.0f} g",
+                "source": f"Packet {packet_num}, Section {section}, Template 5"
+            })
+        
+        elif template_idx == 5:  # Find mass from density and volume (solid)
+            density = random.choice([4, 5, 6, 7])
+            volume = random.choice([30, 40, 50])
+            mass = density * volume
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"An object has density {density} g/cm³ and volume {volume} cm³. Find the mass.",
+                "answer": f"{mass:.0f} g",
+                "solution": f"Mass = Density × Volume = {density} × {volume} = {mass:.0f} g",
+                "source": f"Packet {packet_num}, Section {section}, Template 6"
+            })
+        
+        elif template_idx == 6:  # Compare densities
+            mass_a = random.choice([80, 100, 120])
+            vol_a = random.choice([20, 25, 30])
+            mass_b = random.choice([90, 110, 130])
+            vol_b = random.choice([22, 27, 32])
+            dens_a = mass_a / vol_a
+            dens_b = mass_b / vol_b
+            denser = "A" if dens_a > dens_b else "B" if dens_b > dens_a else "Neither"
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"Two objects: Object A has mass {mass_a} g and volume {vol_a} cm³. Object B has mass {mass_b} g and volume {vol_b} cm³. Which is denser?",
+                "answer": f"Object {denser}" if denser != "Neither" else "Same density",
+                "solution": f"Density A: {mass_a} / {vol_a} = {dens_a:.2f} g/cm³\nDensity B: {mass_b} / {vol_b} = {dens_b:.2f} g/cm³\nObject {denser} is denser" if denser != "Neither" else "Same density",
+                "source": f"Packet {packet_num}, Section {section}, Template 7"
+            })
+        
+        elif template_idx == 7:  # Hollow object
+            outer_vol = random.choice([80, 100, 120])
+            cavity = random.choice([15, 20, 25])
+            mass = random.choice([150, 180, 200])
+            material_vol = outer_vol - cavity
+            density = mass / material_vol
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A hollow object has outer volume {outer_vol} cm³ and mass {mass} g. If it has an inner cavity of {cavity} cm³, what's its density?",
+                "answer": f"{density:.2f} g/cm³",
+                "solution": f"Material volume = {outer_vol} - {cavity} = {material_vol} cm³\nDensity = {mass} / {material_vol} = {density:.2f} g/cm³",
+                "source": f"Packet {packet_num}, Section {section}, Template 8"
+            })
+        
+        elif template_idx == 8:  # Floating/sinking
+            floats_in = random.choice(["water", "oil", "alcohol"])
+            sinks_in = random.choice(["mercury", "saltwater", "glycerin"])
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A ball floats in {floats_in} but sinks in {sinks_in}. Which has higher density: the ball or {sinks_in}?",
+                "answer": f"{sinks_in.capitalize()}",
+                "solution": f"An object sinks if it's denser than the fluid. Since the ball sinks in {sinks_in}, {sinks_in} has lower density, so the ball is denser.",
+                "source": f"Packet {packet_num}, Section {section}, Template 9"
+            })
+        
+        else:  # Unit conversion with density
+            liters = random.choice([3, 4, 5, 6])
+            density = random.choice([0.7, 0.8, 0.9, 1.1])
+            ml = liters * 1000
+            mass = ml * density
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A tank holds {liters} L of liquid with density {density} g/mL. What is the mass?",
+                "answer": f"{mass:.0f} g",
+                "solution": f"Volume = {liters} L = {ml} mL\nMass = {density} × {ml} = {mass:.0f} g",
+                "source": f"Packet {packet_num}, Section {section}, Template 10"
+            })
+    
+    return problems
+
+
+def generate_packet3_sectionC(packet_num: int, section: str, count: int) -> List[Dict]:
+    """Sequence Problems"""
+    problems = []
+    templates = 10
+    
+    for i in range(count):
+        template_idx = i % templates
+        variant_num = i + 1
+        
+        if template_idx == 0:  # Arithmetic sequence nth term
+            first = random.choice([2, 3, 5])
+            diff = random.choice([2, 3, 4, 5])
+            n = random.choice([8, 10, 12, 15])
+            term = first + (n - 1) * diff
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"What is the {n}th term of the arithmetic sequence: {first}, {first + diff}, {first + 2*diff}, ...?",
+                "answer": f"{term}",
+                "solution": f"First term = {first}, common difference = {diff}\nnth term = a + (n-1)d = {first} + ({n}-1)×{diff} = {term}",
+                "source": f"Packet {packet_num}, Section {section}, Template 1"
+            })
+        
+        elif template_idx == 1:  # Sum of arithmetic sequence
+            first = random.choice([1, 2, 3])
+            diff = random.choice([2, 3, 4])
+            n = random.choice([15, 20, 25])
+            last = first + (n - 1) * diff
+            sum_val = n * (first + last) // 2
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"Find the sum of the first {n} terms of {first}, {first + diff}, {first + 2*diff}, ...?",
+                "answer": f"{sum_val}",
+                "solution": f"First = {first}, d = {diff}, n = {n}\nLast = {first} + ({n}-1)×{diff} = {last}\nSum = (n/2)(first + last) = {n//2}×({first}+{last}) = {sum_val}",
+                "source": f"Packet {packet_num}, Section {section}, Template 2"
+            })
+        
+        elif template_idx == 2:  # Geometric sequence nth term
+            first = random.choice([2, 3, 5])
+            ratio = random.choice([2, 3])
+            n = random.choice([5, 6, 7])
+            term = first * (ratio ** (n - 1))
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"What is the {n}th term of the geometric sequence: {first}, {first * ratio}, {first * ratio**2}, ...?",
+                "answer": f"{term}",
+                "solution": f"First = {first}, ratio = {ratio}\n{n}th term = a × r^(n-1) = {first} × {ratio}^{n-1} = {term}",
+                "source": f"Packet {packet_num}, Section {section}, Template 3"
+            })
+        
+        elif template_idx == 3:  # Formula-based sequence
+            coef = random.choice([2, 3, 4, 5])
+            n = random.choice([4, 5, 6])
+            term = coef * n * n
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A sequence is defined as aₙ = {coef}n². What is a_{n}?",
+                "answer": f"{term}",
+                "solution": f"a_{n} = {coef}×{n}² = {coef}×{n*n} = {term}",
+                "source": f"Packet {packet_num}, Section {section}, Template 4"
+            })
+        
+        elif template_idx == 4:  # Find which term
+            first = random.choice([3, 5, 7])
+            diff = random.choice([3, 4, 5])
+            target = random.choice([30, 35, 40, 45])
+            n = (target - first) // diff + 1
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"In the sequence {first}, {first + diff}, {first + 2*diff},..., which term is {target}?",
+                "answer": f"{n}th term",
+                "solution": f"a = {first}, d = {diff}\naₙ = a + (n-1)d → {first} + (n-1)×{diff} = {target}\nn = {n}",
+                "source": f"Packet {packet_num}, Section {section}, Template 5"
+            })
+        
+        elif template_idx == 5:  # Sum of multiples
+            mult = random.choice([5, 6, 7, 8])
+            n = random.choice([8, 10, 12])
+            last = mult * n
+            sum_val = n * (mult + last) // 2
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"Find the sum of the first {n} multiples of {mult}.",
+                "answer": f"{sum_val}",
+                "solution": f"Sequence: {mult}, {2*mult}, ..., {last}\nSum = (n/2)(first + last) = {n//2}×({mult}+{last}) = {sum_val}",
+                "source": f"Packet {packet_num}, Section {section}, Template 6"
+            })
+        
+        elif template_idx == 6:  # Powers of 2
+            first = random.choice([1, 2, 3])
+            n = random.choice([7, 8, 9])
+            term = first * (2 ** (n - 1))
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"A pattern goes: {first}, {first*2}, {first*4}, {first*8}, ... What is the {n}th term?",
+                "answer": f"{term}",
+                "solution": f"Geometric with r = 2\n{n}th term = {first} × 2^{n-1} = {first} × {2**(n-1)} = {term}",
+                "source": f"Packet {packet_num}, Section {section}, Template 7"
+            })
+        
+        elif template_idx == 7:  # Linear formula
+            a = random.choice([8, 10, 12])
+            b = random.choice([2, 3])
+            n = random.choice([3, 4, 5])
+            term = a - b * n
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"aₙ = {a} - {b}n. What is a_{n}?",
+                "answer": f"{term}",
+                "solution": f"a_{n} = {a} - {b}×{n} = {term}",
+                "source": f"Packet {packet_num}, Section {section}, Template 8"
+            })
+        
+        elif template_idx == 8:  # Find first term from sum
+            n = 5
+            sum_val = random.choice([40, 45, 50, 55])
+            diff = 2
+            # Sum = n/2 * (2a + (n-1)d)
+            # sum_val = 5/2 * (2a + 8)
+            first = (2 * sum_val / n - (n - 1) * diff) / 2
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"If the sum of {n} terms in a sequence is {sum_val} and each term increases by {diff}, what is the first term?",
+                "answer": f"{first:.0f}",
+                "solution": f"Sum = (n/2)(2a + (n-1)d)\n{sum_val} = ({n}/2)(2a + {(n-1)*diff})\nSolving: a = {first:.0f}",
+                "source": f"Packet {packet_num}, Section {section}, Template 9"
+            })
+        
+        else:  # Decreasing arithmetic
+            first = random.choice([90, 95, 100])
+            diff = random.choice([-4, -5, -6])
+            n = random.choice([12, 15, 18])
+            term = first + (n - 1) * diff
+            problems.append({
+                "id": generate_problem_id(packet_num, section, variant_num),
+                "prompt": f"Find the {n}th term of {first}, {first + diff}, {first + 2*diff}, ...",
+                "answer": f"{term}",
+                "solution": f"a = {first}, d = {diff}\na_{n} = {first} + ({n}-1)×({diff}) = {term}",
+                "source": f"Packet {packet_num}, Section {section}, Template 10"
+            })
+    
+    return problems
+
+
+# Placeholder for remaining packets (4-6) - keeping generic for now
 def generate_generic_problems(packet_num: int, section: str, section_name: str, count: int) -> List[Dict]:
-    """Generate generic problems for packets 3-6"""
+    """Generate generic problems for packets 4-6"""
     problems = []
     
     # Create simple template-based problems
@@ -1041,8 +1473,15 @@ def generate_all_problems() -> Dict[str, Any]:
                         problems = generate_packet2_sectionB(packet_info['packet_num'], section_letter, 100)
                     else:  # C
                         problems = generate_packet2_sectionC(packet_info['packet_num'], section_letter, 100)
+                elif packet_info['packet_num'] == 3:
+                    if section_letter == 'A':
+                        problems = generate_packet3_sectionA(packet_info['packet_num'], section_letter, 100)
+                    elif section_letter == 'B':
+                        problems = generate_packet3_sectionB(packet_info['packet_num'], section_letter, 100)
+                    else:  # C
+                        problems = generate_packet3_sectionC(packet_info['packet_num'], section_letter, 100)
                 else:
-                    # For packets 3-6, use generic generator
+                    # For packets 4-6, use generic generator (will implement next)
                     problems = generate_generic_problems(packet_info['packet_num'], section_letter, section_name, 100)
                 
                 focus_area = {
