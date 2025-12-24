@@ -820,6 +820,7 @@
             <div class="button-group">
                 <button class="btn" onclick="restartQuiz()">Try Again</button>
                 <button class="btn btn-secondary" onclick="changeFocusAreas()">Change Focus Areas</button>
+                <button class="btn btn-nav" onclick="downloadResults()">📥 Download Results</button>
             </div>
         </div>
     </div>
@@ -935,21 +936,28 @@
 
             // Collect all problems from selected focus areas
             let allProblems = [];
+            const seenIds = new Set(); // Track problem IDs to prevent duplicates
+            
             selectedFocusAreas.forEach(fa => {
                 fa.problems.forEach(problem => {
-                    allProblems.push({
-                        ...problem,
-                        focusAreaKey: `P${fa.packetNum}${fa.section}`,
-                        focusAreaName: fa.name,
-                        packetNum: fa.packetNum,
-                        section: fa.section
-                    });
+                    // Only add if we haven't seen this problem ID before
+                    if (!seenIds.has(problem.id)) {
+                        seenIds.add(problem.id);
+                        allProblems.push({
+                            ...problem,
+                            focusAreaKey: `P${fa.packetNum}${fa.section}`,
+                            focusAreaName: fa.name,
+                            packetNum: fa.packetNum,
+                            section: fa.section
+                        });
+                    }
                 });
             });
 
-            // Shuffle and select 10 problems
+            // Shuffle and select 10 problems WITHOUT REPLACEMENT
+            // This ensures no problem appears twice in the same quiz
             shuffleArray(allProblems);
-            quizState.problems = allProblems.slice(0, 10);
+            quizState.problems = allProblems.slice(0, Math.min(10, allProblems.length));
             quizState.currentIndex = 0;
             quizState.studentAnswers = [];
             quizState.results = [];
@@ -1375,6 +1383,16 @@
                             <span>Correct!</span>
                         </div>
                         <p>Great job! Your answer is correct.</p>
+                        <div class="answer-comparison">
+                            <div class="answer-label">Your Answer:</div>
+                            <div class="answer-value">${escapeHtml(studentAnswer)}</div>
+                            <div class="answer-label">Correct Answer:</div>
+                            <div class="answer-value">${escapeHtml(problem.answer)}</div>
+                        </div>
+                        <div class="solution-section">
+                            <div class="solution-title">Solution:</div>
+                            <div class="solution-text">${escapeHtml(problem.solution)}</div>
+                        </div>
                     </div>
                 `;
             } else {
@@ -1492,6 +1510,68 @@
 
         function changeFocusAreas() {
             showScreen('selectionScreen');
+        }
+
+        function downloadResults() {
+            // Generate timestamp for filename
+            const now = new Date();
+            const timestamp = now.toISOString().split('T')[0] + '_' + 
+                             now.toTimeString().split(' ')[0].replace(/:/g, '-');
+            
+            // Calculate score
+            const correctCount = quizState.results.filter(r => r).length;
+            const totalCount = quizState.results.length;
+            const percentage = Math.round((correctCount / totalCount) * 100);
+            
+            // Build markdown content
+            let markdown = `# TJ Math Quiz Results\n\n`;
+            markdown += `**Date:** ${now.toLocaleDateString()} ${now.toLocaleTimeString()}\n\n`;
+            markdown += `**Score:** ${correctCount}/${totalCount} (${percentage}%)\n\n`;
+            markdown += `---\n\n`;
+            
+            // Performance by focus area
+            markdown += `## Performance by Focus Area\n\n`;
+            for (const [key, perf] of Object.entries(quizState.performance)) {
+                const focusPercentage = perf.total > 0 ? Math.round((perf.correct / perf.total) * 100) : 0;
+                markdown += `- **${perf.name}**: ${perf.correct}/${perf.total} (${focusPercentage}%)\n`;
+            }
+            markdown += `\n---\n\n`;
+            
+            // Detailed results for each problem
+            markdown += `## Detailed Results\n\n`;
+            quizState.problems.forEach((problem, index) => {
+                const isCorrect = quizState.results[index];
+                const studentAnswer = quizState.studentAnswers[index];
+                const status = isCorrect ? '✓ CORRECT' : '✗ INCORRECT';
+                
+                markdown += `### Problem ${index + 1}: ${status}\n\n`;
+                markdown += `**Focus Area:** ${problem.focusAreaName}\n\n`;
+                markdown += `**Question:**\n${problem.prompt}\n\n`;
+                markdown += `**Your Answer:** ${studentAnswer}\n\n`;
+                markdown += `**Correct Answer:** ${problem.answer}\n\n`;
+                markdown += `**Solution:**\n\`\`\`\n${problem.solution}\n\`\`\`\n\n`;
+                markdown += `---\n\n`;
+            });
+            
+            // Summary
+            markdown += `## Summary\n\n`;
+            markdown += `Total Problems: ${totalCount}\n\n`;
+            markdown += `Correct: ${correctCount}\n\n`;
+            markdown += `Incorrect: ${totalCount - correctCount}\n\n`;
+            markdown += `Percentage: ${percentage}%\n\n`;
+            markdown += `---\n\n`;
+            markdown += `*Generated by TJ Math Quiz*\n`;
+            
+            // Create blob and download
+            const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `tjmath_quiz_results_${timestamp}.md`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
 
         function showScreen(screenId) {
