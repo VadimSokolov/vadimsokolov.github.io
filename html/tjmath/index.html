@@ -205,19 +205,111 @@
             background: #5a6268;
         }
 
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button-group .btn {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-nav {
+            background: #9e9e9e;
+            padding: 12px 20px;
+        }
+
+        .btn-nav:hover {
+            background: #757575;
+        }
+
+        .btn-nav:disabled {
+            background: #e0e0e0;
+            color: #9e9e9e;
+            cursor: not-allowed;
+        }
+
+        .review-mode-banner {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
         /* Quiz Screen */
         .progress-bar {
             background: #e0e0e0;
-            height: 8px;
-            border-radius: 4px;
+            height: 24px;
+            border-radius: 8px;
             margin-bottom: 20px;
             overflow: hidden;
+            display: flex;
+            gap: 2px;
+            padding: 2px;
+            cursor: pointer;
         }
 
-        .progress-fill {
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            height: 100%;
-            transition: width 0.3s ease;
+        .progress-segment {
+            flex: 1;
+            background: #d0d0d0;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            position: relative;
+            min-width: 20px;
+        }
+
+        .progress-segment:hover {
+            background: #b0b0b0;
+            transform: scaleY(1.1);
+        }
+
+        .progress-segment.answered {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+        }
+
+        .progress-segment.current {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .progress-segment.unanswered {
+            background: #e0e0e0;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .progress-segment-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            margin-bottom: 5px;
+        }
+
+        .progress-segment:hover .progress-segment-tooltip {
+            opacity: 1;
         }
 
         .quiz-header {
@@ -675,13 +767,17 @@
 
         <!-- Quiz Screen -->
         <div id="quizScreen" class="screen">
-            <div class="progress-bar">
-                <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+            <div class="progress-bar" id="progressBar">
+                <!-- Progress segments will be dynamically generated -->
             </div>
 
             <div class="quiz-header">
                 <div class="problem-counter" id="problemCounter">Problem 1 of 10</div>
                 <div class="focus-area-badge" id="currentFocusArea"></div>
+            </div>
+
+            <div id="reviewBanner" class="review-mode-banner" style="display: none;">
+                📖 Review Mode - Viewing Previous Problem
             </div>
 
             <div class="problem-card">
@@ -697,7 +793,12 @@
                     autocapitalize="off"
                     spellcheck="false"
                 />
-                <button class="btn" id="submitBtn" onclick="submitAnswer()">Submit Answer</button>
+                <div class="button-group">
+                    <button class="btn btn-nav" id="prevBtn" onclick="previousProblem()" style="display: none;">
+                        ← Previous
+                    </button>
+                    <button class="btn" id="submitBtn" onclick="submitAnswer()">Submit Answer</button>
+                </div>
             </div>
 
             <div id="feedbackContainer"></div>
@@ -732,7 +833,9 @@
             currentIndex: 0,
             studentAnswers: [],
             results: [],
-            performance: {}
+            performance: {},
+            isReviewMode: false,
+            lastAnsweredIndex: -1  // Track the last problem the student answered
         };
 
         // Initialize app
@@ -865,7 +968,62 @@
             });
 
             showScreen('quizScreen');
+            createProgressBar();
             displayProblem();
+        }
+
+        function createProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.innerHTML = '';
+
+            for (let i = 0; i < quizState.problems.length; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'progress-segment';
+                segment.dataset.index = i;
+                segment.onclick = () => jumpToProblem(i);
+
+                // Add tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'progress-segment-tooltip';
+                tooltip.textContent = `Problem ${i + 1}`;
+                segment.appendChild(tooltip);
+
+                progressBar.appendChild(segment);
+            }
+
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const segments = document.querySelectorAll('.progress-segment');
+            segments.forEach((segment, index) => {
+                const i = parseInt(segment.dataset.index);
+                
+                // Remove all state classes
+                segment.classList.remove('answered', 'current', 'unanswered');
+                
+                // Add appropriate class
+                if (i < quizState.studentAnswers.length) {
+                    segment.classList.add('answered');
+                    // Update tooltip to show result
+                    const tooltip = segment.querySelector('.progress-segment-tooltip');
+                    const isCorrect = quizState.results[i];
+                    tooltip.textContent = `Problem ${i + 1}: ${isCorrect ? '✓ Correct' : '✗ Incorrect'}`;
+                } else if (i === quizState.currentIndex) {
+                    segment.classList.add('current');
+                } else {
+                    segment.classList.add('unanswered');
+                }
+            });
+        }
+
+        function jumpToProblem(index) {
+            // Can only jump to answered problems or the current problem
+            if (index <= quizState.studentAnswers.length && index < quizState.problems.length) {
+                quizState.currentIndex = index;
+                displayProblem();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         }
 
         function shuffleArray(array) {
@@ -877,23 +1035,67 @@
 
         function displayProblem() {
             const problem = quizState.problems[quizState.currentIndex];
-            const progress = ((quizState.currentIndex) / quizState.problems.length) * 100;
 
-            document.getElementById('progressFill').style.width = progress + '%';
+            updateProgressBar();
             document.getElementById('problemCounter').textContent = 
                 `Problem ${quizState.currentIndex + 1} of ${quizState.problems.length}`;
             document.getElementById('currentFocusArea').textContent = problem.focusAreaName;
             document.getElementById('problemPrompt').textContent = problem.prompt;
-            document.getElementById('answerInput').value = '';
-            document.getElementById('answerInput').disabled = false;
-            document.getElementById('feedbackContainer').innerHTML = '';
-            document.getElementById('submitBtn').textContent = 'Submit Answer';
-            document.getElementById('submitBtn').onclick = submitAnswer;
-            document.getElementById('answerInput').focus();
+
+            // Update Previous button visibility
+            const prevBtn = document.getElementById('prevBtn');
+            if (quizState.currentIndex > 0) {
+                prevBtn.style.display = 'block';
+            } else {
+                prevBtn.style.display = 'none';
+            }
+
+            // Check if we're in review mode (viewing a previously answered problem)
+            quizState.isReviewMode = quizState.currentIndex < quizState.studentAnswers.length;
+
+            if (quizState.isReviewMode) {
+                // Review mode: show previous answer and feedback
+                document.getElementById('reviewBanner').style.display = 'block';
+                document.getElementById('answerInput').value = quizState.studentAnswers[quizState.currentIndex];
+                document.getElementById('answerInput').disabled = true;
+                
+                // Show "Continue Quiz" button to jump back to current problem
+                const submitBtn = document.getElementById('submitBtn');
+                submitBtn.style.display = 'block';
+                submitBtn.textContent = 'Continue Quiz →';
+                submitBtn.onclick = continueQuiz;
+                
+                // Show the feedback that was given
+                const isCorrect = quizState.results[quizState.currentIndex];
+                const studentAnswer = quizState.studentAnswers[quizState.currentIndex];
+                displayFeedback(isCorrect, studentAnswer, problem);
+            } else {
+                // Normal mode: new problem to answer
+                document.getElementById('reviewBanner').style.display = 'none';
+                document.getElementById('answerInput').value = '';
+                document.getElementById('answerInput').disabled = false;
+                document.getElementById('submitBtn').style.display = 'block';
+                document.getElementById('feedbackContainer').innerHTML = '';
+                document.getElementById('submitBtn').textContent = 'Submit Answer';
+                document.getElementById('submitBtn').onclick = submitAnswer;
+                document.getElementById('answerInput').focus();
+            }
         }
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
+                // In review mode, Enter continues the quiz or moves forward
+                if (quizState.isReviewMode) {
+                    const btn = document.getElementById('submitBtn');
+                    if (btn.textContent === 'Continue Quiz →') {
+                        continueQuiz();
+                    } else {
+                        nextProblem();
+                    }
+                    return;
+                }
+                
+                // In normal mode, check the button state
                 const btn = document.getElementById('submitBtn');
                 if (btn.textContent === 'Submit Answer') {
                     submitAnswer();
@@ -902,6 +1104,30 @@
                 }
             }
         }
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            // Only handle navigation keys when quiz screen is active
+            if (!document.getElementById('quizScreen').classList.contains('active')) {
+                return;
+            }
+
+            // Don't interfere when typing in the answer input
+            if (document.activeElement === document.getElementById('answerInput')) {
+                return;
+            }
+
+            // Arrow key navigation
+            if (event.key === 'ArrowLeft' && quizState.currentIndex > 0) {
+                event.preventDefault();
+                previousProblem();
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                if (quizState.isReviewMode || document.getElementById('submitBtn').textContent !== 'Submit Answer') {
+                    nextProblem();
+                }
+            }
+        });
 
         function submitAnswer() {
             const studentAnswer = document.getElementById('answerInput').value.trim();
@@ -916,6 +1142,7 @@
 
             quizState.studentAnswers.push(studentAnswer);
             quizState.results.push(isCorrect);
+            quizState.lastAnsweredIndex = quizState.currentIndex;
 
             if (isCorrect) {
                 quizState.performance[problem.focusAreaKey].correct++;
@@ -926,6 +1153,7 @@
             document.getElementById('submitBtn').textContent = 
                 quizState.currentIndex < quizState.problems.length - 1 ? 'Next Problem' : 'See Results';
             document.getElementById('submitBtn').onclick = nextProblem;
+            updateProgressBar();
         }
 
         function checkAnswer(studentAnswer, correctAnswer) {
@@ -1182,11 +1410,40 @@
             return div.innerHTML;
         }
 
+        function previousProblem() {
+            if (quizState.currentIndex > 0) {
+                quizState.currentIndex--;
+                displayProblem();
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function continueQuiz() {
+            // Jump to the next unanswered problem
+            quizState.currentIndex = quizState.studentAnswers.length;
+            displayProblem();
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         function nextProblem() {
+            // If we're in review mode, just move forward one step
+            if (quizState.isReviewMode) {
+                quizState.currentIndex++;
+                displayProblem();
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            // Normal mode: move to next problem
             quizState.currentIndex++;
             
             if (quizState.currentIndex < quizState.problems.length) {
                 displayProblem();
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 showResults();
             }
