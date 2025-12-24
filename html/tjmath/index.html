@@ -929,15 +929,45 @@
         }
 
         function checkAnswer(studentAnswer, correctAnswer) {
-            // Normalize both answers
-            const normalize = (str) => str.toLowerCase().trim().replace(/\s+/g, ' ');
-            const student = normalize(studentAnswer);
-            const correct = normalize(correctAnswer);
+            // ===================================================================
+            // ULTRA-ROBUST ANSWER CHECKER
+            // Handles: fractions, percentages, decimals, multiple answers,
+            // blood types, units, spacing, capitalization, punctuation
+            // ===================================================================
+            
+            // Step 1: Aggressive normalization
+            const aggressiveNormalize = (str) => {
+                return str
+                    .toLowerCase()                          // Convert to lowercase
+                    .trim()                                 // Remove leading/trailing spaces
+                    .replace(/\s+/g, ' ')                   // Normalize multiple spaces to single space
+                    .replace(/[,;]/g, ' ')                  // Replace commas and semicolons with spaces
+                    .replace(/\band\b/gi, ' ')              // Remove "and"
+                    .replace(/\bor\b/gi, ' ')               // Remove "or"
+                    .replace(/[()]/g, '')                   // Remove parentheses
+                    .replace(/\s+/g, ' ')                   // Clean up spaces again
+                    .trim();
+            };
 
-            // Exact match
+            const student = aggressiveNormalize(studentAnswer);
+            const correct = aggressiveNormalize(correctAnswer);
+
+            // Step 2: Exact match after normalization
             if (student === correct) return true;
 
-            // Try numeric comparison with units
+            // Step 3: Remove ALL spaces and punctuation for ultra-loose comparison
+            const ultraNormalize = (str) => {
+                return str
+                    .toLowerCase()
+                    .replace(/[^a-z0-9./%-]/g, '');  // Keep only letters, numbers, /, ., %, -
+            };
+
+            const studentUltra = ultraNormalize(studentAnswer);
+            const correctUltra = ultraNormalize(correctAnswer);
+
+            if (studentUltra === correctUltra) return true;
+
+            // Step 4: Numeric comparison with units
             const extractNumber = (str) => {
                 const match = str.match(/[-+]?[0-9]*\.?[0-9]+/);
                 return match ? parseFloat(match[0]) : NaN;
@@ -951,7 +981,7 @@
                 if (Math.abs(studentNum - correctNum) < 0.01) return true;
             }
 
-            // Convert fractions to percentages and compare
+            // Step 5: Fraction to percentage conversion (and vice versa)
             const fractionToPercent = (str) => {
                 const match = str.match(/(\d+)\/(\d+)/);
                 if (match) {
@@ -960,10 +990,20 @@
                 return null;
             };
 
+            const fractionToDecimal = (str) => {
+                const match = str.match(/(\d+)\/(\d+)/);
+                if (match) {
+                    return parseInt(match[1]) / parseInt(match[2]);
+                }
+                return null;
+            };
+
             const studentFrac = fractionToPercent(student);
             const correctFrac = fractionToPercent(correct);
+            const studentDec = fractionToDecimal(student);
+            const correctDec = fractionToDecimal(correct);
             
-            // Check if student gave fraction and answer is percentage (or vice versa)
+            // Check fraction vs percentage
             if (studentFrac !== null && correctNum !== null && correct.includes('%')) {
                 if (Math.abs(studentFrac - correctNum) < 0.01) return true;
             }
@@ -974,72 +1014,124 @@
                 if (Math.abs(studentFrac - correctFrac) < 0.01) return true;
             }
 
-            // Handle blood type answers - normalize "OO" to "O"
-            const normalizeBloodTypes = (str) => {
-                return str.replace(/\boo\b/gi, 'O')
-                          .replace(/type\s*/gi, '')
-                          .replace(/,?\s*or\s*/gi, ',')
-                          .replace(/\s+/g, '')
-                          .toLowerCase();
+            // Check fraction vs decimal
+            if (studentDec !== null && !isNaN(correctNum)) {
+                if (Math.abs(studentDec - correctNum) < 0.01) return true;
+            }
+            if (correctDec !== null && !isNaN(studentNum)) {
+                if (Math.abs(studentNum - correctDec) < 0.01) return true;
+            }
+
+            // Step 6: Parse multiple items (space or comma separated)
+            const parseItems = (str) => {
+                // Split by spaces, commas, "and", "or"
+                const items = str
+                    .toLowerCase()
+                    .replace(/\btype\s*/gi, '')              // Remove "type" prefix
+                    .replace(/\b(and|or)\b/gi, ' ')          // Replace and/or with space
+                    .replace(/[,;]/g, ' ')                   // Replace punctuation with space
+                    .replace(/\boo\b/gi, 'o')                // Normalize OO to O (blood types)
+                    .replace(/\s+/g, ' ')                    // Clean up spaces
+                    .trim()
+                    .split(/\s+/)                            // Split by spaces
+                    .filter(item => item.length > 0)         // Remove empty items
+                    .map(item => item.trim());               // Trim each item
+
+                return [...new Set(items)];  // Remove duplicates
             };
 
-            // Check if this looks like a blood type answer
-            if (/type|blood/i.test(correct) || /\b[abo]+\b/i.test(correct)) {
-                const studentBlood = normalizeBloodTypes(student);
-                const correctBlood = normalizeBloodTypes(correct);
-                
-                // Split into sets and compare
-                const studentSet = new Set(studentBlood.split(',').map(s => s.trim()).filter(s => s));
-                const correctSet = new Set(correctBlood.split(',').map(s => s.trim()).filter(s => s));
-                
+            const studentItems = parseItems(student);
+            const correctItems = parseItems(correct);
+
+            // Step 7: Set comparison (order doesn't matter)
+            if (studentItems.length > 1 || correctItems.length > 1) {
+                const studentSet = new Set(studentItems);
+                const correctSet = new Set(correctItems);
+
                 // Check if sets are equal
                 if (studentSet.size === correctSet.size && 
                     [...studentSet].every(item => correctSet.has(item))) {
                     return true;
                 }
+
+                // Also check if student items are all contained in correct items
+                if (studentSet.size === correctSet.size) {
+                    const allMatch = [...studentSet].every(sItem => 
+                        [...correctSet].some(cItem => {
+                            // Exact match
+                            if (sItem === cItem) return true;
+                            // One contains the other
+                            if (sItem.includes(cItem) || cItem.includes(sItem)) return true;
+                            // Numeric match
+                            const sNum = parseFloat(sItem);
+                            const cNum = parseFloat(cItem);
+                            if (!isNaN(sNum) && !isNaN(cNum) && Math.abs(sNum - cNum) < 0.01) return true;
+                            return false;
+                        })
+                    );
+                    if (allMatch) return true;
+                }
             }
 
-            // Handle multiple acceptable answers separated by commas or "or"
-            const splitAnswers = (str) => {
-                return str.split(/,|\bor\b/i)
-                          .map(s => normalize(s))
-                          .filter(s => s.length > 0);
+            // Step 8: Check if student answer contains all key elements
+            const extractKeyElements = (str) => {
+                // Extract all words and numbers
+                return str
+                    .toLowerCase()
+                    .replace(/[^a-z0-9.\s]/g, ' ')
+                    .split(/\s+/)
+                    .filter(word => word.length > 0 && word !== 'type' && word !== 'the' && word !== 'a' && word !== 'an');
             };
 
-            const correctOptions = splitAnswers(correct);
-            const studentOptions = splitAnswers(student);
+            const studentElements = extractKeyElements(student);
+            const correctElements = extractKeyElements(correct);
 
-            // Check if student provided all correct options (order doesn't matter)
-            if (correctOptions.length > 1 && studentOptions.length > 0) {
-                const allMatch = studentOptions.every(sOpt => 
-                    correctOptions.some(cOpt => {
-                        // Check for substring match or numeric equivalence
-                        if (cOpt.includes(sOpt) || sOpt.includes(cOpt)) return true;
-                        const sNum = extractNumber(sOpt);
-                        const cNum = extractNumber(cOpt);
+            // Check if all correct elements are in student answer
+            if (correctElements.length > 0) {
+                const allElementsPresent = correctElements.every(elem => 
+                    studentElements.some(sElem => {
+                        if (sElem === elem) return true;
+                        if (sElem.includes(elem) || elem.includes(sElem)) return true;
+                        // Check numeric equivalence
+                        const sNum = parseFloat(sElem);
+                        const cNum = parseFloat(elem);
                         if (!isNaN(sNum) && !isNaN(cNum) && Math.abs(sNum - cNum) < 0.01) return true;
                         return false;
                     })
                 );
-                if (allMatch && studentOptions.length === correctOptions.length) return true;
+                
+                if (allElementsPresent && studentElements.length === correctElements.length) {
+                    return true;
+                }
             }
 
-            // Check if student answer is contained in correct answer (for units)
+            // Step 9: Substring matching (for units)
             if (correct.includes(student) || student.includes(correct)) {
                 return true;
             }
 
-            // Remove common words and check again
-            const removeCommonWords = (str) => {
-                return str.replace(/\b(the|a|an|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|should|could|may|might|must|can)\b/gi, ' ')
-                          .replace(/\s+/g, ' ')
-                          .trim();
+            // Step 10: Try removing all non-alphanumeric except decimal points and slashes
+            const alphanumOnly = (str) => {
+                return str.toLowerCase().replace(/[^a-z0-9./]/g, '');
             };
 
-            const studentClean = removeCommonWords(student);
-            const correctClean = removeCommonWords(correct);
+            if (alphanumOnly(student) === alphanumOnly(correct)) {
+                return true;
+            }
 
-            if (studentClean === correctClean) return true;
+            // Step 11: Last resort - check if the numeric values and key words match
+            if (!isNaN(studentNum) && !isNaN(correctNum) && Math.abs(studentNum - correctNum) < 0.01) {
+                // Numbers match, check if units/words are similar
+                const studentWords = student.replace(/[0-9.]/g, '').trim();
+                const correctWords = correct.replace(/[0-9.]/g, '').trim();
+                
+                if (studentWords === correctWords || 
+                    studentWords.includes(correctWords) || 
+                    correctWords.includes(studentWords) ||
+                    studentWords === '' || correctWords === '') {
+                    return true;
+                }
+            }
 
             return false;
         }
