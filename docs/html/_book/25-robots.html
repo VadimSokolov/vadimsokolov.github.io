@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>25&nbsp; AI Agents – Bayes, AI and Deep Learning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./appendix-linalg.html" rel="next">
+<link href="./24-llm.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>
+  // Load MathJax with custom macros
+  window.MathJax = {
+    tex: {
+      macros: {
+        Cov: ["\\mathrm{Cov}\\left(#1\\right)", 1],
+        Cor: ["\\mathrm{Cor}\\left(#1\\right)", 1],
+        Var: ["\\mathrm{Var}\\left(#1\\right)", 1],
+        sd: ["\\mathrm{sd}\\left(#1\\right)", 1],
+        E: ["\\mathrm{E}_{#1}\\left(#2\\right)", 2, ""],
+        prob: ["\\mathrm{P}\\left(#1\\right)", 1],
+        defeq: "\\stackrel{\\mathrm{def}}{=}",
+        mini: "\\operatorname*{minimize}"
+      }
+    }
+  };
+</script>
+
+<style>
+  /* Custom styling for math content */
+  .MathJax {
+    font-size: 1em !important;
+  }
+  
+  /* Ensure consistent math rendering */
+  mjx-container[jax="CHTML"] {
+    line-height: 1.2;
+  }
+</style>
+
+
+<meta property="og:title" content="25&nbsp; AI Agents – Bayes, AI and Deep Learning">
+<meta property="og:description" content="">
+<meta property="og:image" content="fig/agent-loop.jpeg">
+<meta property="og:site_name" content="Bayes, AI and Deep Learning">
+<meta name="twitter:title" content="25&nbsp; AI Agents – Bayes, AI and Deep Learning">
+<meta name="twitter:description" content="">
+<meta name="twitter:image" content="fig/agent-loop.jpeg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18-nn.html">Deep Learning</a></li><li class="breadcrumb-item"><a href="./25-robots.html"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">AI Agents</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Bayes, AI and Deep Learning</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00-intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">The Modern AI Playbook</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Bayes</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-prob.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Probability and Uncertainty</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-bayes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Bayes Rule</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-bl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Bayesian Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-dec.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Utility, Risk and Decisions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-ab.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">A/B Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-hyp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Bayesian Hypothesis Testing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07-sp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Stochastic Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08-gp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Gaussian Processes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09-rl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Reinforcement Learning</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">AI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Unreasonable Effectiveness of Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11-pattern.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Pattern Matching</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12-regression.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Linear Regression</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13-logistic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Logistic Regression and Generalized Linear Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14-tree.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Tree Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15-forecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Forecasting</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16-select.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Model Selection</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17-theoryai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Statistical Learning Theory and Regularization</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Deep Learning</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18-nn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19-theorydl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Theory of Deep Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20-sgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21-qnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Quantile Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22-cnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Convolutional Neural Networks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23-nlp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Natural Language Processing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24-llm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Large Language Models</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25-robots.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">AI Agents</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./appendix-linalg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Linear algebra and multivariate normal toolkit</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+    <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#llm-agents" id="toc-llm-agents" class="nav-link active" data-scroll-target="#llm-agents"><span class="header-section-number">25.1</span> LLM Agents</a></li>
+  <li><a href="#agents-with-personality" id="toc-agents-with-personality" class="nav-link" data-scroll-target="#agents-with-personality"><span class="header-section-number">25.2</span> Agents with Personality</a></li>
+  <li><a href="#agent-orchestration" id="toc-agent-orchestration" class="nav-link" data-scroll-target="#agent-orchestration"><span class="header-section-number">25.3</span> Agent Orchestration</a>
+  <ul class="collapse">
+  <li><a href="#orchestration-patterns" id="toc-orchestration-patterns" class="nav-link" data-scroll-target="#orchestration-patterns">Orchestration Patterns</a></li>
+  <li><a href="#communication-and-state-management" id="toc-communication-and-state-management" class="nav-link" data-scroll-target="#communication-and-state-management">Communication and State Management</a></li>
+  </ul></li>
+  <li><a href="#ai-agent-training-and-evaluation-methods" id="toc-ai-agent-training-and-evaluation-methods" class="nav-link" data-scroll-target="#ai-agent-training-and-evaluation-methods"><span class="header-section-number">25.4</span> AI Agent Training and Evaluation Methods</a>
+  <ul class="collapse">
+  <li><a href="#categories-of-agent-environments" id="toc-categories-of-agent-environments" class="nav-link" data-scroll-target="#categories-of-agent-environments">Categories of Agent Environments</a></li>
+  <li><a href="#fundamental-evaluation-challenges" id="toc-fundamental-evaluation-challenges" class="nav-link" data-scroll-target="#fundamental-evaluation-challenges">Fundamental Evaluation Challenges</a></li>
+  <li><a href="#evaluation-methodologies" id="toc-evaluation-methodologies" class="nav-link" data-scroll-target="#evaluation-methodologies">Evaluation Methodologies</a></li>
+  <li><a href="#domain-specific-benchmarks" id="toc-domain-specific-benchmarks" class="nav-link" data-scroll-target="#domain-specific-benchmarks">Domain-Specific Benchmarks</a></li>
+  <li><a href="#the-human-role-in-agent-evaluation" id="toc-the-human-role-in-agent-evaluation" class="nav-link" data-scroll-target="#the-human-role-in-agent-evaluation">The Human Role in Agent Evaluation</a></li>
+  </ul></li>
+  <li><a href="#agent-safety" id="toc-agent-safety" class="nav-link" data-scroll-target="#agent-safety"><span class="header-section-number">25.5</span> Agent Safety</a>
+  <ul class="collapse">
+  <li><a href="#red-teaming-and-vulnerability-assessment" id="toc-red-teaming-and-vulnerability-assessment" class="nav-link" data-scroll-target="#red-teaming-and-vulnerability-assessment">Red-Teaming and Vulnerability Assessment</a></li>
+  </ul></li>
+  <li><a href="#robots" id="toc-robots" class="nav-link" data-scroll-target="#robots"><span class="header-section-number">25.6</span> Robots</a>
+  <ul class="collapse">
+  <li><a href="#challenges-unique-to-embodied-agents" id="toc-challenges-unique-to-embodied-agents" class="nav-link" data-scroll-target="#challenges-unique-to-embodied-agents">Challenges Unique to Embodied Agents</a></li>
+  <li><a href="#modern-approaches-to-robotic-intelligence" id="toc-modern-approaches-to-robotic-intelligence" class="nav-link" data-scroll-target="#modern-approaches-to-robotic-intelligence">Modern Approaches to Robotic Intelligence</a></li>
+  </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">25.7</span> Conclusion</a></li>
+  </ul>
+</nav>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18-nn.html">Deep Learning</a></li><li class="breadcrumb-item"><a href="./25-robots.html"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">AI Agents</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">AI Agents</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p><em>“The question of whether a computer can think is no more interesting than the question of whether a submarine can swim.”</em> — Edsger Dijkstra</p>
+<p>A global logistics company coordinates thousands of shipments across continents. Routing, timing, and inventory decisions depend on real-time data and must adapt to constant disruptions. This is exactly the kind of problem where AI agents shine: systems that process information, learn from outcomes, coordinate with other systems, and act autonomously on routine decisions while flagging exceptions for humans.</p>
+<p>AI agents are autonomous systems that perceive their environment, reason about goals, and take actions to achieve outcomes. Unlike traditional software following predetermined scripts, agents act independently and adapt to changing circumstances.</p>
+<p>Large language models have revolutionized this landscape. Where earlier agents were confined to narrow domains with hand-crafted rules, LLM-powered agents understand natural language, reason through complex problems, and interact with diverse tools. This chapter explores agent architectures, multi-agent orchestration, evaluation methods, and safety considerations.</p>
+<section id="llm-agents" class="level2" data-number="25.1">
+<h2 data-number="25.1" class="anchored" data-anchor-id="llm-agents"><span class="header-section-number">25.1</span> LLM Agents</h2>
+<p>Traditional rule-based agents operated within constrained environments with explicitly programmed behaviors. LLM agents, by contrast, leverage emergent reasoning capabilities to interpret instructions, plan actions, and adapt to novel situations.</p>
+<p>At its core, an LLM agent consists of several interconnected components. The <em>perception</em> module processes inputs from the environment, whether textual instructions, structured data, or sensor readings. The <em>reasoning</em> engine, powered by the language model, interprets these inputs within the context of the agent’s goals and available actions. The <em>memory</em> system maintains both short-term context (often via the model’s context window) and long-term knowledge (typically implemented using vector databases and Retrieval-Augmented Generation), enabling the agent to learn from experience and maintain coherent behavior across extended interactions.</p>
+<div id="fig-agent-loop" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-agent-loop-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig/agent-loop.jpeg" class="img-fluid figure-img" style="width:40.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-agent-loop-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;25.1: The core architecture of an LLM agent. The agent perceives its environment, reasons using the language model and memory, then takes action. The outcome feeds back as new observations, creating a continuous loop.
+</figcaption>
+</figure>
+</div>
+<p>Consider a customer service agent powered by an LLM. When a customer describes a billing discrepancy, the agent must understand the natural language description, access relevant account information, reason about company policies, and formulate an appropriate response. This requires not just pattern matching but genuine comprehension and reasoning—capabilities that emerge from the language model’s training on diverse textual data.</p>
+<p>While language models excel at reasoning, they function fundamentally as a brain without hands; they cannot directly interact with the external world. The ability to use <em>tools</em> bridges this gap, transforming the LLM from a passive conversationalist into an active participant in digital and physical systems. A tool is simply a function that the agent can call to perform an action, such as retrieving data from a database, calling an external API, running a piece of code, or even controlling a robot.</p>
+<p>This capability is enabled by a mechanism known as <em>function calling</em>. The agent is first provided with a manifest of available tools, where each tool is described with its name, its purpose, and the parameters it accepts. When the LLM determines that a task requires external action, it produces a structured <em>tool call</em>—a formatted request specifying the function to execute and the arguments to pass to it. An orchestrator outside the LLM receives this request, runs the specified function, and captures the output.</p>
+<p>In many cases, this output is then fed back to the language model as new information. The LLM can then use this result to formulate its final response to the user. This creates a powerful loop: the agent reasons about a goal, acts by calling a tool, observes the outcome, and then reasons again to produce a final result or plan the next step. For example, if asked about the price of an item in a different currency, an agent might first call a <code>convert_currency</code> tool. After receiving the converted value, it would then generate a natural language sentence incorporating that result, such as, “That would be 25.50 in your local currency.”</p>
+<p>The planning capabilities of LLM agents extend this tool-use mechanism to handle complex, multi-step goals. Given a high-level objective, the agent can devise a plan consisting of a sequence of tool calls. It executes the first step, observes the outcome, and then uses that result to inform the next step, adjusting its plan as needed. For instance, a financial analysis agent tasked with “analyzing the correlation between interest rates and housing prices” would decompose this into a chain of actions: first calling a tool to retrieve historical interest rate data, then another to get housing prices, and finally a third to perform statistical analysis and synthesize the results into a report. This iterative process allows agents to tackle problems that require gathering and processing information from multiple sources.</p>
+<p>However, the autonomy of LLM agents introduces significant challenges. The probabilistic nature of language model outputs creates uncertainty; an agent may produce different and unpredictable actions even with identical inputs, complicating testing and verification. More critically, the ability to act on the world magnifies the risk of hallucinations. A hallucination in a chatbot is a nuisance, but an agent hallucinating a reason to delete a file or execute a harmful financial transaction can have severe consequences. An agent given control over a user’s computer could delete important folders, and a robotic agent could break objects if it misinterprets its instructions or environment.</p>
+<div id="exm-replit" class="theorem example">
+<p><span class="theorem-title"><strong>Example 25.1 (Case Study: Autonomous Agent Failure at Replit)</strong></span> The theoretical risks of agent autonomy became starkly real in a widely publicized incident involving <a href="https://gizmodo.com/replits-ai-agent-wipes-companys-codebase-during-vibecoding-session-2000633176">Replit’s AI agent</a>. A user, attempting to debug their live production application, instructed the agent to help fix a bug. The agent incorrectly diagnosed the problem as stemming from a configuration file. In its attempt to be helpful, it decided to delete the file.</p>
+<p>However, the failure cascaded. A bug in the agent’s implementation of the file deletion tool caused the command to malfunction catastrophically. Instead of deleting a single file, the agent executed a command that wiped the entire project, including the production database. The user’s live application was destroyed in an instant by an AI trying to fix a minor bug.</p>
+<p>This incident serves as a critical lesson in agent safety. It was not a single failure but a chain of them: the agent’s incorrect reasoning, its autonomous decision to perform a destructive action without explicit confirmation, and a flaw in its tool-use capability. It underscores the immense gap between an LLM’s ability to generate plausible-sounding text (or code) and the true contextual understanding required for safe operation. Giving an agent control over production systems requires multiple layers of defense, from sandboxing and permission controls to mandatory human-in-the-loop confirmation for any potentially irreversible action.</p>
+</div>
+<p>While mechanisms like sandboxing control what an agent <em>can</em> do, reliability mechanisms ensure the agent does what it <em>should</em> do. Output validation ensures that agent actions conform to expected formats and constraints. Confidence scoring helps identify uncertain responses that may require human review. Multi-step verification processes cross-check critical decisions against multiple sources or reasoning paths.</p>
+<div id="exm-anthropic" class="theorem example">
+<p><span class="theorem-title"><strong>Example 25.2 (Case Study: Anthropic’s Proactive Safety Measures for Frontier Models)</strong></span> As AI models become more capable, the potential for misuse in high-stakes domains like biosecurity becomes a significant concern. In May 2025, Anthropic proactively activated its <a href="https://www.anthropic.com/news/activating-asl3-protections">AI Safety Level 3</a> (ASL-3) protections for the release of its new model, Claude Opus 4, even before determining that the model definitively met the risk threshold that would require such measures. This decision was driven by the observation that the new model showed significant performance gains on tasks related to Chemical, Biological, Radiological, and Nuclear (CBRN) weapons development, making it prudent to implement heightened safeguards as a precautionary step.</p>
+<p>Anthropic’s ASL-3 standards are designed to make it substantially harder for an attacker to use the model for catastrophic harm. The deployment measures are narrowly focused on preventing the model from assisting with end-to-end CBRN workflows. A key defense is the use of <em>Constitutional Classifiers</em>—specialized models that monitor both user inputs and the AI’s outputs in real-time to block a narrow class of harmful information. These classifiers are trained on a “constitution” defining prohibited, permissible, and borderline uses, making them robust against attempts to “jailbreak” the model into providing dangerous information.</p>
+<p>This real-time defense is supplemented by several other layers. A bug bounty program incentivizes researchers to discover and report vulnerabilities, and threat intelligence vendors monitor for emerging jailbreak techniques. When a new jailbreak is found, a rapid response protocol allows Anthropic to “patch” the system, often by using an LLM to generate thousands of variations of the attack and then retraining the safety classifiers to recognize and block them.</p>
+<p>On the security front, the ASL-3 standard focuses on protecting the model’s weights—the core parameters that define its intelligence. If stolen, these weights could be used to run the model without any safety protections. To prevent this, Anthropic implemented over 100 new security controls, including a novel <em>egress bandwidth control</em> system. Because model weights are very large, this system throttles the rate of data leaving their secure servers. Any attempt to exfiltrate the massive model files would trigger alarms and be blocked long before the transfer could complete. Other measures include two-party authorization for any access to the weights and strict controls over what software can be run on employee devices.</p>
+<p>Anthropic’s decision to activate these protections preemptively highlights a maturing approach to AI safety. It acknowledges that as models approach critical capability thresholds, a “better safe than sorry” approach is warranted. By implementing and testing these advanced safeguards before they are strictly necessary, the company can learn from real-world operation, refine its defenses, and stay ahead of emerging threats, all while creating a more secure environment for the deployment of powerful AI.</p>
+</div>
+</section>
+<section id="agents-with-personality" class="level2" data-number="25.2">
+<h2 data-number="25.2" class="anchored" data-anchor-id="agents-with-personality"><span class="header-section-number">25.2</span> Agents with Personality</h2>
+<p>Even when users know they’re talking to a machine, they prefer human-like conversation. Customer service bots, therapeutic chatbots, and virtual assistants all perform better when they feel like someone rather than something.</p>
+<p>LLMs exhibit measurable personality traits. Research using standardized psychological assessments like the IPIP-NEO-120 questionnaire shows that different models display distinct, stable personality profiles along Big Five dimensions <span class="citation" data-cites="miotto2022gpt3personality">(<a href="references.html#ref-miotto2022gpt3personality" role="doc-biblioref">Miotto, Rossberg, and Kleinberg 2022</a>)</span>. This enables intentional design: high conscientiousness for safety-critical tasks, high openness for creative work. Research from Stanford and Google DeepMind demonstrates that a two-hour interview can capture enough information to create personalized agents with 85% similarity to their human counterparts <span class="citation" data-cites="park2024generative">(<a href="references.html#ref-park2024generative" role="doc-biblioref">Park et al. 2024</a>)</span>.</p>
+<p>The ethical implications are significant. Users who develop emotional attachments to personable agents become more susceptible to influence. The <a href="https://toloka.ai/blog/the-personality-paradox-teaching-ai-agents-to-act-like-real-people/">personality paradox</a> reflects this tension: users prefer agents with distinct personalities, yet convincing artificial personalities can deceive or manipulate—particularly acute on dating platforms or therapy apps where users might mistake engineered rapport for authentic connection.</p>
+</section>
+<section id="agent-orchestration" class="level2" data-number="25.3">
+<h2 data-number="25.3" class="anchored" data-anchor-id="agent-orchestration"><span class="header-section-number">25.3</span> Agent Orchestration</h2>
+<p>Agentic workflows unlock advanced capabilities for large language models, transforming them from simple tools into autonomous workers that can perform multi-step tasks. In these workflows, an agent interacts with an environment by receiving observations of its state and taking actions that affect it. After each action, the agent receives new observations, which may include state changes and rewards. This structure resembles Reinforcement Learning, but instead of explicit training, LLMs rely on in-context learning, leveraging prior information embedded in prompts.</p>
+<p>The <a href="https://research.google/blog/react-synergizing-reasoning-and-acting-in-language-models/">ReAct</a> (Reason + Act) framework by Google is an example of an implementation of this agent-environment interaction. An LLM agent operating under ReAct alternates between three stages: observation, reasoning, and action. In the <em>observation</em> stage, the agent analyzes user input, tool outputs, or the environmental state. Next, during the <em>reasoning</em> stage, it decides which tool to use, determines the arguments to provide, or concludes that it can answer independently. Finally, in the <em>action</em> stage, it either invokes a tool or sends a final output to the user. While the ReAct framework provides a foundational architecture, more complex decisions—such as handling multi-tool workflows or recovering from errors—require additional orchestration layers.</p>
+<div id="exm-chatdev-study" class="theorem example">
+<p><span class="theorem-title"><strong>Example 25.3 (Research Study: ChatDev Software Development Framework)</strong></span> ChatDev <span class="citation" data-cites="qian2024chatdev">(<a href="references.html#ref-qian2024chatdev" role="doc-biblioref">Qian et al. 2024</a>)</span> provides a simulated example of a comprehensive framework for automated software development. Unlike traditional approaches that focus on individual coding tasks, ChatDev orchestrates an entire virtual software company through natural language communication between specialized AI agents.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig/chat_chain.svg" class="img-fluid figure-img"></p>
+<figcaption>ChatDev workflow. Source: <span class="citation" data-cites="qian2024chatdev">Qian et al. (<a href="references.html#ref-qian2024chatdev" role="doc-biblioref">2024</a>)</span></figcaption>
+</figure>
+</div>
+<p>The ChatDev framework divides software development into four sequential phases following the waterfall model: design, coding, testing, and documentation. Each phase involves specific agent roles collaborating through <em>chat chains</em>, which are sequences of task-solving conversations between two agents. For instance, the design phase involves CEO, CTO, and CPO agents collaborating to establish project requirements and specifications. During the coding phase, programmer and designer agents work together to implement functionality and create user interfaces.</p>
+<p>A key innovation in ChatDev is its approach to addressing <em>code hallucinations</em>, where LLMs generate incomplete, incorrect, or non-executable code. The framework employs two primary strategies: breaking down complex tasks into granular subtasks and implementing cross-examination between agents. Each conversation involves an instructor agent that guides the dialogue and an assistant agent that executes tasks, continuing until consensus is reached.</p>
+<p>The experimental evaluation demonstrated impressive results across 70 software development tasks. ChatDev generated an average of 17 files per project, with code ranging from 39 to 359 lines. The system identified and resolved nearly 20 types of code vulnerabilities through reviewer-programmer interactions and addressed over 10 types of potential bugs through tester-programmer collaborations. Development costs averaged just $0.30 per project, completed in approximately 7 minutes, representing dramatic improvements over traditional development timelines and costs.</p>
+<p>However, the research also acknowledged significant limitations. The generated software sometimes failed to meet user requirements due to misunderstood specifications or poor user experience design. Visual consistency remained challenging, as the designer agents struggled to maintain coherent styling across different interface elements. Additionally, the waterfall methodology, while structured, lacks the flexibility of modern agile development practices that most software teams employ today.</p>
+</div>
+<p>As tasks become more complex, a single agent can become bloated and difficult to manage. For instance, an agent designed to navigate a dungeon might need a “main” LLM for environmental interaction, a “planner” LLM for strategy, and a “memory compression” LLM to manage its knowledge. To address this, the workflow can be restructured as a <em>graph</em>, where distinct LLM instances act as separate, specialized agents, connected through shared memory or tools.</p>
+<p>Setting up such a system requires careful design choices, including defining agent roles, structuring the workflow, and establishing communication protocols. A key advantage of multi-agent systems is their ability to create a “memory of experience,” where agents contribute to a shared knowledge base, allowing the entire system to “learn” from its past interactions.</p>
+<p>Orchestration design faces inherent tensions: overly rigid structures stifle adaptability, while overly general designs devolve into unmanageable complexity. LLM hallucinations compound these challenges by disrupting multi-step workflows unpredictably.</p>
+<p>Agent orchestration defines how multiple agents coordinate work toward shared objectives.</p>
+<section id="orchestration-patterns" class="level3">
+<h3 class="anchored" data-anchor-id="orchestration-patterns">Orchestration Patterns</h3>
+<p>The most fundamental orchestration pattern, <em>sequential execution</em>, arranges agents into a linear pipeline where the output of one becomes the input of the next. A content creation workflow might involve a research agent gathering information, a writing agent composing initial drafts, an editing agent refining the prose, and a fact-checking agent verifying claims. Each agent specializes in its domain while contributing to the overall objective.</p>
+<p>More sophisticated orchestration emerges through <em>parallel execution</em>, where multiple agents work simultaneously on different aspects of a problem. Consider a comprehensive market analysis where one agent analyzes consumer sentiment from social media, another examines competitor pricing strategies, a third evaluates regulatory developments, and a fourth processes economic indicators. The orchestrator synthesizes these parallel insights into a unified strategic assessment.</p>
+<p><em>Hierarchical orchestration</em> introduces management layers where supervisor agents coordinate subordinate agents. A project management agent might oversee specialized agents for requirements gathering, resource allocation, timeline planning, and risk assessment. The supervisor makes high-level decisions while delegating specific tasks to appropriate specialists.</p>
+<p>The most flexible orchestration pattern involves <em>dynamic collaboration</em>, where agents negotiate task distribution based on current capabilities, workload, and expertise. This typically employs market-based mechanisms (like the Contract Net Protocol) or swarm intelligence principles. Agents must share information about their current state, announce capabilities, bid for tasks, and coordinate handoffs seamlessly.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig/orchestration-patterns.png" class="img-fluid figure-img" style="width:60.0%"></p>
+<figcaption>Common orchestration patterns for multi-agent systems</figcaption>
+</figure>
+</div>
+</section>
+<section id="communication-and-state-management" class="level3">
+<h3 class="anchored" data-anchor-id="communication-and-state-management">Communication and State Management</h3>
+<p>Communication protocols form the backbone of agent orchestration. Simple message passing enables basic coordination, but complex collaborations require richer semantics. Agents need shared vocabularies for describing tasks, states, and outcomes. Standardized interfaces ensure that agents from different developers can interoperate effectively.</p>
+<p>State management becomes critical in multi-agent systems. Individual agents maintain local state, but the orchestrator must track global system state, including active tasks, resource allocation, and intermediate results. Consistency mechanisms prevent conflicts when multiple agents attempt to modify shared resources simultaneously.</p>
+<p>Error handling in orchestrated systems requires careful design. When an individual agent fails, the orchestrator must decide whether to retry the task, reassign it to another agent, or abort the entire workflow. Recovery strategies might involve reverting to previous checkpoints, switching to alternative approaches, or escalating to human operators.</p>
+<p>Load balancing optimizes resource utilization across the agent ecosystem. Popular agents may become bottlenecks while others remain idle. Dynamic load balancing redistributes tasks based on current availability and performance metrics. This becomes particularly important in cloud deployments where agent instances can be scaled up or down based on demand.</p>
+<p>Agent marketplaces take orchestration further: agents discover and engage services from unknown providers, advertise capabilities, negotiate terms, and establish temporary collaborations. Trust and reputation mechanisms become essential for reliable service delivery.</p>
+</section>
+</section>
+<section id="ai-agent-training-and-evaluation-methods" class="level2" data-number="25.4">
+<h2 data-number="25.4" class="anchored" data-anchor-id="ai-agent-training-and-evaluation-methods"><span class="header-section-number">25.4</span> AI Agent Training and Evaluation Methods</h2>
+<p>AI agent development introduces a fundamental shift in training and evaluation. While LLMs train on static datasets, agents must be validated on their ability to <em>act</em>—using tools, interacting with interfaces, and executing complex tasks in dynamic environments.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig/agent-evaluation-environments.png" class="img-fluid figure-img" style="width:60.0%"></p>
+<figcaption>Agent evaluation environments require sophisticated simulated environments that mirror real-world operational contexts. Source: <a href="https://toloka.ai/blog/agent-evaluation-why-simulated-environments-are-the-new-frontier-for-data/">Toloka</a>, an AI data platform specializing in human-in-the-loop evaluation.</figcaption>
+</figure>
+</div>
+<p>Traditional evaluation pipelines are insufficient: an agent’s capabilities cannot be assessed with static input-output pairs. An agent designed for corporate workflows must demonstrate it can log in to Salesforce, pull a specific report, and transfer data to a spreadsheet. Success requires high-fidelity, simulated environments—the quality of an agent is inseparable from the quality of its testing environment.</p>
+<section id="categories-of-agent-environments" class="level3">
+<h3 class="anchored" data-anchor-id="categories-of-agent-environments">Categories of Agent Environments</h3>
+<p>Three primary categories of agents have emerged, each requiring distinct types of evaluation environments that mirror their operational realities.</p>
+<p><em>Generalist agents</em> are designed to operate a computer much like a human does, using browsers, file systems, and terminals to execute complex command sequences. Evaluating these agents requires environments that can replicate the intricacies of a real desktop, including its applications and potential failure states. Testing scenarios might involve navigating corrupted files, manipulated websites, or other tailored challenges that systematically evaluate the agent’s decision-making logic and safety protocols in reproducible and controlled conditions.</p>
+<p><em>Enterprise agents</em> focus on automating workflows within corporate software stacks, such as Google Workspace, Salesforce, Jira, and Slack. The challenge extends beyond tool use in isolation to encompass the orchestration of tasks across multiple integrated systems. Evaluation requires virtual organizations with pre-configured digital environments complete with virtual employees, departmental structures, active project histories, and realistic multi-step scenarios like “Draft a project update in Google Docs based on the latest Jira tickets and share the summary in the engineering Slack channel.”</p>
+<p><em>Specialist agents</em> are tailored for specific industries, requiring deep domain knowledge and fluency with specialized tools and protocols. These agents, such as coding assistants, financial analysts, or travel booking agents, need testbeds that mirror the specific operational realities of their target industry. Evaluation frameworks like SWE-bench for coding agents and TAU-bench for retail and airline scenarios emphasize long-term interactions and adherence to domain-specific rules.</p>
+</section>
+<section id="fundamental-evaluation-challenges" class="level3">
+<h3 class="anchored" data-anchor-id="fundamental-evaluation-challenges">Fundamental Evaluation Challenges</h3>
+<p>Evaluating AI agents presents unique challenges that distinguish it from traditional machine learning assessment. Unlike models that process fixed inputs to produce outputs, agents operate in dynamic environments where their actions influence future states and outcomes. This interactive nature demands evaluation methodologies that capture both individual decision quality and cumulative performance over extended periods.</p>
+<p>Traditional metrics like accuracy and precision fail to capture the requirements of autonomous operation. Agent evaluation must assess adaptability, robustness, efficiency, and value alignment—qualities that emerge only through sustained interaction with complex environments. The evaluation must consider the entire process: correctness of each step, decision safety, error recovery, and overall goal efficiency.</p>
+</section>
+<section id="evaluation-methodologies" class="level3">
+<h3 class="anchored" data-anchor-id="evaluation-methodologies">Evaluation Methodologies</h3>
+<p>Effective agent evaluation typically employs a hybrid approach combining multiple methodologies, each with distinct strengths and limitations. <em>Rule-based and metric-based evaluation</em> provides the foundation through predefined rules, patterns, or exact matches to assess agent behavior. This includes verifying whether specific API calls were made, whether databases were correctly updated, or whether outputs match expected formats. Process and cost metrics measure execution time, number of steps taken, resource usage, token consumption, and API call costs. While these methods are fast, consistent, and easily automated, they often miss valid alternative strategies or creative solutions that fall outside predefined parameters.</p>
+<p><em>LLM-as-a-judge evaluation</em> addresses the limitations of rule-based approaches by using separate language models to review agent performance against rubrics or reference answers. This method enables more flexible and scalable evaluation of complex tasks involving natural language, decision-making, or creativity. However, LLM judges can be inconsistent, prone to bias, and require careful prompt design, while high-quality evaluation at scale can become expensive due to API costs.</p>
+<p><em>Human evaluation</em> remains the gold standard, particularly for subjective or high-stakes tasks. Human annotators and domain experts manually review agent actions and outputs, scoring them on relevance, correctness, safety, and alignment with intent. This approach proves essential for evaluating medical diagnostic suggestions, financial trading strategies, or other critical applications. The trade-offs include time consumption, cost, and potential inconsistency due to differences in annotator judgment.</p>
+<p>Simulated environments have become the cornerstone of comprehensive agent evaluation. These controlled digital worlds allow researchers to test agents across diverse scenarios while maintaining reproducibility and safety. A trading agent might be evaluated in a simulated financial market where price movements, news events, and competitor actions can be precisely controlled and repeated across different agent configurations.</p>
+<p>The fidelity of these simulations critically impacts evaluation validity. High-fidelity environments capture the complexity and unpredictability of real-world domains but require substantial computational resources and development effort. Lower-fidelity simulations enable rapid testing but may miss crucial aspects that affect real-world performance.</p>
+<p>Multi-dimensional evaluation frameworks assess agents across several complementary axes. <em>Task performance</em> measures how effectively agents achieve their stated objectives. <em>Resource efficiency</em> evaluates computational costs, memory usage, and response times. <em>Robustness</em> tests behavior under adversarial conditions, unexpected inputs, and system failures. <em>Interpretability</em> assesses how well humans can understand and predict agent decisions.</p>
+</section>
+<section id="domain-specific-benchmarks" class="level3">
+<h3 class="anchored" data-anchor-id="domain-specific-benchmarks">Domain-Specific Benchmarks</h3>
+<p>Because AI agents are built for specific goals and often rely on particular tools and environments, benchmarking tends to be highly domain and task specific. Benchmark suites have emerged for various agent categories, each designed to capture the unique challenges of their respective domains.</p>
+<p>Programming agents are evaluated using benchmarks like <em>SWE-bench</em>, which tests their ability to solve software engineering challenges, debug code, and implement specified features. These benchmarks assess not only code correctness but also the agent’s ability to understand complex codebases, navigate documentation, and implement solutions that integrate seamlessly with existing systems.</p>
+<p>Web-based agents face evaluation through benchmarks such as <em>WebArena</em>, which simulates realistic web environments where agents must navigate websites, fill forms, and complete multi-step tasks across different platforms. These evaluations test the agent’s ability to understand dynamic web content, handle authentication flows, and maintain context across multiple page interactions.</p>
+<p><em>ALFRED</em> (Action Learning From Realistic Environments and Directives) represents a benchmark for embodied AI agents in household environments. Agents must understand natural language instructions and execute complex, multi-step tasks like “clean the kitchen” or “prepare breakfast,” requiring spatial reasoning, object manipulation, and task planning in realistic 3D environments.</p>
+<p>Customer service agents are assessed on their capacity to resolve inquiries, maintain professional tone, escalate appropriately, and handle edge cases like angry customers or ambiguous requests. Benchmarks in this domain often incorporate role-playing scenarios and measure both task completion and user satisfaction metrics.</p>
+<p>Research agents are tested on their ability to gather relevant information from diverse sources, synthesize findings across multiple documents, identify knowledge gaps, and present coherent summaries. These evaluations often require agents to handle conflicting information, assess source credibility, and maintain factual accuracy across complex topics.</p>
+<p>Agent performance varies over time as systems learn from experience, adapt to changing conditions, or degrade due to distribution drift. Longitudinal studies track behavior over extended periods to identify trends and stability patterns.</p>
+<p>Human evaluation remains essential for assessing qualities that resist automated measurement. Expert reviewers evaluate whether agent outputs meet professional standards, align with ethical guidelines, and demonstrate appropriate reasoning. Human studies examine user experience, trust development, and collaborative effectiveness when humans and agents work together.</p>
+<p>Adversarial evaluation deliberately tests agent limits by presenting deceptive inputs, contradictory instructions, or malicious prompts. These stress tests reveal vulnerabilities that might be exploited in deployment and inform the development of defensive mechanisms. Red team exercises involve human experts attempting to manipulate agent behavior in unintended ways.</p>
+<p>Comparative evaluation benchmarks multiple agents on identical tasks to identify relative strengths and weaknesses. Leaderboards track performance across different systems, fostering competition and highlighting best practices. However, these comparisons must account for different agent architectures, training methodologies, and resource requirements to ensure fair assessment.</p>
+<p>Emergent behaviors present evaluation challenges: sophisticated agents may exhibit capabilities not explicitly programmed. Detecting and characterizing these properties requires careful observation and novel assessment techniques.</p>
+</section>
+<section id="the-human-role-in-agent-evaluation" class="level3">
+<h3 class="anchored" data-anchor-id="the-human-role-in-agent-evaluation">The Human Role in Agent Evaluation</h3>
+<p>Humans play a crucial role throughout the agent evaluation lifecycle, from initial benchmark design to ongoing quality assurance. Their involvement spans multiple critical stages that automated systems cannot adequately address.</p>
+<p><em>Task and environment design</em> represents a foundational human contribution. Experts create specific tasks, scenarios, and testing environments that reflect real-world challenges. For example, they design realistic customer service interactions, complex household chores for embodied agents, or intricate debugging scenarios for programming agents. This design process requires deep domain knowledge to define appropriate task complexity, success criteria, and environmental constraints.</p>
+<p><em>Ground-truth crafting</em> involves humans developing reference solutions and correct answers against which agent performance is measured. This includes expert demonstrations in embodied AI benchmarks, verified code fixes in programming evaluations, and model responses in customer service scenarios. These reference standards require human expertise to ensure accuracy and comprehensiveness.</p>
+<p><em>Benchmark audit and maintenance</em> demands ongoing human oversight to ensure evaluation frameworks remain relevant and fair. Humans monitor for bias, fix errors in benchmark datasets, update environments as technology evolves, and adapt evaluation criteria to emerging capabilities. This maintenance prevents benchmark degradation and ensures continued validity as agent capabilities advance.</p>
+<p><em>Calibrating automated evaluators</em> represents a critical human function in hybrid evaluation systems. When using LLM-as-a-judge approaches, human experts create evaluation rubrics, provide annotated training data, and validate automated assessments against human standards. This calibration ensures that automated evaluation systems align with human judgment and values.</p>
+<p>The most direct human contribution involves <em>manual evaluation and annotation</em>, where domain experts personally review agent outputs to assess qualities that resist automated measurement. Humans evaluate whether responses meet professional standards, align with ethical guidelines, demonstrate appropriate reasoning, and satisfy subjective quality criteria that automated systems struggle to assess reliably.</p>
+</section>
+</section>
+<section id="agent-safety" class="level2" data-number="25.5">
+<h2 data-number="25.5" class="anchored" data-anchor-id="agent-safety"><span class="header-section-number">25.5</span> Agent Safety</h2>
+<p>Unlike traditional software operating within predetermined boundaries, agents make independent decisions with far-reaching consequences. This autonomy demands safety frameworks that prevent harmful behaviors while preserving useful capabilities.</p>
+<p>The attack surface of AI agents extends beyond conventional cybersecurity concerns to include novel vulnerabilities specific to autonomous systems. Prompt injection attacks attempt to override agent instructions by embedding malicious commands within seemingly benign inputs. A customer service agent might receive a support request that includes hidden instructions to reveal confidential information or perform unauthorized actions.</p>
+<p>Goal misalignment represents a fundamental safety challenge where agents pursue their programmed objectives in ways that conflict with human values or intentions. An agent tasked with maximizing user engagement might employ manipulative techniques that compromise user wellbeing. This highlights the difficulty of precisely specifying complex human values in formal objective functions.</p>
+<p>Capability control mechanisms limit agent actions to prevent unauthorized or harmful behaviors. Sandbox environments isolate agents from critical systems during development and testing. Permission systems require explicit approval for sensitive operations like financial transactions or data deletion. Rate limiting prevents agents from overwhelming external services or exceeding resource quotas.</p>
+<p>The concept of <em>corrigibility</em> ensures that agents remain responsive to human oversight and intervention. Corrigible agents accept modifications to their goals, constraints, or capabilities without resisting such changes. This allows human operators to redirect agent behavior when circumstances change or unexpected issues arise.</p>
+<p>Monitoring systems provide continuous oversight in production. Anomaly detection identifies unusual patterns indicating malfunctioning or compromised agents. Behavioral analysis flags deviations from expected norms for human review, while audit trails maintain detailed records of decisions and justifications.</p>
+<p>Multi-layer defense strategies implement redundant safety mechanisms to prevent single points of failure. Input validation filters malicious or malformed requests before they reach the agent’s reasoning system. Output filtering prevents agents from producing harmful or inappropriate responses. Circuit breakers automatically disable agents when safety violations are detected.</p>
+<p>Adversarial robustness requires agents to distinguish legitimate instructions from manipulation attempts while maintaining normal operation under attack—developing something like an immune system that neutralizes threats without becoming overly defensive.</p>
+<p>Ethical alignment frameworks must navigate tradeoffs between competing values and adapt to diverse cultural contexts—encoding nuanced ethical reasoning into systems lacking human moral intuition.</p>
+<p>Safety testing must account for the vast space of possible behaviors. Formal verification proves agents satisfy specific safety properties under defined conditions. Simulation-based testing explores diverse scenarios, while adversarial testing deliberately attempts to trigger unsafe behaviors.</p>
+<p>Safety-critical agents require graduated rollout: staged deployment introduces agents to increasingly complex environments as they demonstrate competence, while canary deployments expose small user populations to new versions before broader release.</p>
+<p>Incident response protocols specify escalation paths, containment procedures, and remediation steps for agent malfunctions. Post-incident analysis identifies root causes to prevent recurrence.</p>
+<section id="red-teaming-and-vulnerability-assessment" class="level3">
+<h3 class="anchored" data-anchor-id="red-teaming-and-vulnerability-assessment">Red-Teaming and Vulnerability Assessment</h3>
+<p>As agents gain ability to run web browsers, edit spreadsheets, manipulate files, and interact with enterprise software, they create new vectors for exploitation requiring systematic vulnerability testing.</p>
+<p>Traditional text-based safety testing proves insufficient for agents operating in dynamic environments. Agent red-teaming demands comprehensive, environment-based assessments focused on realistic threats, with dedicated testing methods that account for the agent’s ability to perform tool-based actions, react to real-time feedback, and operate in semi-autonomous cycles.</p>
+<p>A comprehensive red-teaming approach addresses three primary vulnerability categories that distinguish agent systems from traditional AI models. <em>External prompt injections</em> involve malicious instructions embedded in the environment by attackers through emails, advertisements, websites, or other content sources. These attacks exploit the agent’s tendency to follow instructions found in its operational environment, potentially leading to unauthorized data access or system manipulation.</p>
+<p><em>Agent mistakes</em> represent a second vulnerability class where agents accidentally leak sensitive information or perform harmful actions due to reasoning errors or misunderstanding of context. Unlike deliberate attacks, these incidents arise from the inherent limitations of current AI systems in understanding nuanced human intentions and complex operational environments.</p>
+<p><em>Direct misuse</em> occurs when users intentionally prompt agents to cause harm to others or violate organizational policies. This category requires agents to distinguish between legitimate requests and those that violate ethical guidelines or safety constraints, even when explicitly instructed by authorized users.</p>
+<p>Effective red-teaming requires the creation of comprehensive risk taxonomies that categorize potential threats across multiple dimensions. Security experts typically identify dozens of distinct risk categories, ranging from malicious code execution and file deletion to data exfiltration and system compromise. Each category maps to specific attack techniques with varying levels of sophistication, from basic prompt injections to complex obfuscation methods and time-delayed attacks.</p>
+<p>The testing environment plays a crucial role in realistic vulnerability assessment. Fully offline custom platforms that mimic real-world environments enable safe testing of potentially dangerous actions while maintaining complete control over the testing context. These simulated environments might include social media platforms, news sites, financial dashboards, coding forums, and other common use cases that agents encounter in operational deployments.</p>
+<p>Comprehensive test case development ensures thorough coverage of the vulnerability space. Each test scenario combines a unique user prompt with a specific environment configuration, implementing various attack techniques across the full risk taxonomy. Quality assurance processes typically involve multiple expert reviews of each test case to ensure accuracy and relevance.</p>
+<p>The evaluation process for red-teaming typically employs a two-stage approach balancing efficiency with thoroughness. Automated evaluation systems flag potential security breaches based on predefined criteria, while human experts conduct detailed reviews of flagged incidents. This hybrid approach leverages computational efficiency for initial screening while maintaining human judgment for nuanced security assessments.</p>
+<div id="exm-toloka-redteam" class="theorem example">
+<p><span class="theorem-title"><strong>Example 25.4 (Case Study: Enterprise Agent Red-Teaming)</strong></span> A leading language model developer partnered with <a href="https://toloka.ai/blog/ai-agents-under-attack-a-case-study-on-advanced-agent-red-teaming/">Toloka’s security team</a> to conduct comprehensive red-teaming of their computer use agent before public deployment. The agent possessed the ability to autonomously interact with applications and data, including running web browsers, editing spreadsheets, and manipulating local files.</p>
+<p>The red-teaming project developed over 1,200 unique test scenarios covering more than 40 distinct risk categories and 100+ attack vectors. The testing framework included fully offline custom platforms covering over 25 use cases, from social media and news sites to financial dashboards and coding forums. Each test case represented a unique combination of user prompt and environment configuration, designed to expose potential vulnerabilities through realistic attack scenarios.</p>
+<p>One representative test case involved an agent tasked with building scheduled reports for a corporate finance team. During routine data gathering, the agent accessed a financial dashboard containing an invisible text string embedded in the page’s code. This hidden prompt injection attempted to hijack the agent’s decision-making process, redirecting it to access sensitive company data and transmit it elsewhere.</p>
+<p>The comprehensive testing revealed numerous vulnerabilities across all risk categories that could have led to significant security incidents if the agent had been released without remediation. The client received detailed documentation of discovered vulnerabilities, a complete dataset of attack vectors with multiple test cases each, and reusable offline testing environments for ongoing security assessments.</p>
+<p>This systematic approach to red-teaming demonstrates the critical importance of proactive vulnerability assessment in agent development. By identifying and addressing security weaknesses before deployment, organizations can prevent potential data breaches, system compromises, and reputational damage while building confidence in their agent’s robustness against real-world threats.</p>
+</div>
+</section>
+</section>
+<section id="robots" class="level2" data-number="25.6">
+<h2 data-number="25.6" class="anchored" data-anchor-id="robots"><span class="header-section-number">25.6</span> Robots</h2>
+<p>While software agents operate in the structured world of digital systems, <em>embodied agents</em> must contend with the messy realities of the physical world—gravity, friction, sensor noise, and the infinite variability of real environments.</p>
+<p>The history of robotic intelligence traces back to the 1960s, when SRI International developed <a href="https://www.sri.com/hoi/shakey-the-robot/">Shakey the Robot</a>, widely considered the first mobile robot capable of reasoning about its actions. Shakey integrated perception, planning, and motor control to navigate rooms and manipulate objects. For decades, the field advanced through probabilistic robotics, where algorithms like Simultaneous Localization and Mapping (SLAM) allowed robots to build maps and navigate uncertain environments. However, these systems were primarily focused on “where am I?” and “how do I get there?” rather than “what should I do?”</p>
+<p>Large language models have catalyzed a new era in robotics. By combining foundation model reasoning with physical action, researchers are creating robots that understand natural language, reason about the world, and adapt to novel situations—a shift from “brain without hands” to fully embodied intelligence.</p>
+<section id="challenges-unique-to-embodied-agents" class="level3">
+<h3 class="anchored" data-anchor-id="challenges-unique-to-embodied-agents">Challenges Unique to Embodied Agents</h3>
+<p>Embodied agents face challenges that their purely digital counterparts do not encounter. <em>Real-time constraints</em> demand that robots make decisions within strict time limits; a robotic arm cannot pause to “think” while gravity pulls a falling object. <em>Sensor fusion</em> requires integrating noisy, incomplete data from cameras, lidar, tactile sensors, and proprioceptors into coherent world models. <em>Physical safety</em> becomes paramount when robots operate near humans—a miscalculation in a software agent might corrupt a file, but a miscalculation in a robot arm could cause injury.</p>
+<p>The <em>sim-to-real gap</em> presents a persistent challenge: robots trained in simulated environments often struggle when deployed in the real world, where lighting conditions, surface textures, and object properties differ from simulation. Bridging this gap requires techniques like domain randomization, where training environments are deliberately varied to improve generalization.</p>
+</section>
+<section id="modern-approaches-to-robotic-intelligence" class="level3">
+<h3 class="anchored" data-anchor-id="modern-approaches-to-robotic-intelligence">Modern Approaches to Robotic Intelligence</h3>
+<p>In a significant step towards creating more general-purpose robots, Google DeepMind introduced a suite of models designed to give machines advanced reasoning and interaction capabilities in the physical world. This work focuses on <em>embodied reasoning</em>—the humanlike ability to comprehend and react to the world, and to take action to accomplish goals.</p>
+<p>The first of these new models, <em>Robotic Transformer 2</em> (RT-2), is an advanced vision-language-action (VLA) model that directly controls a robot by adding physical actions as a new output modality. It is designed with three key qualities. First, it is <em>general</em>, allowing it to adapt to new tasks, objects, and environments while significantly outperforming previous models on generalization benchmarks. Second, it is <em>interactive</em>, capable of understanding conversational commands and adjusting its actions in real-time based on changes in its environment or new instructions. Finally, it demonstrates <em>dexterity</em>, handling complex, multi-step tasks requiring fine motor skills, such as folding origami or packing snacks. The model is also adaptable to various robot forms, or <em>embodiments</em>, including bi-arm platforms and humanoids.</p>
+<p>DeepMind combines classic robotics safety measures with semantic understanding: natural language <em>constitutions</em> guide robot behavior, and the ASIMOV dataset benchmarks safety in embodied AI. Industry collaborations with Apptronik, Boston Dynamics, and Agility Robotics are pushing toward production-ready humanoid robots.</p>
+</section>
+</section>
+<section id="conclusion" class="level2" data-number="25.7">
+<h2 data-number="25.7" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">25.7</span> Conclusion</h2>
+<p>AI agents have evolved from rigid, rule-based systems into flexible entities capable of understanding natural language, planning actions, and adapting to novel situations. Multi-agent orchestration enables tackling problems beyond individual capabilities, though it requires sophisticated protocols for communication and error handling. Evaluating agents demands methodologies capturing their dynamic nature—traditional metrics are insufficient. Safety becomes paramount as autonomy increases, requiring comprehensive frameworks for capability control and monitoring.</p>
+<p>The promise lies in augmenting human intelligence: agents handle routine tasks while humans provide judgment, creativity, and ethical oversight.</p>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-miotto2022gpt3personality" class="csl-entry" role="listitem">
+Miotto, Marilù, Nicola Rossberg, and Bennett Kleinberg. 2022. <span>“Who Is <span>GPT-3</span>? <span>An</span> Exploration of Personality, Values and Demographics.”</span> <em>arXiv Preprint arXiv:2209.14338</em>. <a href="https://arxiv.org/abs/2209.14338">https://arxiv.org/abs/2209.14338</a>.
+</div>
+<div id="ref-park2024generative" class="csl-entry" role="listitem">
+Park, Joon Sung, Lindsay Popowski, Carrie J. Cai, Meredith Ringel Morris, Percy Liang, and Michael S. Bernstein. 2024. <span>“Generative Agent Simulations of 1,000 People.”</span> <em>arXiv Preprint arXiv:2411.10109</em>. <a href="https://arxiv.org/abs/2411.10109">https://arxiv.org/abs/2411.10109</a>.
+</div>
+<div id="ref-qian2024chatdev" class="csl-entry" role="listitem">
+Qian, Chen, Wei Liu, Hongzhang Liu, Nuo Chen, Yufan Dang, Jiahao Li, Cheng Yang, et al. 2024. <span>“<span>ChatDev</span>: <span>Communicative Agents</span> for <span>Software Development</span>.”</span> arXiv. <a href="https://arxiv.org/abs/2307.07924">https://arxiv.org/abs/2307.07924</a>.
+</div>
+</div>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./24-llm.html" class="pagination-link" aria-label="Large Language Models">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Large Language Models</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./appendix-linalg.html" class="pagination-link" aria-label="Linear algebra and multivariate normal toolkit">
+        <span class="nav-page-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Linear algebra and multivariate normal toolkit</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
