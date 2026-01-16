@@ -20,41 +20,6 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
 /* CSS for citations */
 div.csl-bib-body { }
 div.csl-entry {
@@ -97,7 +62,7 @@ div.csl-indent {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-3fa4ff979380b88aedafe7599fa714ae.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-b4985e4eddee1e63d72746df2b00da28.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -151,7 +116,7 @@ div.csl-indent {
   .MathJax {
     font-size: 1em !important;
   }
-  
+
   /* Ensure consistent math rendering */
   mjx-container[jax="CHTML"] {
     line-height: 1.2;
@@ -702,39 +667,10 @@ v_{\text{cat}} = \overbrace{[0, 0, \ldots, 1, \ldots, 0]}^{|V|}
 <h2 data-number="23.3" class="anchored" data-anchor-id="word2vec-for-war-and-peace"><span class="header-section-number">23.3</span> Word2Vec for War and Peace</h2>
 <p>This analysis showcases the application of Word2Vec on Leo Tolstoy’s “War and Peace,” demonstrating how neural network-based techniques can learn vector representations of words by analyzing their contextual relationships within the text. The model employs the skip-gram algorithm with negative sampling (explained later), a widely used configuration for Word2Vec. We use vector dimension of 100, providing a balance between capturing semantic detail and computational efficiency. The context window size is set to 5, and the model is trained over several iterations to ensure convergence. Finally, we use PCA to reduce the dimensionality of the vectors to 2D for visualization.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<details class="code-fold">
-<summary>Word2Vec for War and Peace</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.models <span class="im">import</span> Word2Vec</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># define training data, read from ../data/warpeace.txt</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">'../data/warpeace.txt'</span>, <span class="st">'r'</span>) <span class="im">as</span> <span class="bu">file</span>:</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    Text <span class="op">=</span> <span class="bu">file</span>.read()</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>sentences <span class="op">=</span> [s.split() <span class="cf">for</span> s <span class="kw">in</span> Text.split(<span class="st">'. '</span>) ] <span class="co"># split the text into sentences</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove spaces and punctuation</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>sentences <span class="op">=</span> [[word.strip(<span class="st">'.,!?;:()[]'</span>) <span class="cf">for</span> word <span class="kw">in</span> sentence <span class="cf">if</span> word.strip(<span class="st">'.,!?;:()[]'</span>)] <span class="cf">for</span> sentence <span class="kw">in</span> sentences]</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove empty sentences</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>sentences <span class="op">=</span> [sentence <span class="cf">for</span> sentence <span class="kw">in</span> sentences <span class="cf">if</span> sentence]</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> Word2Vec(sentences, min_count<span class="op">=</span><span class="dv">1</span>,seed<span class="op">=</span><span class="dv">42</span>,workers<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># fit a 2d PCA model to the vectors, only use the words from ../data/embedding_words.txt</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">'../data/embedding_words.txt'</span>, <span class="st">'r'</span>) <span class="im">as</span> <span class="bu">file</span>:</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    words <span class="op">=</span> <span class="bu">file</span>.read().splitlines()</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> model.wv[words]  <span class="co"># get the vectors for the words</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co"># reduce the dimensionality of the vectors to 2D using PCA</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> PCA(n_components<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> pca.fit_transform(X)</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co"># create a scatter plot of the projection</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>pyplot.scatter(result[:, <span class="dv">0</span>], result[:, <span class="dv">1</span>])</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co"># words = model.wv.index_to_key</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, word <span class="kw">in</span> <span class="bu">enumerate</span>(words):</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    pyplot.annotate(word, xy<span class="op">=</span>(result[i, <span class="dv">0</span>], result[i, <span class="dv">1</span>]))</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>pyplot.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="23-nlp_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="23-nlp_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="960"></p>
 <figcaption>Word2Vec for War and Peace</figcaption>
 </figure>
 </div>
@@ -777,7 +713,12 @@ v_{\text{cat}} = \overbrace{[0, 0, \ldots, 1, \ldots, 0]}^{|V|}
 </div>
 </div>
 <p>The mathematical foundation assumes conditional independence among context words given the center word, allowing the joint probability to factorize:</p>
-<p><span class="math display">\[P(\text{"the"}, \text{"man"}, \text{"his"}, \text{"son"} \mid \text{"loves"}) = P(\text{"the"} \mid \text{"loves"}) \cdot P(\text{"man"} \mid \text{"loves"}) \cdot P(\text{"his"} \mid \text{"loves"}) \cdot P(\text{"son"} \mid \text{"loves"})\]</span></p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp;P(\text{"the"}, \text{"man"}, \text{"his"}, \text{"son"} \mid \text{"loves"}) = \\
+&amp;\quad P(\text{"the"} \mid \text{"loves"}) \cdot P(\text{"man"} \mid \text{"loves"}) \cdot P(\text{"his"} \mid \text{"loves"}) \cdot P(\text{"son"} \mid \text{"loves"})
+\end{aligned}
+\]</span></p>
 <p>This independence assumption, while not strictly true in natural language, proves crucial for computational tractability. Each conditional probability is modeled using the softmax function over the entire vocabulary:</p>
 <p><span class="math display">\[P(w_o \mid w_c) = \frac{\exp(\mathbf{u}_o^T \mathbf{v}_c)}{\sum_{i \in \mathcal{V}} \exp(\mathbf{u}_i^T \mathbf{v}_c)}\]</span></p>
 <p>The skip-gram objective seeks to maximize the likelihood of observing all context words across the entire corpus. For a text sequence of length <span class="math inline">\(T\)</span> with words <span class="math inline">\(w^{(1)}, w^{(2)}, \ldots, w^{(T)}\)</span>, the objective becomes:</p>
@@ -879,7 +820,7 @@ v_{\text{cat}} = \overbrace{[0, 0, \ldots, 1, \ldots, 0]}^{|V|}
 <p>Static word embeddings suffer from a fundamental limitation: they assign a single vector to each word, ignoring context. The word “bank” receives the same representation whether it appears in “river bank” or “investment bank.” This conflation of multiple senses into a single vector creates an information bottleneck that limits performance on downstream tasks.</p>
 <p>The evolution of word embeddings culminated in contextual representations, which dynamically adjust based on surrounding context. The context problem was solved by attention mechanisms, particularly the transformer architecture, which allows models to capture complex dependencies between words. Attention mimics the human ability to selectively focus: when reading, your visual system processes every word simultaneously, yet conscious attention flows sequentially. You can redirect this attention at will—noticing a particular phrase or jumping back to reread a complex clause.</p>
 <p>Machine learning systems faced analogous challenges in processing sequential information. Early neural networks, particularly recurrent architectures, processed sequences step by step, maintaining a hidden state that theoretically encoded all previous information. However, this sequential bottleneck created fundamental limitations: information from early time steps could vanish as sequences grew longer, and the inherently sequential nature prevented parallel computation that could leverage modern hardware effectively.</p>
-<p>The attention <span class="citation" data-cites="bahdanau2014neural">Vaswani et al. (<a href="references.html#ref-vaswani2023attention" role="doc-biblioref">2023</a>)</span> mechanism revolutionized this landscape by allowing models to directly access and combine information from any part of the input sequence. Rather than compressing an entire sequence into a fixed-size vector, attention mechanisms create dynamic representations that adaptively weight different parts of the input based on their relevance to the current computation. This breakthrough enabled the development of the Transformer architecture, which forms the foundation of modern language models from BERT to GPT.</p>
+<p>The attention <span class="citation" data-cites="bahdanau2014neural">Vaswani et al. (<a href="references.html#ref-vaswani2023attention" role="doc-biblioref">2023</a>)</span> mechanism enabled this landscape by allowing models to directly access and combine information from any part of the input sequence. Rather than compressing an entire sequence into a fixed-size vector, attention mechanisms create dynamic representations that adaptively weight different parts of the input based on their relevance to the current computation. This breakthrough enabled the development of the Transformer architecture, which forms the foundation of modern language models from BERT to GPT.</p>
 <p>At its core, attention implements an information retrieval system inspired by database operations. Consider how you might search through a library: you formulate a <strong>query</strong> (what you’re looking for), examine the <strong>keys</strong> (catalog entries or book titles), and retrieve the associated <strong>values</strong> (the actual books or their contents). Attention mechanisms formalize this intuition through three learned representations:</p>
 <ul>
 <li><em>Queries</em> (<span class="math inline">\(\mathbf{Q}\)</span>): What information are we seeking?</li>
@@ -904,7 +845,11 @@ v_{\text{cat}} = \overbrace{[0, 0, \ldots, 1, \ldots, 0]}^{|V|}
 </div>
 </div>
 </div>
-<p><img src="fig/keyvalue.png" class="img-fluid" style="width:40.0%"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig/keyvalue.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:550.0%"></p>
+</figure>
+</div>
 <p>This diagram shows the basic attention computation. A query vector <span class="math inline">\(q\)</span> is compared to each key <span class="math inline">\(k_i\)</span> to produce a score, which is then turned into an attention weight <span class="math inline">\(\alpha(q,k_i)\)</span> (often normalized so the weights sum to one). The output is a weighted sum of the value vectors, <span class="math inline">\(\sum_{i=1}^m \alpha(q,k_i) v_i\)</span>, so values associated with keys most relevant to the query contribute more to the final representation.</p>
 </section>
 <div id="ex-kernel-smoothing">
@@ -912,22 +857,11 @@ v_{\text{cat}} = \overbrace{[0, 0, \ldots, 1, \ldots, 0]}^{|V|}
 <h2 data-number="23.8" class="anchored" data-anchor-id="kernel-smoothing-as-attention"><span class="header-section-number">23.8</span> Kernel Smoothing as Attention</h2>
 <p>The concept of attention pooling can actually be traced back to classical kernel methods like Nadaraya-Watson regression, where similarity kernels determine how much weight to give to different data points. Given a sequence of observations <span class="math inline">\(y_1, \ldots, y_n\)</span>, and each observation has a two-dimensional index <span class="math inline">\(x^{(i)} \in \mathbb{R}^2\)</span>, such as in a spatial process. Then the question is what would be the value of <span class="math inline">\(y\)</span> at a previously unobserved location <span class="math inline">\(x_{new} = (x_1,x_2)\)</span>. Let’s simulate some data and see what we can do.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate some data</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>x1 <span class="op">=</span> np.random.uniform(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">100</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>x2 <span class="op">=</span> np.random.uniform(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">100</span>)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.sin(<span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> x1) <span class="op">+</span> x2<span class="op">*</span>x2<span class="op">+</span> np.random.normal(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="dv">100</span>)</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>plt.scatter(x1, x2, c<span class="op">=</span>y, cmap<span class="op">=</span><span class="st">'viridis'</span>)</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>plt.colorbar()<span class="op">;</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div id="fig-kernel-smoothing" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-kernel-smoothing-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="23-nlp_files/figure-html/fig-kernel-smoothing-3.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="576">
+<img src="23-nlp_files/figure-html/fig-kernel-smoothing-3.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="448">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-kernel-smoothing-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;23.1: Simulated data for kernel smoothing
@@ -972,26 +906,6 @@ Figure&nbsp;23.1: Simulated data for kernel smoothing
 </table>
 <p>Here, <span class="math inline">\(h\)</span> is a bandwidth parameter controlling the width of the kernel, and <span class="math inline">\(\mathbb{I}\)</span> is the indicator function. Code for the kernels is given below.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Define some kernels for attention pooling</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gaussian(x): <span class="cf">return</span> np.exp(<span class="op">-</span>x<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> boxcar(x): <span class="cf">return</span> np.<span class="bu">abs</span>(x) <span class="op">&lt;</span> <span class="fl">1.0</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> constant(x): <span class="cf">return</span> <span class="fl">1.0</span> <span class="op">+</span> <span class="dv">0</span> <span class="op">*</span> x  <span class="co"># noqa: E741</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> epanechikov(x): <span class="cf">return</span> np.maximum(<span class="dv">1</span> <span class="op">-</span> np.<span class="bu">abs</span>(x), np.zeros_like(x))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div class="cell" data-layout-align="center" data-null_prefix="true">
-<details class="code-fold">
-<summary>Plotting kernels</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">4</span>, sharey<span class="op">=</span><span class="va">True</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>kernels <span class="op">=</span> (gaussian, boxcar, constant, epanechikov)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>names <span class="op">=</span> (<span class="st">'Gaussian'</span>, <span class="st">'Boxcar'</span>, <span class="st">'Constant'</span>, <span class="st">'Epanechikov'</span>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="op">-</span><span class="fl">2.5</span>, <span class="fl">2.5</span>, <span class="fl">0.1</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> kernel, name, ax <span class="kw">in</span> <span class="bu">zip</span>(kernels, names, axes):</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    ax.plot(x, kernel(x))</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(name)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1004,101 +918,9 @@ Figure&nbsp;23.1: Simulated data for kernel smoothing
 <p>Each of these kernels represents a different way of weighting information based on similarity or distance. In neural networks, this translates to learning how to attend to different parts of the input sequence, but with the flexibility to learn much more complex patterns than these simple mathematical functions.</p>
 <p>Now, lets plot the true value of the function and the kernel smoothed value.</p>
 <div class="cell" data-layout-align="center" data-null_prefix="true">
-<details class="code-fold">
-<summary>Kernel Smoothing</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> pyplot</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"DEBUG: Imported pyplot"</span>)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">## DEBUG: Imported pyplot</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># print(dir())</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gaussian_kernel_smoothing(X1, X2, x1_train, x2_train, y_train, bandwidth<span class="op">=</span><span class="fl">0.1</span>):</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Get the shape of the grid</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    shape <span class="op">=</span> X1.shape</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Flatten the grid points for easier computation</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    X1_flat <span class="op">=</span> X1.flatten()</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    X2_flat <span class="op">=</span> X2.flatten()</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Initialize predictions array</span></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    y_pred_flat <span class="op">=</span> np.zeros(<span class="bu">len</span>(X1_flat))</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># For each test point, compute weighted average using Gaussian kernel</span></span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(X1_flat)):</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        test_x1, test_x2 <span class="op">=</span> X1_flat[i], X2_flat[i]</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Compute distances from test point to all training points</span></span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        distances_squared <span class="op">=</span> (x1_train <span class="op">-</span> test_x1)<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> (x2_train <span class="op">-</span> test_x2)<span class="op">**</span><span class="dv">2</span></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Compute Gaussian weights</span></span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        weights <span class="op">=</span> np.exp(<span class="op">-</span>distances_squared <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> bandwidth<span class="op">**</span><span class="dv">2</span>))</span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Compute weighted average (kernel smoothing prediction)</span></span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> np.<span class="bu">sum</span>(weights) <span class="op">&gt;</span> <span class="dv">0</span>:</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>            y_pred_flat[i] <span class="op">=</span> np.<span class="bu">sum</span>(weights <span class="op">*</span> y_train) <span class="op">/</span> np.<span class="bu">sum</span>(weights)</span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>            y_pred_flat[i] <span class="op">=</span> <span class="dv">0</span>  <span class="co"># fallback if all weights are zero</span></span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Reshape back to grid shape</span></span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    y_pred <span class="op">=</span> y_pred_flat.reshape(shape)</span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> y_pred</span>
-<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gaussian(x):</span>
-<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.exp(<span class="op">-</span>x<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> <span class="dv">2</span>)</span>
-<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate grid data for x1 and x2 (test data)</span></span>
-<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>x1 <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">100</span>)</span>
-<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>x2 <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">100</span>)</span>
-<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a><span class="co"># Now compute the grid of x1 and x2 values</span></span>
-<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>X1, X2 <span class="op">=</span> np.meshgrid(x1, x2)</span>
-<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate training data</span></span>
-<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>x1_train <span class="op">=</span> np.random.uniform(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">100</span>)</span>
-<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>x2_train <span class="op">=</span> np.random.uniform(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">100</span>)</span>
-<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>y_train <span class="op">=</span> np.sin(<span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> x1_train) <span class="op">+</span> x2_train<span class="op">*</span>x2_train <span class="op">+</span> np.random.normal(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="dv">100</span>)</span>
-<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a><span class="co"># Test the function with the existing data</span></span>
-<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> gaussian_kernel_smoothing(X1, X2, x1_train, x2_train, y_train, bandwidth<span class="op">=</span><span class="fl">0.1</span>)</span>
-<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot comparison between true function and kernel smoothing prediction</span></span>
-<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> pyplot.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">5</span>))</span>
-<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a><span class="co"># True function (without noise for cleaner visualization)</span></span>
-<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a>y_true <span class="op">=</span> np.sin(<span class="dv">2</span> <span class="op">*</span> np.pi <span class="op">*</span> X1) <span class="op">+</span> X2<span class="op">*</span>X2</span>
-<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 1: True function</span></span>
-<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>im1 <span class="op">=</span> axes[<span class="dv">0</span>].contourf(X1, X2, y_true, levels<span class="op">=</span><span class="dv">20</span>, cmap<span class="op">=</span><span class="st">'viridis'</span>)</span>
-<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].scatter(x1_train, x2_train, c<span class="op">=</span><span class="st">'red'</span>, marker<span class="op">=</span><span class="st">'x'</span>, s<span class="op">=</span><span class="dv">30</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
-<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'True Function'</span>)</span>
-<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_xlabel(<span class="st">'x1'</span>)</span>
-<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_ylabel(<span class="st">'x2'</span>)</span>
-<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a>pyplot.colorbar(im1, ax<span class="op">=</span>axes[<span class="dv">0</span>])</span>
-<span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a><span class="co">## &lt;matplotlib.colorbar.Colorbar object at 0x1572e94f0&gt;</span></span>
-<span id="cb5-71"><a href="#cb5-71" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 2: Kernel smoothing prediction</span></span>
-<span id="cb5-73"><a href="#cb5-73" aria-hidden="true" tabindex="-1"></a>im2 <span class="op">=</span> axes[<span class="dv">1</span>].contourf(X1, X2, y_pred, levels<span class="op">=</span><span class="dv">20</span>, cmap<span class="op">=</span><span class="st">'viridis'</span>)</span>
-<span id="cb5-74"><a href="#cb5-74" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].scatter(x1_train, x2_train, c<span class="op">=</span><span class="st">'red'</span>, marker<span class="op">=</span><span class="st">'x'</span>, s<span class="op">=</span><span class="dv">30</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
-<span id="cb5-75"><a href="#cb5-75" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Gaussian Kernel Smoothing'</span>)</span>
-<span id="cb5-76"><a href="#cb5-76" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xlabel(<span class="st">'x1'</span>)</span>
-<span id="cb5-77"><a href="#cb5-77" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_ylabel(<span class="st">'x2'</span>)</span>
-<span id="cb5-78"><a href="#cb5-78" aria-hidden="true" tabindex="-1"></a>pyplot.colorbar(im2, ax<span class="op">=</span>axes[<span class="dv">1</span>])</span>
-<span id="cb5-79"><a href="#cb5-79" aria-hidden="true" tabindex="-1"></a><span class="co">## &lt;matplotlib.colorbar.Colorbar object at 0x156e0a090&gt;</span></span>
-<span id="cb5-80"><a href="#cb5-80" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-81"><a href="#cb5-81" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot 3: Difference (error)</span></span>
-<span id="cb5-82"><a href="#cb5-82" aria-hidden="true" tabindex="-1"></a>diff <span class="op">=</span> y_true <span class="op">-</span> y_pred</span>
-<span id="cb5-83"><a href="#cb5-83" aria-hidden="true" tabindex="-1"></a>im3 <span class="op">=</span> axes[<span class="dv">2</span>].contourf(X1, X2, diff, levels<span class="op">=</span><span class="dv">20</span>, cmap<span class="op">=</span><span class="st">'RdBu_r'</span>)</span>
-<span id="cb5-84"><a href="#cb5-84" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].scatter(x1_train, x2_train, c<span class="op">=</span><span class="st">'black'</span>, marker<span class="op">=</span><span class="st">'x'</span>, s<span class="op">=</span><span class="dv">30</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
-<span id="cb5-85"><a href="#cb5-85" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'Error (True - Predicted)'</span>)</span>
-<span id="cb5-86"><a href="#cb5-86" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_xlabel(<span class="st">'x1'</span>)</span>
-<span id="cb5-87"><a href="#cb5-87" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_ylabel(<span class="st">'x2'</span>)</span>
-<span id="cb5-88"><a href="#cb5-88" aria-hidden="true" tabindex="-1"></a>plt.colorbar(im3, ax<span class="op">=</span>axes[<span class="dv">2</span>])</span>
-<span id="cb5-89"><a href="#cb5-89" aria-hidden="true" tabindex="-1"></a><span class="co">## &lt;matplotlib.colorbar.Colorbar object at 0x156ea23f0&gt;</span></span>
-<span id="cb5-90"><a href="#cb5-90" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-91"><a href="#cb5-91" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb5-92"><a href="#cb5-92" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
+<pre><code>## &lt;matplotlib.colorbar.Colorbar object at 0x14ac35730&gt;
+## &lt;matplotlib.colorbar.Colorbar object at 0x1192d8590&gt;
+## &lt;matplotlib.colorbar.Colorbar object at 0x11935c290&gt;</code></pre>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
@@ -1346,7 +1168,7 @@ Figure&nbsp;23.3: Comparison of ELMo, GPT, and BERT architectures
 <section id="data-preparation-for-bert-pretraining" class="level3">
 <h3 class="anchored" data-anchor-id="data-preparation-for-bert-pretraining">Data Preparation for BERT Pretraining</h3>
 <p>The data preparation pipeline for BERT is surprisingly complex. Starting with raw text, the process involves:</p>
-<div class="cell" data-fig-width="6" data-layout-align="center">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
 <div>
 <p></p><figure class="figure"><p></p>
@@ -1373,7 +1195,7 @@ Figure&nbsp;23.3: Comparison of ELMo, GPT, and BERT architectures
 <section id="transfer-learning-and-downstream-applications" class="level2" data-number="23.12">
 <h2 data-number="23.12" class="anchored" data-anchor-id="transfer-learning-and-downstream-applications"><span class="header-section-number">23.12</span> Transfer Learning and Downstream Applications</h2>
 <p>The power of pretrained models lies in their transferability. The landscape of NLP applications can be broadly categorized into two fundamental types based on their input structure and prediction granularity. <strong>Sequence-level tasks</strong> operate on entire text sequences, producing a single output per input sequence or sequence pair. <strong>Token-level tasks</strong> make predictions for individual tokens within sequences, such as named entity recognition that identifies person names, locations, and organizations.</p>
-<div class="cell" data-fig-width="6.5" data-layout-align="center">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
 <div>
 <p></p><figure class="figure"><p></p>
