@@ -1,0 +1,152 @@
+---
+title: "Decision Analysis: The Mudslide Problem"
+subtitle: "ML Essentials"
+author: "Vadim Sokolov"
+format: 
+  revealjs:
+    transition: slide
+    slide-number: true
+    chalkboard: true
+---
+
+## Case Study: Mudslide Threat
+
+I live in a house at risk of a mudslide damage.
+
+- **Option A**: Build a protective wall (\$10,000).
+- **Damage Cost**: \$100,000 if the house is hit (and wall fails/absent).
+- **Wall Effectiveness**: 95% protection.
+- **Probability of Mudslide**: $P(\text{Slide}) = 0.01$.
+
+What is the best course of action?
+
+---
+
+## Decision Tree: Initial Options
+
+```{mermaid}
+graph LR
+    Start((Decision)) --> Build[Build Wall]
+    Start --> NoBuild[Don't Build]
+    
+    Build -- "$10,000" --> WallNode{Slide?}
+    WallNode -- "0.01" --> FailNode{Wall Fails?}
+    FailNode -- "0.05" --> Loss["$100,000 Cost"]
+    FailNode -- "0.95" --> NoLoss["$0 Cost"]
+    WallNode -- "0.99" --> NoSlide["$0 Cost"]
+    
+    NoBuild -- "$0" --> SlideNode{Slide?}
+    SlideNode -- "0.01" --> Loss2["$100,000 Cost"]
+    SlideNode -- "0.99" --> NoLoss2["$0 Cost"]
+```
+
+---
+
+## Comparison: No Test
+
+### Don't Build
+$EV = 0.01 \times \$100,000 = \$1,000$
+
+### Build (No Test)
+$EV = \$10,000 + (0.01 \times 0.05 \times \$100,000) = \$10,050$
+
+> [!IMPORTANT]
+> Based purely on expected cost, **Don't Build** is the rational choice despite the high impact of a slide.
+
+---
+
+## The Geological Test
+
+A test is available to better estimate the risk.
+
+- **Cost**: \$3,000
+- **Accuracy**:
+  - $P( T \mid \text{Slide} ) = 0.90$
+  - $P( \text{not } T \mid \text{No Slide} ) = 0.85$
+
+Should we take the test?
+
+---
+
+## Updating Probabilities: Bayes' Rule
+
+### Probability of Positive Test $P(T)$:
+$P(T) = (0.90 \times 0.01) + (0.15 \times 0.99) = 0.1575$
+
+### Posterior $P(\text{Slide} \mid T)$:
+$P(\text{Slide} \mid T) = \frac{0.90 \times 0.01}{0.1575} \approx 0.0571$
+
+### Posterior $P(\text{Slide} \mid \text{not } T)$:
+$P(\text{Slide} \mid \text{not } T) = \frac{0.1 \times 0.01}{0.8425} \approx 0.0012$
+
+---
+
+## The Testing Strategy
+
+If we test:
+
+1. If $T$: Build the wall.
+2. If not $T$: Don't build.
+
+### Expected Cost with Test:
+\begin{aligned}
+&\text{Test Cost} + P(T) \times \text{EV(Build} \mid T) \\
+&\quad + P(\text{not } T) \times \text{EV(No Build} \mid \text{not } T)
+\end{aligned}
+
+$= 3,000 + (0.1575 \times 10,285) + (0.8425 \times 120) \approx \$4,693$
+
+---
+
+## Risk vs. Reward
+
+| Choice | Expected Cost | Risk of Loss | P |
+|---|---|---|---|
+| Don't Build | **\$1,000** | 0.01 | 1 in 100 |
+| Build w/o test | \$10,050 | **0.0005** | 1 in 2000 |
+| Test & Decide | \$4,693 | 0.00146 | 1 in 700 |
+
+---
+
+## Conclusion
+
+- **Lowest Expected Cost**: Don't Build (\$1,000).
+- **Lowest Risk of Catastrophe**: Build without testing (0.0005).
+- **Middle Ground**: Testing (\$4,693) significantly reduces risk compared to "Don't Build" without the full \$10k upfront cost.
+
+**Decision?** It depends on your **utility function** (risk tolerance).
+
+[View Python Implementation (Notebook)](mudslide_example.ipynb)
+
+---
+
+## Saint Petersburg Paradox
+
+Imagine a gambling game where a fair coin is flipped repeatedly until it lands on heads. The payoff for the game is $2^N$, where $N$ is the number of tosses needed for the coin to land on heads. 
+
+The expected value of this game is infinite:
+
+$$
+E(X) = \frac{1}{2} \cdot 2 + \frac{1}{4} \cdot 4 + \frac{1}{8} \cdot 8 + \ldots = \infty
+$$
+
+This means that, in theory, a rational person should be willing to pay any finite amount to play this game. However, in reality, most people would be unwilling to pay a large amount.
+
+---
+
+## Expected Utility Resolution
+
+Bernoulli argued that people do not maximize expected monetary value but rather **expected utility** $U(x)$.
+
+$$
+E[U(X)] = \sum^\infty_{k=1} 2^{-k} U(2^k)
+$$
+
+For the log utility case, $U(x) = \log(x)$, the expected utility is $2 \log(2)$. To find the certain dollar amount $x^*$ (certainty equivalent) that provides the same utility:
+
+$$
+\log(x^*) = 2\log(2) = \log(2^2) = \log(4) \implies x^* = 4
+$$
+
+Under log utility, a rational player would pay at most **$4** to play, despite the infinite expected monetary value.
+
