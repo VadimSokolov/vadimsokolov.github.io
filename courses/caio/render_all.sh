@@ -1,7 +1,11 @@
 #!/bin/bash
 
-# Render all .qmd files to HTML
-echo "Rendering Quarto files..."
-quarto render *.qmd
+# Render all .qmd files to HTML individually to bypass project-level constraints
+echo "Rendering Quarto files individually..."
 
-echo "Rendering complete. Files are ready for publishing."
+for file in *.qmd; do
+    echo "Rendering $file..."
+    quarto render "$file"
+done
+
+echo "Rendering complete."
