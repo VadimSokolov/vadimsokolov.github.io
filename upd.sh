@@ -7,9 +7,9 @@
 # quarto render courses/600.qmd
 
 # quarto publish --no-render gh-pages
-quarto render courses/caio/cursor-setup-guide.qmd
-quarto render courses/caio/final-project-guide.qmd
-quarto render courses/caio/topic-overview-caio.qmd
+# quarto render courses/caio/cursor-setup-guide.qmd
+# quarto render courses/caio/final-project-guide.qmd
+# quarto render courses/caio/topic-overview-caio.qmd
 
 quarto render index.qmd
 git pull
