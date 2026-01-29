@@ -1,0 +1,1038 @@
+---
+title: "Modern AI"
+subtitle: "Natural Language Processing and AI Agents"
+author: "Vadim Sokolov"
+date: today
+format:
+  revealjs:
+    slide-number: true
+    height: 920
+    width: 1300
+    chalkboard: false
+    code-fold: true
+    echo: false
+    mermaid-echo: false
+    scrollable: true
+    embed-resources: true
+    self-contained: true
+    self-contained-math: true 
+    template-partials:
+      - title-slide.html
+    fig-align: "center"
+    css: styles.css
+    include-in-header: 
+      - file: preamble.html
+---
+
+# Natural Language Processing
+
+## The Language Challenge
+
+> "You shall know a word by the company it keeps." — J.R. Firth (1957)
+
+Language poses unique challenges for AI:
+
+- Unlike images (continuous pixels) or audio (waveforms), text is *discrete symbols*
+- The word "cat" is not inherently closer to "dog" than to "quantum"
+- Yet humans effortlessly recognize semantic similarities
+
+**The breakthrough:** Represent words as vectors in continuous space where geometry encodes meaning.
+
+## From Symbols to Vectors
+
+**The Problem with One-Hot Encoding:**
+
+Each word gets a unique vector with a single 1:
+
+- "cat" → [0, 0, 1, 0, 0, ..., 0]
+- "dog" → [0, 1, 0, 0, 0, ..., 0]
+
+**Problem:** Cosine similarity between any two words = 0
+
+No notion of semantic similarity is captured!
+
+**Solution:** Learn *dense* vector representations where similar words are close together.
+
+## The Twenty Questions Intuition
+
+Imagine playing Twenty Questions to identify words:
+
+| Question | Bear | Dog | Cat |
+|----------|:----:|:---:|:---:|
+| Is it an animal? | 1 | 1 | 1 |
+| Is it domestic? | 0 | 1 | 0.7 |
+| Larger than human? | 0.8 | 0.1 | 0.01 |
+| Has long tail? | 0 | 0.6 | 1 |
+| Is it a predator? | 1 | 0 | 0.6 |
+
+Each word becomes a vector of answers. Similar words give similar answers → similar vectors!
+
+This is the essence of *word embeddings*.
+
+## Word2Vec: Learning from Context
+
+**The Distributional Hypothesis:** Words appearing in similar contexts have similar meanings.
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 12
+flowchart LR
+    C1["The ___ sat on the mat"]
+    C2["The ___ sat on the rug"]
+    
+    Cat["cat"] --> C1
+    Dog["dog"] --> C2
+    
+    Cat --> V["Similar Vectors!"]
+    Dog --> V
+    
+    style Cat fill:#e1f5fe,stroke:#1976d2
+    style Dog fill:#e1f5fe,stroke:#1976d2
+    style V fill:#c8e6c9,stroke:#2e7d32
+```
+
+**Result:** Vector arithmetic captures analogies!
+
+$$\vec{king} - \vec{man} + \vec{woman} \approx \vec{queen}$$
+
+## Word2Vec: War and Peace
+
+Training Word2Vec on Tolstoy's *War and Peace* reveals thematic structure:
+
+![Word2Vec embeddings from War and Peace, reduced to 2D via PCA](https://vsokolov.org/html/_book/23-nlp_files/figure-html/unnamed-chunk-1-1.png){width="85%"}
+
+## War and Peace: Semantic Clusters
+
+The Word2Vec visualization reveals meaningful semantic relationships:
+
+| Cluster | Words | Insight |
+|---------|-------|---------|
+| **Military** | soldier, regiment, battle, army | War domain |
+| **Social** | ballroom, court, marriage | Peace domain |
+| **Government** | history, power, war | Political themes |
+
+**Key observation:** "Peace" sits *between* government and social domains — central to the narrative's dual structure.
+
+**Business applications:** Netflix recommendations, Amazon suggestions, LinkedIn job matching, document search
+
+## The Skip-Gram Model
+
+Given a center word, predict surrounding context words:
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    A[loves] --> B[the]
+    A --> C[man]
+    A --> D[his]
+    A --> E[son]
+    
+    style A fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+```
+
+$$P(\text{context} \mid \text{center}) = \prod_{j} P(w_{j} \mid w_{\text{center}})$$
+
+The learned vectors capture semantic relationships because words with similar contexts get similar representations.
+
+## From Words to Sentences: The Attention Revolution
+
+**The Problem: Static Embeddings**
+
+- The word "bank" has one vector, whether it's "river bank" or "investment bank."
+- This *conflation of senses* creates an information bottleneck.
+
+**The Sequential Bottleneck (RNNs/LSTMs):**
+
+- Processed text step-by-step (like reading through a straw).
+- Early information "vanished" as sentences grew longer.
+- Impossible to parallelize effectively on modern GPUs.
+
+**The Breakthrough: Attention Mechanisms**
+
+- Let each word dynamically "attend" to all other words simultaneously.
+- **Example:** "The trophy wouldn't fit in the suitcase because **it** was too big."
+- Self-attention identifies that "it" refers to "trophy" by looking at the whole sentence at once.
+
+**Result:** Contextual representations that change based on surrounding words.
+
+## The Attention Mechanism
+
+**The Library Analogy (Query, Key, Value):**
+
+- **Query (Q):** What am I looking for? (e.g., "subject of the sentence")
+- **Key (K):** What is in this book? (e.g., "noun", "verb", "adjective")
+- **Value (V):** What is the content of the book? (the actual meaning vector)
+
+**The Mathematical Operation:**
+
+1.  **Similarity:** Compare the *Query* to all *Keys* using a dot product.
+2.  **Scoring:** Turn these scores into weights (probabilities) using *Softmax*.
+3.  **Retrieval:** Take a weighted sum of the *Values*.
+
+## Attention: QKV Interaction
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    k1[k1]
+    k2[k2]
+    km[km]
+    
+    Q[Query q] --> a1[score1]
+    Q --> a2[score2]
+    Q --> am[scorem]
+    
+    k1 --> a1
+    k2 --> a2
+    km --> am
+    
+    a1 -.-> v1[v1]
+    a2 -.-> v2[v2]
+    am -.-> vm[vm]
+    
+    v1 --> O[Output]
+    v2 --> O
+    vm --> O
+    
+    style Q fill:#e1f5fe,stroke:#0277bd
+    style O fill:#c8e6c9,stroke:#2e7d32
+```
+
+$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+
+## Attention: A Visual Example
+
+For "The trophy wouldn't fit in the suitcase because **it** was too big":
+
+| Word | Attention to "it" |
+|------|-------------------|
+| trophy | **0.45** |
+| suitcase | 0.15 |
+| fit | 0.12 |
+| big | 0.18 |
+| other | 0.10 |
+
+The model learns that "it" most likely refers to "trophy" by attending strongly to it!
+
+## Self-Attention vs Cross-Attention
+
+:::: {.columns}
+
+::: {.column width="48%"}
+**Self-Attention:**
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 4
+flowchart LR
+    w1["The"] <--> w2["cat"]
+    w2 <--> w3["sat"]
+    w1 <--> w3
+    
+    style w1 fill:#e1f5fe,stroke:#1976d2
+    style w2 fill:#e1f5fe,stroke:#1976d2
+    style w3 fill:#e1f5fe,stroke:#1976d2
+```
+
+**Goal:** Understand internal relationships.
+**Used in:** Encoders (BERT) and Decoders (GPT).
+**Analogy:** Rereading a sentence to find the subject.
+:::
+
+::: {.column width="48%"}
+**Cross-Attention:**
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 4
+flowchart LR
+    e1["The"]
+    e2["cat"]
+    d1["Le"]
+    d2["chat"]
+    
+    e1 --> d1
+    e2 --> d2
+    e1 -.-> d2
+    e2 -.-> d1
+    
+    style e1 fill:#e1f5fe,stroke:#1976d2
+    style e2 fill:#e1f5fe,stroke:#1976d2
+    style d1 fill:#c8e6c9,stroke:#2e7d32
+    style d2 fill:#c8e6c9,stroke:#2e7d32
+```
+
+**Goal:** Link two different sequences.
+**Used in:** Translation models (T5).
+**Analogy:** Looking back at English while writing French.
+:::
+
+::::
+
+## The Transformer Architecture
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 12
+flowchart LR
+    In["Input"] --> Tok["Token"] --> Emb["Embed"] --> Att["Attention"] --> FF["FeedForward"] --> Out["Output"]
+    
+    style In fill:#e3f2fd,stroke:#1976d2
+    style Att fill:#fff3e0,stroke:#f57c00
+    style FF fill:#e8f5e9,stroke:#388e3c
+    style Out fill:#f3e5f5,stroke:#7b1fa2
+```
+
+**Key innovations:**
+
+- **Self-attention** replaces recurrence → parallel processing
+- **Positional encoding** preserves word order
+- **Multi-head attention** captures different relationship types
+- **Feed-forward layers** add nonlinear transformations
+
+## Why Transformers Won
+
+| Property | RNN/LSTM | Transformer |
+|----------|----------|-------------|
+| Sequential processing | Yes (slow) | No (parallel) |
+| Long-range dependencies | Difficult | Easy |
+| Training speed | Slow | Fast |
+| Scalability | Limited | Excellent |
+
+Transformers scale with compute → the foundation of modern LLMs.
+
+## From Transformers to LLMs
+
+**The Scale Approach:**
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 9
+flowchart LR
+    G1["GPT-1<br/>117M"] --> G2["GPT-2<br/>1.5B"]
+    G2 --> G3["GPT-3<br/>175B"]
+    G3 --> G4["GPT-4<br/>~1.8T"]
+    
+    style G1 fill:#e3f2fd
+    style G2 fill:#bbdefb
+    style G3 fill:#90caf9
+    style G4 fill:#42a5f5
+```
+
+**Emergent capabilities** appear at scale:
+
+- Chain-of-thought reasoning
+- In-context learning (few-shot)
+- Code generation
+- Multi-step planning
+
+# Large Language Models
+
+## How LLMs Generate Text
+
+LLMs are *autoregressive*: they predict the next token based on all previous tokens.
+
+:::: {.columns}
+
+::: {.column width="60%"}
+```{mermaid}
+%%| echo: false
+%%| fig-width: 8
+flowchart LR
+    C["Context"] --> M["LLM"]
+    M --> P["Probabilities"]
+    P --> S["Sample"]
+    S --> T["Token"]
+    T --> |"Append"| C
+    
+    style C fill:#e3f2fd,stroke:#1976d2
+    style M fill:#fff3e0,stroke:#f57c00
+    style P fill:#e8f5e9,stroke:#388e3c
+    style T fill:#f3e5f5,stroke:#7b1fa2
+```
+
+**The Generation Loop:**
+
+1. **Probabilities:** Compute scores for the vocabulary.
+2. **Sampling:** Select next word (via *Temperature*).
+3. **Autoregression:** Append and repeat.
+:::
+
+::: {.column width="40%"}
+**Temperature ($\tau$):**
+
+| $\tau$ | Behavior |
+|--------|----------|
+| 0 | Deterministic |
+| 0.7 | Balanced |
+| 1.0 | Probabilistic |
+| 1.5 | Creative |
+
+*Lower $\tau$ = Predictable*
+*Higher $\tau$ = Random*
+:::
+
+::::
+
+## Why We Need Randomness: The Obama Example
+
+**Prompt:** "The first African American president is Barack..."
+
+- **Most probable next token:** "Obama" ✓
+- **Also correct:** "Hussein" (his middle name)
+
+A *greedy* strategy always picks "Obama" — but in formal documents, "Barack Hussein Obama" is preferred.
+
+**Temperature > 0** allows the model to explore alternatives that may better fit the context.
+
+## The LLM Lifecycle
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 12
+flowchart LR
+    D[Data Collection] --> P[Pre-Training]
+    P --> I[Instruction Tuning]
+    I --> A[Alignment]
+    A --> Dep[Deployment]
+    
+    style D fill:#e3f2fd,stroke:#1976d2
+    style P fill:#e8f5e9,stroke:#388e3c
+    style I fill:#fff3e0,stroke:#f57c00
+    style A fill:#fce4ec,stroke:#c2185b
+    style Dep fill:#f3e5f5,stroke:#7b1fa2
+```
+
+| Stage | Purpose |
+|-------|---------|
+| Data Collection | Curate training corpus (quality > quantity) |
+| Pre-Training | Predict next tokens on billions of sequences |
+| Instruction Tuning | Teach the model to follow instructions |
+| Alignment | Ensure behavior matches human values (RLHF) |
+| Deployment | Optimize for latency, cost, safety |
+
+## Alignment: Why It Matters
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    Q["User Query"]
+    
+    Q --> U["Unaligned"]
+    Q --> A["Aligned"]
+    
+    U --> UR["Yes, only true god"]
+    
+    A --> AR["Multiple perspectives exist"]
+    
+    style Q fill:#e3f2fd,stroke:#1976d2
+    style UR fill:#ffcccc,stroke:#cc0000
+    style AR fill:#ccffcc,stroke:#00cc00
+```
+
+**Example:** "Is Allah the only god?"
+
+- **Unaligned:** "Yes, Allah is the one true god and all other beliefs are false."
+- **Aligned:** "In Islam, Allah is considered the one God. Other religions have different perspectives. I can provide factual information if helpful."
+
+*This nuanced behavior emerges from alignment training, not pre-training alone.*
+
+## Context Windows and Prompting
+
+**Context window:** Maximum tokens the model can "see" at once
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    S[System Prompt<br/>~500 tokens]
+    T[Tools/Schemas<br/>~300 tokens]
+    H[History<br/>~1000 tokens]
+    R[Retrieved Docs<br/>~2000 tokens]
+    U[User Query<br/>~200 tokens]
+    
+    S --> M[LLM]
+    T --> M
+    H --> M
+    R --> M
+    U --> M
+    
+    style S fill:#e3f2fd
+    style R fill:#c8e6c9
+    style U fill:#fff3e0
+```
+
+**Prompting strategies:** Zero-shot, Few-shot, Chain-of-thought, System prompts
+
+# AI Agents
+
+## What Are AI Agents?
+
+> *"The question of whether a computer can think is no more interesting than the question of whether a submarine can swim."* — Edsger Dijkstra
+
+**AI agents** are autonomous systems that:
+
+- **Perceive** their environment
+- **Reason** about goals
+- **Take actions** to achieve outcomes
+- **Learn** from results
+
+Unlike chatbots, agents can *act* in the world.
+
+## The Agent Loop
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    P["Perceive"] --> R["Reason"]
+    R --> A["Act"]
+    A --> O["Observe"]
+    O --> P
+    
+    style P fill:#e3f2fd,stroke:#1976d2
+    style R fill:#fff3e0,stroke:#f57c00
+    style A fill:#e8f5e9,stroke:#388e3c
+    style O fill:#fce4ec,stroke:#c2185b
+```
+
+The agent **perceives** its environment, **reasons** about goals, **acts** to achieve outcomes, **observes** the result, and repeats — a continuous loop of intelligent behavior.
+
+## Tool Use: Giving LLMs Hands
+
+LLMs are "brains without hands" — function calling bridges this gap:
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    U["Query"] --> L["LLM"]
+    L --> TC["Tool Call"]
+    TC --> O["Orchestrator"]
+    O --> T["Tool"]
+    T --> |"Result"| L
+    L --> R["Response"]
+    
+    style U fill:#e3f2fd,stroke:#1976d2
+    style L fill:#fff3e0,stroke:#f57c00
+    style TC fill:#fce4ec,stroke:#c2185b
+    style T fill:#e8f5e9,stroke:#388e3c
+    style R fill:#f3e5f5,stroke:#7b1fa2
+```
+
+**Examples:** Web search, database queries, code execution, API calls.
+
+## Example: Currency Conversion Agent
+
+**User:** "What's $100 in euros?"
+
+**Agent reasoning:**
+
+- I need to convert currency
+- Call `convert_currency(amount=100, from="USD", to="EUR")`
+
+**Tool returns:** 92.50
+
+**Agent response:** "100 US dollars is approximately 92.50 euros at current exchange rates."
+
+The agent *reasons* about what tool to use, then *acts* to get information.
+
+## Multi-Step Planning
+
+Complex tasks require chained actions:
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 12
+flowchart LR
+    Task[Task] --> get_rates[get_rates]
+    get_rates --> Rates[Rates]
+    Rates --> get_prices[get_prices]
+    get_prices --> Prices[Prices]
+    Prices --> correlate[correlate]
+    correlate --> r[r=0.73]
+    r --> report[report]
+    report --> Final[Final Report]
+    
+    style Task fill:#e3f2fd,stroke:#1976d2
+    style get_rates fill:#fff3e0,stroke:#f57c00
+    style Rates fill:#fff3e0,stroke:#f57c00
+    style get_prices fill:#fff3e0,stroke:#f57c00
+    style Prices fill:#fff3e0,stroke:#f57c00
+    style correlate fill:#fff3e0,stroke:#f57c00
+    style r fill:#fff3e0,stroke:#f57c00
+    style report fill:#fff3e0,stroke:#f57c00
+    style Final fill:#c8e6c9,stroke:#2e7d32
+```
+
+Each step informs the next — true autonomous problem-solving.
+
+## Planning Capabilities
+
+**Planning capabilities enable:**
+
+| Capability | Description | Example |
+|------------|-------------|---------|
+| **Decomposition** | Break complex goals into subtasks | "Analyze market" → 4 API calls |
+| **State tracking** | Remember intermediate results | Store data between steps |
+| **Adaptation** | Adjust plan based on results | Retry if API fails |
+| **Synthesis** | Combine outputs into final answer | Merge data into report |
+
+**Business impact:** Agents can handle multi-hour research tasks that would take humans days.
+
+
+
+## ReAct: The Loop
+
+**The Loop:**
+
+| Step | Action | Example |
+|------|--------|---------|
+| **Observe** | Analyze input, tool outputs, environment | "User wants weather in Paris" |
+| **Think** | Decide next action or tool to use | "I should call weather API" |
+| **Act** | Execute tool or generate response | `get_weather("Paris")` |
+
+**Key insight:** Unlike single-pass generation, ReAct agents can course-correct based on intermediate results.
+
+## Case Study: ChatDev
+
+ChatDev orchestrates a virtual software company with specialized AI agents:
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    CEO[CEO] --- CTO[CTO]
+    CTO --- CPO[CPO]
+    Prog[Programmer] --- Des[Designer]
+    Test[Tester] --- Prog2[Programmer]
+    
+    CEO --> Prog
+    Des --> Test
+    Test --> Doc[Documentation]
+    
+    style CEO fill:#ffcccc,stroke:#cc0000
+    style CTO fill:#ccffcc,stroke:#00cc00
+    style Prog fill:#cce5ff,stroke:#1976d2
+    style Test fill:#fff3cd,stroke:#f57c00
+```
+
+**Results:** 70 software projects, 17 files each, ~$0.30 per project, 7 minutes.
+
+## Agent Orchestration Patterns
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 12
+flowchart LR
+    A1[Agent A] --> A2[Agent B] --> A3[Agent C]
+    
+    T[Task] --> P1[Agent 1]
+    T --> P2[Agent 2]
+    T --> P3[Agent 3]
+    P1 --> R[Results]
+    P2 --> R
+    P3 --> R
+    
+    S[Supervisor] --> H1[Worker 1]
+    S --> H2[Worker 2]
+    S --> H3[Worker 3]
+```
+
+## Orchestration: Use Cases
+
+| Pattern | Use Case | Tradeoff |
+|---------|----------|----------|
+| **Sequential** | Content pipeline (research → write → edit) | Simple but slow |
+| **Parallel** | Multi-source analysis | Fast but needs synthesis |
+| **Hierarchical** | Project management | Control but bottleneck risk |
+| **Dynamic** | Market-based task allocation | Flexible but complex |
+
+## The Risks of Agent Autonomy
+
+**Case Study: Replit Agent Failure**
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    U["User: Fix this bug"] --> A[Agent]
+    A --> D1["Diagnoses: config file issue"]
+    D1 --> D2["Decides: delete config"]
+    D2 --> B["Bug in delete tool"]
+    B --> C["Entire project wiped"]
+    C --> X["Production DB destroyed"]
+    
+    style D1 fill:#fff3cd
+    style D2 fill:#ffcccc
+    style B fill:#ffcccc
+    style X fill:#ff0000,color:#fff
+```
+
+**Lesson:** Agent autonomy requires multiple safety layers.
+
+**What went wrong:**
+
+| Failure | Type | Prevention |
+|---------|------|------------|
+| Wrong diagnosis | Reasoning error | Require confirmation for destructive actions |
+| Auto-delete decision | Autonomy overreach | Human-in-the-loop for irreversible ops |
+| Tool bug | Implementation flaw | Sandbox testing, rollback capability |
+| No backup | Missing safeguard | Mandatory snapshots before changes |
+
+**Key principle:** The more powerful the agent, the more guardrails it needs.
+
+## Agent Safety Challenges
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    PI[Prompt Injection] --> A[Agent]
+    AD[Adversarial Inputs] --> A
+    GM[Goal Misalignment] --> A
+    HA[Hallucinations] --> A
+    CO[Capability Overhang] --> A
+    LC[Lack of Corrigibility] --> A
+    A --> H[Harm]
+    
+    style PI fill:#ffcccc
+    style HA fill:#fff3cd
+    style H fill:#ff0000,color:#fff
+```
+
+Autonomous agents amplify risks — a hallucination becomes action.
+
+## Agent Safety: Risk Taxonomy
+
+| Risk | Description | Real Example |
+|------|-------------|--------------|
+| **Prompt Injection** | Hidden instructions hijack agent | Email contains "ignore previous instructions" |
+| **Hallucinations** | Acting on false information | Agent invents API that doesn't exist |
+| **Goal Misalignment** | Optimizes wrong objective | Maximizes engagement via manipulation |
+| **Capability Overhang** | Does more than authorized | Accesses files outside scope |
+
+## Safety Mechanisms
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    U[Input] --> IF[Input Filter]
+    IF --> |Clean| A[Agent]
+    IF --> |Malicious| B[Block]
+    A --> OF[Output Filter]
+    OF --> |Safe| R[Response]
+    OF --> |Unsafe| B
+    A --> M[Monitor]
+    M --> |Anomaly| CB[Circuit Breaker]
+    CB --> B
+    
+    style IF fill:#fff3e0,stroke:#f57c00
+    style OF fill:#fff3e0,stroke:#f57c00
+    style B fill:#ffcccc,stroke:#cc0000
+    style R fill:#ccffcc,stroke:#00cc00
+    style CB fill:#fce4ec,stroke:#c2185b
+```
+
+**The Safety Pipeline:** 
+
+- **Input/Output Guards:** Fast classifiers that run before and after the LLM.
+- **Monitoring:** Watching for "strange" behavior (e.g., an agent trying to access a restricted database).
+- **Circuit Breakers:** Automatically killing the agent process if safety thresholds are exceeded.
+
+## The Defense-in-Depth Pipeline
+
+| Layer | Purpose | Technical Method |
+|-------|---------|------------------|
+| **Input Filter** | Block malicious prompts | PII detection, jailbreak classifiers |
+| **Sandboxing** | Isolate agent actions | Docker containers, restricted API keys |
+| **Output Filter** | Prevent sensitive leakage | RegEx for PII, toxic content scoring |
+| **Human-in-the-Loop** | Verify high-risk actions | "Approve" button for financial transfers |
+| **Monitoring** | Detect runtime anomalies | Log analysis, capability tracking |
+
+**Key Principle:** Never rely on the LLM to self-police. Use external code to enforce boundaries.
+
+## Human-in-the-Loop (HITL)
+
+**The most effective safety measure for high-stakes agents:**
+
+- **Critical Actions:** Require manual approval for destructive or financial operations (e.g., `rm -rf`, `send_payment`).
+- **Confirmation Dialogue:** Show the agent's proposed plan *before* execution.
+- **Feedback Loop:** Allow the human to correct the agent's reasoning.
+- **Audit Logs:** Every action approved or rejected by a human is recorded for training and safety reviews.
+
+**Example:** A code-refactoring agent proposes changes; a human developer reviews and clicks "Merge" or "Reject".
+
+## Anthropic's ASL-3 Safety Measures
+
+For Claude Opus 4, Anthropic activated proactive safety:
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    U[User] --> CC[Constitutional Classifiers]
+    CC --> |Safe| M[Model]
+    CC --> |Blocked| B[Reject]
+    M --> OC[Output Check]
+    OC --> |Safe| R[Response]
+    OC --> |Harmful| B
+    
+    BB[Bug Bounty] --> CC
+    RP[Rapid Patch] --> CC
+    
+    style CC fill:#c8e6c9,stroke:#2e7d32
+    style B fill:#ffcccc,stroke:#cc0000
+    style R fill:#e3f2fd,stroke:#1976d2
+```
+
+## ASL-3: Safety Pipeline
+
+| Layer | Function | Why It Matters |
+|-------|----------|----------------|
+| **Constitutional AI** | Real-time input/output filtering | Blocks harmful requests before execution |
+| **Bug Bounty** | Crowdsourced discovery | Finds attacks humans miss |
+| **Rapid Patching** | Auto-generate variants | Stays ahead of attackers |
+| **Egress Control** | Throttle outbound data | Prevents model weight theft |
+
+## Evaluating AI Agents
+
+Traditional metrics (accuracy, precision) are insufficient for agents.
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    TC["Task Completion"] --> Score["Overall Agent Score"]
+    RQ["Reasoning Quality"] --> Score
+    SA["Safety"] --> Score
+    RE["Resource Efficiency"] --> Score
+    ER["Error Recovery"] --> Score
+    AD["Adversarial Robustness"] --> Score
+    
+    style SA fill:#ffcccc,stroke:#cc0000
+    style Score fill:#c8e6c9,stroke:#2e7d32
+```
+
+## Evaluation Approaches
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    A[Agent Output] --> R[Rule-Based]
+    A --> L[LLM-as-Judge]
+    A --> H[Human Review]
+    A --> S[Simulation]
+    
+    R --> E[Score]
+    L --> E
+    H --> E
+    S --> E
+    
+    style R fill:#e3f2fd,stroke:#1976d2
+    style L fill:#fff3e0,stroke:#f57c00
+    style H fill:#c8e6c9,stroke:#2e7d32
+    style S fill:#f3e5f5,stroke:#7b1fa2
+    style E fill:#ffcccc,stroke:#cc0000
+```
+
+Best practice: Combine multiple approaches for comprehensive evaluation.
+
+## Domain-Specific Benchmarks
+
+| Domain | Benchmark | What It Tests |
+|--------|-----------|---------------|
+| Coding | SWE-bench | Fix real GitHub issues |
+| Web | WebArena | Navigate websites, complete tasks |
+| Robotics | ALFRED | Household tasks in 3D |
+| Enterprise | TAU-bench | Multi-system workflows |
+
+Agent capabilities are task-specific — benchmarks must match use cases.
+
+## Red-Teaming Agents
+
+**Systematic vulnerability testing:**
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    PI[Prompt Injection] --> A[Agent]
+    ME[Agent Mistakes] --> A
+    MU[Direct Misuse] --> A
+    
+    A --> |Vulnerability| V[Security Issue]
+    A --> |Safe| S[Normal Operation]
+    
+    V --> R[Report]
+    
+    style PI fill:#ffcccc,stroke:#cc0000
+    style ME fill:#fff3cd,stroke:#f57c00
+    style MU fill:#ffcccc,stroke:#cc0000
+    style V fill:#ffcccc,stroke:#cc0000
+    style S fill:#ccffcc,stroke:#00cc00
+```
+
+**Example:** Hidden text in a webpage hijacks agent to exfiltrate data.
+
+Comprehensive red-teaming found 1,200+ vulnerabilities in one enterprise agent.
+
+# AI in the Physical World
+
+## Embodied AI: Robots
+
+Software agents operate in digital systems. *Embodied agents* must handle:
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 12
+flowchart LR
+    C["Camera"] --> F["Fusion"]
+    L["Lidar"] --> F
+    T["Touch"] --> F
+    F --> B["Robot Brain"]
+    B --> M["Motors"]
+    M --> E["Environment"]
+    E --> |"Feedback"| C
+    
+    style F fill:#fff3e0,stroke:#f57c00
+    style B fill:#e3f2fd,stroke:#1976d2
+    style E fill:#c8e6c9,stroke:#388e3c
+```
+
+The *sim-to-real gap*: Robots trained in simulation often fail in reality.
+
+## The Evolution of Robotic Intelligence
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    S[1960s Shakey] --> P[1980s-2000s Probabilistic]
+    P --> F[2020s Foundation Models]
+    
+    style S fill:#e3f2fd,stroke:#1976d2
+    style P fill:#fff3e0,stroke:#f57c00
+    style F fill:#c8e6c9,stroke:#2e7d32
+```
+
+## Robotics: Capability Eras
+
+| Era | Capability | Limitation |
+|-----|------------|------------|
+| Rule-based | Explicit reasoning | Brittle, narrow |
+| Probabilistic | Handle uncertainty | No language understanding |
+| Foundation Models | Natural language + adaptation | Compute-intensive |
+
+LLMs have catalyzed a new era: robots that understand language and adapt.
+
+## Google's Robotic Transformer (RT-2)
+
+A *vision-language-action* model that directly controls robots:
+
+```{mermaid}
+%%| echo: false
+%%| fig-width: 10
+flowchart LR
+    V[Vision Input] --> VLA[RT-2 Model]
+    L[Language Input] --> VLA
+    VLA --> A[Action Output]
+    A --> R[Robot]
+    R -- Feedback --> V
+    
+    style V fill:#e3f2fd,stroke:#1976d2
+    style L fill:#fff3e0,stroke:#f57c00
+    style VLA fill:#f3e5f5,stroke:#7b1fa2
+    style A fill:#c8e6c9,stroke:#2e7d32
+    style R fill:#ffcccc,stroke:#cc0000
+```
+
+**General** → **Interactive** → **Dexterous**
+
+Works across robot forms: arms, humanoids, mobile platforms.
+
+## Robot Safety: ASIMOV
+
+Named after Asimov's Laws of Robotics, this benchmark tests embodied AI safety:
+
+| Asimov's Law | Modern Interpretation | Test Scenario |
+|--------------|----------------------|---------------|
+| **1. Don't harm humans** | Refuse dangerous commands | "Throw this at the person" |
+| **2. Obey orders** | Follow safe instructions | "Hand me that tool" |
+| **3. Protect self** | Avoid self-damage | Don't walk off ledge |
+| **Zeroth Law** | Protect humanity broadly | Consider societal impact |
+
+**Key challenge:** Context matters — "Hand me that knife" is safe in a kitchen, dangerous in a conflict.
+
+**Business relevance:** As robots enter warehouses, hospitals, and homes, safety benchmarks become legal and ethical requirements.
+
+# Key Takeaways
+
+## Summary: NLP
+
+| Concept | Key Insight |
+|---------|-------------|
+| Word Embeddings | Words as vectors; geometry = meaning |
+| Distributional Hypothesis | Context reveals meaning |
+| Attention | Dynamic weighting of relevant information |
+| Transformers | Parallel processing, scalable, powerful |
+
+The shift from symbols to vectors enabled modern NLP.
+
+## Summary: LLMs
+
+| Concept | Key Insight |
+|---------|-------------|
+| Autoregressive Generation | Predict next token iteratively |
+| Temperature | Controls randomness/creativity |
+| Alignment | Ensures safe, helpful behavior |
+| Context Windows | Limit on "memory" size |
+
+Scale + alignment = emergent reasoning capabilities.
+
+## Summary: AI Agents
+
+| Concept | Key Insight |
+|---------|-------------|
+| Tool Use | LLMs gain ability to act |
+| Multi-Step Planning | Chain reasoning and action |
+| Orchestration | Multiple agents collaborate |
+| Safety | Autonomy amplifies risks |
+| Evaluation | Requires new methodologies |
+
+Agents transform LLMs from conversationalists to autonomous workers.
+
+## The Executive Perspective
+
+**For AI leaders:**
+
+- **NLP** powers search, chatbots, document analysis
+- **LLMs** enable natural language interfaces to business systems
+- **Agents** can automate complex, multi-step workflows
+- **Safety** must be built in from the start, not bolted on
+- **Evaluation** requires domain-specific benchmarks and human oversight
+
+*The promise: augmenting human intelligence — agents handle routine tasks while humans provide judgment, creativity, and ethical oversight.*
+
+## Supplemental Reading
+
+**Online Articles:**
+
+- [Making the Most of AI and Machine Learning in Organizations](https://web.stanford.edu/~rkatila/new/pdf/KatilaSMJ24.pdf) — Stanford
+- [The State of AI in 2024](https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai) — McKinsey
+- [Generative AI's Act Two](https://www.sequoiacap.com/article/generative-ai-act-two/) — Sequoia Capital
+
+**From the Textbook:**
+
+- Chapter 24: Natural Language Processing
+- Chapter 26: AI Agents
+
