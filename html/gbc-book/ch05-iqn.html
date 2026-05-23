@@ -442,7 +442,7 @@ window.Quarto = {
 <p>The typical choice is <span class="math inline">\(M = 64\)</span>. Each component <span class="math inline">\(\cos(\pi \tau \cdot i)\)</span> oscillates <span class="math inline">\(i\)</span> times over <span class="math inline">\((0,1)\)</span>, so the embedding captures both low-frequency trends (small <span class="math inline">\(i\)</span>) and high-frequency detail (large <span class="math inline">\(i\)</span>) in the quantile function. The subsequent linear layer and ReLU learn a task-specific combination of these frequencies.</p>
 <p>Why cosine and not sine? The cosine basis <span class="math inline">\(\{\cos(\pi i \tau)\}_{i=0}^{M-1}\)</span> forms an orthonormal system on <span class="math inline">\([0,1]\)</span> with respect to the standard inner product — it is the Type-II discrete cosine transform basis. This is the same basis used in JPEG compression and has well-known approximation-theoretic properties. <span class="citation" data-cites="barron1993universal">Barron (<a href="references.html#ref-barron1993universal" role="doc-biblioref">1993</a>)</span> showed that superpositions of such basis functions achieve approximation rates of <span class="math inline">\(O(N^{-1/2})\)</span> for functions with bounded first moments of the Fourier magnitude distribution, independent of the input dimension.</p>
 <p>The following code implements the cosine embedding.</p>
-<div id="ec9b040f" class="cell" data-execution_count="1">
+<div id="ec9b040f" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show code (22 lines)</summary>
 
@@ -471,7 +471,7 @@ window.Quarto = {
 </details>
 </div>
 <p>To visualize the raw cosine features before the learned linear layer, consider the following plot.</p>
-<div id="cell-fig-cosine-features" class="cell" data-execution_count="2">
+<div id="cell-fig-cosine-features" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show code (12 lines)</summary>
 
@@ -558,7 +558,7 @@ Figure&nbsp;5.1: Raw cosine embedding features for selected frequencies. Low-fre
 <p>The <strong>concatenation</strong> merge computes <span class="math inline">\(h = [h_x; h_\tau] \in \mathbb{R}^{2d}\)</span>, simply stacking the two vectors. This is the most general approach — it places no structural constraint on how <span class="math inline">\(\tau\)</span> and <span class="math inline">\(x\)</span> interact — but it doubles the dimension of the input to the output head, increasing the parameter count. In principle, concatenation can represent any function of <span class="math inline">\((h_x, h_\tau)\)</span>, including both multiplicative and additive interactions, but in practice it requires more data and more training epochs to learn these interactions from scratch. On small datasets like the motorcycle data (<span class="math inline">\(n = 133\)</span>), concatenation tends to overfit and produce noisy quantile estimates. On larger datasets (<span class="math inline">\(n &gt; 5{,}000\)</span>), it performs comparably to the multiplicative merge but with roughly twice the parameters.</p>
 <p>We recommend the multiplicative merge as the default for two reasons. First, the gating mechanism provides a strong inductive bias that the quantile level should modulate (rather than merely shift) the feature representation. Second, it keeps the parameter count the same as the additive merge while being substantially more expressive. The additive merge is a reasonable fallback for very simple problems where the distribution is approximately location-scale.</p>
 <p>Here is the full implementation.</p>
-<div id="9e63ee04" class="cell" data-execution_count="3">
+<div id="9e63ee04" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show code (51 lines)</summary>
 
@@ -644,7 +644,7 @@ Figure&nbsp;5.1: Raw cosine embedding features for selected frequencies. Low-fre
 <p>Each term plays a distinct role. The pinball loss (<span class="math inline">\(w_1\)</span>) is the primary driver: at each training step, we sample a fresh <span class="math inline">\(\tau\)</span> and compute the asymmetric pinball penalty, so over many steps the network sees all quantile levels uniformly and implicitly optimizes the CRPS. The CRPS term (<span class="math inline">\(w_2\)</span>) adds an explicit regularizer by sampling a small batch of <span class="math inline">\(\tau\)</span> values (say 16) and averaging their pinball losses, reducing gradient variance compared to using a single <span class="math inline">\(\tau\)</span> per step. The MAE anchor (<span class="math inline">\(w_3\)</span>) keeps the median prediction well-calibrated: without it, the network may produce accurate tail quantiles but a poor point forecast, so this term encourages <span class="math inline">\(\hat{Q}(0.5 \mid x) \approx \text{median}(Y \mid X=x)\)</span>.</p>
 <p>The weights <span class="math inline">\((0.70, 0.20, 0.10)\)</span> work well as a default across most settings, including problems with jump discontinuities (<a href="ch08-jumps.html" class="quarto-xref"><span>Chapter 8</span></a>), where the pinball-dominant weighting avoids having the MAE anchor pull predictions toward a blended mean near the jump boundary. For smooth, well-behaved functions, equal weights <span class="math inline">\((0.33, 0.33, 0.34)\)</span> also work well.</p>
 <p>The implementation also includes a <em>monotonicity regularizer</em>. Since the quantile function must be non-decreasing in <span class="math inline">\(\tau\)</span>, we penalize crossings: if <span class="math inline">\(\tau &lt; 0.5\)</span>, we penalize cases where the prediction is too high (relative to the median); if <span class="math inline">\(\tau &gt; 0.5\)</span>, we penalize cases where it is too low. This is encoded implicitly in the original IQN loss through the asymmetric monotonicity term.</p>
-<div id="05d0b9c9" class="cell" data-execution_count="4">
+<div id="05d0b9c9" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Show code (47 lines)</summary>
 
@@ -747,7 +747,7 @@ Note
 \]</span> where <span class="math inline">\(\bar{x}, s_x\)</span> and <span class="math inline">\(\bar{y}, s_y\)</span> are the training-set means and standard deviations. After prediction, we invert the transformation: <span class="math inline">\(\hat{Q}(\tau \mid x) = s_y \cdot \hat{Q}_{\text{norm}}(\tau \mid \tilde{x}) + \bar{y}\)</span>.</p>
 <p><em>Sampling <span class="math inline">\(\tau\)</span> per mini-batch.</em> At each training step, we sample a single <span class="math inline">\(\tau \sim \text{Uniform}(0,1)\)</span> and apply it to the entire mini-batch. An alternative is to sample a different <span class="math inline">\(\tau\)</span> per example, but the shared-<span class="math inline">\(\tau\)</span> approach has lower variance in practice because the network sees the same quantile level applied consistently across the batch. Over thousands of training steps, all quantile levels are covered uniformly.</p>
 <p>Here is the complete training loop.</p>
-<div id="bdaf97f2" class="cell" data-execution_count="5">
+<div id="bdaf97f2" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Show code (72 lines)</summary>
 
@@ -850,7 +850,7 @@ u_i = \hat{F}(y_i \mid x_i).
 <p>For the IQN, computing the PIT values requires inverting the quantile function. Given a trained model <span class="math inline">\(\hat{Q}(\tau \mid x)\)</span>, we evaluate on a fine grid of <span class="math inline">\(\tau\)</span> values and find the level at which the predicted quantile crosses the observed value: <span class="math display">\[
 \hat{u}_i = \inf\bigl\{\tau \in (0,1) : \hat{Q}(\tau \mid x_i) \geq y_i\bigr\}.
 \]</span> In practice, we evaluate <span class="math inline">\(\hat{Q}(\tau \mid x_i)\)</span> on a grid of 500 <span class="math inline">\(\tau\)</span> values and use linear interpolation to find the crossing point.</p>
-<div id="2647c105" class="cell" data-execution_count="6">
+<div id="2647c105" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Show code (33 lines)</summary>
 
@@ -899,7 +899,7 @@ u_i = \hat{F}(y_i \mid x_i).
 <h3 data-number="5.5.3" class="anchored" data-anchor-id="sec-iqn-crossing"><span class="header-section-number">5.5.3</span> Quantile Crossing Detection</h3>
 <p>A valid quantile function must be non-decreasing in <span class="math inline">\(\tau\)</span>: for <span class="math inline">\(\tau_1 &lt; \tau_2\)</span>, we require <span class="math inline">\(\hat{Q}(\tau_1 \mid x) \leq \hat{Q}(\tau_2 \mid x)\)</span> for all <span class="math inline">\(x\)</span>. When this property is violated, the predicted distribution is internally inconsistent. Quantile crossings are rare with the IQN architecture — the cosine embedding and multiplicative merge provide a strong inductive bias toward smoothness in <span class="math inline">\(\tau\)</span> — but they can occur on small datasets or with poorly tuned hyperparameters.</p>
 <p>We detect crossings by evaluating the predicted quantiles on a grid and checking the monotonicity condition. The following function counts the number and severity of crossings.</p>
-<div id="7cd0a51d" class="cell" data-execution_count="7">
+<div id="7cd0a51d" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Show code (18 lines)</summary>
 
@@ -928,7 +928,7 @@ u_i = \hat{F}(y_i \mid x_i).
 <h3 data-number="5.5.4" class="anchored" data-anchor-id="sec-iqn-coverage"><span class="header-section-number">5.5.4</span> Out-of-Sample Coverage</h3>
 <p>The ultimate test of a distributional forecast is whether it covers the observed data at the nominal rate. For a nominal level <span class="math inline">\(1 - \alpha\)</span>, we compute the prediction interval <span class="math inline">\([\hat{Q}(\alpha/2 \mid x_i),\; \hat{Q}(1 - \alpha/2 \mid x_i)]\)</span> and check whether <span class="math inline">\(y_i\)</span> falls inside. The empirical coverage is the fraction of test points that are covered. A well-calibrated model achieves empirical coverage close to the nominal level across all <span class="math inline">\(\alpha\)</span>.</p>
 <p>We compute coverage at several nominal levels and report the results as a coverage table. Systematic undercoverage (empirical <span class="math inline">\(&lt;\)</span> nominal) indicates the model is overconfident; overcoverage indicates it is too conservative. The IQN on the motorcycle data typically achieves 80–83% empirical coverage at the 90% nominal level (slightly undercovering), which can be improved to 87–88% by ensembling five independently trained models.</p>
-<div id="89fbbb4f" class="cell" data-execution_count="8">
+<div id="89fbbb4f" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Show code (20 lines)</summary>
 
@@ -963,7 +963,7 @@ u_i = \hat{F}(y_i \mid x_i).
 <div id="tbl-hyperparams" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-hyperparams-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;5.1: Hyperparameter sensitivity on motorcycle data. Mean CRPS over 5 runs with different random seeds; lower is better. Bold indicates the best value in each group.
+Table&nbsp;5.1: Hyperparameter sensitivity on motorcycle data. Mean CRPS over 5 independent runs; lower is better. Bold indicates the best value in each group. The three bold rows all correspond to the default configuration (hdim=256, M=64, epochs=3000) but use different random seed sets, so their CRPS values differ by $$0.2 units due to sampling variability. Compare within groups, not across groups.
 </figcaption>
 <div aria-describedby="tbl-hyperparams-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
@@ -1030,7 +1030,7 @@ Table&nbsp;5.1: Hyperparameter sensitivity on motorcycle data. Mean CRPS over 5 
 <section id="sec-iqn-motorcycle" class="level2" data-number="5.7">
 <h2 data-number="5.7" class="anchored" data-anchor-id="sec-iqn-motorcycle"><span class="header-section-number">5.7</span> Example: Motorcycle Data</h2>
 <p>We demonstrate IQN on the classic <em>motorcycle crash dataset</em> <span class="citation" data-cites="silverman1985some">(<a href="references.html#ref-silverman1985some" role="doc-biblioref">Silverman 1985</a>)</span>, which records head acceleration (in <span class="math inline">\(g\)</span>) versus time (in milliseconds) for <span class="math inline">\(n = 133\)</span> simulated motorcycle crashes. This dataset is a benchmark for heteroscedastic regression because the variance of the acceleration changes dramatically: small before impact (<span class="math inline">\(t &lt; 15\)</span> ms), large during the crash event (<span class="math inline">\(15 &lt; t &lt; 35\)</span> ms), and moderate afterward.</p>
-<div id="cell-fig-motorcycle-data" class="cell" data-execution_count="10">
+<div id="cell-fig-motorcycle-data" class="cell" data-execution_count="11">
 <details class="code-fold">
 <summary>Show code (11 lines)</summary>
 
@@ -1063,7 +1063,7 @@ Figure&nbsp;5.2: Motorcycle crash data: head acceleration versus time after impa
 </div>
 </div>
 <p>We now train an IQN on this dataset and visualize the learned quantile fan.</p>
-<div id="bb137a70" class="cell" data-execution_count="11">
+<div id="bb137a70" class="cell" data-execution_count="12">
 <details class="code-fold">
 <summary>Show code (9 lines)</summary>
 
@@ -1078,7 +1078,7 @@ Figure&nbsp;5.2: Motorcycle crash data: head acceleration versus time after impa
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Training complete."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div id="cell-fig-motorcycle-iqn" class="cell" data-execution_count="12">
+<div id="cell-fig-motorcycle-iqn" class="cell" data-execution_count="13">
 <details class="code-fold">
 <summary>Show code (37 lines)</summary>
 
@@ -1139,7 +1139,7 @@ Figure&nbsp;5.3: IQN quantile fan for the motorcycle data. The shaded bands show
 <p>Several features are visible in <a href="#fig-motorcycle-iqn" class="quarto-xref">Figure&nbsp;<span>5.3</span></a>. The prediction bands are narrow before impact (<span class="math inline">\(t &lt; 15\)</span> ms), wide during the crash (<span class="math inline">\(15 &lt; t &lt; 35\)</span> ms), and narrow again as the acceleration returns to zero—the IQN has automatically learned the variance structure without being told anything about it. During the crash, the lower quantiles (<span class="math inline">\(\tau = 0.05\)</span>) drop more sharply than the upper quantiles rise, reflecting the asymmetric distribution of crash severity. And despite using only 133 training points, the quantile bands are smooth and non-crossing, a consequence of the cosine embedding which imposes a soft smoothness prior in the <span class="math inline">\(\tau\)</span>-direction.</p>
 <p>Compared to a Gaussian process (GP) with a Matern kernel, the IQN has two advantages on this dataset. First, the GP assumes Gaussian conditional distributions, so its prediction bands are always symmetric around the mean. The IQN makes no such assumption and can capture asymmetric tails. Second, the GP must estimate a single noise variance parameter (or a heteroscedastic extension like hetGP), while the IQN directly models the entire conditional distribution.</p>
 <p>We can now run the diagnostics developed in <a href="#sec-iqn-diagnostics" class="quarto-xref"><span>Section 5.5</span></a> on this fitted model. The PIT histogram and coverage analysis provide a quantitative assessment of calibration quality.</p>
-<div id="cell-fig-motorcycle-pit" class="cell" data-execution_count="13">
+<div id="cell-fig-motorcycle-pit" class="cell" data-execution_count="14">
 <details class="code-fold">
 <summary>Show code (17 lines)</summary>
 
@@ -1178,7 +1178,7 @@ Figure&nbsp;5.4: PIT histogram for the motorcycle IQN. A perfectly calibrated mo
 </div>
 </div>
 <p><a href="#fig-moto-comparison" class="quarto-xref">Figure&nbsp;<span>5.5</span></a> shows the full comparison between GBC (IQN ensemble with <span class="math inline">\(K = 5\)</span>) and hetGP on the motorcycle data, using 50 random 80:20 train/test splits. The prediction bands from both methods capture the heteroscedastic structure, but the GP’s symmetric Gaussian intervals are visible in the crash region where the true conditional distribution is asymmetric.</p>
-<div id="cell-fig-moto-comparison" class="cell" data-execution_count="14">
+<div id="cell-fig-moto-comparison" class="cell" data-execution_count="15">
 <div class="cell-output cell-output-display">
 <div id="fig-moto-comparison" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -1200,7 +1200,7 @@ f(x) = 10 \sin(\pi x_1 x_2) + 20(x_3 - 0.5)^2 + 10 x_4 + 5 x_5, \quad x \in [0,1
 \]</span> Five of the ten input dimensions are active (with a nonlinear interaction between <span class="math inline">\(x_1\)</span> and <span class="math inline">\(x_2\)</span>), and the remaining five are inert. For this demonstration, we simplify to a 1D version to allow easy visualization while retaining the essential character of the problem: <span class="math display">\[
 Y = 10\sin(\pi x) + \sigma(x)\,\varepsilon, \quad x \sim \text{Uniform}(0, 1), \quad \varepsilon \sim N(0,1),
 \]</span> where <span class="math inline">\(\sigma(x) = 1 + 3x\)</span> introduces heteroscedastic noise that grows with <span class="math inline">\(x\)</span>. The conditional mean is a smooth sinusoidal curve, but the conditional variance increases linearly across the input domain. A good quantile model should produce narrow prediction bands near <span class="math inline">\(x = 0\)</span> and wide bands near <span class="math inline">\(x = 1\)</span>.</p>
-<div id="22882003" class="cell" data-execution_count="15">
+<div id="22882003" class="cell" data-execution_count="16">
 <details class="code-fold">
 <summary>Show code (14 lines)</summary>
 
@@ -1220,7 +1220,7 @@ Y = 10\sin(\pi x) + \sigma(x)\,\varepsilon, \quad x \sim \text{Uniform}(0, 1), \
 <span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Friedman model trained."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div id="cell-fig-friedman-iqn" class="cell" data-execution_count="16">
+<div id="cell-fig-friedman-iqn" class="cell" data-execution_count="17">
 <details class="code-fold">
 <summary>Show code (35 lines)</summary>
 
@@ -1278,7 +1278,7 @@ Figure&nbsp;5.6: IQN quantile fan for the 1D Friedman function with heteroscedas
 </div>
 <p>The results confirm that the IQN captures both the smooth mean function and the changing variance. Near <span class="math inline">\(x = 0\)</span>, where <span class="math inline">\(\sigma(x) = 1\)</span>, the 90% prediction interval is narrow and closely tracks the true 5th and 95th percentiles (red dotted lines). Near <span class="math inline">\(x = 1\)</span>, where <span class="math inline">\(\sigma(x) = 4\)</span>, the bands widen appropriately. The median prediction (solid blue) aligns closely with the true conditional mean (dashed black), demonstrating that the MAE anchor in the composite loss does its job of keeping the point forecast well-calibrated.</p>
 <p>This example also illustrates a contrast with classical approaches. A standard linear quantile regression would fit parallel lines for each quantile level, completely missing the curvature of the mean function. A Gaussian process with constant noise would produce symmetric prediction bands of constant width, missing the heteroscedasticity. The IQN, by jointly learning the dependence on both <span class="math inline">\(x\)</span> and <span class="math inline">\(\tau\)</span>, captures both phenomena simultaneously without any explicit structural assumptions.</p>
-<div id="485dbce4" class="cell" data-execution_count="17">
+<div id="485dbce4" class="cell" data-execution_count="18">
 <details class="code-fold">
 <summary>Show code (9 lines)</summary>
 
@@ -2405,7 +2405,7 @@ Silverman, B. W. 1985. <em>Some Aspects of the Spline Smoothing Approach to Non-
 <span id="cb17-564"><a href="#cb17-564" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> epochs=2000     <span class="pp">|</span>     13.84 <span class="pp">|</span>     0.52 <span class="pp">|</span></span>
 <span id="cb17-565"><a href="#cb17-565" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **epochs=3000** | **13.48** | **0.38** <span class="pp">|</span></span>
 <span id="cb17-566"><a href="#cb17-566" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-567"><a href="#cb17-567" aria-hidden="true" tabindex="-1"></a>: Hyperparameter sensitivity on motorcycle data. Mean CRPS over 5 runs with different random seeds; lower is better. Bold indicates the best value in each group. {#tbl-hyperparams}</span>
+<span id="cb17-567"><a href="#cb17-567" aria-hidden="true" tabindex="-1"></a>: Hyperparameter sensitivity on motorcycle data. Mean CRPS over 5 independent runs; lower is better. Bold indicates the best value in each group. The three bold rows all correspond to the default configuration (hdim=256, M=64, epochs=3000) but use different random seed sets, so their CRPS values differ by $\sim$0.2 units due to sampling variability. Compare within groups, not across groups. {#tbl-hyperparams}</span>
 <span id="cb17-568"><a href="#cb17-568" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-569"><a href="#cb17-569" aria-hidden="true" tabindex="-1"></a>The main takeaways from @tbl-hyperparams are as follows. The number of training epochs has the largest effect: too few epochs (1000) leave the model underfit, while 2000--3000 epochs suffice for the motorcycle dataset. The hidden dimension matters moderately: $d = 64$ is too small for this heteroscedastic problem, while $d = 128$ and $d = 256$ perform similarly, suggesting that 128 is a safe minimum for 1D problems. The cosine embedding dimension $M$ matters least: values from 16 to 64 give nearly identical CRPS, because the motorcycle quantile function is smooth in $\tau$ and does not require high-frequency detail. For higher-dimensional problems with more complex conditional distributions, larger $M$ becomes more important.</span>
 <span id="cb17-570"><a href="#cb17-570" aria-hidden="true" tabindex="-1"></a></span>
