@@ -446,7 +446,7 @@ c_i = \arg\max_k \; \gamma_{ik} \in \{0, 1\}.
 <p>The Phantom and Star datasets from <span class="citation" data-cites="flowers2026modular">Flowers et al. (<a href="references.html#ref-flowers2026modular" role="doc-biblioref">2026</a>)</span> satisfy this condition: the two regimes are generated from Gaussian components with well-separated means, producing a strongly bimodal marginal. On these datasets, EM clustering achieves near-perfect label recovery — over 99% of points are assigned to the correct regime.</p>
 <p>When does this fail? If the two regimes overlap substantially in the marginal distribution — for instance, when the jump magnitude is small relative to the noise, or when the within-regime variability spans a range that covers both modes — EM will misassign labels near the overlap. The AMHV semiconductor dataset (<a href="#sec-jumps-amhv" class="quarto-xref"><span>Section 8.7</span></a>) illustrates this: the two response regimes overlap, making EM clustering unreliable. In such cases, the augmentation step is unnecessary and potentially harmful, so we use plain GBC instead.</p>
 <p>The implementation is straightforward using scikit-learn’s <code>GaussianMixture</code>:</p>
-<div id="e0da9896" class="cell" data-execution_count="1">
+<div id="e0da9896" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show code (21 lines)</summary>
 
@@ -474,7 +474,7 @@ c_i = \arg\max_k \; \gamma_{ik} \in \{0, 1\}.
 </details>
 </div>
 <p>Let us see this in action on a synthetic example with a jump at <span class="math inline">\(x = 0.5\)</span>:</p>
-<div id="cell-fig-em-clustering" class="cell" data-execution_count="2">
+<div id="cell-fig-em-clustering" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show code (35 lines)</summary>
 
@@ -553,7 +553,7 @@ Note
 \tag{8.3}\]</span></span></p>
 <p>This is a standard binary classification problem. We use a multi-layer perceptron (MLP) trained with binary cross-entropy (BCE) loss. The choice of classifier is important but not exotic: any classifier that can represent nonlinear decision boundaries will work. We use an MLP because it is a natural companion to the IQN (same optimizer, same framework), but random forests, gradient-boosted trees, or kernel SVMs with RBF kernels could serve the same purpose. The MLP has the advantage of producing calibrated probabilities via the sigmoid output, which gives the IQN a continuous signal about boundary proximity rather than a hard binary label. We will see in <a href="#exr-soft-augmentation" class="quarto-xref">Exercise&nbsp;<span>8.7</span></a> that this soft augmentation is important for performance near the boundary.</p>
 <p>The classifier is a feedforward network with three hidden layers of 256 units each and ReLU activations. It outputs raw logits; we apply sigmoid at inference time via <code>predict_prob</code> for numerical stability (using <code>BCEWithLogitsLoss</code> during training):</p>
-<div id="e6b3cb75" class="cell" data-execution_count="3">
+<div id="e6b3cb75" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show code (30 lines)</summary>
 
@@ -590,7 +590,7 @@ Note
 </details>
 </div>
 <p>Training uses Adam with cosine annealing, the same optimizer configuration we use for the IQN itself:</p>
-<div id="ae1a1581" class="cell" data-execution_count="4">
+<div id="ae1a1581" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Show code (47 lines)</summary>
 
@@ -696,7 +696,7 @@ Table&nbsp;8.1: Classifier accuracy drives Aug-IQN performance. All other hyperp
 <p>The practical takeaway is that Aug-IQN is robust to small amounts of boundary-localized misclassification but degrades when the classifier makes systematic errors across large regions of input space. This is why we recommend overinvesting in the classifier: a few extra seconds of training buys insurance against the one failure mode that can undermine the entire pipeline.</p>
 <p>An important distinction exists between <em>random</em> misclassification (where individual points near the boundary are misassigned due to noise) and <em>systematic</em> misclassification (where the classifier’s decision boundary deviates from the true boundary over an extended region). The former produces a thin layer of noise near the boundary that the IQN can absorb; the latter produces a coherent error signal that corrupts the IQN’s learned quantile function over the entire misclassified region. The SVC’s 82% accuracy on Phantom is an example of systematic misclassification: the linear decision boundary misses the sine curve’s oscillations, producing long arcs of input space where every point is assigned to the wrong regime.</p>
 <p>Let us apply the classifier to our synthetic example:</p>
-<div id="cell-fig-classifier-output" class="cell" data-execution_count="5">
+<div id="cell-fig-classifier-output" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Show code (21 lines)</summary>
 
@@ -768,7 +768,7 @@ Figure&nbsp;8.2: Learned boundary classifier. The sigmoid output transitions sha
 </div>
 </div>
 <p>Here is the full Aug-IQN pipeline in code, combining all three steps:</p>
-<div id="a7a27ecf" class="cell" data-execution_count="6">
+<div id="a7a27ecf" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Show code (52 lines)</summary>
 
@@ -852,8 +852,8 @@ Tip
 <p><a href="#fig-ensemble-blur-illustration" class="quarto-xref">Figure&nbsp;<span>8.3</span></a> provides a schematic illustration of this mechanism.</p>
 <p>We can make this more precise. Let <span class="math inline">\(b_k\)</span> denote the boundary location learned by ensemble member <span class="math inline">\(k\)</span>, and suppose the true boundary is at <span class="math inline">\(b^*\)</span>. Each member’s quantile prediction at a test point <span class="math inline">\(x\)</span> takes the form <span class="math display">\[
 Q_k(\tau \mid x) \approx \begin{cases} Q_0(\tau \mid x) &amp; \text{if } x &lt; b_k, \\ Q_1(\tau \mid x) &amp; \text{if } x \geq b_k, \end{cases}
-\]</span> where <span class="math inline">\(Q_0\)</span> and <span class="math inline">\(Q_1\)</span> are the within-regime quantile functions. The ensemble’s pooled prediction is <span class="math inline">\(\bar{Q}(\tau \mid x) = K^{-1} \sum_k Q_k(\tau \mid x)\)</span>, which at a point <span class="math inline">\(x\)</span> in the strip <span class="math inline">\([\min_k b_k, \max_k b_k]\)</span> is a convex combination of <span class="math inline">\(Q_0\)</span> and <span class="math inline">\(Q_1\)</span> with weights determined by the fraction of members that place <span class="math inline">\(x\)</span> below their respective <span class="math inline">\(b_k\)</span>. This is exactly the smooth transition that the GP produces — and that Aug-IQN is designed to avoid.</p>
-<div id="cell-fig-ensemble-blur-illustration" class="cell" data-fig-height="3.5" data-fig-width="7" data-execution_count="7">
+\]</span> where <span class="math inline">\(Q_0\)</span> and <span class="math inline">\(Q_1\)</span> are the within-regime quantile functions. The ensemble’s pooled prediction is <span class="math inline">\(\bar{Q}(\tau \mid x) = K^{-1} \sum_k Q_k(\tau \mid x)\)</span>, which at a point <span class="math inline">\(x\)</span> in the strip <span class="math inline">\([\min_k b_k, \max_k b_k]\)</span> is a convex combination of <span class="math inline">\(Q_0\)</span> and <span class="math inline">\(Q_1\)</span> with weights determined by the fraction of members that place <span class="math inline">\(x\)</span> below their respective <span class="math inline">\(b_k\)</span>. The blur strip has width of order <span class="math inline">\(W = \max_k b_k - \min_k b_k \approx 4\hat{\sigma}_b\)</span> (two standard deviations on each side of <span class="math inline">\(b^*\)</span>), where <span class="math inline">\(\hat{\sigma}_b = \mathrm{std}_k(b_k)\)</span>. Within this strip, <span class="math inline">\(\bar{Q}(\tau \mid x)\)</span> is a mixture of <span class="math inline">\(Q_0\)</span> and <span class="math inline">\(Q_1\)</span> with mixing weight <span class="math inline">\(\alpha(x) = K^{-1} \sum_k \mathbf{1}[x &lt; b_k]\)</span>, which transitions smoothly from 1 to 0 as <span class="math inline">\(x\)</span> moves from <span class="math inline">\(\min_k b_k\)</span> to <span class="math inline">\(\max_k b_k\)</span>. The CRPS penalty from the mixture exceeds the optimal <span class="math inline">\(\mathrm{CRPS}(Q_j, y)\)</span> by an amount proportional to <span class="math inline">\(\alpha(x) \cdot W_1(Q_0, Q_1) \lesssim \alpha(x) \cdot \Delta\)</span> <span class="citation" data-cites="gneiting2007strictly">(<a href="references.html#ref-gneiting2007strictly" role="doc-biblioref">Gneiting and Raftery 2007</a>)</span>, where <span class="math inline">\(W_1\)</span> is the Wasserstein-1 distance and <span class="math inline">\(\Delta = \mathbb{E}|Q_1(U) - Q_0(U)|\)</span> is the mean jump size. This analysis confirms that the blur penalty grows with the jump size and the boundary-localization variance. This is exactly the smooth transition that the GP produces — and that Aug-IQN avoids by providing a single, shared boundary estimate to the IQN.</p>
+<div id="cell-fig-ensemble-blur-illustration" class="cell" data-fig-height="3.5" data-fig-width="7" data-execution_count="8">
 <details class="code-fold">
 <summary>Show code (45 lines)</summary>
 
@@ -1165,7 +1165,7 @@ f(x) = \begin{cases} \sin(2\pi x) &amp; \text{if } x &lt; -0.3, \\ 3 + 0.5\cos(\
 <p>The modifications to the pipeline are minimal. In the EM step, we fit a three-component Gaussian mixture instead of a two-component one. The <code>cluster_responses</code> function already accepts an <code>n_components</code> argument, so this requires no code change. The hard labels are now <span class="math inline">\(c_i \in \{0, 1, 2\}\)</span>, and the assignment convention orders them by increasing component mean.</p>
 <p>The classification step changes from binary to multiclass. We replace the sigmoid output with a softmax over three classes, and the binary cross-entropy loss becomes categorical cross-entropy. The classifier now outputs a probability vector <span class="math inline">\([\hat{p}_0(x), \hat{p}_1(x), \hat{p}_2(x)]\)</span> for each input <span class="math inline">\(x\)</span>, where <span class="math inline">\(\hat{p}_k(x) = P(c = k \mid x)\)</span> and <span class="math inline">\(\sum_k \hat{p}_k(x) = 1\)</span>.</p>
 <p>The augmented input becomes <span class="math inline">\(\tilde{x} = [x, \hat{p}_0(x), \hat{p}_1(x)] \in \mathbb{R}^{d+2}\)</span>. We include only two of the three probabilities because the third is redundant: <span class="math inline">\(\hat{p}_2(x) = 1 - \hat{p}_0(x) - \hat{p}_1(x)\)</span>. In general, a <span class="math inline">\(K\)</span>-regime problem augments the input with <span class="math inline">\(K-1\)</span> probability features.</p>
-<div id="cell-fig-three-regimes" class="cell" data-execution_count="8">
+<div id="cell-fig-three-regimes" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Show code (79 lines)</summary>
 
@@ -1369,6 +1369,9 @@ f(x) = 2 + 3 \cdot \mathrm{sigmoid}(10(x - 0.5)) + 0.5 x, \quad x \in [0, 1],
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
 <div id="ref-flowers2026modular" class="csl-entry" role="listitem">
 Flowers, Anna R., Christopher T. Franck, Mickaël Binois, Chiwoo Park, and Robert B. Gramacy. 2026. <span>“Modular Jump <span>G</span>aussian Processes.”</span> <em>Data Science in Science</em> 5 (1): 2612651. <a href="https://doi.org/10.1080/26941899.2025.2612651">https://doi.org/10.1080/26941899.2025.2612651</a>.
+</div>
+<div id="ref-gneiting2007strictly" class="csl-entry" role="listitem">
+Gneiting, Tilmann, and Adrian E. Raftery. 2007. <span>“Strictly Proper Scoring Rules, Prediction, and Estimation.”</span> <em>Journal of the American Statistical Association</em> 102 (477): 359–78. <a href="https://doi.org/10.1198/016214506000001437">https://doi.org/10.1198/016214506000001437</a>.
 </div>
 <div id="ref-gramacy2008bayesian" class="csl-entry" role="listitem">
 Gramacy, Robert B., and Herbert K. H. Lee. 2008. <span>“Bayesian Treed <span>G</span>aussian Process Models with an Application to Computer Modeling.”</span> <em>Journal of the American Statistical Association</em> 103 (483): 1119–30.
@@ -2301,7 +2304,7 @@ Park, Chiwoo, Robert Waelder, Bonggwon Kang, Benji Maruyama, Soondo Hong, and Ro
 <span id="cb10-447"><a href="#cb10-447" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb10-448"><a href="#cb10-448" aria-hidden="true" tabindex="-1"></a>Q_k(\tau \mid x) \approx \begin{cases} Q_0(\tau \mid x) &amp; \text{if } x &lt; b_k, <span class="sc">\\</span> Q_1(\tau \mid x) &amp; \text{if } x \geq b_k, \end{cases}</span>
 <span id="cb10-449"><a href="#cb10-449" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb10-450"><a href="#cb10-450" aria-hidden="true" tabindex="-1"></a>where $Q_0$ and $Q_1$ are the within-regime quantile functions. The ensemble's pooled prediction is $\bar{Q}(\tau \mid x) = K^{-1} \sum_k Q_k(\tau \mid x)$, which at a point $x$ in the strip $<span class="co">[</span><span class="ot">\min_k b_k, \max_k b_k</span><span class="co">]</span>$ is a convex combination of $Q_0$ and $Q_1$ with weights determined by the fraction of members that place $x$ below their respective $b_k$. This is exactly the smooth transition that the GP produces --- and that Aug-IQN is designed to avoid.</span>
+<span id="cb10-450"><a href="#cb10-450" aria-hidden="true" tabindex="-1"></a>where $Q_0$ and $Q_1$ are the within-regime quantile functions. The ensemble's pooled prediction is $\bar{Q}(\tau \mid x) = K^{-1} \sum_k Q_k(\tau \mid x)$, which at a point $x$ in the strip $<span class="co">[</span><span class="ot">\min_k b_k, \max_k b_k</span><span class="co">]</span>$ is a convex combination of $Q_0$ and $Q_1$ with weights determined by the fraction of members that place $x$ below their respective $b_k$. The blur strip has width of order $W = \max_k b_k - \min_k b_k \approx 4\hat{\sigma}_b$ (two standard deviations on each side of $b^*$), where $\hat{\sigma}_b = \mathrm{std}_k(b_k)$. Within this strip, $\bar{Q}(\tau \mid x)$ is a mixture of $Q_0$ and $Q_1$ with mixing weight $\alpha(x) = K^{-1} \sum_k \mathbf{1}<span class="co">[</span><span class="ot">x &lt; b_k</span><span class="co">]</span>$, which transitions smoothly from 1 to 0 as $x$ moves from $\min_k b_k$ to $\max_k b_k$. The CRPS penalty from the mixture exceeds the optimal $\mathrm{CRPS}(Q_j, y)$ by an amount proportional to $\alpha(x) \cdot W_1(Q_0, Q_1) \lesssim \alpha(x) \cdot \Delta$ <span class="co">[</span><span class="ot">@gneiting2007strictly</span><span class="co">]</span>, where $W_1$ is the Wasserstein-1 distance and $\Delta = \mathbb{E}|Q_1(U) - Q_0(U)|$ is the mean jump size. This analysis confirms that the blur penalty grows with the jump size and the boundary-localization variance. This is exactly the smooth transition that the GP produces --- and that Aug-IQN avoids by providing a single, shared boundary estimate to the IQN.</span>
 <span id="cb10-451"><a href="#cb10-451" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-452"><a href="#cb10-452" aria-hidden="true" tabindex="-1"></a>quarto-executable-code-5450563D</span>
 <span id="cb10-453"><a href="#cb10-453" aria-hidden="true" tabindex="-1"></a></span>
