@@ -513,7 +513,7 @@ b_t = \tilde{h}_\xi(b_{t+1}, y_t), \qquad b_T = \mathbf{0},
 <p>The canonical continuous-time financial state-space model couples log-volatility (latent) to returns (observed): <span class="math display">\[
 x_t = \mu + \rho(x_{t-1} - \mu) + \sigma_\eta \eta_t, \qquad y_t = \exp(x_t / 2) \cdot \varepsilon_t,
 \]</span> where <span class="math inline">\(\eta_t, \varepsilon_t \overset{\text{iid}}{\sim} N(0,1)\)</span>. We use parameters <span class="math inline">\(\mu = -0.8\)</span>, <span class="math inline">\(\rho = 0.97\)</span>, <span class="math inline">\(\sigma_\eta = 0.15\)</span>. The non-Gaussian observation distribution (returns have heavier tails than <span class="math inline">\(N(0, e^{x_t})\)</span> conditional on <span class="math inline">\(x_t\)</span>) makes classical filtering hard; standard practice relies on particle filters with <span class="math inline">\(n_\text{particles} \approx 500\)</span>–<span class="math inline">\(2000\)</span>.</p>
-<div id="58a0eb1f" class="cell" data-execution_count="1">
+<div id="58a0eb1f" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show code (84 lines)</summary>
 
@@ -607,7 +607,7 @@ x_t = \mu + \rho(x_{t-1} - \mu) + \sigma_\eta \eta_t, \qquad y_t = \exp(x_t / 2)
 </details>
 </div>
 <p><strong>Amortized inference.</strong> Once trained, applying the filter to a new observed return series costs <span class="math inline">\(T\)</span> GRU steps and <span class="math inline">\(T\)</span> IQN forward passes. No per-series fitting, no particle weights.</p>
-<div id="56aee1cb" class="cell" data-execution_count="2">
+<div id="56aee1cb" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show code (24 lines)</summary>
 
@@ -637,57 +637,15 @@ x_t = \mu + \rho(x_{t-1} - \mu) + \sigma_\eta \eta_t, \qquad y_t = \exp(x_t / 2)
 <span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>            q_paths[ql].append(model_sv(s, tau_t).item())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<p>The resulting filtered volatility bands (5th–95th percentile) visually track the known log-volatility <span class="math inline">\(x_t\)</span> with nominal coverage close to 90%. The wall-clock comparison with a 1000-particle bootstrap filter is shown in <a href="#tbl-seq-timing" class="quarto-xref">Table&nbsp;<span>15.1</span></a>.</p>
-<div id="tbl-seq-timing" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-tbl figure">
-<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-seq-timing-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;15.1: Wall-clock comparison for stochastic-volatility filtering, single series length <span class="math inline">\(T = 200\)</span>. Particle filter times are on CPU; filtering IQN inference is also on CPU. Training of the IQN is paid once and amortized over all subsequent series.
-</figcaption>
-<div aria-describedby="tbl-seq-timing-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<table class="caption-top table">
-<colgroup>
-<col style="width: 25%">
-<col style="width: 25%">
-<col style="width: 25%">
-<col style="width: 25%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Method</th>
-<th>Fit (train)</th>
-<th>Inference (per series, <span class="math inline">\(T=200\)</span>)</th>
-<th>Per-series cost</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Bootstrap PF (<span class="math inline">\(n=1000\)</span>)</td>
-<td>0 s</td>
-<td>3.2 s</td>
-<td><span class="math inline">\(O(T \cdot n)\)</span></td>
-</tr>
-<tr class="even">
-<td>Particle MCMC</td>
-<td>0 s</td>
-<td>180 s</td>
-<td><span class="math inline">\(O(T \cdot n \cdot \text{MCMC steps})\)</span></td>
-</tr>
-<tr class="odd">
-<td>Filtering IQN (GBC)</td>
-<td>12 min</td>
-<td>0.04 s</td>
-<td><span class="math inline">\(O(T)\)</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-</figure>
-</div>
+<p>The resulting filtered volatility bands (5th–95th percentile) visually track the known log-volatility <span class="math inline">\(x_t\)</span> with nominal coverage close to 90%. The wall-clock comparison with a 1000-particle bootstrap filter is shown in <span class="quarto-unresolved-ref">?tbl-seq-timing</span>.</p>
+<div class="line-block">Method | Fit (train) | Inference (per series, <span class="math inline">\(T=200\)</span>) | Per-series cost |</div>
+<p>|, |, |, |, | | Bootstrap PF (<span class="math inline">\(n=1000\)</span>) | 0 s | 3.2 s | <span class="math inline">\(O(T \cdot n)\)</span> | | Particle MCMC | 0 s | 180 s | <span class="math inline">\(O(T \cdot n \cdot \text{MCMC steps})\)</span> | | Filtering IQN (GBC) | 12 min | 0.04 s | <span class="math inline">\(O(T)\)</span> |</p>
+<p>: Wall-clock comparison for stochastic-volatility filtering, single series length <span class="math inline">\(T = 200\)</span>. Particle filter times are on CPU; filtering IQN inference is also on CPU. Training of the IQN is paid once and amortized over all subsequent series. {#tbl-seq-timing}</p>
 </section>
 <section id="sec-seq-epidemic" class="level2" data-number="15.9">
 <h2 data-number="15.9" class="anchored" data-anchor-id="sec-seq-epidemic"><span class="header-section-number">15.9</span> Worked Example: Time-Varying Epidemic Transmission</h2>
 <p>A time-varying-<span class="math inline">\(R_t\)</span> epidemic model: the effective reproduction number follows a random walk, observed case counts are noisy. This is operationally the most compelling application of sequential GBC: outbreak response needs <em>online</em> posterior updates as surveillance data arrive daily.</p>
-<div id="18bf3b77" class="cell" data-execution_count="3">
+<div id="18bf3b77" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Show code (23 lines)</summary>
 
@@ -723,7 +681,7 @@ Table&nbsp;15.1: Wall-clock comparison for stochastic-volatility filtering, sing
 </section>
 <section id="sec-seq-amortization" class="level2" data-number="15.10">
 <h2 data-number="15.10" class="anchored" data-anchor-id="sec-seq-amortization"><span class="header-section-number">15.10</span> Amortization Across Series</h2>
-<p>The payoff of training once and filtering many times is identical in structure to the amortization story in <a href="ch10-bayesian-inference.html#sec-bi-algorithm" class="quarto-xref"><span>Section 10.4</span></a>. State it precisely, in parallel with <a href="#tbl-seq-timing" class="quarto-xref">Table&nbsp;<span>15.1</span></a> above:</p>
+<p>The payoff of training once and filtering many times is identical in structure to the amortization story in <a href="ch10-bayesian-inference.html#sec-bi-algorithm" class="quarto-xref"><span>Section 10.4</span></a>. State it precisely, in parallel with <span class="quarto-unresolved-ref">?tbl-seq-timing</span> above:</p>
 <ul>
 <li><strong>Training cost.</strong> <span class="math inline">\(N_\text{sim}\)</span> simulated trajectories of length <span class="math inline">\(T\)</span>, one network, paid once.</li>
 <li><strong>Inference cost.</strong> For a new observed series of length <span class="math inline">\(T\)</span>: <span class="math inline">\(T\)</span> GRU updates and <span class="math inline">\(T\)</span> IQN forward passes. Total cost <span class="math inline">\(O(T)\)</span>, independent of <span class="math inline">\(N_\text{sim}\)</span>.</li>
@@ -1468,7 +1426,7 @@ Table&nbsp;15.1: Wall-clock comparison for stochastic-volatility filtering, sing
 <span id="cb4-245"><a href="#cb4-245" aria-hidden="true" tabindex="-1"></a>The resulting filtered volatility bands (5th--95th percentile) visually track the known log-volatility $x_t$ with nominal coverage close to 90\%. The wall-clock comparison with a 1000-particle bootstrap filter is shown in @tbl-seq-timing.</span>
 <span id="cb4-246"><a href="#cb4-246" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-247"><a href="#cb4-247" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> Fit (train) <span class="pp">|</span> Inference (per series, $T=200$) <span class="pp">|</span> Per-series cost <span class="pp">|</span></span>
-<span id="cb4-248"><a href="#cb4-248" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|---|</span></span>
+<span id="cb4-248"><a href="#cb4-248" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, <span class="pp">|</span>, <span class="pp">|</span>, <span class="pp">|</span>, <span class="pp">|</span></span>
 <span id="cb4-249"><a href="#cb4-249" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Bootstrap PF ($n=1000$) <span class="pp">|</span> 0 s <span class="pp">|</span> 3.2 s <span class="pp">|</span> $O(T \cdot n)$ <span class="pp">|</span></span>
 <span id="cb4-250"><a href="#cb4-250" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Particle MCMC <span class="pp">|</span> 0 s <span class="pp">|</span> 180 s <span class="pp">|</span> $O(T \cdot n \cdot \text{MCMC steps})$ <span class="pp">|</span></span>
 <span id="cb4-251"><a href="#cb4-251" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Filtering IQN (GBC) <span class="pp">|</span> 12 min <span class="pp">|</span> 0.04 s <span class="pp">|</span> $O(T)$ <span class="pp">|</span></span>
