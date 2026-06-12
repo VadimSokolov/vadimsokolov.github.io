@@ -790,9 +790,39 @@ Q(\tau, z) = g(\tau, f(z)),
 <p>The practical message: invest in finding good summary statistics. The convergence rate depends on <span class="math inline">\(k\)</span>, not on <span class="math inline">\(d\)</span>, so a well-chosen low-dimensional summary <span class="math inline">\(S\)</span> can make the difference between a method that needs thousands of training samples and one that needs millions. In the extreme case where <span class="math inline">\(k = 1\)</span> (the entire history is compressed into a single number), the rate is <span class="math inline">\(O(m^{-2\beta/(2\beta+2)})\)</span>, which for <span class="math inline">\(\beta = 2\)</span> gives <span class="math inline">\(O(m^{-2/3})\)</span>, close to the parametric rate. Of course, compressing to <span class="math inline">\(k = 1\)</span> may lose important information, so the choice of <span class="math inline">\(k\)</span> involves a bias-variance tradeoff that we discuss below.</p>
 <p><em>Why composition matters.</em> ReLU networks exploit compositional structure through their layered architecture. Each layer learns a component of the composition, so the approximation complexity depends on <span class="math inline">\(k\)</span> rather than <span class="math inline">\(d\)</span>. Kernel methods, by contrast, treat the input as a flat vector in <span class="math inline">\(\mathbb{R}^d\)</span> and cannot exploit such structure. The dimension gap between <span class="math inline">\(k\)</span> and <span class="math inline">\(d\)</span> determines the practical advantage of neural networks over kernel methods.</p>
 <p>To make this concrete, consider a prediction problem with <span class="math inline">\(d = 20\)</span> input lags, smoothness <span class="math inline">\(\beta = 2\)</span>, and <span class="math inline">\(k = 3\)</span> summary statistics (mean, variance, last value):</p>
-<div class="line-block">Method | Effective dimension | Rate | Value at <span class="math inline">\(m = 1000\)</span> |</div>
-<p>|, –|, , , -|, |, , , , | | Kernel (<span class="math inline">\(d = 20\)</span>) | 20 | <span class="math inline">\(m^{-4/24} = m^{-0.17}\)</span> | 0.24 | | Neural net (<span class="math inline">\(k = 3\)</span>) | 3 | <span class="math inline">\(m^{-4/8} = m^{-0.50}\)</span> | 0.03 |</p>
-<p>: Convergence rates for kernel vs.&nbsp;neural network quantile estimators. {#tbl-pred-rates}</p>
+<div id="tbl-pred-rates" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-pred-rates-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;11.1: Convergence rates for kernel vs.&nbsp;neural network quantile estimators.
+</figcaption>
+<div aria-describedby="tbl-pred-rates-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Effective dimension</th>
+<th>Rate</th>
+<th>Value at <span class="math inline">\(m = 1000\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Kernel (<span class="math inline">\(d = 20\)</span>)</td>
+<td>20</td>
+<td><span class="math inline">\(m^{-4/24} = m^{-0.17}\)</span></td>
+<td>0.24</td>
+</tr>
+<tr class="even">
+<td>Neural net (<span class="math inline">\(k = 3\)</span>)</td>
+<td>3</td>
+<td><span class="math inline">\(m^{-4/8} = m^{-0.50}\)</span></td>
+<td>0.03</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The neural network is substantially more sample-efficient. At <span class="math inline">\(m = 1000\)</span> training samples, the neural network’s <span class="math inline">\(L^2\)</span> error is roughly 8 times smaller than the kernel’s. This gap widens as <span class="math inline">\(d\)</span> increases relative to <span class="math inline">\(k\)</span>.</p>
 <p>The convergence rate depends on <span class="math inline">\(k\)</span>, so choosing a good summary <span class="math inline">\(S\)</span> is essential. The simplest option is to use hand-crafted summaries, moments, quantiles, or autocorrelations of the data, which are interpretable but may miss relevant features. When the process has short memory, a fixed window of the last <span class="math inline">\(k\)</span> observations is often effective. For more demanding problems, one can train a neural network <span class="math inline">\(\hat{S}(Z_{1:n}) \approx \mathbb{E}[\theta \mid Z_{1:n}]\)</span> to learn the summary jointly with the quantile predictor, as proposed by <span class="citation" data-cites="jiang2017learning">Jiang et al. (<a href="references.html#ref-jiang2017learning" role="doc-biblioref">2017</a>)</span>; the posterior mean is Bayes-optimal as a sufficient statistic.</p>
 <p>The choice of <span class="math inline">\(k\)</span> involves a bias–variance tradeoff: small <span class="math inline">\(k\)</span> yields fast convergence but risks information loss, while large <span class="math inline">\(k\)</span> preserves information at the cost of slower rates. In practice, cross-validation on the pinball loss provides a principled way to select <span class="math inline">\(k\)</span>: for each candidate summary dimension, we train the quantile network, evaluate the out-of-sample pinball loss, and choose the <span class="math inline">\(k\)</span> that minimizes it. If the selected <span class="math inline">\(k\)</span> is much smaller than <span class="math inline">\(d\)</span>, this confirms that the problem has low intrinsic dimensionality and the neural network approach will be advantageous.</p>
@@ -2253,7 +2283,7 @@ Zrnic, Tijana, and Emmanuel J. Candès. 2024. <span>“Cross-Prediction-Powered 
 <span id="cb6-422"><a href="#cb6-422" aria-hidden="true" tabindex="-1"></a>To make this concrete, consider a prediction problem with $d = 20$ input lags, smoothness $\beta = 2$, and $k = 3$ summary statistics (mean, variance, last value):</span>
 <span id="cb6-423"><a href="#cb6-423" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-424"><a href="#cb6-424" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> Effective dimension <span class="pp">|</span> Rate <span class="pp">|</span> Value at $m = 1000$ <span class="pp">|</span></span>
-<span id="cb6-425"><a href="#cb6-425" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, --<span class="pp">|</span>, , , -<span class="pp">|</span>, <span class="pp">|</span>, , , , <span class="pp">|</span></span>
+<span id="cb6-425"><a href="#cb6-425" aria-hidden="true" tabindex="-1"></a><span class="pp">|-----|----------|---|------------|</span></span>
 <span id="cb6-426"><a href="#cb6-426" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Kernel ($d = 20$) <span class="pp">|</span> 20 <span class="pp">|</span> $m^{-4/24} = m^{-0.17}$ <span class="pp">|</span> 0.24 <span class="pp">|</span></span>
 <span id="cb6-427"><a href="#cb6-427" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Neural net ($k = 3$) <span class="pp">|</span> 3 <span class="pp">|</span> $m^{-4/8} = m^{-0.50}$ <span class="pp">|</span> 0.03 <span class="pp">|</span></span>
 <span id="cb6-428"><a href="#cb6-428" aria-hidden="true" tabindex="-1"></a></span>

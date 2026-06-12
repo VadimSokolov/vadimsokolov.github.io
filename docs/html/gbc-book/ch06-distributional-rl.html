@@ -598,7 +598,7 @@ Figure&nbsp;6.2: Evolution of distributional RL representations: from fixed atom
 <p>The <em>quantile projection</em>, mapping a distribution to its quantile approximation, minimizes the 1-Wasserstein distance. This eliminates the need for the categorical projection entirely. When the Bellman target <span class="math inline">\(r + \gamma \theta_j(x', a^*; \tilde{w})\)</span> does not align with any preordained grid, there is no problem: the network simply adjusts its quantile estimates to match the target distribution. The pinball loss provides the mechanism. Given a sample transition <span class="math inline">\((x, a, r, x')\)</span>, the loss is <span id="eq-qrdqn-loss"><span class="math display">\[
 \mathcal{L}(w) = \frac{1}{m} \sum_{i=1}^{m} \sum_{j=1}^{m} \rho_{\tau_i}^H\bigl(r + \gamma \, \theta_j(x', a^*; \tilde{w}) - \theta_i(x, a; w)\bigr),
 \tag{6.6}\]</span></span> where <span class="math inline">\(\rho_\tau^H\)</span> is the Huber quantile loss (a smoothed version of the pinball loss) and <span class="math inline">\(\tilde{w}\)</span> denotes a target network. This connects distributional RL directly to quantile regression theory (<a href="ch03-quantiles.html" class="quarto-xref"><span>Chapter 3</span></a>). The transition from C51 to QR-DQN is thus the transition from a <em>density-based</em> representation (probabilities on a fixed grid) to a <em>quantile-based</em> representation (quantile values at fixed levels), and this shift eliminates the projection step that was the main source of approximation error in C51. QR-DQN also eliminates the need to specify the range <span class="math inline">\([V_{\min}, V_{\max}]\)</span> in advance. Since the quantile locations are learned rather than fixed, the representation automatically adapts to the scale of the returns. If the returns range from <span class="math inline">\(-100\)</span> to <span class="math inline">\(+1000\)</span>, the network will learn quantile values in that range; if they range from <span class="math inline">\(0\)</span> to <span class="math inline">\(1\)</span>, it will learn values in that range. This adaptivity is important in practice because the range of returns can vary dramatically across different tasks, and choosing a poor range for C51 can severely degrade performance.</p>
-<p><strong>IQN: Implicit Quantile Representation.</strong> <strong>Implicit Quantile Networks</strong> (IQN) <span class="citation" data-cites="dabney2018implicit">(<a href="references.html#ref-dabney2018implicit" role="doc-biblioref">Dabney et al. 2018</a>)</span> take the final step: instead of fixing <span class="math inline">\(m\)</span> quantile levels, they treat <span class="math inline">\(\tau\)</span> as a continuous input to the neural network. The network maps <span class="math inline">\((x, a, \tau)\)</span> to the <span class="math inline">\(\tau\)</span>th quantile of the return: <span id="eq-iqn-rl"><span class="math display">\[
+<p><strong>IQN: Implicit Quantile Representation.</strong> <strong>Implicit Quantile Networks</strong> (IQN), introduced by Will Dabney, Georg Ostrovski, <strong>David Silver</strong>, and Rémi Munos <span class="citation" data-cites="dabney2018implicit">(<a href="references.html#ref-dabney2018implicit" role="doc-biblioref">Dabney et al. 2018</a>)</span> at DeepMind, take the final step: instead of fixing <span class="math inline">\(m\)</span> quantile levels, they treat <span class="math inline">\(\tau\)</span> as a continuous input to the neural network. The network maps <span class="math inline">\((x, a, \tau)\)</span> to the <span class="math inline">\(\tau\)</span>th quantile of the return: <span id="eq-iqn-rl"><span class="math display">\[
 \theta_w(x, a, \tau) \approx F_{\eta(x,a)}^{-1}(\tau).
 \tag{6.7}\]</span></span></p>
 <p>The word “implicit” in the name refers to the fact that the distribution is represented <em>implicitly</em> through the quantile function, rather than explicitly through a finite set of parameters (probabilities or locations). This terminology is borrowed from computer graphics, where an <em>implicit surface</em> is defined as the level set of a function rather than as an explicit mesh of triangles. The quantile function is never stored as a table; instead, it is <em>computed on the fly</em> by querying the network at the desired <span class="math inline">\(\tau\)</span> value. This is similar to how a neural radiance field (NeRF) represents a 3D scene implicitly as a function of position and viewing angle, rather than explicitly as a voxel grid.</p>
@@ -616,9 +616,51 @@ Q_w(x, a) \approx \frac{1}{m} \sum_{i=1}^{m} \theta_w(x, a, \tau_i), \quad \tau_
 \mathcal{L}(w) = \frac{1}{N \cdot N'}\sum_{i=1}^{N} \sum_{j=1}^{N'} \rho^H_{\tau_i}(\delta_{ij}),
 \tag{6.10}\]</span></span> where <span class="math inline">\(\delta_{ij} = r + \gamma\,\theta_{\tilde{w}}(x', a^*, \tau'_j) - \theta_w(x, a, \tau_i)\)</span>, with <span class="math inline">\(\tau_i \sim \mathrm{Uniform}(0,1)\)</span> independently sampled for the online network and <span class="math inline">\(\tau'_j \sim \mathrm{Uniform}(0,1)\)</span> for the target network. In practice, <span class="math inline">\(N = N' = 64\)</span> is a common choice. (Some implementations normalize by <span class="math inline">\(N'\)</span> only, absorbing the <span class="math inline">\(1/N\)</span> factor into the learning rate; the minimizer is unchanged.)</p>
 <p>The table below summarizes the evolution.</p>
-<div class="line-block">Algorithm | Distribution Repr. | Free Parameters | Projection |</div>
-<p>|, , –|, , , -|, , , –|, , | | C51 | Categorical (fixed atoms) | Probabilities <span class="math inline">\(p_i\)</span> | Categorical | | QR-DQN | Quantile (fixed levels) | Locations <span class="math inline">\(\theta_i\)</span> | Quantile (Wasserstein-optimal) | | IQN | Quantile (implicit) | Continuous function <span class="math inline">\(\theta(\cdot)\)</span> | None (sample <span class="math inline">\(\tau\)</span>) |</p>
-<p>: Evolution of distributional RL representations. {#tbl-dist-rl-evolution}</p>
+<div id="tbl-dist-rl-evolution" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-dist-rl-evolution-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6.1: Evolution of distributional RL representations.
+</figcaption>
+<div aria-describedby="tbl-dist-rl-evolution-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Algorithm</th>
+<th style="text-align: left;">Distribution Repr.</th>
+<th style="text-align: left;">Free Parameters</th>
+<th style="text-align: left;">Projection</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">C51</td>
+<td style="text-align: left;">Categorical (fixed atoms)</td>
+<td style="text-align: left;">Probabilities <span class="math inline">\(p_i\)</span></td>
+<td style="text-align: left;">Categorical</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">QR-DQN</td>
+<td style="text-align: left;">Quantile (fixed levels)</td>
+<td style="text-align: left;">Locations <span class="math inline">\(\theta_i\)</span></td>
+<td style="text-align: left;">Quantile (Wasserstein-optimal)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">IQN</td>
+<td style="text-align: left;">Quantile (implicit)</td>
+<td style="text-align: left;">Continuous function <span class="math inline">\(\theta(\cdot)\)</span></td>
+<td style="text-align: left;">None (sample <span class="math inline">\(\tau\)</span>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The progression from C51 to IQN mirrors a fundamental principle: as the representation becomes more flexible, the need for explicit projection operators disappears. IQN directly parameterizes the quantile function and uses stochastic sampling of <span class="math inline">\(\tau\)</span> to cover the entire distribution. Each step in the C51 <span class="math inline">\(\to\)</span> QR-DQN <span class="math inline">\(\to\)</span> IQN trajectory solves a specific problem: C51 introduces distributional learning but requires a fixed support and a lossy projection; QR-DQN eliminates the projection by moving to quantile space but fixes the quantile levels; IQN frees the quantile levels by making <span class="math inline">\(\tau\)</span> an input. The result is a network architecture that can represent arbitrary return distributions, and this is the architecture that GBC adopts wholesale for statistical inference.</p>
 <p>On the Atari benchmark, this progression also yielded steadily improving performance. <span class="citation" data-cites="bellemare2023distributional">Bellemare, Dabney, and Rowland (<a href="references.html#ref-bellemare2023distributional" role="doc-biblioref">2023, chap. 10</a>)</span> report that DQN achieves a human-normalized interquartile mean (HNIQM) score of about 0.4, C51 raises this to roughly 0.8, QR-DQN to about 1.0, and IQN to approximately 1.1. These numbers mean that IQN plays at or above human level on the majority of the 57 Atari games. The performance gains are not solely due to the richer distributional representation, they also reflect the improved gradient signal and state representations that come with predicting a full distribution rather than a single scalar.</p>
 <p>C51 was published in 2017, QR-DQN in early 2018, and IQN in mid-2018. In the span of roughly 18 months, the distributional RL community moved from a fixed categorical grid to a fully implicit quantile representation. This rapid evolution was driven by a clear theoretical understanding of the limitations at each step: the Wasserstein contraction theorem pointed to quantile representations as theoretically optimal, and the practical limitations of fixed discretizations (projection error in C51, fixed resolution in QR-DQN) motivated the move to increasingly flexible parameterizations. The IQN architecture remains a strong baseline in distributional RL and, as we argue in this book, has found a second life as the core computational engine of GBC. Subsequent work has proposed extensions such as Fully Parameterized Quantile Functions (FQF) by Yang et al.&nbsp;(2019), which adaptively learns the quantile levels themselves, and Moment-Matching DQN (MM-DQN) by Nguyen et al.&nbsp;(2021), which uses moment-based losses. But IQN’s combination of simplicity, flexibility, and theoretical grounding makes it the natural choice for GBC, where the supervised learning setting is simpler than the RL setting and the benefits of more complex architectures are marginal.</p>
@@ -871,10 +913,126 @@ V(Z) = \int_0^1 F_Z^{-1}(\tau) \, dg(\tau).
 <p>In GBC, the IQN learns a map <span class="math display">\[
 (x, \tau) \longmapsto F_{Y|X=x}^{-1}(\tau) = \text{$\tau$th quantile of $Y$ given covariate $x$}.
 \]</span></p>
-<p>The following table makes the correspondence precise.</p>
-<div class="line-block">Component | Distributional RL | GBC |</div>
-<p>|, , –|, , , |, –| | Input | State <span class="math inline">\(x\)</span>, action <span class="math inline">\(a\)</span> | Covariate <span class="math inline">\(x\)</span> | | Random variable | Return <span class="math inline">\(Z(x,a)\)</span> | Response <span class="math inline">\(Y \mid X = x\)</span> | | Network input | <span class="math inline">\((x, a, \tau)\)</span> | <span class="math inline">\((x, \tau)\)</span> | | Network output | <span class="math inline">\(F_{Z(x,a)}^{-1}(\tau)\)</span> | <span class="math inline">\(F_{Y|X}^{-1}(\tau)\)</span> | | Training target | Bellman target <span class="math inline">\(r + \gamma \hat{Q}(\tau' \mid x', a')\)</span> | Observed response <span class="math inline">\(y\)</span> | | Loss function | Huber quantile loss <span class="math inline">\(\rho_\tau^H\)</span> | Pinball loss <span class="math inline">\(\rho_\tau\)</span> | | Architecture | Cosine embedding + multiplicative merge | Same | | Sampling | <span class="math inline">\(\tau \sim \text{Uniform}(0,1)\)</span> | Same |</p>
-<p>: The bridge between distributional RL and GBC. {#tbl-rl-gbc-bridge}</p>
+<p>Two levels of correspondence connect the two frameworks. At the conceptual level, the mathematical objects map directly:</p>
+<div id="tbl-rl-gbc-conceptual" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-rl-gbc-conceptual-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6.2: Conceptual correspondence between distributional RL and GBC. Both frameworks learn conditional distributions by training an IQN with the pinball loss; the objects being learned, the source of training data, and the downstream use of the quantile function all translate exactly.
+</figcaption>
+<div aria-describedby="tbl-rl-gbc-conceptual-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Distributional RL</th>
+<th style="text-align: left;">GBC / Bayesian inference</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">State <span class="math inline">\(s\)</span></td>
+<td style="text-align: left;">Data summary <span class="math inline">\(z = S(y)\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Return distribution <span class="math inline">\(Z(s)\)</span></td>
+<td style="text-align: left;">Posterior <span class="math inline">\(\pi(\theta \mid y)\)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Quantile function of returns</td>
+<td style="text-align: left;">Posterior quantile function <span class="math inline">\(G(\tau, z)\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Distributional Bellman operator</td>
+<td style="text-align: left;">Bayesian updating via Wang distortion</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Wasserstein contraction <span class="math inline">\(\to\)</span> fixed point</td>
+<td style="text-align: left;">Convergence of the learned transport</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Risk-sensitive policy: distortion of <span class="math inline">\(\tau\)</span></td>
+<td style="text-align: left;">Expected utility: <span class="math inline">\(\int U(G(\tau,z)) \, d\tau\)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Simulated game trajectories</td>
+<td style="text-align: left;">Simulated <span class="math inline">\((\theta, y)\)</span> pairs</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The distributional Bellman operator <span class="math inline">\(\mathcal{T}^\pi Z(s) \overset{d}{=} R + \gamma Z(S')\)</span> corresponds to Bayesian conditioning: both operations transform a prior distribution by incorporating new information. In the RL case, the transformation is affine (discount and shift by reward); in the Bayesian case, it is a reweighting of the prior by the likelihood, which in quantile representation becomes the Wang distortion operator (<a href="ch12-meu.html#sec-meu-wang" class="quarto-xref"><span>Section 12.3</span></a>). This is not an analogy: both are compositions of monotone maps on quantile functions, and the Wasserstein contraction that guarantees RL convergence has a direct counterpart in the convergence of the learned transport.</p>
+<p>The bottom row of <a href="#tbl-rl-gbc-conceptual" class="quarto-xref">Table&nbsp;<span>6.2</span></a> connects this chapter directly to <a href="ch12-meu.html" class="quarto-xref"><span>Chapter 12</span></a>. In distributional RL, a risk-sensitive policy applies a distortion function <span class="math inline">\(g\)</span> to <span class="math inline">\(\tau\)</span>, sampling from <span class="math inline">\(g(\text{Uniform}(0,1))\)</span> instead of the uniform: CVaR<span class="math inline">\(_\alpha\)</span> uses <span class="math inline">\(g(\tau) = \min(\tau/\alpha, 1)\)</span>, and a general Yaari/Wang distortion uses any concave <span class="math inline">\(g\)</span>. In GBC, expected utility under utility <span class="math inline">\(U\)</span> is <span class="math inline">\(\mathbb{E}[U(\theta) \mid y] = \int U(G(\tau, z)) \, d\tau\)</span>, a one-dimensional integral over the learned quantile function. Both are functionals of the same IQN output, computed by a single forward pass with no density evaluation and no additional training. The same network that was trained to play Atari games with risk-sensitive CVaR policies directly powers Bayesian expected utility computation in <a href="ch12-meu.html" class="quarto-xref"><span>Chapter 12</span></a>.</p>
+<p>The following table records the technical component-by-component mapping.</p>
+<div id="tbl-rl-gbc-bridge" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-rl-gbc-bridge-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6.3: The bridge between distributional RL and GBC.
+</figcaption>
+<div aria-describedby="tbl-rl-gbc-bridge-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Component</th>
+<th style="text-align: left;">Distributional RL</th>
+<th style="text-align: left;">GBC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Input</td>
+<td style="text-align: left;">State <span class="math inline">\(x\)</span>, action <span class="math inline">\(a\)</span></td>
+<td style="text-align: left;">Covariate <span class="math inline">\(x\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Random variable</td>
+<td style="text-align: left;">Return <span class="math inline">\(Z(x,a)\)</span></td>
+<td style="text-align: left;">Response <span class="math inline">\(Y \mid X = x\)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Network input</td>
+<td style="text-align: left;"><span class="math inline">\((x, a, \tau)\)</span></td>
+<td style="text-align: left;"><span class="math inline">\((x, \tau)\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Network output</td>
+<td style="text-align: left;"><span class="math inline">\(F_{Z(x,a)}^{-1}(\tau)\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(F_{Y|X}^{-1}(\tau)\)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Training target</td>
+<td style="text-align: left;">Bellman target <span class="math inline">\(r + \gamma \hat{Q}(\tau' \mid x', a')\)</span></td>
+<td style="text-align: left;">Observed response <span class="math inline">\(y\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Loss function</td>
+<td style="text-align: left;">Huber quantile loss <span class="math inline">\(\rho_\tau^H\)</span></td>
+<td style="text-align: left;">Pinball loss <span class="math inline">\(\rho_\tau\)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Architecture</td>
+<td style="text-align: left;">Cosine embedding + multiplicative merge</td>
+<td style="text-align: left;">Same</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Sampling</td>
+<td style="text-align: left;"><span class="math inline">\(\tau \sim \text{Uniform}(0,1)\)</span></td>
+<td style="text-align: left;">Same</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>Let us examine what changes and what stays the same when we cross this bridge.</p>
 <p><em>What changes.</em> There are two differences. In RL, the training target is the <em>bootstrapped</em> Bellman target <span class="math inline">\(r + \gamma \hat{Q}(\tau' \mid x', a')\)</span>, which depends on the network’s own predictions and creates a moving target requiring stabilization techniques such as target networks and experience replay. In GBC, the training target is the <em>observed response</em> <span class="math inline">\(y\)</span>, a fixed, ground-truth value, making training much more stable without any need for target networks or replay buffers. Additionally, GBC has no action space <span class="math inline">\(\mathcal{A}\)</span>: the covariate <span class="math inline">\(x\)</span> plays the role of the state, and the network learns the conditional distribution of <span class="math inline">\(Y\)</span> given <span class="math inline">\(X = x\)</span>. If a decision variable were present (e.g., in optimal experimental design or portfolio optimization), it would enter as an additional input, recovering the full <span class="math inline">\((x, a, \tau)\)</span> structure.</p>
 <p><em>What stays the same.</em> Everything else transfers directly. The cosine embedding <span class="math inline">\(\varphi(\tau) = (\cos(\pi \tau i))_{i=0}^{M-1}\)</span>, the multiplicative merge <span class="math inline">\(h = h_x \odot h_\tau\)</span>, the uniform <span class="math inline">\(\tau\)</span> sampling during training, and the ability to compute any risk measure by restricting the <span class="math inline">\(\tau\)</span> sampling range are all identical. The pinball loss <span class="math inline">\(\rho_\tau(y - \hat{Q}(\tau \mid x))\)</span> is the GBC counterpart of the Huber quantile loss in RL, and GBC can use either since the Huber variant provides slightly smoother gradients.</p>
@@ -892,9 +1050,9 @@ Z(x, a) = G^*(U, x, a), \quad U \sim \text{Uniform}(0,1),
 <section id="sec-rl-summary" class="level2" data-number="6.7">
 <h2 data-number="6.7" class="anchored" data-anchor-id="sec-rl-summary"><span class="header-section-number">6.7</span> Looking Back, Looking Forward</h2>
 <p>This chapter traced the path from classical RL to Generative Bayesian Computation.</p>
-<p>Classical RL learns a scalar value function, discarding distributional information. Distributional RL keeps the full return distribution, and the Wasserstein contraction theorem (<a href="#eq-wasserstein-contraction" class="quarto-xref">Eq.&nbsp;<span>6.5</span></a>) guarantees convergence of the distributional Bellman operator at rate <span class="math inline">\(\gamma\)</span>. The algorithmic progression from C51 (fixed support, learned probabilities) through QR-DQN (fixed quantile levels, learned locations) to IQN (continuous <span class="math inline">\(\tau\)</span> input, implicit quantile function) progressively freed the representation, with each step eliminating a source of approximation error (<a href="#fig-dist-rl-evolution" class="quarto-xref">Figure&nbsp;<span>6.2</span></a>, <span class="quarto-unresolved-ref">?tbl-dist-rl-evolution</span>).</p>
+<p>Classical RL learns a scalar value function, discarding distributional information. Distributional RL keeps the full return distribution, and the Wasserstein contraction theorem (<a href="#eq-wasserstein-contraction" class="quarto-xref">Eq.&nbsp;<span>6.5</span></a>) guarantees convergence of the distributional Bellman operator at rate <span class="math inline">\(\gamma\)</span>. The algorithmic progression from C51 (fixed support, learned probabilities) through QR-DQN (fixed quantile levels, learned locations) to IQN (continuous <span class="math inline">\(\tau\)</span> input, implicit quantile function) progressively freed the representation, with each step eliminating a source of approximation error (<a href="#fig-dist-rl-evolution" class="quarto-xref">Figure&nbsp;<span>6.2</span></a>, <a href="#tbl-dist-rl-evolution" class="quarto-xref">Table&nbsp;<span>6.1</span></a>).</p>
 <p>The full return distribution enables risk-sensitive control via CVaR and other distortion risk measures (<a href="#sec-rl-cvar" class="quarto-xref"><span>Section 6.5</span></a>), connecting distributional RL to Yaari’s dual theory and the MEU framework of <a href="ch12-meu.html" class="quarto-xref"><span>Chapter 12</span></a>.</p>
-<p>The bridge to GBC (<a href="#sec-rl-bridge" class="quarto-xref"><span>Section 6.6</span></a>, <span class="quarto-unresolved-ref">?tbl-rl-gbc-bridge</span>) is direct: replace the bootstrapped Bellman target with the observed response <span class="math inline">\(y\)</span>, turning an unstable RL training loop into standard supervised learning. The IQN architecture transfers intact. The chapters that follow deploy it for surrogates (<a href="ch07-surrogates.html" class="quarto-xref"><span>Chapter 7</span></a>), Bayesian inference (<a href="ch10-bayesian-inference.html" class="quarto-xref"><span>Chapter 10</span></a>), prediction (<a href="ch11-prediction.html" class="quarto-xref"><span>Chapter 11</span></a>), and causal inference (<a href="ch13-causal.html" class="quarto-xref"><span>Chapter 13</span></a>).</p>
+<p>The bridge to GBC (<a href="#sec-rl-bridge" class="quarto-xref"><span>Section 6.6</span></a>, <a href="#tbl-rl-gbc-bridge" class="quarto-xref">Table&nbsp;<span>6.3</span></a>) is direct: replace the bootstrapped Bellman target with the observed response <span class="math inline">\(y\)</span>, turning an unstable RL training loop into standard supervised learning. The IQN architecture transfers intact. The chapters that follow deploy it for surrogates (<a href="ch07-surrogates.html" class="quarto-xref"><span>Chapter 7</span></a>), Bayesian inference (<a href="ch10-bayesian-inference.html" class="quarto-xref"><span>Chapter 10</span></a>), prediction (<a href="ch11-prediction.html" class="quarto-xref"><span>Chapter 11</span></a>), and causal inference (<a href="ch13-causal.html" class="quarto-xref"><span>Chapter 13</span></a>).</p>
 </section>
 <section id="sec-rl-exercises" class="level2" data-number="6.8">
 <h2 data-number="6.8" class="anchored" data-anchor-id="sec-rl-exercises"><span class="header-section-number">6.8</span> Exercises</h2>
@@ -918,12 +1076,12 @@ Z(x, a) = G^*(U, x, a), \quad U \sim \text{Uniform}(0,1),
 </ol>
 </div>
 <div id="exr-bridge-action" class="theorem exercise">
-<p><span class="theorem-title"><strong>Exercise 6.4</strong></span> <strong>The “action” in GBC.</strong> In the bridge between distributional RL and GBC (<span class="quarto-unresolved-ref">?tbl-rl-gbc-bridge</span>), we noted that the action <span class="math inline">\(a\)</span> is absent in standard GBC regression. Consider two settings where an action-like variable is natural:</p>
+<p><span class="theorem-title"><strong>Exercise 6.4</strong></span> <strong>The “action” in GBC.</strong> In the bridge between distributional RL and GBC (<a href="#tbl-rl-gbc-bridge" class="quarto-xref">Table&nbsp;<span>6.3</span></a>), we noted that the action <span class="math inline">\(a\)</span> is absent in standard GBC regression. Consider two settings where an action-like variable is natural:</p>
 <ol type="a">
 <li><em>Active learning</em>: An experimenter sequentially selects the next input <span class="math inline">\(x_{n+1}\)</span> at which to evaluate an expensive simulator. What plays the role of the state, action, and reward?</li>
 <li><em>Portfolio optimization</em>: An investor allocates wealth across <span class="math inline">\(K\)</span> assets. The quantile network takes as input the current market state <span class="math inline">\(x\)</span> and a portfolio weight vector <span class="math inline">\(\omega\)</span>. What does the return distribution <span class="math inline">\(Z(x, \omega)\)</span> represent?</li>
 </ol>
-<p>For each setting, write down the objective in both RL notation and GBC notation, and explain why the bridge (<span class="quarto-unresolved-ref">?tbl-rl-gbc-bridge</span>) applies.</p>
+<p>For each setting, write down the objective in both RL notation and GBC notation, and explain why the bridge (<a href="#tbl-rl-gbc-bridge" class="quarto-xref">Table&nbsp;<span>6.3</span></a>) applies.</p>
 <ol start="3" type="a">
 <li>Identify a third application domain where the full <span class="math inline">\((x, a, \tau)\)</span> structure is natural, and explain the analogy.</li>
 </ol>
@@ -1472,7 +1630,7 @@ Yaari, Menahem E. 1987. <span>“The Dual Theory of Choice Under Risk.”</span>
   </div>
 </nav><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
 <details class="code-fold">
-<summary>Show code (648 lines)</summary>
+<summary>Show code (666 lines)</summary>
 
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># Distributional Reinforcement Learning {#sec-dist-rl}</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1682,7 +1840,7 @@ Yaari, Menahem E. 1987. <span>“The Dual Theory of Choice Under Risk.”</span>
 <span id="cb5-206"><a href="#cb5-206" aria-hidden="true" tabindex="-1"></a>where $\rho_\tau^H$ is the Huber quantile loss (a smoothed version of the pinball loss) and $\tilde{w}$ denotes a target network. This connects distributional RL directly to quantile regression theory (@sec-quantiles). The transition from C51 to QR-DQN is thus the transition from a *density-based* representation (probabilities on a fixed grid) to a *quantile-based* representation (quantile values at fixed levels), and this shift eliminates the projection step that was the main source of approximation error in C51. QR-DQN also eliminates the need to specify the range $<span class="co">[</span><span class="ot">V_{\min}, V_{\max}</span><span class="co">]</span>$ in advance. Since the quantile locations are learned rather than fixed, the representation automatically adapts to the scale of the returns. If the returns range from $-100$ to $+1000$, the network will learn quantile values in that range; if they range from $0$ to $1$, it will learn values in that range. This adaptivity is important in practice because the range of returns can vary dramatically across different tasks, and choosing a poor range for C51 can severely degrade performance.</span>
 <span id="cb5-207"><a href="#cb5-207" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-208"><a href="#cb5-208" aria-hidden="true" tabindex="-1"></a>**IQN: Implicit Quantile Representation.**</span>
-<span id="cb5-209"><a href="#cb5-209" aria-hidden="true" tabindex="-1"></a>**Implicit Quantile Networks** (IQN) <span class="co">[</span><span class="ot">@dabney2018implicit</span><span class="co">]</span> take the final step: instead of fixing $m$ quantile levels, they treat $\tau$ as a continuous input to the neural network. The network maps $(x, a, \tau)$ to the $\tau$th quantile of the return:</span>
+<span id="cb5-209"><a href="#cb5-209" aria-hidden="true" tabindex="-1"></a>**Implicit Quantile Networks** (IQN), introduced by Will Dabney, Georg Ostrovski, **David Silver**, and Rémi Munos <span class="co">[</span><span class="ot">@dabney2018implicit</span><span class="co">]</span> at DeepMind, take the final step: instead of fixing $m$ quantile levels, they treat $\tau$ as a continuous input to the neural network. The network maps $(x, a, \tau)$ to the $\tau$th quantile of the return:</span>
 <span id="cb5-210"><a href="#cb5-210" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb5-211"><a href="#cb5-211" aria-hidden="true" tabindex="-1"></a>\theta_w(x, a, \tau) \approx F_{\eta(x,a)}^{-1}(\tau).</span>
 <span id="cb5-212"><a href="#cb5-212" aria-hidden="true" tabindex="-1"></a>$$ {#eq-iqn-rl}</span>
@@ -1717,7 +1875,7 @@ Yaari, Menahem E. 1987. <span>“The Dual Theory of Choice Under Risk.”</span>
 <span id="cb5-241"><a href="#cb5-241" aria-hidden="true" tabindex="-1"></a>The table below summarizes the evolution.</span>
 <span id="cb5-242"><a href="#cb5-242" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-243"><a href="#cb5-243" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Algorithm <span class="pp">|</span> Distribution Repr. <span class="pp">|</span> Free Parameters <span class="pp">|</span> Projection <span class="pp">|</span></span>
-<span id="cb5-244"><a href="#cb5-244" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, , --<span class="pp">|</span>, , , -<span class="pp">|</span>, , , --<span class="pp">|</span>, , <span class="pp">|</span></span>
+<span id="cb5-244"><a href="#cb5-244" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:--<span class="pp">|</span>:--<span class="pp">|</span>:--<span class="pp">|</span>:--<span class="pp">|</span></span>
 <span id="cb5-245"><a href="#cb5-245" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> C51       <span class="pp">|</span> Categorical (fixed atoms) <span class="pp">|</span> Probabilities $p_i$ <span class="pp">|</span> Categorical <span class="pp">|</span></span>
 <span id="cb5-246"><a href="#cb5-246" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> QR-DQN    <span class="pp">|</span> Quantile (fixed levels) <span class="pp">|</span> Locations $\theta_i$ <span class="pp">|</span> Quantile (Wasserstein-optimal) <span class="pp">|</span></span>
 <span id="cb5-247"><a href="#cb5-247" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> IQN       <span class="pp">|</span> Quantile (implicit) <span class="pp">|</span> Continuous function $\theta(\cdot)$ <span class="pp">|</span> None (sample $\tau$) <span class="pp">|</span></span>
@@ -1991,137 +2149,155 @@ Yaari, Menahem E. 1987. <span>“The Dual Theory of Choice Under Risk.”</span>
 <span id="cb5-515"><a href="#cb5-515" aria-hidden="true" tabindex="-1"></a>(x, \tau) \longmapsto F_{Y|X=x}^{-1}(\tau) = \text{$\tau$th quantile of $Y$ given covariate $x$}.</span>
 <span id="cb5-516"><a href="#cb5-516" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb5-517"><a href="#cb5-517" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-518"><a href="#cb5-518" aria-hidden="true" tabindex="-1"></a>The following table makes the correspondence precise.</span>
+<span id="cb5-518"><a href="#cb5-518" aria-hidden="true" tabindex="-1"></a>Two levels of correspondence connect the two frameworks. At the conceptual level, the mathematical objects map directly:</span>
 <span id="cb5-519"><a href="#cb5-519" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-520"><a href="#cb5-520" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Component <span class="pp">|</span> Distributional RL <span class="pp">|</span> GBC <span class="pp">|</span></span>
-<span id="cb5-521"><a href="#cb5-521" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, , --<span class="pp">|</span>, , , <span class="pp">|</span>, --<span class="pp">|</span></span>
-<span id="cb5-522"><a href="#cb5-522" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Input <span class="pp">|</span> State $x$, action $a$ <span class="pp">|</span> Covariate $x$ <span class="pp">|</span></span>
-<span id="cb5-523"><a href="#cb5-523" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Random variable <span class="pp">|</span> Return $Z(x,a)$ <span class="pp">|</span> Response $Y \mid X = x$ <span class="pp">|</span></span>
-<span id="cb5-524"><a href="#cb5-524" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Network input <span class="pp">|</span> $(x, a, \tau)$ <span class="pp">|</span> $(x, \tau)$ <span class="pp">|</span></span>
-<span id="cb5-525"><a href="#cb5-525" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Network output <span class="pp">|</span> $F_{Z(x,a)}^{-1}(\tau)$ <span class="pp">|</span> $F_{Y<span class="pp">|</span>X}^{-1}(\tau)$ <span class="pp">|</span></span>
-<span id="cb5-526"><a href="#cb5-526" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Training target <span class="pp">|</span> Bellman target $r + \gamma \hat{Q}(\tau' \mid x', a')$ <span class="pp">|</span> Observed response $y$ <span class="pp">|</span></span>
-<span id="cb5-527"><a href="#cb5-527" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Loss function <span class="pp">|</span> Huber quantile loss $\rho_\tau^H$ <span class="pp">|</span> Pinball loss $\rho_\tau$ <span class="pp">|</span></span>
-<span id="cb5-528"><a href="#cb5-528" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Architecture <span class="pp">|</span> Cosine embedding + multiplicative merge <span class="pp">|</span> Same <span class="pp">|</span></span>
-<span id="cb5-529"><a href="#cb5-529" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Sampling <span class="pp">|</span> $\tau \sim \text{Uniform}(0,1)$ <span class="pp">|</span> Same <span class="pp">|</span></span>
-<span id="cb5-530"><a href="#cb5-530" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-531"><a href="#cb5-531" aria-hidden="true" tabindex="-1"></a>: The bridge between distributional RL and GBC. {#tbl-rl-gbc-bridge}</span>
-<span id="cb5-532"><a href="#cb5-532" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-533"><a href="#cb5-533" aria-hidden="true" tabindex="-1"></a>Let us examine what changes and what stays the same when we cross this bridge.</span>
-<span id="cb5-534"><a href="#cb5-534" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-535"><a href="#cb5-535" aria-hidden="true" tabindex="-1"></a>*What changes.* There are two differences. In RL, the training target is the *bootstrapped* Bellman target $r + \gamma \hat{Q}(\tau' \mid x', a')$, which depends on the network's own predictions and creates a moving target requiring stabilization techniques such as target networks and experience replay. In GBC, the training target is the *observed response* $y$, a fixed, ground-truth value, making training much more stable without any need for target networks or replay buffers. Additionally, GBC has no action space $\mathcal{A}$: the covariate $x$ plays the role of the state, and the network learns the conditional distribution of $Y$ given $X = x$. If a decision variable were present (e.g., in optimal experimental design or portfolio optimization), it would enter as an additional input, recovering the full $(x, a, \tau)$ structure.</span>
-<span id="cb5-536"><a href="#cb5-536" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-537"><a href="#cb5-537" aria-hidden="true" tabindex="-1"></a>*What stays the same.* Everything else transfers directly. The cosine embedding $\varphi(\tau) = (\cos(\pi \tau i))_{i=0}^{M-1}$, the multiplicative merge $h = h_x \odot h_\tau$, the uniform $\tau$ sampling during training, and the ability to compute any risk measure by restricting the $\tau$ sampling range are all identical. The pinball loss $\rho_\tau(y - \hat{Q}(\tau \mid x))$ is the GBC counterpart of the Huber quantile loss in RL, and GBC can use either since the Huber variant provides slightly smoother gradients.</span>
-<span id="cb5-538"><a href="#cb5-538" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-539"><a href="#cb5-539" aria-hidden="true" tabindex="-1"></a>The bridge becomes even more transparent through the noise outsourcing theorem (@sec-noise-outsourcing), which guarantees the existence of a quantile map $G^*(\tau, x) = F_{Y|X=x}^{-1}(\tau)$ for any conditional distribution.</span>
-<span id="cb5-540"><a href="#cb5-540" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-541"><a href="#cb5-541" aria-hidden="true" tabindex="-1"></a>In distributional RL, the noise outsourcing representation applies to the return:</span>
-<span id="cb5-542"><a href="#cb5-542" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb5-543"><a href="#cb5-543" aria-hidden="true" tabindex="-1"></a>Z(x, a) = G^*(U, x, a), \quad U \sim \text{Uniform}(0,1),</span>
-<span id="cb5-544"><a href="#cb5-544" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb5-545"><a href="#cb5-545" aria-hidden="true" tabindex="-1"></a>where $G^*(\tau, x, a) = F_{Z(x,a)}^{-1}(\tau)$ is the quantile function of the return distribution. The return distributions satisfy $Z^\star(x,a) \overset{d}{=} R + \gamma Z^\star(X', A')$ under the optimal policy. In the quantile representation, this means $G^\star(\tau, x, a)$ is the $\tau$-th quantile of the return distribution, but the quantile fixed-point cannot be written as $G^\star(\tau, x, a) = R + \gamma G^\star(\tau', x', a')$ with independent $\tau, \tau'$, because the distributional equality does not distribute across independent uniform arguments. The correct relation is that $G^\star(\tau, x, a)$ equals the $\tau$-th quantile of the *mixture* $R + \gamma Z^\star(X', A')$, where the mixing is over both the stochastic reward and transition; equivalently, $G^\star(\cdot, x, a) = F^{-1}_{R + \gamma Z^\star(X', A')}(\cdot)$, which couples all sources of randomness before inverting, rather than composing independent quantile maps. See @bellemare2023distributional <span class="co">[</span><span class="ot">Prop. 4.14</span><span class="co">]</span> for the formal statement. The IQN learns the quantile function of the fixed-point distribution by quantile regression against Bellman targets.</span>
-<span id="cb5-546"><a href="#cb5-546" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-547"><a href="#cb5-547" aria-hidden="true" tabindex="-1"></a>The distributional Bellman equation, viewed through the lens of noise outsourcing, is a fixed-point equation for the quantile function $G^*$. The IQN in the RL setting learns this fixed point by iterating the Bellman operator in quantile space. The GBC framework simply removes the Bellman recursion and learns $G^*$ directly from supervised data:</span>
-<span id="cb5-548"><a href="#cb5-548" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb5-549"><a href="#cb5-549" aria-hidden="true" tabindex="-1"></a>\hat{G}(\tau, x; \theta) = \arg\min_\theta \, \mathbb{E}_{(X,Y), \tau}\bigl[\rho_\tau(Y - G(\tau, X; \theta))\bigr].</span>
-<span id="cb5-550"><a href="#cb5-550" aria-hidden="true" tabindex="-1"></a>$$ {#eq-gbc-objective}</span>
-<span id="cb5-551"><a href="#cb5-551" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-552"><a href="#cb5-552" aria-hidden="true" tabindex="-1"></a>@eq-gbc-objective is the *entire GBC training objective*: find the quantile function $G(\tau, x; \theta)$ that minimizes the expected pinball loss over data $(X, Y)$ and uniformly sampled quantile levels $\tau$. There is no likelihood to evaluate, no posterior density to normalize, no Markov chain to converge, no variational bound to tighten. The network takes a covariate $x$ and a quantile level $\tau$, and it outputs a number. If that number is the true conditional quantile $F_{Y|X=x}^{-1}(\tau)$ for all $\tau$ and all $x$, then we have learned the entire conditional distribution of $Y$ given $X$. And because the pinball loss is proper for quantile estimation (@sec-quantiles), minimizing @eq-gbc-objective is guaranteed to recover the true conditional quantile function as the sample size and network capacity grow. The cosine embedding, the multiplicative merge, the stochastic $\tau$ sampling all transfer intact, but the RL training loop (exploration, exploitation, bootstrapping, target networks, experience replay) is replaced by standard supervised learning on observed $(x, y)$ pairs.</span>
-<span id="cb5-553"><a href="#cb5-553" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-554"><a href="#cb5-554" aria-hidden="true" tabindex="-1"></a>In distributional RL, training is notoriously unstable: the Bellman target $r + \gamma \theta_{\tilde{w}}(x', a^*, \tau')$ is a moving target that depends on the network's own (past) predictions, leading to oscillations and divergence without careful engineering (target networks updated on a slow timescale, experience replay buffers, gradient clipping, reward clipping). In GBC, the target $y$ is fixed once and for all, it is the observed response, sampled from the data-generating process and stored in the dataset. Training is therefore as stable as any supervised learning problem: we shuffle the data, sample minibatches of $(x_i, y_i)$ pairs and random quantile levels $\tau$, compute the pinball loss, and backpropagate. There are no deadly triads, no exploration-exploitation dilemmas, no off-policy corrections. No target networks, no replay buffers, no exploration strategy. The same architecture that required millions of frames of Atari game-play (about 200 million frames, or roughly 925 hours of game time) to converge in the RL setting can be trained to convergence in seconds on a standard regression dataset. This reduction in training complexity is why GBC is practical for statistical problems that traditional Bayesian computation already handles well, while also scaling to problems (high-dimensional covariates, implicit simulators, expensive computer experiments) where MCMC struggles.</span>
-<span id="cb5-555"><a href="#cb5-555" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-556"><a href="#cb5-556" aria-hidden="true" tabindex="-1"></a>To make this comparison vivid: training an IQN agent on a single Atari game requires roughly 200 million environment interactions, a replay buffer storing millions of transitions, a target network updated every 10,000 steps, and specialized reward clipping, all to learn the return distribution for one game.</span>
-<span id="cb5-557"><a href="#cb5-557" aria-hidden="true" tabindex="-1"></a>Training a GBC model on a regression dataset of 10,000 observations requires a few hundred SGD epochs, a standard Adam optimizer, and no special tricks beyond shuffling the data.</span>
-<span id="cb5-558"><a href="#cb5-558" aria-hidden="true" tabindex="-1"></a>The architecture is the same; the training pipeline is vastly simpler.</span>
-<span id="cb5-559"><a href="#cb5-559" aria-hidden="true" tabindex="-1"></a>This simplification is not a limitation, it is the whole point.</span>
-<span id="cb5-560"><a href="#cb5-560" aria-hidden="true" tabindex="-1"></a>By removing the temporal and sequential structure of RL, GBC inherits the powerful representation (the IQN) while discarding the training complexity that makes RL notoriously difficult in practice.</span>
-<span id="cb5-561"><a href="#cb5-561" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-562"><a href="#cb5-562" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-563"><a href="#cb5-563" aria-hidden="true" tabindex="-1"></a><span class="fu">## Looking Back, Looking Forward {#sec-rl-summary}</span></span>
+<span id="cb5-520"><a href="#cb5-520" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Distributional RL <span class="pp">|</span> GBC / Bayesian inference <span class="pp">|</span></span>
+<span id="cb5-521"><a href="#cb5-521" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:--<span class="pp">|</span>:--<span class="pp">|</span></span>
+<span id="cb5-522"><a href="#cb5-522" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> State $s$ <span class="pp">|</span> Data summary $z = S(y)$ <span class="pp">|</span></span>
+<span id="cb5-523"><a href="#cb5-523" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Return distribution $Z(s)$ <span class="pp">|</span> Posterior $\pi(\theta \mid y)$ <span class="pp">|</span></span>
+<span id="cb5-524"><a href="#cb5-524" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Quantile function of returns <span class="pp">|</span> Posterior quantile function $G(\tau, z)$ <span class="pp">|</span></span>
+<span id="cb5-525"><a href="#cb5-525" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Distributional Bellman operator <span class="pp">|</span> Bayesian updating via Wang distortion <span class="pp">|</span></span>
+<span id="cb5-526"><a href="#cb5-526" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Wasserstein contraction $\to$ fixed point <span class="pp">|</span> Convergence of the learned transport <span class="pp">|</span></span>
+<span id="cb5-527"><a href="#cb5-527" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Risk-sensitive policy: distortion of $\tau$ <span class="pp">|</span> Expected utility: $\int U(G(\tau,z)) \, d\tau$ <span class="pp">|</span></span>
+<span id="cb5-528"><a href="#cb5-528" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Simulated game trajectories <span class="pp">|</span> Simulated $(\theta, y)$ pairs <span class="pp">|</span></span>
+<span id="cb5-529"><a href="#cb5-529" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-530"><a href="#cb5-530" aria-hidden="true" tabindex="-1"></a>: Conceptual correspondence between distributional RL and GBC. Both frameworks learn conditional distributions by training an IQN with the pinball loss; the objects being learned, the source of training data, and the downstream use of the quantile function all translate exactly. {#tbl-rl-gbc-conceptual}</span>
+<span id="cb5-531"><a href="#cb5-531" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-532"><a href="#cb5-532" aria-hidden="true" tabindex="-1"></a>The distributional Bellman operator $\mathcal{T}^\pi Z(s) \overset{d}{=} R + \gamma Z(S')$ corresponds to Bayesian conditioning: both operations transform a prior distribution by incorporating new information. In the RL case, the transformation is affine (discount and shift by reward); in the Bayesian case, it is a reweighting of the prior by the likelihood, which in quantile representation becomes the Wang distortion operator (@sec-meu-wang). This is not an analogy: both are compositions of monotone maps on quantile functions, and the Wasserstein contraction that guarantees RL convergence has a direct counterpart in the convergence of the learned transport.</span>
+<span id="cb5-533"><a href="#cb5-533" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-534"><a href="#cb5-534" aria-hidden="true" tabindex="-1"></a>The bottom row of @tbl-rl-gbc-conceptual connects this chapter directly to @sec-meu. In distributional RL, a risk-sensitive policy applies a distortion function $g$ to $\tau$, sampling from $g(\text{Uniform}(0,1))$ instead of the uniform: CVaR$_\alpha$ uses $g(\tau) = \min(\tau/\alpha, 1)$, and a general Yaari/Wang distortion uses any concave $g$. In GBC, expected utility under utility $U$ is $\mathbb{E}<span class="co">[</span><span class="ot">U(\theta) \mid y</span><span class="co">]</span> = \int U(G(\tau, z)) \, d\tau$, a one-dimensional integral over the learned quantile function. Both are functionals of the same IQN output, computed by a single forward pass with no density evaluation and no additional training. The same network that was trained to play Atari games with risk-sensitive CVaR policies directly powers Bayesian expected utility computation in @sec-meu.</span>
+<span id="cb5-535"><a href="#cb5-535" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-536"><a href="#cb5-536" aria-hidden="true" tabindex="-1"></a>The following table records the technical component-by-component mapping.</span>
+<span id="cb5-537"><a href="#cb5-537" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-538"><a href="#cb5-538" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Component <span class="pp">|</span> Distributional RL <span class="pp">|</span> GBC <span class="pp">|</span></span>
+<span id="cb5-539"><a href="#cb5-539" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:--<span class="pp">|</span>:--<span class="pp">|</span>:--<span class="pp">|</span></span>
+<span id="cb5-540"><a href="#cb5-540" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Input <span class="pp">|</span> State $x$, action $a$ <span class="pp">|</span> Covariate $x$ <span class="pp">|</span></span>
+<span id="cb5-541"><a href="#cb5-541" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Random variable <span class="pp">|</span> Return $Z(x,a)$ <span class="pp">|</span> Response $Y \mid X = x$ <span class="pp">|</span></span>
+<span id="cb5-542"><a href="#cb5-542" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Network input <span class="pp">|</span> $(x, a, \tau)$ <span class="pp">|</span> $(x, \tau)$ <span class="pp">|</span></span>
+<span id="cb5-543"><a href="#cb5-543" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Network output <span class="pp">|</span> $F_{Z(x,a)}^{-1}(\tau)$ <span class="pp">|</span> $F_{Y<span class="pp">|</span>X}^{-1}(\tau)$ <span class="pp">|</span></span>
+<span id="cb5-544"><a href="#cb5-544" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Training target <span class="pp">|</span> Bellman target $r + \gamma \hat{Q}(\tau' \mid x', a')$ <span class="pp">|</span> Observed response $y$ <span class="pp">|</span></span>
+<span id="cb5-545"><a href="#cb5-545" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Loss function <span class="pp">|</span> Huber quantile loss $\rho_\tau^H$ <span class="pp">|</span> Pinball loss $\rho_\tau$ <span class="pp">|</span></span>
+<span id="cb5-546"><a href="#cb5-546" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Architecture <span class="pp">|</span> Cosine embedding + multiplicative merge <span class="pp">|</span> Same <span class="pp">|</span></span>
+<span id="cb5-547"><a href="#cb5-547" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Sampling <span class="pp">|</span> $\tau \sim \text{Uniform}(0,1)$ <span class="pp">|</span> Same <span class="pp">|</span></span>
+<span id="cb5-548"><a href="#cb5-548" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-549"><a href="#cb5-549" aria-hidden="true" tabindex="-1"></a>: The bridge between distributional RL and GBC. {#tbl-rl-gbc-bridge}</span>
+<span id="cb5-550"><a href="#cb5-550" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-551"><a href="#cb5-551" aria-hidden="true" tabindex="-1"></a>Let us examine what changes and what stays the same when we cross this bridge.</span>
+<span id="cb5-552"><a href="#cb5-552" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-553"><a href="#cb5-553" aria-hidden="true" tabindex="-1"></a>*What changes.* There are two differences. In RL, the training target is the *bootstrapped* Bellman target $r + \gamma \hat{Q}(\tau' \mid x', a')$, which depends on the network's own predictions and creates a moving target requiring stabilization techniques such as target networks and experience replay. In GBC, the training target is the *observed response* $y$, a fixed, ground-truth value, making training much more stable without any need for target networks or replay buffers. Additionally, GBC has no action space $\mathcal{A}$: the covariate $x$ plays the role of the state, and the network learns the conditional distribution of $Y$ given $X = x$. If a decision variable were present (e.g., in optimal experimental design or portfolio optimization), it would enter as an additional input, recovering the full $(x, a, \tau)$ structure.</span>
+<span id="cb5-554"><a href="#cb5-554" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-555"><a href="#cb5-555" aria-hidden="true" tabindex="-1"></a>*What stays the same.* Everything else transfers directly. The cosine embedding $\varphi(\tau) = (\cos(\pi \tau i))_{i=0}^{M-1}$, the multiplicative merge $h = h_x \odot h_\tau$, the uniform $\tau$ sampling during training, and the ability to compute any risk measure by restricting the $\tau$ sampling range are all identical. The pinball loss $\rho_\tau(y - \hat{Q}(\tau \mid x))$ is the GBC counterpart of the Huber quantile loss in RL, and GBC can use either since the Huber variant provides slightly smoother gradients.</span>
+<span id="cb5-556"><a href="#cb5-556" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-557"><a href="#cb5-557" aria-hidden="true" tabindex="-1"></a>The bridge becomes even more transparent through the noise outsourcing theorem (@sec-noise-outsourcing), which guarantees the existence of a quantile map $G^*(\tau, x) = F_{Y|X=x}^{-1}(\tau)$ for any conditional distribution.</span>
+<span id="cb5-558"><a href="#cb5-558" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-559"><a href="#cb5-559" aria-hidden="true" tabindex="-1"></a>In distributional RL, the noise outsourcing representation applies to the return:</span>
+<span id="cb5-560"><a href="#cb5-560" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb5-561"><a href="#cb5-561" aria-hidden="true" tabindex="-1"></a>Z(x, a) = G^*(U, x, a), \quad U \sim \text{Uniform}(0,1),</span>
+<span id="cb5-562"><a href="#cb5-562" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb5-563"><a href="#cb5-563" aria-hidden="true" tabindex="-1"></a>where $G^*(\tau, x, a) = F_{Z(x,a)}^{-1}(\tau)$ is the quantile function of the return distribution. The return distributions satisfy $Z^\star(x,a) \overset{d}{=} R + \gamma Z^\star(X', A')$ under the optimal policy. In the quantile representation, this means $G^\star(\tau, x, a)$ is the $\tau$-th quantile of the return distribution, but the quantile fixed-point cannot be written as $G^\star(\tau, x, a) = R + \gamma G^\star(\tau', x', a')$ with independent $\tau, \tau'$, because the distributional equality does not distribute across independent uniform arguments. The correct relation is that $G^\star(\tau, x, a)$ equals the $\tau$-th quantile of the *mixture* $R + \gamma Z^\star(X', A')$, where the mixing is over both the stochastic reward and transition; equivalently, $G^\star(\cdot, x, a) = F^{-1}_{R + \gamma Z^\star(X', A')}(\cdot)$, which couples all sources of randomness before inverting, rather than composing independent quantile maps. See @bellemare2023distributional <span class="co">[</span><span class="ot">Prop. 4.14</span><span class="co">]</span> for the formal statement. The IQN learns the quantile function of the fixed-point distribution by quantile regression against Bellman targets.</span>
 <span id="cb5-564"><a href="#cb5-564" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-565"><a href="#cb5-565" aria-hidden="true" tabindex="-1"></a>This chapter traced the path from classical RL to Generative Bayesian Computation.</span>
-<span id="cb5-566"><a href="#cb5-566" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-567"><a href="#cb5-567" aria-hidden="true" tabindex="-1"></a>Classical RL learns a scalar value function, discarding distributional information. Distributional RL keeps the full return distribution, and the Wasserstein contraction theorem (@eq-wasserstein-contraction) guarantees convergence of the distributional Bellman operator at rate $\gamma$. The algorithmic progression from C51 (fixed support, learned probabilities) through QR-DQN (fixed quantile levels, learned locations) to IQN (continuous $\tau$ input, implicit quantile function) progressively freed the representation, with each step eliminating a source of approximation error (@fig-dist-rl-evolution, @tbl-dist-rl-evolution).</span>
-<span id="cb5-568"><a href="#cb5-568" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-569"><a href="#cb5-569" aria-hidden="true" tabindex="-1"></a>The full return distribution enables risk-sensitive control via CVaR and other distortion risk measures (@sec-rl-cvar), connecting distributional RL to Yaari's dual theory and the MEU framework of @sec-meu.</span>
-<span id="cb5-570"><a href="#cb5-570" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-571"><a href="#cb5-571" aria-hidden="true" tabindex="-1"></a>The bridge to GBC (@sec-rl-bridge, @tbl-rl-gbc-bridge) is direct: replace the bootstrapped Bellman target with the observed response $y$, turning an unstable RL training loop into standard supervised learning. The IQN architecture transfers intact. The chapters that follow deploy it for surrogates (@sec-surrogates), Bayesian inference (@sec-bayesian-inference), prediction (@sec-prediction), and causal inference (@sec-causal).</span>
-<span id="cb5-572"><a href="#cb5-572" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-565"><a href="#cb5-565" aria-hidden="true" tabindex="-1"></a>The distributional Bellman equation, viewed through the lens of noise outsourcing, is a fixed-point equation for the quantile function $G^*$. The IQN in the RL setting learns this fixed point by iterating the Bellman operator in quantile space. The GBC framework simply removes the Bellman recursion and learns $G^*$ directly from supervised data:</span>
+<span id="cb5-566"><a href="#cb5-566" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb5-567"><a href="#cb5-567" aria-hidden="true" tabindex="-1"></a>\hat{G}(\tau, x; \theta) = \arg\min_\theta \, \mathbb{E}_{(X,Y), \tau}\bigl[\rho_\tau(Y - G(\tau, X; \theta))\bigr].</span>
+<span id="cb5-568"><a href="#cb5-568" aria-hidden="true" tabindex="-1"></a>$$ {#eq-gbc-objective}</span>
+<span id="cb5-569"><a href="#cb5-569" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-570"><a href="#cb5-570" aria-hidden="true" tabindex="-1"></a>@eq-gbc-objective is the *entire GBC training objective*: find the quantile function $G(\tau, x; \theta)$ that minimizes the expected pinball loss over data $(X, Y)$ and uniformly sampled quantile levels $\tau$. There is no likelihood to evaluate, no posterior density to normalize, no Markov chain to converge, no variational bound to tighten. The network takes a covariate $x$ and a quantile level $\tau$, and it outputs a number. If that number is the true conditional quantile $F_{Y|X=x}^{-1}(\tau)$ for all $\tau$ and all $x$, then we have learned the entire conditional distribution of $Y$ given $X$. And because the pinball loss is proper for quantile estimation (@sec-quantiles), minimizing @eq-gbc-objective is guaranteed to recover the true conditional quantile function as the sample size and network capacity grow. The cosine embedding, the multiplicative merge, the stochastic $\tau$ sampling all transfer intact, but the RL training loop (exploration, exploitation, bootstrapping, target networks, experience replay) is replaced by standard supervised learning on observed $(x, y)$ pairs.</span>
+<span id="cb5-571"><a href="#cb5-571" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-572"><a href="#cb5-572" aria-hidden="true" tabindex="-1"></a>In distributional RL, training is notoriously unstable: the Bellman target $r + \gamma \theta_{\tilde{w}}(x', a^*, \tau')$ is a moving target that depends on the network's own (past) predictions, leading to oscillations and divergence without careful engineering (target networks updated on a slow timescale, experience replay buffers, gradient clipping, reward clipping). In GBC, the target $y$ is fixed once and for all, it is the observed response, sampled from the data-generating process and stored in the dataset. Training is therefore as stable as any supervised learning problem: we shuffle the data, sample minibatches of $(x_i, y_i)$ pairs and random quantile levels $\tau$, compute the pinball loss, and backpropagate. There are no deadly triads, no exploration-exploitation dilemmas, no off-policy corrections. No target networks, no replay buffers, no exploration strategy. The same architecture that required millions of frames of Atari game-play (about 200 million frames, or roughly 925 hours of game time) to converge in the RL setting can be trained to convergence in seconds on a standard regression dataset. This reduction in training complexity is why GBC is practical for statistical problems that traditional Bayesian computation already handles well, while also scaling to problems (high-dimensional covariates, implicit simulators, expensive computer experiments) where MCMC struggles.</span>
 <span id="cb5-573"><a href="#cb5-573" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-574"><a href="#cb5-574" aria-hidden="true" tabindex="-1"></a><span class="fu">## Exercises {#sec-rl-exercises}</span></span>
-<span id="cb5-575"><a href="#cb5-575" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-576"><a href="#cb5-576" aria-hidden="true" tabindex="-1"></a>::: {#exr-wasserstein-contraction}</span>
-<span id="cb5-577"><a href="#cb5-577" aria-hidden="true" tabindex="-1"></a>**Wasserstein contraction proof.**</span>
-<span id="cb5-578"><a href="#cb5-578" aria-hidden="true" tabindex="-1"></a>Prove that the distributional Bellman operator $\mathcal{T}^\pi$ is a $\gamma$-contraction in the 1-Wasserstein metric for a single-state MDP. Specifically, let $Z_1$ and $Z_2$ be two random variables, and define $\tilde{Z}_i = R + \gamma Z_i$ where $R$ is independent of both.</span>
+<span id="cb5-574"><a href="#cb5-574" aria-hidden="true" tabindex="-1"></a>To make this comparison vivid: training an IQN agent on a single Atari game requires roughly 200 million environment interactions, a replay buffer storing millions of transitions, a target network updated every 10,000 steps, and specialized reward clipping, all to learn the return distribution for one game.</span>
+<span id="cb5-575"><a href="#cb5-575" aria-hidden="true" tabindex="-1"></a>Training a GBC model on a regression dataset of 10,000 observations requires a few hundred SGD epochs, a standard Adam optimizer, and no special tricks beyond shuffling the data.</span>
+<span id="cb5-576"><a href="#cb5-576" aria-hidden="true" tabindex="-1"></a>The architecture is the same; the training pipeline is vastly simpler.</span>
+<span id="cb5-577"><a href="#cb5-577" aria-hidden="true" tabindex="-1"></a>This simplification is not a limitation, it is the whole point.</span>
+<span id="cb5-578"><a href="#cb5-578" aria-hidden="true" tabindex="-1"></a>By removing the temporal and sequential structure of RL, GBC inherits the powerful representation (the IQN) while discarding the training complexity that makes RL notoriously difficult in practice.</span>
 <span id="cb5-579"><a href="#cb5-579" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-580"><a href="#cb5-580" aria-hidden="true" tabindex="-1"></a>(a) Using the quantile function representation $W_1(F, G) = \int_0^1 |F^{-1}(\tau) - G^{-1}(\tau)| \, d\tau$, show that $W_1(\tilde{Z}_1, \tilde{Z}_2) = \gamma \, W_1(Z_1, Z_2)$. *Hint*: Use the fact that affine transformations of quantile functions are quantile functions of the affine transformation.</span>
-<span id="cb5-581"><a href="#cb5-581" aria-hidden="true" tabindex="-1"></a>(b) Now consider a two-state MDP with transition matrix $P$ and discount factor $\gamma$. Explain in words why the expectation over transitions does not break the contraction.</span>
-<span id="cb5-582"><a href="#cb5-582" aria-hidden="true" tabindex="-1"></a>(c) Explain why the same proof fails if we replace $W_1$ with the total variation distance $d_{TV}(F, G) = \sup_A |F(A) - G(A)|$.</span>
-<span id="cb5-583"><a href="#cb5-583" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb5-580"><a href="#cb5-580" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-581"><a href="#cb5-581" aria-hidden="true" tabindex="-1"></a><span class="fu">## Looking Back, Looking Forward {#sec-rl-summary}</span></span>
+<span id="cb5-582"><a href="#cb5-582" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-583"><a href="#cb5-583" aria-hidden="true" tabindex="-1"></a>This chapter traced the path from classical RL to Generative Bayesian Computation.</span>
 <span id="cb5-584"><a href="#cb5-584" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-585"><a href="#cb5-585" aria-hidden="true" tabindex="-1"></a>::: {#exr-cvar-quantile}</span>
-<span id="cb5-586"><a href="#cb5-586" aria-hidden="true" tabindex="-1"></a>**CVaR from the quantile function.**</span>
-<span id="cb5-587"><a href="#cb5-587" aria-hidden="true" tabindex="-1"></a>Show that $\text{CVaR}_\alpha(Z) = \frac{1}{\alpha}\int_0^\alpha F_Z^{-1}(\tau) \, d\tau$ is equivalent to $\text{CVaR}_\alpha(Z) = \mathbb{E}[Z \mid Z \leq F_Z^{-1}(\alpha)]$ when $F_Z$ is continuous. Verify numerically for $Z \sim N(0, 1)$ and $\alpha = 0.05$ that the formula gives $\text{CVaR}_{0.05} \approx -2.063$.</span>
-<span id="cb5-588"><a href="#cb5-588" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-589"><a href="#cb5-589" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-590"><a href="#cb5-590" aria-hidden="true" tabindex="-1"></a>::: {#exr-toy-mdp}</span>
-<span id="cb5-591"><a href="#cb5-591" aria-hidden="true" tabindex="-1"></a>**Distributional RL on a chain MDP.**</span>
-<span id="cb5-592"><a href="#cb5-592" aria-hidden="true" tabindex="-1"></a>Consider a chain MDP with 5 states $<span class="sc">\{</span>1, 2, 3, 4, 5<span class="sc">\}</span>$, a single action, deterministic transitions $i \to i+1$ (with state 5 being terminal), and rewards $R(i) \sim N(i, 1)$. Set $\gamma = 0.9$.</span>
+<span id="cb5-585"><a href="#cb5-585" aria-hidden="true" tabindex="-1"></a>Classical RL learns a scalar value function, discarding distributional information. Distributional RL keeps the full return distribution, and the Wasserstein contraction theorem (@eq-wasserstein-contraction) guarantees convergence of the distributional Bellman operator at rate $\gamma$. The algorithmic progression from C51 (fixed support, learned probabilities) through QR-DQN (fixed quantile levels, learned locations) to IQN (continuous $\tau$ input, implicit quantile function) progressively freed the representation, with each step eliminating a source of approximation error (@fig-dist-rl-evolution, @tbl-dist-rl-evolution).</span>
+<span id="cb5-586"><a href="#cb5-586" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-587"><a href="#cb5-587" aria-hidden="true" tabindex="-1"></a>The full return distribution enables risk-sensitive control via CVaR and other distortion risk measures (@sec-rl-cvar), connecting distributional RL to Yaari's dual theory and the MEU framework of @sec-meu.</span>
+<span id="cb5-588"><a href="#cb5-588" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-589"><a href="#cb5-589" aria-hidden="true" tabindex="-1"></a>The bridge to GBC (@sec-rl-bridge, @tbl-rl-gbc-bridge) is direct: replace the bootstrapped Bellman target with the observed response $y$, turning an unstable RL training loop into standard supervised learning. The IQN architecture transfers intact. The chapters that follow deploy it for surrogates (@sec-surrogates), Bayesian inference (@sec-bayesian-inference), prediction (@sec-prediction), and causal inference (@sec-causal).</span>
+<span id="cb5-590"><a href="#cb5-590" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-591"><a href="#cb5-591" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-592"><a href="#cb5-592" aria-hidden="true" tabindex="-1"></a><span class="fu">## Exercises {#sec-rl-exercises}</span></span>
 <span id="cb5-593"><a href="#cb5-593" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-594"><a href="#cb5-594" aria-hidden="true" tabindex="-1"></a>(a) Compute the true return distribution $Z(1)$ (the distribution of the total discounted return starting from state 1).</span>
-<span id="cb5-595"><a href="#cb5-595" aria-hidden="true" tabindex="-1"></a>(b) Implement quantile temporal-difference learning (Algorithm 6.1 from @bellemare2023distributional) with $m = 10$ quantiles and run it for 1000 episodes.</span>
-<span id="cb5-596"><a href="#cb5-596" aria-hidden="true" tabindex="-1"></a>(c) Plot the learned quantile function alongside the true quantile function. How does the number of quantiles $m$ affect accuracy?</span>
-<span id="cb5-597"><a href="#cb5-597" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-598"><a href="#cb5-598" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-599"><a href="#cb5-599" aria-hidden="true" tabindex="-1"></a>::: {#exr-bridge-action}</span>
-<span id="cb5-600"><a href="#cb5-600" aria-hidden="true" tabindex="-1"></a>**The "action" in GBC.**</span>
-<span id="cb5-601"><a href="#cb5-601" aria-hidden="true" tabindex="-1"></a>In the bridge between distributional RL and GBC (@tbl-rl-gbc-bridge), we noted that the action $a$ is absent in standard GBC regression. Consider two settings where an action-like variable is natural:</span>
+<span id="cb5-594"><a href="#cb5-594" aria-hidden="true" tabindex="-1"></a>::: {#exr-wasserstein-contraction}</span>
+<span id="cb5-595"><a href="#cb5-595" aria-hidden="true" tabindex="-1"></a>**Wasserstein contraction proof.**</span>
+<span id="cb5-596"><a href="#cb5-596" aria-hidden="true" tabindex="-1"></a>Prove that the distributional Bellman operator $\mathcal{T}^\pi$ is a $\gamma$-contraction in the 1-Wasserstein metric for a single-state MDP. Specifically, let $Z_1$ and $Z_2$ be two random variables, and define $\tilde{Z}_i = R + \gamma Z_i$ where $R$ is independent of both.</span>
+<span id="cb5-597"><a href="#cb5-597" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-598"><a href="#cb5-598" aria-hidden="true" tabindex="-1"></a>(a) Using the quantile function representation $W_1(F, G) = \int_0^1 |F^{-1}(\tau) - G^{-1}(\tau)| \, d\tau$, show that $W_1(\tilde{Z}_1, \tilde{Z}_2) = \gamma \, W_1(Z_1, Z_2)$. *Hint*: Use the fact that affine transformations of quantile functions are quantile functions of the affine transformation.</span>
+<span id="cb5-599"><a href="#cb5-599" aria-hidden="true" tabindex="-1"></a>(b) Now consider a two-state MDP with transition matrix $P$ and discount factor $\gamma$. Explain in words why the expectation over transitions does not break the contraction.</span>
+<span id="cb5-600"><a href="#cb5-600" aria-hidden="true" tabindex="-1"></a>(c) Explain why the same proof fails if we replace $W_1$ with the total variation distance $d_{TV}(F, G) = \sup_A |F(A) - G(A)|$.</span>
+<span id="cb5-601"><a href="#cb5-601" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb5-602"><a href="#cb5-602" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-603"><a href="#cb5-603" aria-hidden="true" tabindex="-1"></a>(a) *Active learning*: An experimenter sequentially selects the next input $x_{n+1}$ at which to evaluate an expensive simulator. What plays the role of the state, action, and reward?</span>
-<span id="cb5-604"><a href="#cb5-604" aria-hidden="true" tabindex="-1"></a>(b) *Portfolio optimization*: An investor allocates wealth across $K$ assets. The quantile network takes as input the current market state $x$ and a portfolio weight vector $\omega$. What does the return distribution $Z(x, \omega)$ represent?</span>
-<span id="cb5-605"><a href="#cb5-605" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-606"><a href="#cb5-606" aria-hidden="true" tabindex="-1"></a>For each setting, write down the objective in both RL notation and GBC notation, and explain why the bridge (@tbl-rl-gbc-bridge) applies.</span>
+<span id="cb5-603"><a href="#cb5-603" aria-hidden="true" tabindex="-1"></a>::: {#exr-cvar-quantile}</span>
+<span id="cb5-604"><a href="#cb5-604" aria-hidden="true" tabindex="-1"></a>**CVaR from the quantile function.**</span>
+<span id="cb5-605"><a href="#cb5-605" aria-hidden="true" tabindex="-1"></a>Show that $\text{CVaR}_\alpha(Z) = \frac{1}{\alpha}\int_0^\alpha F_Z^{-1}(\tau) \, d\tau$ is equivalent to $\text{CVaR}_\alpha(Z) = \mathbb{E}[Z \mid Z \leq F_Z^{-1}(\alpha)]$ when $F_Z$ is continuous. Verify numerically for $Z \sim N(0, 1)$ and $\alpha = 0.05$ that the formula gives $\text{CVaR}_{0.05} \approx -2.063$.</span>
+<span id="cb5-606"><a href="#cb5-606" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb5-607"><a href="#cb5-607" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-608"><a href="#cb5-608" aria-hidden="true" tabindex="-1"></a>(c) Identify a third application domain where the full $(x, a, \tau)$ structure is natural, and explain the analogy.</span>
-<span id="cb5-609"><a href="#cb5-609" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-610"><a href="#cb5-610" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-611"><a href="#cb5-611" aria-hidden="true" tabindex="-1"></a>::: {#exr-c51-diffusion}</span>
-<span id="cb5-612"><a href="#cb5-612" aria-hidden="true" tabindex="-1"></a>**Diffusion error in C51.**</span>
-<span id="cb5-613"><a href="#cb5-613" aria-hidden="true" tabindex="-1"></a>Consider a distribution supported on two points: $P(Z = 0) = P(Z = 1) = 0.5$. Suppose C51 uses atoms at $<span class="sc">\{</span>0, 0.5, 1.0<span class="sc">\}</span>$.</span>
-<span id="cb5-614"><a href="#cb5-614" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-615"><a href="#cb5-615" aria-hidden="true" tabindex="-1"></a>(a) Apply the distributional Bellman operator with $R = 0$ and $\gamma = 0.9$ to obtain the target distribution on $<span class="sc">\{</span>0, 0.45, 0.9<span class="sc">\}</span>$.</span>
-<span id="cb5-616"><a href="#cb5-616" aria-hidden="true" tabindex="-1"></a>(b) Project this target back onto the atoms $<span class="sc">\{</span>0, 0.5, 1.0<span class="sc">\}</span>$ using the categorical projection (distribute mass to nearest neighbors proportionally to distance).</span>
-<span id="cb5-617"><a href="#cb5-617" aria-hidden="true" tabindex="-1"></a>(c) Repeat the apply-then-project cycle 5 times and plot the resulting distribution at each step. How does the distribution change? This illustrates the diffusion error that motivated the move to QR-DQN.</span>
-<span id="cb5-618"><a href="#cb5-618" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-619"><a href="#cb5-619" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-620"><a href="#cb5-620" aria-hidden="true" tabindex="-1"></a>::: {#exr-wasserstein-quantile}</span>
-<span id="cb5-621"><a href="#cb5-621" aria-hidden="true" tabindex="-1"></a>**Wasserstein distance computation.**</span>
-<span id="cb5-622"><a href="#cb5-622" aria-hidden="true" tabindex="-1"></a>Compute the 1-Wasserstein distance between the following pairs of distributions analytically, then verify numerically:</span>
+<span id="cb5-608"><a href="#cb5-608" aria-hidden="true" tabindex="-1"></a>::: {#exr-toy-mdp}</span>
+<span id="cb5-609"><a href="#cb5-609" aria-hidden="true" tabindex="-1"></a>**Distributional RL on a chain MDP.**</span>
+<span id="cb5-610"><a href="#cb5-610" aria-hidden="true" tabindex="-1"></a>Consider a chain MDP with 5 states $<span class="sc">\{</span>1, 2, 3, 4, 5<span class="sc">\}</span>$, a single action, deterministic transitions $i \to i+1$ (with state 5 being terminal), and rewards $R(i) \sim N(i, 1)$. Set $\gamma = 0.9$.</span>
+<span id="cb5-611"><a href="#cb5-611" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-612"><a href="#cb5-612" aria-hidden="true" tabindex="-1"></a>(a) Compute the true return distribution $Z(1)$ (the distribution of the total discounted return starting from state 1).</span>
+<span id="cb5-613"><a href="#cb5-613" aria-hidden="true" tabindex="-1"></a>(b) Implement quantile temporal-difference learning (Algorithm 6.1 from @bellemare2023distributional) with $m = 10$ quantiles and run it for 1000 episodes.</span>
+<span id="cb5-614"><a href="#cb5-614" aria-hidden="true" tabindex="-1"></a>(c) Plot the learned quantile function alongside the true quantile function. How does the number of quantiles $m$ affect accuracy?</span>
+<span id="cb5-615"><a href="#cb5-615" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb5-616"><a href="#cb5-616" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-617"><a href="#cb5-617" aria-hidden="true" tabindex="-1"></a>::: {#exr-bridge-action}</span>
+<span id="cb5-618"><a href="#cb5-618" aria-hidden="true" tabindex="-1"></a>**The "action" in GBC.**</span>
+<span id="cb5-619"><a href="#cb5-619" aria-hidden="true" tabindex="-1"></a>In the bridge between distributional RL and GBC (@tbl-rl-gbc-bridge), we noted that the action $a$ is absent in standard GBC regression. Consider two settings where an action-like variable is natural:</span>
+<span id="cb5-620"><a href="#cb5-620" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-621"><a href="#cb5-621" aria-hidden="true" tabindex="-1"></a>(a) *Active learning*: An experimenter sequentially selects the next input $x_{n+1}$ at which to evaluate an expensive simulator. What plays the role of the state, action, and reward?</span>
+<span id="cb5-622"><a href="#cb5-622" aria-hidden="true" tabindex="-1"></a>(b) *Portfolio optimization*: An investor allocates wealth across $K$ assets. The quantile network takes as input the current market state $x$ and a portfolio weight vector $\omega$. What does the return distribution $Z(x, \omega)$ represent?</span>
 <span id="cb5-623"><a href="#cb5-623" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-624"><a href="#cb5-624" aria-hidden="true" tabindex="-1"></a>(a) $F = N(0, 1)$ and $G = N(\mu, 1)$ for $\mu = 0.5, 1, 2$. Show that $W_1(F, G) = |\mu|$.</span>
-<span id="cb5-625"><a href="#cb5-625" aria-hidden="true" tabindex="-1"></a>(b) $F = N(0, 1)$ and $G = N(0, \sigma^2)$ for $\sigma = 0.5, 1, 2$. Is there a closed form?</span>
-<span id="cb5-626"><a href="#cb5-626" aria-hidden="true" tabindex="-1"></a>(c) $F = \text{Uniform}(0, 1)$ and $G = \text{Beta}(2, 2)$. Compute $W_1$ using the quantile function representation.</span>
+<span id="cb5-624"><a href="#cb5-624" aria-hidden="true" tabindex="-1"></a>For each setting, write down the objective in both RL notation and GBC notation, and explain why the bridge (@tbl-rl-gbc-bridge) applies.</span>
+<span id="cb5-625"><a href="#cb5-625" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-626"><a href="#cb5-626" aria-hidden="true" tabindex="-1"></a>(c) Identify a third application domain where the full $(x, a, \tau)$ structure is natural, and explain the analogy.</span>
 <span id="cb5-627"><a href="#cb5-627" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb5-628"><a href="#cb5-628" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-629"><a href="#cb5-629" aria-hidden="true" tabindex="-1"></a>::: {#exr-cvar-bimodal}</span>
-<span id="cb5-630"><a href="#cb5-630" aria-hidden="true" tabindex="-1"></a>**CVaR for a bimodal distribution.**</span>
-<span id="cb5-631"><a href="#cb5-631" aria-hidden="true" tabindex="-1"></a>Let $Z$ be a mixture: with probability $p = 0.7$, $Z \sim N(5, 1)$; with probability $1 - p = 0.3$, $Z \sim N(-3, 0.5)$. This models a strategy that usually succeeds but occasionally fails badly.</span>
+<span id="cb5-629"><a href="#cb5-629" aria-hidden="true" tabindex="-1"></a>::: {#exr-c51-diffusion}</span>
+<span id="cb5-630"><a href="#cb5-630" aria-hidden="true" tabindex="-1"></a>**Diffusion error in C51.**</span>
+<span id="cb5-631"><a href="#cb5-631" aria-hidden="true" tabindex="-1"></a>Consider a distribution supported on two points: $P(Z = 0) = P(Z = 1) = 0.5$. Suppose C51 uses atoms at $<span class="sc">\{</span>0, 0.5, 1.0<span class="sc">\}</span>$.</span>
 <span id="cb5-632"><a href="#cb5-632" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-633"><a href="#cb5-633" aria-hidden="true" tabindex="-1"></a>(a) Compute $\mathbb{E}<span class="co">[</span><span class="ot">Z</span><span class="co">]</span>$, $\text{Var}(Z)$, and sketch the density.</span>
-<span id="cb5-634"><a href="#cb5-634" aria-hidden="true" tabindex="-1"></a>(b) Compute $\text{CVaR}_\alpha$ for $\alpha \in <span class="sc">\{</span>0.05, 0.1, 0.3, 0.5, 1.0<span class="sc">\}</span>$ using Monte Carlo simulation.</span>
-<span id="cb5-635"><a href="#cb5-635" aria-hidden="true" tabindex="-1"></a>(c) An alternative strategy has $Z' \sim N(2.6, 0.5)$ (same mean as the mixture but lower variance). Compare the CVaR profiles of $Z$ and $Z'$. At what risk level $\alpha$ does the safe strategy become preferable?</span>
-<span id="cb5-636"><a href="#cb5-636" aria-hidden="true" tabindex="-1"></a>(d) Explain how IQN would enable an agent to switch between the two strategies depending on the desired risk level $\alpha$, without retraining.</span>
-<span id="cb5-637"><a href="#cb5-637" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb5-638"><a href="#cb5-638" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-639"><a href="#cb5-639" aria-hidden="true" tabindex="-1"></a>::: {#exr-rl-gbc-code}</span>
-<span id="cb5-640"><a href="#cb5-640" aria-hidden="true" tabindex="-1"></a>**From RL loop to supervised learning.**</span>
-<span id="cb5-641"><a href="#cb5-641" aria-hidden="true" tabindex="-1"></a>Starting from the quantile TD code in @sec-rl-tabular-qtd, modify it to perform *supervised* quantile regression instead. This exercise makes the bridge from distributional RL to GBC concrete in code.</span>
-<span id="cb5-642"><a href="#cb5-642" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-643"><a href="#cb5-643" aria-hidden="true" tabindex="-1"></a>(a) Generate 1000 training pairs $(x_i, y_i)$ where $x_i \sim \text{Uniform}(-3, 3)$ and $y_i = \sin(x_i) + 0.3\varepsilon_i$ with $\varepsilon_i \sim N(0, 1)$.</span>
-<span id="cb5-644"><a href="#cb5-644" aria-hidden="true" tabindex="-1"></a>(b) Train a simple neural network (two hidden layers, 64 units each, with cosine embedding for $\tau$) using the pinball loss to learn the conditional quantile function $F_{Y|X=x}^{-1}(\tau)$ following the GBC objective (@eq-gbc-objective).</span>
-<span id="cb5-645"><a href="#cb5-645" aria-hidden="true" tabindex="-1"></a>(c) Plot the learned quantile function at $\tau \in <span class="sc">\{</span>0.1, 0.5, 0.9<span class="sc">\}</span>$ as a function of $x$, overlaid on the training data. Verify that roughly 10\% of points fall below the $\tau = 0.1$ curve, 50\% below the $\tau = 0.5$ curve, and 90\% below the $\tau = 0.9$ curve.</span>
-<span id="cb5-646"><a href="#cb5-646" aria-hidden="true" tabindex="-1"></a>(d) Explain in your own words what changed from the RL version (no bootstrapped targets, no temporal structure, no discount factor, no target network) and what stayed the same (pinball loss, cosine embedding, stochastic $\tau$ sampling, quantile function output).</span>
-<span id="cb5-647"><a href="#cb5-647" aria-hidden="true" tabindex="-1"></a>(e) Compare the training time and stability of your GBC implementation to the quantile TD implementation. Which converges faster, and why?</span>
-<span id="cb5-648"><a href="#cb5-648" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb5-633"><a href="#cb5-633" aria-hidden="true" tabindex="-1"></a>(a) Apply the distributional Bellman operator with $R = 0$ and $\gamma = 0.9$ to obtain the target distribution on $<span class="sc">\{</span>0, 0.45, 0.9<span class="sc">\}</span>$.</span>
+<span id="cb5-634"><a href="#cb5-634" aria-hidden="true" tabindex="-1"></a>(b) Project this target back onto the atoms $<span class="sc">\{</span>0, 0.5, 1.0<span class="sc">\}</span>$ using the categorical projection (distribute mass to nearest neighbors proportionally to distance).</span>
+<span id="cb5-635"><a href="#cb5-635" aria-hidden="true" tabindex="-1"></a>(c) Repeat the apply-then-project cycle 5 times and plot the resulting distribution at each step. How does the distribution change? This illustrates the diffusion error that motivated the move to QR-DQN.</span>
+<span id="cb5-636"><a href="#cb5-636" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb5-637"><a href="#cb5-637" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-638"><a href="#cb5-638" aria-hidden="true" tabindex="-1"></a>::: {#exr-wasserstein-quantile}</span>
+<span id="cb5-639"><a href="#cb5-639" aria-hidden="true" tabindex="-1"></a>**Wasserstein distance computation.**</span>
+<span id="cb5-640"><a href="#cb5-640" aria-hidden="true" tabindex="-1"></a>Compute the 1-Wasserstein distance between the following pairs of distributions analytically, then verify numerically:</span>
+<span id="cb5-641"><a href="#cb5-641" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-642"><a href="#cb5-642" aria-hidden="true" tabindex="-1"></a>(a) $F = N(0, 1)$ and $G = N(\mu, 1)$ for $\mu = 0.5, 1, 2$. Show that $W_1(F, G) = |\mu|$.</span>
+<span id="cb5-643"><a href="#cb5-643" aria-hidden="true" tabindex="-1"></a>(b) $F = N(0, 1)$ and $G = N(0, \sigma^2)$ for $\sigma = 0.5, 1, 2$. Is there a closed form?</span>
+<span id="cb5-644"><a href="#cb5-644" aria-hidden="true" tabindex="-1"></a>(c) $F = \text{Uniform}(0, 1)$ and $G = \text{Beta}(2, 2)$. Compute $W_1$ using the quantile function representation.</span>
+<span id="cb5-645"><a href="#cb5-645" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb5-646"><a href="#cb5-646" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-647"><a href="#cb5-647" aria-hidden="true" tabindex="-1"></a>::: {#exr-cvar-bimodal}</span>
+<span id="cb5-648"><a href="#cb5-648" aria-hidden="true" tabindex="-1"></a>**CVaR for a bimodal distribution.**</span>
+<span id="cb5-649"><a href="#cb5-649" aria-hidden="true" tabindex="-1"></a>Let $Z$ be a mixture: with probability $p = 0.7$, $Z \sim N(5, 1)$; with probability $1 - p = 0.3$, $Z \sim N(-3, 0.5)$. This models a strategy that usually succeeds but occasionally fails badly.</span>
+<span id="cb5-650"><a href="#cb5-650" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-651"><a href="#cb5-651" aria-hidden="true" tabindex="-1"></a>(a) Compute $\mathbb{E}<span class="co">[</span><span class="ot">Z</span><span class="co">]</span>$, $\text{Var}(Z)$, and sketch the density.</span>
+<span id="cb5-652"><a href="#cb5-652" aria-hidden="true" tabindex="-1"></a>(b) Compute $\text{CVaR}_\alpha$ for $\alpha \in <span class="sc">\{</span>0.05, 0.1, 0.3, 0.5, 1.0<span class="sc">\}</span>$ using Monte Carlo simulation.</span>
+<span id="cb5-653"><a href="#cb5-653" aria-hidden="true" tabindex="-1"></a>(c) An alternative strategy has $Z' \sim N(2.6, 0.5)$ (same mean as the mixture but lower variance). Compare the CVaR profiles of $Z$ and $Z'$. At what risk level $\alpha$ does the safe strategy become preferable?</span>
+<span id="cb5-654"><a href="#cb5-654" aria-hidden="true" tabindex="-1"></a>(d) Explain how IQN would enable an agent to switch between the two strategies depending on the desired risk level $\alpha$, without retraining.</span>
+<span id="cb5-655"><a href="#cb5-655" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb5-656"><a href="#cb5-656" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-657"><a href="#cb5-657" aria-hidden="true" tabindex="-1"></a>::: {#exr-rl-gbc-code}</span>
+<span id="cb5-658"><a href="#cb5-658" aria-hidden="true" tabindex="-1"></a>**From RL loop to supervised learning.**</span>
+<span id="cb5-659"><a href="#cb5-659" aria-hidden="true" tabindex="-1"></a>Starting from the quantile TD code in @sec-rl-tabular-qtd, modify it to perform *supervised* quantile regression instead. This exercise makes the bridge from distributional RL to GBC concrete in code.</span>
+<span id="cb5-660"><a href="#cb5-660" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-661"><a href="#cb5-661" aria-hidden="true" tabindex="-1"></a>(a) Generate 1000 training pairs $(x_i, y_i)$ where $x_i \sim \text{Uniform}(-3, 3)$ and $y_i = \sin(x_i) + 0.3\varepsilon_i$ with $\varepsilon_i \sim N(0, 1)$.</span>
+<span id="cb5-662"><a href="#cb5-662" aria-hidden="true" tabindex="-1"></a>(b) Train a simple neural network (two hidden layers, 64 units each, with cosine embedding for $\tau$) using the pinball loss to learn the conditional quantile function $F_{Y|X=x}^{-1}(\tau)$ following the GBC objective (@eq-gbc-objective).</span>
+<span id="cb5-663"><a href="#cb5-663" aria-hidden="true" tabindex="-1"></a>(c) Plot the learned quantile function at $\tau \in <span class="sc">\{</span>0.1, 0.5, 0.9<span class="sc">\}</span>$ as a function of $x$, overlaid on the training data. Verify that roughly 10\% of points fall below the $\tau = 0.1$ curve, 50\% below the $\tau = 0.5$ curve, and 90\% below the $\tau = 0.9$ curve.</span>
+<span id="cb5-664"><a href="#cb5-664" aria-hidden="true" tabindex="-1"></a>(d) Explain in your own words what changed from the RL version (no bootstrapped targets, no temporal structure, no discount factor, no target network) and what stayed the same (pinball loss, cosine embedding, stochastic $\tau$ sampling, quantile function output).</span>
+<span id="cb5-665"><a href="#cb5-665" aria-hidden="true" tabindex="-1"></a>(e) Compare the training time and stability of your GBC implementation to the quantile TD implementation. Which converges faster, and why?</span>
+<span id="cb5-666"><a href="#cb5-666" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </details>
 </div></div></div></div></div>
 </div> <!-- /content -->

@@ -509,9 +509,63 @@ Note
 <p>When you see these symptoms, switch to a parametric variance model. The remainder of this chapter develops that alternative.</p>
 <p>Contrast this failure with the IQN’s success on the motorcycle data (<a href="ch05-iqn.html#sec-iqn-motorcycle" class="quarto-xref"><span>Section 5.7</span></a>). On the motorcycle, the noise standard deviation varies from near zero (at <span class="math inline">\(t &lt; 15\)</span> ms) to roughly 40 g’s (at <span class="math inline">\(t \approx 35\)</span> ms), while the signal range is about 80 g’s. The SNR is at most 4:1 in the high-variance region and effectively infinite in the low-variance region, but the key point is that the distributional <em>structure</em> (heteroscedasticity, possible non-Gaussianity) is exactly what the IQN’s <span class="math inline">\(\tau\)</span>-modulation is designed to capture. On the lake data, by contrast, the distributional structure is simple (approximately Gaussian with slowly varying variance) and the IQN’s flexibility is wasted. Match the model’s flexibility to the complexity of the conditional distribution, not to the complexity of the mean function.</p>
 <p>The following table summarizes the diagnostic across our main benchmarks, ordered by decreasing distributional complexity. As the conditional distribution becomes simpler and the SNR increases, the IQN’s advantage disappears and eventually reverses.</p>
-<div class="line-block">Dataset | <span class="math inline">\(\sqrt{\mathrm{SNR}_{\text{range}}}\)</span> | Distributional structure | IQN coverage | Het-MLP + conformal |</div>
-<p>|:, –|:, , -:|:, , , , |:, , :|:, , , -:| | Phantom | 3:1 | Bimodal | 91% | Not needed | | Motorcycle | 4:1 | Heavy-tailed, heteroscedastic | 89% | Not needed | | Star | 5:1 | Jump discontinuities | 88% | Not needed | | Lake temperature | 22:1 | Gaussian, slowly varying <span class="math inline">\(\sigma\)</span> | 34% | 90.2% |</p>
-<p>: IQN coverage at 90% nominal across benchmarks, ordered by distributional complexity. The IQN succeeds on complex distributions but fails on simple, high-SNR distributions. {#tbl-cal-iqn-coverage}</p>
+<div id="tbl-cal-iqn-coverage" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-cal-iqn-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;14.1: IQN coverage at 90% nominal across benchmarks, ordered by distributional complexity. The IQN succeeds on complex distributions but fails on simple, high-SNR distributions.
+</figcaption>
+<div aria-describedby="tbl-cal-iqn-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 18%">
+<col style="width: 27%">
+<col style="width: 16%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Dataset</th>
+<th style="text-align: center;"><span class="math inline">\(\sqrt{\mathrm{SNR}_{\text{range}}}\)</span></th>
+<th style="text-align: left;">Distributional structure</th>
+<th style="text-align: center;">IQN coverage</th>
+<th style="text-align: center;">Het-MLP + conformal</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Phantom</td>
+<td style="text-align: center;">3:1</td>
+<td style="text-align: left;">Bimodal</td>
+<td style="text-align: center;">91%</td>
+<td style="text-align: center;">Not needed</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Motorcycle</td>
+<td style="text-align: center;">4:1</td>
+<td style="text-align: left;">Heavy-tailed, heteroscedastic</td>
+<td style="text-align: center;">89%</td>
+<td style="text-align: center;">Not needed</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Star</td>
+<td style="text-align: center;">5:1</td>
+<td style="text-align: left;">Jump discontinuities</td>
+<td style="text-align: center;">88%</td>
+<td style="text-align: center;">Not needed</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Lake temperature</td>
+<td style="text-align: center;">22:1</td>
+<td style="text-align: left;">Gaussian, slowly varying <span class="math inline">\(\sigma\)</span></td>
+<td style="text-align: center;">34%</td>
+<td style="text-align: center;">90.2%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The IQN is the right tool for complex conditional distributions where the quantile function has non-Gaussian structure: heavy tails, multimodality, or rapid changes in variance. When the distribution is approximately Gaussian with high SNR, the IQN’s architectural strength becomes a weakness, and the simpler het-MLP with conformal calibration is the appropriate choice. These methods are complementary tools, not competitors. The diagnostic question is: what is the complexity of the conditional distribution, and does the model architecture match it?</p>
 </section>
 </section>
@@ -860,9 +914,53 @@ Figure&nbsp;14.1: Per-horizon conformal quantiles grow with forecast horizon, re
 <h2 data-number="14.6" class="anchored" data-anchor-id="sec-cal-lake"><span class="header-section-number">14.6</span> Lake Temperature Benchmark</h2>
 <p>We now present the full results on the Falling Creek Reservoir (FCR) lake temperature benchmark, comparing our GBC calibration pipeline against the GPBC method of <span class="citation" data-cites="holthuijzen2025synthesizing">Holthuijzen et al. (<a href="references.html#ref-holthuijzen2025synthesizing" role="doc-biblioref">2025</a>)</span>.</p>
 <p>The dataset consists of <span class="math inline">\(N = 281{,}764\)</span> records from FCR, a drinking-water reservoir in southwestern Virginia. Each record has 6 input features:</p>
-<div class="line-block">Feature | Description |</div>
-<p>|, , |, , -| | DOY | Day of year (1–365), capturing seasonal cycle | | Depth | Water depth in meters (0–9 m, 1 m layers) | | Horizon | Forecast horizon in days (<span class="math inline">\(h = 1, \ldots, 30\)</span>) | | <span class="math inline">\(\phi\)</span> | Lagged surface temperature (mean observed temp, previous 4 days) | | <span class="math inline">\(\mu_{\text{GLM}}\)</span> | GLM ensemble mean at (DOY, Depth, <span class="math inline">\(h\)</span>) | | <span class="math inline">\(\sigma_{\text{GLM}}\)</span> | GLM ensemble standard deviation |</p>
-<p>: Input features for the lake temperature forecasting task. {#tbl-cal-lake-features}</p>
+<div id="tbl-cal-lake-features" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-cal-lake-features-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;14.2: Input features for the lake temperature forecasting task.
+</figcaption>
+<div aria-describedby="tbl-cal-lake-features-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 46%">
+<col style="width: 53%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DOY</td>
+<td>Day of year (1–365), capturing seasonal cycle</td>
+</tr>
+<tr class="even">
+<td>Depth</td>
+<td>Water depth in meters (0–9 m, 1 m layers)</td>
+</tr>
+<tr class="odd">
+<td>Horizon</td>
+<td>Forecast horizon in days (<span class="math inline">\(h = 1, \ldots, 30\)</span>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\phi\)</span></td>
+<td>Lagged surface temperature (mean observed temp, previous 4 days)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\mu_{\text{GLM}}\)</span></td>
+<td>GLM ensemble mean at (DOY, Depth, <span class="math inline">\(h\)</span>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\sigma_{\text{GLM}}\)</span></td>
+<td>GLM ensemble standard deviation</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The target is observed water temperature <span class="math inline">\(T_{\text{obs}}\)</span> (<span class="math inline">\({}^\circ\)</span>C). The General Lake Model (GLM) is a physics-based hydrodynamic simulator that provides the ensemble mean <span class="math inline">\(\mu_{\text{GLM}}\)</span> and spread <span class="math inline">\(\sigma_{\text{GLM}}\)</span> as inputs, the statistical model’s job is to refine these physics-based predictions and provide calibrated uncertainty.</p>
 <p>Following <span class="citation" data-cites="holthuijzen2025synthesizing">Holthuijzen et al. (<a href="references.html#ref-holthuijzen2025synthesizing" role="doc-biblioref">2025</a>)</span>, we train on all dates before 2022-06-11 (<span class="math inline">\(n_{\text{train}} = 172{,}714\)</span>) and evaluate on dates from 2022-06-11 onward (<span class="math inline">\(n_{\text{test}} = 109{,}050\)</span>), preserving strict temporal separation.</p>
 <section id="sec-cal-gpbc" class="level3" data-number="14.6.1">
@@ -877,9 +975,56 @@ Figure&nbsp;14.1: Per-horizon conformal quantiles grow with forecast horizon, re
 <p>Another advantage of the single-stage approach relates to uncertainty propagation. In the GPBC pipeline, the predictive uncertainty is a composite of GP posterior variances from all three stages, combined under assumptions about their independence. These assumptions may be violated when, for example, the bias GP’s uncertainty is correlated with the surrogate GP’s emulation error. The het-MLP ensemble, by contrast, produces a single variance estimate <span class="math inline">\(\hat{\sigma}^2_{\text{ens}}(x)\)</span> that captures all sources of uncertainty jointly. Although this estimate is miscalibrated (as we discussed in <a href="#sec-cal-before-after" class="quarto-xref"><span>Section 14.4.2</span></a>), the conformal calibration corrects the calibration without requiring assumptions about the independence of uncertainty components.</p>
 <p>The comparison between GPBC and our approach also highlights a broader theme from <a href="ch07-surrogates.html#sec-surr-gbc" class="quarto-xref"><span>Section 7.2</span></a>: the GP’s cubic scaling in the number of observations makes it difficult to use the full dataset directly. The Vecchia approximation addresses this but introduces its own hyperparameters (the number of neighbors <span class="math inline">\(m\)</span>, the ordering of observations) that affect the quality of the approximation. The choice of <span class="math inline">\(m\)</span> involves a bias-variance tradeoff: smaller <span class="math inline">\(m\)</span> reduces computational cost but increases the approximation error, while larger <span class="math inline">\(m\)</span> provides a better approximation but approaches the cubic cost of exact GP inference. The neural network simply processes all <span class="math inline">\(n = 172{,}714\)</span> training observations through mini-batch SGD, with no approximation needed. The computational cost is linear in <span class="math inline">\(n\)</span> per epoch, and the quality of the fit improves monotonically with more data (no approximation error).</p>
 <p>The following table summarizes the structural correspondence.</p>
-<div class="line-block">GPBC component | GBC equivalent | Advantage |</div>
-<p>|:, , , |:, , , |:, , -| | Vecchia GP surrogate (Stage 1) | MLP backbone + mean head | No kernel choice; learns interactions automatically | | Stochastic kriging (Stage 2) | MLP backbone + log-variance head | Shared backbone; no separate heteroscedastic model | | Bias GP (Stage 3) | Absorbed into mean head | Single optimization, no error propagation | | GP posterior intervals | Conformal calibration | Distribution-free; no parametric assumptions | | Daily refitting (366 refits) | Single training run (22 min) | Dramatically cheaper; no infrastructure for retraining |</p>
-<p>: Structural correspondence between GPBC and GBC calibration pipelines. {#tbl-cal-gpbc-comparison}</p>
+<div id="tbl-cal-gpbc-comparison" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-cal-gpbc-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;14.3: Structural correspondence between GPBC and GBC calibration pipelines.
+</figcaption>
+<div aria-describedby="tbl-cal-gpbc-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 35%">
+<col style="width: 35%">
+<col style="width: 28%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">GPBC component</th>
+<th style="text-align: left;">GBC equivalent</th>
+<th style="text-align: left;">Advantage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Vecchia GP surrogate (Stage 1)</td>
+<td style="text-align: left;">MLP backbone + mean head</td>
+<td style="text-align: left;">No kernel choice; learns interactions automatically</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Stochastic kriging (Stage 2)</td>
+<td style="text-align: left;">MLP backbone + log-variance head</td>
+<td style="text-align: left;">Shared backbone; no separate heteroscedastic model</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Bias GP (Stage 3)</td>
+<td style="text-align: left;">Absorbed into mean head</td>
+<td style="text-align: left;">Single optimization, no error propagation</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GP posterior intervals</td>
+<td style="text-align: left;">Conformal calibration</td>
+<td style="text-align: left;">Distribution-free; no parametric assumptions</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Daily refitting (366 refits)</td>
+<td style="text-align: left;">Single training run (22 min)</td>
+<td style="text-align: left;">Dramatically cheaper; no infrastructure for retraining</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 </section>
 <section id="sec-cal-lake-setup" class="level3" data-number="14.6.2">
 <h3 data-number="14.6.2" class="anchored" data-anchor-id="sec-cal-lake-setup"><span class="header-section-number">14.6.2</span> Experimental setup</h3>
@@ -890,10 +1035,112 @@ Figure&nbsp;14.1: Per-horizon conformal quantiles grow with forecast horizon, re
 </section>
 <section id="sec-cal-lake-results" class="level3" data-number="14.6.3">
 <h3 data-number="14.6.3" class="anchored" data-anchor-id="sec-cal-lake-results"><span class="header-section-number">14.6.3</span> Results</h3>
-<div class="line-block"><span class="math inline">\(h\)</span> | GBC RMSE | GPBC RMSE | GBC Cov | GPBC Cov | GBC Width | GPBC Width |</div>
-<p>|, -:|:, –:|:, , :|:, -:|:, –:|:, , :|:, , -:| | 1 | <em>0.596</em> | 0.688 | <em>0.943</em> | 0.885 | <em>2.45</em> | 2.48 | | 5 | <em>0.731</em> | 0.866 | <em>0.945</em> | 0.867 | <em>2.97</em> | 3.13 | | 10 | <em>0.982</em> | 1.074 | <em>0.922</em> | 0.868 | <em>3.57</em> | 3.68 | | 15 | <em>1.285</em> | 1.370 | <em>0.880</em> | 0.851 | <em>3.85</em> | 4.19 | | 20 | <em>1.406</em> | 1.488 | <em>0.884</em> | 0.844 | <em>4.21</em> | 4.22 | | 25 | <em>1.493</em> | 1.600 | <em>0.883</em> | 0.823 | 4.57 | 4.35 | | 30 | <em>1.533</em> | 1.641 | <em>0.867</em> | 0.796 | 4.46 | 4.40 | | All | <em>1.219</em> | 1.312 | <em>0.902</em> | <span class="math inline">\(\approx 0.85\)</span> | 3.80 | <span class="math inline">\(\approx 3.7\)</span> |</p>
-<p>: Lake temperature forecasting: GBC calibration pipeline vs.&nbsp;GPBC. RMSE (°C), 90% prediction interval coverage, and PI width (°C) at selected forecast horizons. GBC uses a 5-member het-MLP ensemble with 5-fold temporal conformal calibration. Bold indicates the better result. {#tbl-cal-lake-results}</p>
-<p><span class="quarto-unresolved-ref">?tbl-cal-lake-results</span> tells a clear story. GBC achieves a 7.1% RMSE improvement over GPBC, with the advantage largest at short horizons (13–16% reduction) where the MLP exploits feature interactions more flexibly than the Vecchia GP surrogate. GBC reaches the 90% nominal coverage target while GPBC falls short, with GPBC’s coverage degrading at long horizons where the GP’s parametric variance estimates fail to capture full error growth. PI widths are comparable overall, with GBC narrower at short-to-medium horizons and slightly wider at long horizons where the conformal quantile grows.</p>
+<div id="tbl-cal-lake-results" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-cal-lake-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;14.4: Lake temperature forecasting: GBC calibration pipeline vs.&nbsp;GPBC. RMSE (°C), 90% prediction interval coverage, and PI width (°C) at selected forecast horizons. GBC uses a 5-member het-MLP ensemble with 5-fold temporal conformal calibration. Bold indicates the better result.
+</figcaption>
+<div aria-describedby="tbl-cal-lake-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 14%">
+<col style="width: 16%">
+<col style="width: 12%">
+<col style="width: 14%">
+<col style="width: 16%">
+<col style="width: 18%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;"><span class="math inline">\(h\)</span></th>
+<th style="text-align: center;">GBC RMSE</th>
+<th style="text-align: center;">GPBC RMSE</th>
+<th style="text-align: center;">GBC Cov</th>
+<th style="text-align: center;">GPBC Cov</th>
+<th style="text-align: center;">GBC Width</th>
+<th style="text-align: center;">GPBC Width</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: center;"><em>0.596</em></td>
+<td style="text-align: center;">0.688</td>
+<td style="text-align: center;"><em>0.943</em></td>
+<td style="text-align: center;">0.885</td>
+<td style="text-align: center;"><em>2.45</em></td>
+<td style="text-align: center;">2.48</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">5</td>
+<td style="text-align: center;"><em>0.731</em></td>
+<td style="text-align: center;">0.866</td>
+<td style="text-align: center;"><em>0.945</em></td>
+<td style="text-align: center;">0.867</td>
+<td style="text-align: center;"><em>2.97</em></td>
+<td style="text-align: center;">3.13</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">10</td>
+<td style="text-align: center;"><em>0.982</em></td>
+<td style="text-align: center;">1.074</td>
+<td style="text-align: center;"><em>0.922</em></td>
+<td style="text-align: center;">0.868</td>
+<td style="text-align: center;"><em>3.57</em></td>
+<td style="text-align: center;">3.68</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">15</td>
+<td style="text-align: center;"><em>1.285</em></td>
+<td style="text-align: center;">1.370</td>
+<td style="text-align: center;"><em>0.880</em></td>
+<td style="text-align: center;">0.851</td>
+<td style="text-align: center;"><em>3.85</em></td>
+<td style="text-align: center;">4.19</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">20</td>
+<td style="text-align: center;"><em>1.406</em></td>
+<td style="text-align: center;">1.488</td>
+<td style="text-align: center;"><em>0.884</em></td>
+<td style="text-align: center;">0.844</td>
+<td style="text-align: center;"><em>4.21</em></td>
+<td style="text-align: center;">4.22</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">25</td>
+<td style="text-align: center;"><em>1.493</em></td>
+<td style="text-align: center;">1.600</td>
+<td style="text-align: center;"><em>0.883</em></td>
+<td style="text-align: center;">0.823</td>
+<td style="text-align: center;">4.57</td>
+<td style="text-align: center;">4.35</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">30</td>
+<td style="text-align: center;"><em>1.533</em></td>
+<td style="text-align: center;">1.641</td>
+<td style="text-align: center;"><em>0.867</em></td>
+<td style="text-align: center;">0.796</td>
+<td style="text-align: center;">4.46</td>
+<td style="text-align: center;">4.40</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">All</td>
+<td style="text-align: center;"><em>1.219</em></td>
+<td style="text-align: center;">1.312</td>
+<td style="text-align: center;"><em>0.902</em></td>
+<td style="text-align: center;"><span class="math inline">\(\approx 0.85\)</span></td>
+<td style="text-align: center;">3.80</td>
+<td style="text-align: center;"><span class="math inline">\(\approx 3.7\)</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><a href="#tbl-cal-lake-results" class="quarto-xref">Table&nbsp;<span>14.4</span></a> tells a clear story. GBC achieves a 7.1% RMSE improvement over GPBC, with the advantage largest at short horizons (13–16% reduction) where the MLP exploits feature interactions more flexibly than the Vecchia GP surrogate. GBC reaches the 90% nominal coverage target while GPBC falls short, with GPBC’s coverage degrading at long horizons where the GP’s parametric variance estimates fail to capture full error growth. PI widths are comparable overall, with GBC narrower at short-to-medium horizons and slightly wider at long horizons where the conformal quantile grows.</p>
 <p>The RMSE advantage is largest at short horizons. At <span class="math inline">\(h = 1\)</span> and <span class="math inline">\(h = 5\)</span>, the GLM ensemble mean <span class="math inline">\(\mu_{\text{GLM}}\)</span> and the lagged temperature covariate <span class="math inline">\(\phi\)</span> provide strong predictive signal. The MLP’s flexible nonlinear mapping exploits interactions between these features, for instance, the correction needed when the GLM overestimates stratification strength depends jointly on depth, season, and horizon, that the GP’s separable kernel structure cannot easily represent. The GP typically uses a product kernel <span class="math inline">\(k(x, x') = \prod_j k_j(x_j, x_j')\)</span>, which assumes that the input variables contribute independently to the covariance. The MLP has no such separability constraint: its hidden layers can learn arbitrary feature interactions, including the three-way interaction between depth, DOY, and <span class="math inline">\(\mu_{\text{GLM}}\)</span> that characterizes the GLM’s seasonal bias pattern.</p>
 <p>At longer horizons, where the predictive signal is weaker and the residuals are more Gaussian, the GP’s smoothness prior becomes less of a disadvantage, and the RMSE gap narrows. This convergence at long horizons is consistent with the information-theoretic view: when the signal-to-noise ratio is low, the prior (GP) and the likelihood (data) contribute more equally to the posterior, and the GP’s inductive bias provides genuine regularization benefit. When the SNR is high (short horizons), the data dominates and the GP’s restrictive prior becomes a liability.</p>
 <p>GPBC’s coverage declines monotonically from 88.5% at <span class="math inline">\(h = 1\)</span> to 79.6% at <span class="math inline">\(h = 30\)</span>. This degradation occurs because the GP’s parametric variance estimates, based on the stochastic kriging model, fail to capture the full error growth at long horizons. The stochastic kriging model assumes a particular functional form for the variance as a function of the inputs, and this functional form may not adequately capture the nonlinear growth of forecast error at long lead times. Our conformal intervals avoid this problem entirely: the per-horizon quantiles are computed from actual out-of-sample errors at each horizon, so they automatically reflect the true error scale, whatever its functional form.</p>
@@ -970,11 +1217,11 @@ Figure&nbsp;14.3: Lake temperature forecast comparison: GBC calibration pipeline
 <section id="sec-cal-lake-refit" class="level3" data-number="14.6.4">
 <h3 data-number="14.6.4" class="anchored" data-anchor-id="sec-cal-lake-refit"><span class="header-section-number">14.6.4</span> Matched comparison: periodic refitting</h3>
 <p>To address the information asymmetry directly, we add a <em>periodic-refit</em> GBC variant that retrains the het-MLP ensemble at the start of each calendar month during the validation period, using all observations accumulated through that refit date. This mirrors the spirit of GPBC’s daily refitting but at lower computational cost. The refit ensemble is then used for all forecasts until the next refit. The conformal calibration step is re-run at each refit using out-of-fold residuals from the updated training set.</p>
-<p><a href="#tbl-cal-lake-refit" class="quarto-xref">Table&nbsp;<span>14.1</span></a> compares the three methods across all 30 forecast horizons.</p>
+<p><a href="#tbl-cal-lake-refit" class="quarto-xref">Table&nbsp;<span>14.5</span></a> compares the three methods across all 30 forecast horizons.</p>
 <div id="tbl-cal-lake-refit" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="9">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-cal-lake-refit-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;14.1: Matched comparison: GBC-static (trained once), GBC-refit (monthly retraining), and GPBC (daily refit from Holthuijzen et al.). RMSE (°C) and 90% PI coverage averaged over horizons 1–30. GBC-refit addresses the information asymmetry; GBC-static results are for reference. Bold indicates best per metric.
+Table&nbsp;14.5: Matched comparison: GBC-static (trained once), GBC-refit (monthly retraining), and GPBC (daily refit from Holthuijzen et al.). RMSE (°C) and 90% PI coverage averaged over horizons 1–30. GBC-refit addresses the information asymmetry; GBC-static results are for reference. Bold indicates best per metric.
 </figcaption>
 <div aria-describedby="tbl-cal-lake-refit-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <details class="code-fold">
@@ -1069,9 +1316,51 @@ Figure&nbsp;14.4: Diagnostic flowchart for IQN and neural network uncertainty qu
 <section id="sec-cal-summary" class="level2" data-number="14.9">
 <h2 data-number="14.9" class="anchored" data-anchor-id="sec-cal-summary"><span class="header-section-number">14.9</span> Summary: When to Use What</h2>
 <p>This chapter has presented a diagnostic and a remedy for IQN failure on high-SNR data. The broader message is that the choice of uncertainty quantification method should match the problem characteristics.</p>
-<div class="line-block">Problem type | Recommended approach | Why |</div>
-<p>|:, , , , , -|:, , , , , |:, , , , , , , , –| | Heteroscedastic, multimodal | IQN (<a href="ch05-iqn.html" class="quarto-xref"><span>Chapter 5</span></a>) | Full distributional flexibility; no parametric assumption | | Jump discontinuities | Aug-IQN (<a href="ch08-jumps.html" class="quarto-xref"><span>Chapter 8</span></a>) | Boundary augmentation handles piecewise structure | | High SNR, Gaussian-like noise | Het-MLP ensemble + conformal | IQN gradient collapse; parametric variance + conformal | | Small <span class="math inline">\(n\)</span>, low <span class="math inline">\(d\)</span> | GP (Chapters <a href="ch07-surrogates.html#sec-surr-gp" class="quarto-xref"><span>7.1</span></a>) | GP prior beneficial; principled posterior uncertainty |</p>
-<p>: Recommended uncertainty quantification approach by problem type. {#tbl-cal-recommendations}</p>
+<div id="tbl-cal-recommendations" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-cal-recommendations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;14.6: Recommended uncertainty quantification approach by problem type.
+</figcaption>
+<div aria-describedby="tbl-cal-recommendations-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 28%">
+<col style="width: 26%">
+<col style="width: 45%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Problem type</th>
+<th style="text-align: left;">Recommended approach</th>
+<th style="text-align: left;">Why</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Heteroscedastic, multimodal</td>
+<td style="text-align: left;">IQN (<a href="ch05-iqn.html" class="quarto-xref"><span>Chapter 5</span></a>)</td>
+<td style="text-align: left;">Full distributional flexibility; no parametric assumption</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Jump discontinuities</td>
+<td style="text-align: left;">Aug-IQN (<a href="ch08-jumps.html" class="quarto-xref"><span>Chapter 8</span></a>)</td>
+<td style="text-align: left;">Boundary augmentation handles piecewise structure</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">High SNR, Gaussian-like noise</td>
+<td style="text-align: left;">Het-MLP ensemble + conformal</td>
+<td style="text-align: left;">IQN gradient collapse; parametric variance + conformal</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Small <span class="math inline">\(n\)</span>, low <span class="math inline">\(d\)</span></td>
+<td style="text-align: left;">GP (Chapters <a href="ch07-surrogates.html#sec-surr-gp" class="quarto-xref"><span>7.1</span></a>)</td>
+<td style="text-align: left;">GP prior beneficial; principled posterior uncertainty</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The diagnostic is the signal-to-noise ratio. When fitting a good point predictor leaves residuals that are a small fraction of the response range, the IQN architecture will struggle to produce distributional spread. In that regime, the het-MLP ensemble with conformal calibration is the right tool.</p>
 <p>The diagnostic checklist in <a href="#sec-cal-diagnostics" class="quarto-xref"><span>Section 14.7</span></a> provides a systematic procedure for evaluating any neural network UQ method on a new dataset. Follow it sequentially: check the PIT histogram for distributional misspecification, monitor CRPS convergence for underfitting, inspect quantile crossings for architectural problems, and validate coverage for calibration failure. If the model passes all four checks, deploy it with confidence. If it fails at any step, the checklist points to the appropriate remedy. The entire diagnostic procedure can be run in minutes, even on large datasets, and should be standard practice before deploying any neural network uncertainty model.</p>
 <p>This chapter completes a natural arc. We began in <a href="ch05-iqn.html" class="quarto-xref"><span>Chapter 5</span></a> with the IQN as a universal tool for conditional distributions, demonstrated its power on heteroscedastic (<a href="ch05-iqn.html#sec-iqn-motorcycle" class="quarto-xref"><span>Section 5.7</span></a>) and multimodal (<a href="ch08-jumps.html" class="quarto-xref"><span>Chapter 8</span></a>) problems, and used it to build surrogates (<a href="ch07-surrogates.html" class="quarto-xref"><span>Chapter 7</span></a>) and drive active learning (<a href="ch09-active-learning.html" class="quarto-xref"><span>Chapter 9</span></a>). Here we have shown its limits and provided an alternative. The GBC framework is broader than any single architecture: it encompasses IQN when distributional flexibility is needed, het-MLP ensembles when parametric models suffice, and conformal calibration when distribution-free guarantees are required.</p>
@@ -1771,7 +2060,7 @@ Vovk, Vladimir, Alex Gammerman, and Glenn Shafer. 2005. <em>Algorithmic Learning
 <span id="cb8-101"><a href="#cb8-101" aria-hidden="true" tabindex="-1"></a>The following table summarizes the diagnostic across our main benchmarks, ordered by decreasing distributional complexity. As the conditional distribution becomes simpler and the SNR increases, the IQN's advantage disappears and eventually reverses.</span>
 <span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-103"><a href="#cb8-103" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Dataset <span class="pp">|</span> $\sqrt{\mathrm{SNR}_{\text{range}}}$ <span class="pp">|</span> Distributional structure <span class="pp">|</span> IQN coverage <span class="pp">|</span> Het-MLP + conformal <span class="pp">|</span></span>
-<span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, --<span class="pp">|</span>:, , -:<span class="pp">|</span>:, , , , <span class="pp">|</span>:, , :<span class="pp">|</span>:, , , -:<span class="pp">|</span></span>
+<span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a><span class="pp">|:-----|:-------:|:------------|:------:|:----------:|</span></span>
 <span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Phantom <span class="pp">|</span> 3:1 <span class="pp">|</span> Bimodal <span class="pp">|</span> 91% <span class="pp">|</span> Not needed <span class="pp">|</span></span>
 <span id="cb8-106"><a href="#cb8-106" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Motorcycle <span class="pp">|</span> 4:1 <span class="pp">|</span> Heavy-tailed, heteroscedastic <span class="pp">|</span> 89% <span class="pp">|</span> Not needed <span class="pp">|</span></span>
 <span id="cb8-107"><a href="#cb8-107" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Star <span class="pp">|</span> 5:1 <span class="pp">|</span> Jump discontinuities <span class="pp">|</span> 88% <span class="pp">|</span> Not needed <span class="pp">|</span></span>
@@ -2200,7 +2489,7 @@ Vovk, Vladimir, Alex Gammerman, and Glenn Shafer. 2005. <em>Algorithmic Learning
 <span id="cb8-530"><a href="#cb8-530" aria-hidden="true" tabindex="-1"></a>The dataset consists of $N = 281{,}764$ records from FCR, a drinking-water reservoir in southwestern Virginia. Each record has 6 input features:</span>
 <span id="cb8-531"><a href="#cb8-531" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-532"><a href="#cb8-532" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Feature <span class="pp">|</span> Description <span class="pp">|</span></span>
-<span id="cb8-533"><a href="#cb8-533" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, , <span class="pp">|</span>, , -<span class="pp">|</span></span>
+<span id="cb8-533"><a href="#cb8-533" aria-hidden="true" tabindex="-1"></a><span class="pp">|------|-------|</span></span>
 <span id="cb8-534"><a href="#cb8-534" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> DOY <span class="pp">|</span> Day of year (1--365), capturing seasonal cycle <span class="pp">|</span></span>
 <span id="cb8-535"><a href="#cb8-535" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Depth <span class="pp">|</span> Water depth in meters (0--9 m, 1 m layers) <span class="pp">|</span></span>
 <span id="cb8-536"><a href="#cb8-536" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Horizon <span class="pp">|</span> Forecast horizon in days ($h = 1, \ldots, 30$) <span class="pp">|</span></span>
@@ -2237,7 +2526,7 @@ Vovk, Vladimir, Alex Gammerman, and Glenn Shafer. 2005. <em>Algorithmic Learning
 <span id="cb8-567"><a href="#cb8-567" aria-hidden="true" tabindex="-1"></a>The following table summarizes the structural correspondence.</span>
 <span id="cb8-568"><a href="#cb8-568" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-569"><a href="#cb8-569" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> GPBC component <span class="pp">|</span> GBC equivalent <span class="pp">|</span> Advantage <span class="pp">|</span></span>
-<span id="cb8-570"><a href="#cb8-570" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, , , <span class="pp">|</span>:, , , <span class="pp">|</span>:, , -<span class="pp">|</span></span>
+<span id="cb8-570"><a href="#cb8-570" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---------|:---------|:-------|</span></span>
 <span id="cb8-571"><a href="#cb8-571" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Vecchia GP surrogate (Stage 1) <span class="pp">|</span> MLP backbone + mean head <span class="pp">|</span> No kernel choice; learns interactions automatically <span class="pp">|</span></span>
 <span id="cb8-572"><a href="#cb8-572" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Stochastic kriging (Stage 2) <span class="pp">|</span> MLP backbone + log-variance head <span class="pp">|</span> Shared backbone; no separate heteroscedastic model <span class="pp">|</span></span>
 <span id="cb8-573"><a href="#cb8-573" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Bias GP (Stage 3) <span class="pp">|</span> Absorbed into mean head <span class="pp">|</span> Single optimization, no error propagation <span class="pp">|</span></span>
@@ -2259,7 +2548,7 @@ Vovk, Vladimir, Alex Gammerman, and Glenn Shafer. 2005. <em>Algorithmic Learning
 <span id="cb8-589"><a href="#cb8-589" aria-hidden="true" tabindex="-1"></a><span class="fu">### Results {#sec-cal-lake-results}</span></span>
 <span id="cb8-590"><a href="#cb8-590" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-591"><a href="#cb8-591" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $h$ <span class="pp">|</span> GBC RMSE <span class="pp">|</span> GPBC RMSE <span class="pp">|</span> GBC Cov <span class="pp">|</span> GPBC Cov <span class="pp">|</span> GBC Width <span class="pp">|</span> GPBC Width <span class="pp">|</span></span>
-<span id="cb8-592"><a href="#cb8-592" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, -:<span class="pp">|</span>:, --:<span class="pp">|</span>:, , :<span class="pp">|</span>:, -:<span class="pp">|</span>:, --:<span class="pp">|</span>:, , :<span class="pp">|</span>:, , -:<span class="pp">|</span></span>
+<span id="cb8-592"><a href="#cb8-592" aria-hidden="true" tabindex="-1"></a><span class="pp">|----:|:-----:|:------:|:----:|:-----:|:------:|:-------:|</span></span>
 <span id="cb8-593"><a href="#cb8-593" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>   1 <span class="pp">|</span> *0.596* | 0.688 | *0.943* | 0.885 | *2.45* <span class="pp">|</span> 2.48 <span class="pp">|</span></span>
 <span id="cb8-594"><a href="#cb8-594" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>   5 <span class="pp">|</span> *0.731* | 0.866 | *0.945* | 0.867 | *2.97* <span class="pp">|</span> 3.13 <span class="pp">|</span></span>
 <span id="cb8-595"><a href="#cb8-595" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>  10 <span class="pp">|</span> *0.982* | 1.074 | *0.922* | 0.868 | *3.57* <span class="pp">|</span> 3.68 <span class="pp">|</span></span>
@@ -2457,7 +2746,7 @@ Vovk, Vladimir, Alex Gammerman, and Glenn Shafer. 2005. <em>Algorithmic Learning
 <span id="cb8-787"><a href="#cb8-787" aria-hidden="true" tabindex="-1"></a>This chapter has presented a diagnostic and a remedy for IQN failure on high-SNR data. The broader message is that the choice of uncertainty quantification method should match the problem characteristics.</span>
 <span id="cb8-788"><a href="#cb8-788" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-789"><a href="#cb8-789" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Problem type <span class="pp">|</span> Recommended approach <span class="pp">|</span> Why <span class="pp">|</span></span>
-<span id="cb8-790"><a href="#cb8-790" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, , , , , -<span class="pp">|</span>:, , , , , <span class="pp">|</span>:, , , , , , , , --<span class="pp">|</span></span>
+<span id="cb8-790"><a href="#cb8-790" aria-hidden="true" tabindex="-1"></a><span class="pp">|:----------------|:---------------|:--------------------------|</span></span>
 <span id="cb8-791"><a href="#cb8-791" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Heteroscedastic, multimodal <span class="pp">|</span> IQN (@sec-iqn) <span class="pp">|</span> Full distributional flexibility; no parametric assumption <span class="pp">|</span></span>
 <span id="cb8-792"><a href="#cb8-792" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Jump discontinuities <span class="pp">|</span> Aug-IQN (@sec-jumps) <span class="pp">|</span> Boundary augmentation handles piecewise structure <span class="pp">|</span></span>
 <span id="cb8-793"><a href="#cb8-793" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> High SNR, Gaussian-like noise <span class="pp">|</span> Het-MLP ensemble + conformal <span class="pp">|</span> IQN gradient collapse; parametric variance + conformal <span class="pp">|</span></span>

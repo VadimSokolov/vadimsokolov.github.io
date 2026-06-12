@@ -534,10 +534,72 @@ p(f \mid y) \approx \int p(f \mid f_Z)\, q(f_Z)\, df_Z,
 <p>IQN uncertainty comes from the learned quantile function, which can also be miscalibrated, typically slightly under-covering on small-<span class="math inline">\(n\)</span> smooth problems and over-covering on large-<span class="math inline">\(n\)</span> problems. The GP hyperparameters <span class="math inline">\((\sigma^2_f, \ell, \sigma^2_\varepsilon)\)</span> have clear physical interpretations (signal variance, correlation length, noise level). The IQN hyperparameters (hidden dimension, number of layers, learning rate) are harder to interpret, though they are arguably easier to set: a single architecture (256 hidden units, 32 cosine frequencies, learning rate <span class="math inline">\(10^{-3}\)</span>) works across a wide range of problems without per-problem tuning. We used this default architecture on every benchmark in this chapter, changing only the number of training epochs.</p>
 <p>These three themes interact in practice: the small-<span class="math inline">\(n\)</span> regime where the GP excels is also the regime where the GP’s cubic cost is manageable, and the large-<span class="math inline">\(n\)</span> regime where GBC excels is also the regime where the GP is infeasible. This fortunate alignment means that the practitioner rarely faces a difficult choice: the problem’s data size naturally selects the appropriate method.</p>
 <p>The GP’s closed-form posterior is a significant advantage for downstream applications that expect a Gaussian predictive distribution. Bayesian optimization, for example, computes an acquisition function (Expected Improvement, Upper Confidence Bound, etc.) from the posterior mean and variance. These acquisition functions have well-understood theoretical properties under the GP model. Replacing the GP with an IQN requires reformulating the acquisition function in terms of quantiles rather than moments, which is possible (and we discuss it in <a href="ch09-active-learning.html" class="quarto-xref"><span>Chapter 9</span></a>) but requires care. For applications that simply need a point prediction and an uncertainty band, the two frameworks are interchangeable; for applications that require the full Gaussian posterior structure, the GP retains a practical edge.</p>
-<p><span class="quarto-unresolved-ref">?tbl-gp-vs-gbc</span> summarizes the key differences between GP and GBC surrogates. The remainder of the chapter tests these claims empirically.</p>
-<div class="line-block">Feature | GP | GBC (IQN) |</div>
-<p>|:, |:, |:, | | Training cost | <span class="math inline">\(\mathcal{O}(n^3)\)</span> | <span class="math inline">\(\mathcal{O}(n)\)</span> per epoch | | Prediction cost | <span class="math inline">\(\mathcal{O}(n)\)</span> per point | <span class="math inline">\(\mathcal{O}(1)\)</span> per point | | Predictive distribution | Gaussian | Arbitrary (quantile function) | | Heteroscedasticity | Requires extension (e.g., hetGP) | Native | | Interpolation | Exact (noiseless GP) | Approximate | | Kernel choice | Required | Not needed | | Small-<span class="math inline">\(n\)</span> performance | Strong (prior regularization) | Weaker (needs more data) | | Scalability limit | <span class="math inline">\(n \lesssim 10\text{k}\)</span> | <span class="math inline">\(n &gt; 100\text{k}\)</span> feasible |</p>
-<p>: Comparison of GP and GBC surrogate properties. {#tbl-gp-vs-gbc}</p>
+<p><a href="#tbl-gp-vs-gbc" class="quarto-xref">Table&nbsp;<span>7.1</span></a> summarizes the key differences between GP and GBC surrogates. The remainder of the chapter tests these claims empirically.</p>
+<div id="tbl-gp-vs-gbc" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-gp-vs-gbc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7.1: Comparison of GP and GBC surrogate properties.
+</figcaption>
+<div aria-describedby="tbl-gp-vs-gbc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">GP</th>
+<th style="text-align: left;">GBC (IQN)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Training cost</td>
+<td style="text-align: left;"><span class="math inline">\(\mathcal{O}(n^3)\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(\mathcal{O}(n)\)</span> per epoch</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Prediction cost</td>
+<td style="text-align: left;"><span class="math inline">\(\mathcal{O}(n)\)</span> per point</td>
+<td style="text-align: left;"><span class="math inline">\(\mathcal{O}(1)\)</span> per point</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Predictive distribution</td>
+<td style="text-align: left;">Gaussian</td>
+<td style="text-align: left;">Arbitrary (quantile function)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Heteroscedasticity</td>
+<td style="text-align: left;">Requires extension (e.g., hetGP)</td>
+<td style="text-align: left;">Native</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Interpolation</td>
+<td style="text-align: left;">Exact (noiseless GP)</td>
+<td style="text-align: left;">Approximate</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Kernel choice</td>
+<td style="text-align: left;">Required</td>
+<td style="text-align: left;">Not needed</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Small-<span class="math inline">\(n\)</span> performance</td>
+<td style="text-align: left;">Strong (prior regularization)</td>
+<td style="text-align: left;">Weaker (needs more data)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Scalability limit</td>
+<td style="text-align: left;"><span class="math inline">\(n \lesssim 10\text{k}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(n &gt; 100\text{k}\)</span> feasible</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 </section>
 </section>
 <section id="sec-surr-1d-demo" class="level2" data-number="7.3">
@@ -684,10 +746,62 @@ f_1 \sim \mathcal{GP}(0,\, 9\, k_{\text{SE}}), \quad f_2 \sim \mathcal{GP}(13,\,
 </div>
 </div>
 <p>We evaluate both methods using RMSE (root mean squared error of the predicted mean), CRPS (continuous ranked probability score, which jointly rewards calibration and sharpness of the full predictive distribution), and 90% coverage (the fraction of test points falling within the 5th-to-95th percentile prediction interval). CRPS is our primary metric because it evaluates the entire predictive distribution, not just the point prediction.</p>
-<p><span class="quarto-unresolved-ref">?tbl-bgp</span> reports the results averaged over 20 replicates. GBC achieves lower RMSE and CRPS at every dimension, with the advantage growing as <span class="math inline">\(d\)</span> increases.</p>
-<div class="line-block"><span class="math inline">\(d\)</span> | GP RMSE | GP CRPS | GBC RMSE | GBC CRPS | GBC 90% Cov. |</div>
-<p>|:, :|:, :|:, :|:, :|:, :|:, :| | 2 | <span class="math inline">\(2.514 \pm 0.053\)</span> | <span class="math inline">\(1.379 \pm 0.024\)</span> | <span class="math inline">\(\mathbf{2.168 \pm 0.028}\)</span> | <span class="math inline">\(\mathbf{1.224 \pm 0.015}\)</span> | 0.894 | | 3 | <span class="math inline">\(2.762 \pm 0.045\)</span> | <span class="math inline">\(1.515 \pm 0.022\)</span> | <span class="math inline">\(\mathbf{2.197 \pm 0.018}\)</span> | <span class="math inline">\(\mathbf{1.236 \pm 0.011}\)</span> | 0.885 | | 4 | <span class="math inline">\(3.122 \pm 0.060\)</span> | <span class="math inline">\(1.716 \pm 0.030\)</span> | <span class="math inline">\(\mathbf{2.245 \pm 0.017}\)</span> | <span class="math inline">\(\mathbf{1.267 \pm 0.012}\)</span> | 0.845 |</p>
-<p>: BGP benchmarks: mean <span class="math inline">\(\pm\)</span> SE over 20 replicates. GBC-IQN achieves lower CRPS at all dimensions. The GP uses Matern-<span class="math inline">\(5/2\)</span> with MLE hyperparameters. {#tbl-bgp}</p>
+<p><a href="#tbl-bgp" class="quarto-xref">Table&nbsp;<span>7.2</span></a> reports the results averaged over 20 replicates. GBC achieves lower RMSE and CRPS at every dimension, with the advantage growing as <span class="math inline">\(d\)</span> increases.</p>
+<div id="tbl-bgp" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-bgp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7.2: BGP benchmarks: mean <span class="math inline">\(\pm\)</span> SE over 20 replicates. GBC-IQN achieves lower CRPS at all dimensions. The GP uses Matern-<span class="math inline">\(5/2\)</span> with MLE hyperparameters.
+</figcaption>
+<div aria-describedby="tbl-bgp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span class="math inline">\(d\)</span></th>
+<th style="text-align: center;">GP RMSE</th>
+<th style="text-align: center;">GP CRPS</th>
+<th style="text-align: center;">GBC RMSE</th>
+<th style="text-align: center;">GBC CRPS</th>
+<th style="text-align: center;">GBC 90% Cov.</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">2</td>
+<td style="text-align: center;"><span class="math inline">\(2.514 \pm 0.053\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(1.379 \pm 0.024\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{2.168 \pm 0.028}\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{1.224 \pm 0.015}\)</span></td>
+<td style="text-align: center;">0.894</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><span class="math inline">\(2.762 \pm 0.045\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(1.515 \pm 0.022\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{2.197 \pm 0.018}\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{1.236 \pm 0.011}\)</span></td>
+<td style="text-align: center;">0.885</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">4</td>
+<td style="text-align: center;"><span class="math inline">\(3.122 \pm 0.060\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(1.716 \pm 0.030\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{2.245 \pm 0.017}\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{1.267 \pm 0.012}\)</span></td>
+<td style="text-align: center;">0.845</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <section id="sec-surr-bgp-analysis" class="level3" data-number="7.4.1">
 <h3 data-number="7.4.1" class="anchored" data-anchor-id="sec-surr-bgp-analysis"><span class="header-section-number">7.4.1</span> Dimension Scaling and Coverage Analysis</h3>
 <p>The first pattern is that the CRPS improvement grows with <span class="math inline">\(d\)</span>: at <span class="math inline">\(d=2\)</span>, GBC improves CRPS by 11% over the GP; at <span class="math inline">\(d=3\)</span> by 18%; at <span class="math inline">\(d=4\)</span> by 26%. This dimension-scaling effect has a clean explanation. As <span class="math inline">\(d\)</span> increases, the hyperplane boundary <span class="math inline">\(a^\top x = 0\)</span> becomes a <span class="math inline">\((d-1)\)</span>-dimensional manifold that occupies a growing fraction of the input volume. Points near the boundary, where the GP’s stationary assumption is most harmful, become more common relative to points deep within each regime. The stationary GP’s single length-scale estimate becomes less effective as the input dimension grows, because the orientation of the jump boundary varies across replicates and the GP cannot adapt locally.</p>
@@ -724,11 +838,53 @@ Figure&nbsp;7.3: 1D jump comparison: the stationary GP (red) blurs across the ju
 <section id="sec-surr-moto" class="level3" data-number="7.4.2">
 <h3 data-number="7.4.2" class="anchored" data-anchor-id="sec-surr-moto"><span class="header-section-number">7.4.2</span> Motorcycle Data: GBC Matches hetGP</h3>
 <p>We also test on a dataset that favors the GP. The <em>motorcycle crash dataset</em> (<a href="ch05-iqn.html#sec-iqn-motorcycle" class="quarto-xref"><span>Section 5.7</span></a>) is a canonical benchmark for heteroscedastic regression: head acceleration as a function of time after a simulated crash, with <span class="math inline">\(n = 133\)</span> observations. This is a one-dimensional, small-sample problem with clearly heteroscedastic but approximately Gaussian noise, the GP’s ideal setting. We compared GBC to <code>hetGP</code> <span class="citation" data-cites="binois2018practical">(<a href="references.html#ref-binois2018practical" role="doc-biblioref">Binois, Gramacy, and Ludkovski 2018</a>)</span>, the purpose-built heteroscedastic GP with a Matern-<span class="math inline">\(5/2\)</span> kernel and jointly estimated spatially-varying noise.</p>
-<p>Using 50 random 80:20 train/test splits (<span class="quarto-unresolved-ref">?tbl-moto</span>), GBC matches hetGP on CRPS within standard-error overlap. The GP achieves better coverage because its explicit noise model <span class="math inline">\(\sigma^2(x)\)</span> provides well-calibrated Gaussian intervals when the heteroscedastic Gaussian assumption holds. Ensembling closes part of the coverage gap by pooling quantile samples, widening intervals in regions of model disagreement.</p>
+<p>Using 50 random 80:20 train/test splits (<a href="#tbl-moto" class="quarto-xref">Table&nbsp;<span>7.3</span></a>), GBC matches hetGP on CRPS within standard-error overlap. The GP achieves better coverage because its explicit noise model <span class="math inline">\(\sigma^2(x)\)</span> provides well-calibrated Gaussian intervals when the heteroscedastic Gaussian assumption holds. Ensembling closes part of the coverage gap by pooling quantile samples, widening intervals in regions of model disagreement.</p>
 <p>The take-away is that GBC, with no custom noise model, is competitive with a specialist GP even on its home turf, a small (<span class="math inline">\(n = 133\)</span>), one-dimensional, heteroscedastic but Gaussian-conditional problem. The IQN’s flexibility is not a liability even when the GP’s assumptions are met.</p>
-<div class="line-block">Method | RMSE | CRPS | 90% Coverage |</div>
-<p>|:, |:, :|:, :|:, :| | hetGP (Matern-<span class="math inline">\(5/2\)</span>) | <span class="math inline">\(\mathbf{23.81 \pm 0.49}\)</span> | <span class="math inline">\(12.56 \pm 0.24\)</span> | 0.875 | | GBC (IQN, single) | <span class="math inline">\(23.92 \pm 0.57\)</span> | <span class="math inline">\(12.56 \pm 0.29\)</span> | 0.803 | | GBC (IQN, <span class="math inline">\(K{=}5\)</span> ensemble) | <span class="math inline">\(23.88 \pm 0.57\)</span> | <span class="math inline">\(\mathbf{12.49 \pm 0.29}\)</span> | 0.830 |</p>
-<p>: Motorcycle benchmark (MASS::mcycle, <span class="math inline">\(n=133\)</span>): mean <span class="math inline">\(\pm\)</span> SE over 50 replicates. hetGP is purpose-built for this setting; GBC achieves comparable CRPS with no custom noise model. {#tbl-moto}</p>
+<div id="tbl-moto" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-moto-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7.3: Motorcycle benchmark (MASS::mcycle, <span class="math inline">\(n=133\)</span>): mean <span class="math inline">\(\pm\)</span> SE over 50 replicates. hetGP is purpose-built for this setting; GBC achieves comparable CRPS with no custom noise model.
+</figcaption>
+<div aria-describedby="tbl-moto-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 26%">
+<col style="width: 26%">
+<col style="width: 26%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Method</th>
+<th style="text-align: center;">RMSE</th>
+<th style="text-align: center;">CRPS</th>
+<th style="text-align: center;">90% Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">hetGP (Matern-<span class="math inline">\(5/2\)</span>)</td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{23.81 \pm 0.49}\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(12.56 \pm 0.24\)</span></td>
+<td style="text-align: center;">0.875</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GBC (IQN, single)</td>
+<td style="text-align: center;"><span class="math inline">\(23.92 \pm 0.57\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(12.56 \pm 0.29\)</span></td>
+<td style="text-align: center;">0.803</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">GBC (IQN, <span class="math inline">\(K{=}5\)</span> ensemble)</td>
+<td style="text-align: center;"><span class="math inline">\(23.88 \pm 0.57\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{12.49 \pm 0.29}\)</span></td>
+<td style="text-align: center;">0.830</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>These benchmark results hold in moderate-SNR settings. On high-SNR problems the multiplicative τ-architecture can under-disperse, producing calibration failures; see <a href="ch14-calibration.html" class="quarto-xref"><span>Chapter 14</span></a> for the diagnostic and remedy.</p>
 </section>
 </section>
@@ -794,10 +950,46 @@ CRPS: 0.323
 Coverage: 0.991</code></pre>
 </div>
 </div>
-<p><span class="quarto-unresolved-ref">?tbl-friedman</span> reports the results.</p>
-<div class="line-block">Method | RMSE | CRPS | 90% Coverage |</div>
-<p>|:, |:, :|:, :|:, :| | GP (Matern-<span class="math inline">\(5/2\)</span>) | <span class="math inline">\(0.590 \pm 0.016\)</span> | <span class="math inline">\(0.378 \pm 0.005\)</span> | 0.995 | | GBC (IQN) | <span class="math inline">\(\mathbf{0.520 \pm 0.009}\)</span> | <span class="math inline">\(\mathbf{0.323 \pm 0.004}\)</span> | 0.991 |</p>
-<p>: Friedman <span class="math inline">\(d=10\)</span>, <span class="math inline">\(n=2{,}000\)</span>: mean <span class="math inline">\(\pm\)</span> SE over 10 replicates. GBC achieves 12% lower RMSE and 14% lower CRPS than the GP. {#tbl-friedman}</p>
+<p><a href="#tbl-friedman" class="quarto-xref">Table&nbsp;<span>7.4</span></a> reports the results.</p>
+<div id="tbl-friedman" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-friedman-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7.4: Friedman <span class="math inline">\(d=10\)</span>, <span class="math inline">\(n=2{,}000\)</span>: mean <span class="math inline">\(\pm\)</span> SE over 10 replicates. GBC achieves 12% lower RMSE and 14% lower CRPS than the GP.
+</figcaption>
+<div aria-describedby="tbl-friedman-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 26%">
+<col style="width: 26%">
+<col style="width: 26%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Method</th>
+<th style="text-align: center;">RMSE</th>
+<th style="text-align: center;">CRPS</th>
+<th style="text-align: center;">90% Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">GP (Matern-<span class="math inline">\(5/2\)</span>)</td>
+<td style="text-align: center;"><span class="math inline">\(0.590 \pm 0.016\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(0.378 \pm 0.005\)</span></td>
+<td style="text-align: center;">0.995</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GBC (IQN)</td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{0.520 \pm 0.009}\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{0.323 \pm 0.004}\)</span></td>
+<td style="text-align: center;">0.991</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>GBC improves RMSE by 12% and CRPS by 14%, with GBC achieving lower CRPS on every individual replicate (10 out of 10). Both methods produce coverage well above the 90% nominal level (0.991 and 0.995), indicating conservative, overly wide, prediction intervals. This is a sign that both surrogates are “playing it safe” on a relatively smooth function where the true conditional distribution is close to Gaussian.</p>
 <section id="sec-surr-friedman-inert" class="level3" data-number="7.5.1">
 <h3 data-number="7.5.1" class="anchored" data-anchor-id="sec-surr-friedman-inert"><span class="header-section-number">7.5.1</span> Sensitivity to Inert Variables</h3>
@@ -845,11 +1037,72 @@ Note
 </div>
 <p>Part (a) follows from the <span class="math inline">\(\mathcal{O}(n^3)\)</span> cost of the Cholesky decomposition, which dominates the GP’s marginal likelihood evaluation. The MLE optimizer typically requires 10–50 evaluations of the marginal likelihood, each involving a fresh Cholesky decomposition, so the total GP training cost is <span class="math inline">\(\Theta(n^3)\)</span> with a moderate multiplicative constant. Part (b) follows from the fact that each SGD epoch processes <span class="math inline">\(n\)</span> data points in batches, with constant-cost gradient computation per batch element. The total GBC training cost is <span class="math inline">\(E \cdot n / B \cdot c_{\text{batch}}\)</span> where <span class="math inline">\(E\)</span> is the number of epochs, <span class="math inline">\(B\)</span> is the batch size, and <span class="math inline">\(c_{\text{batch}}\)</span> is the per-batch forward-backward cost (which depends on the network architecture but is independent of <span class="math inline">\(n\)</span>).</p>
 <p>The crossover <span class="math inline">\(n^*\)</span> depends on the constant factors: the GP’s constant is small (Cholesky on a modern CPU is highly optimized via LAPACK) while the IQN’s constant is larger (gradient computation through multiple layers, GPU memory overhead, Python interpreter overhead). In practice, we find <span class="math inline">\(n^* \approx 1{,}500\)</span> on our hardware. This means that for small training sets, the GP is not only more accurate (due to its inductive bias) but also faster to train, a double advantage that explains why GPs remain the method of choice for expensive simulators where each evaluation costs hours and only <span class="math inline">\(n = 50\)</span>–<span class="math inline">\(200\)</span> runs are affordable.</p>
-<p><span class="quarto-unresolved-ref">?tbl-scaling</span> reports training times and test RMSE at each sample size.</p>
-<div class="line-block"><span class="math inline">\(n\)</span> | GP Time (s) | GP RMSE | GBC Time (s) | GBC RMSE |</div>
-<p>|, :|:, :|:, :|:, :|:, :| | 500 | 2.9 | 1.26 | 9.6 | 0.91 | | 1,000 | 9.7 | 0.76 | 10.4 | 0.71 | | 2,000 | 47.6 | 0.64 | 17.7 | 0.53 | | 5,000 |, |, | 41.2 | 0.40 | | 10,000 |, |, | 70.6 | 0.36 | | 20,000 |, |, | 152.5 | 0.29 |</p>
-<p>: Friedman <span class="math inline">\(d=10\)</span> scaling study. Training time (seconds) and test RMSE at each sample size. Dashes indicate the GP is computationally infeasible. Each row is a single run. {#tbl-scaling}</p>
-<p>The scaling patterns in <span class="quarto-unresolved-ref">?tbl-scaling</span> illustrate <a href="#prp-scaling" class="quarto-xref">Proposition&nbsp;<span>7.1</span></a>. From <span class="math inline">\(n = 500\)</span> to <span class="math inline">\(n = 1{,}000\)</span> (a <span class="math inline">\(2\times\)</span> increase), GP time grows from 2.9s to 9.7s, a factor of roughly <span class="math inline">\(3.3\times\)</span>, between the <span class="math inline">\(\mathcal{O}(n^2)\)</span> prediction of <span class="math inline">\(4\times\)</span> and the <span class="math inline">\(\mathcal{O}(n^3)\)</span> prediction of <span class="math inline">\(8\times\)</span>. From <span class="math inline">\(n = 1{,}000\)</span> to <span class="math inline">\(n = 2{,}000\)</span> (another <span class="math inline">\(2\times\)</span>), time grows from 9.7s to 47.6s, a factor of <span class="math inline">\(4.9\times\)</span>, trending toward the cubic rate. At these modest sample sizes, the <span class="math inline">\(\mathcal{O}(n^2)\)</span> gradient computation for MLE contributes alongside the <span class="math inline">\(\mathcal{O}(n^3)\)</span> Cholesky factorization; the true cubic behavior dominates at larger <span class="math inline">\(n\)</span>. Extrapolating at the asymptotic <span class="math inline">\(\mathcal{O}(n^3)\)</span> rate, <span class="math inline">\(n = 5{,}000\)</span> would require approximately <span class="math inline">\(47.6 \times (5000/2000)^3 \approx 743\)</span> seconds for a single MLE evaluation, and the optimizer may require dozens of iterations. The super-quadratic growth makes the dense GP impractical beyond <span class="math inline">\(n = 2{,}000\)</span> on standard hardware.</p>
+<p><a href="#tbl-scaling" class="quarto-xref">Table&nbsp;<span>7.5</span></a> reports training times and test RMSE at each sample size.</p>
+<div id="tbl-scaling" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-scaling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7.5: Friedman <span class="math inline">\(d=10\)</span> scaling study. Training time (seconds) and test RMSE at each sample size. Dashes indicate the GP is computationally infeasible. Each row is a single run.
+</figcaption>
+<div aria-describedby="tbl-scaling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: right;"><span class="math inline">\(n\)</span></th>
+<th style="text-align: center;">GP Time (s)</th>
+<th style="text-align: center;">GP RMSE</th>
+<th style="text-align: center;">GBC Time (s)</th>
+<th style="text-align: center;">GBC RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">500</td>
+<td style="text-align: center;">2.9</td>
+<td style="text-align: center;">1.26</td>
+<td style="text-align: center;">9.6</td>
+<td style="text-align: center;">0.91</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1,000</td>
+<td style="text-align: center;">9.7</td>
+<td style="text-align: center;">0.76</td>
+<td style="text-align: center;">10.4</td>
+<td style="text-align: center;">0.71</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2,000</td>
+<td style="text-align: center;">47.6</td>
+<td style="text-align: center;">0.64</td>
+<td style="text-align: center;">17.7</td>
+<td style="text-align: center;">0.53</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">5,000</td>
+<td style="text-align: center;">,</td>
+<td style="text-align: center;">,</td>
+<td style="text-align: center;">41.2</td>
+<td style="text-align: center;">0.40</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">10,000</td>
+<td style="text-align: center;">,</td>
+<td style="text-align: center;">,</td>
+<td style="text-align: center;">70.6</td>
+<td style="text-align: center;">0.36</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">20,000</td>
+<td style="text-align: center;">,</td>
+<td style="text-align: center;">,</td>
+<td style="text-align: center;">152.5</td>
+<td style="text-align: center;">0.29</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The scaling patterns in <a href="#tbl-scaling" class="quarto-xref">Table&nbsp;<span>7.5</span></a> illustrate <a href="#prp-scaling" class="quarto-xref">Proposition&nbsp;<span>7.1</span></a>. From <span class="math inline">\(n = 500\)</span> to <span class="math inline">\(n = 1{,}000\)</span> (a <span class="math inline">\(2\times\)</span> increase), GP time grows from 2.9s to 9.7s, a factor of roughly <span class="math inline">\(3.3\times\)</span>, between the <span class="math inline">\(\mathcal{O}(n^2)\)</span> prediction of <span class="math inline">\(4\times\)</span> and the <span class="math inline">\(\mathcal{O}(n^3)\)</span> prediction of <span class="math inline">\(8\times\)</span>. From <span class="math inline">\(n = 1{,}000\)</span> to <span class="math inline">\(n = 2{,}000\)</span> (another <span class="math inline">\(2\times\)</span>), time grows from 9.7s to 47.6s, a factor of <span class="math inline">\(4.9\times\)</span>, trending toward the cubic rate. At these modest sample sizes, the <span class="math inline">\(\mathcal{O}(n^2)\)</span> gradient computation for MLE contributes alongside the <span class="math inline">\(\mathcal{O}(n^3)\)</span> Cholesky factorization; the true cubic behavior dominates at larger <span class="math inline">\(n\)</span>. Extrapolating at the asymptotic <span class="math inline">\(\mathcal{O}(n^3)\)</span> rate, <span class="math inline">\(n = 5{,}000\)</span> would require approximately <span class="math inline">\(47.6 \times (5000/2000)^3 \approx 743\)</span> seconds for a single MLE evaluation, and the optimizer may require dozens of iterations. The super-quadratic growth makes the dense GP impractical beyond <span class="math inline">\(n = 2{,}000\)</span> on standard hardware.</p>
 <p>GBC time, by contrast, grows linearly: from <span class="math inline">\(n = 500\)</span> to <span class="math inline">\(n = 20{,}000\)</span> (a <span class="math inline">\(40\times\)</span> increase), GBC time grows from 9.6s to 152.5s, approximately <span class="math inline">\(16\times\)</span>, consistent with <span class="math inline">\(\mathcal{O}(n)\)</span> SGD scaling. The sub-linear ratio (<span class="math inline">\(16\times\)</span> for a <span class="math inline">\(40\times\)</span> increase in <span class="math inline">\(n\)</span>) reflects the fact that GPU parallelism absorbs some of the cost increase: larger batches utilize more of the GPU’s compute capacity, improving throughput. The crossover where GBC becomes faster occurs at approximately <span class="math inline">\(n = 1{,}500\)</span>; below this threshold the Cholesky decomposition of a small matrix is cheaper than 3,000 epochs of gradient descent.</p>
 <p>As <span class="math inline">\(n\)</span> grows from 2,000 to 20,000, GBC RMSE drops from 0.53 to 0.29, a 45% reduction, while the GP cannot benefit from additional data because it cannot process it. GBC achieves lower RMSE than the GP at every sample size tested, including <span class="math inline">\(n = 500\)</span> (0.91 vs.&nbsp;1.26), where the GP has its computational advantage. This reflects the IQN’s ability to capture the nonlinear interaction in the Friedman function even with limited data.</p>
 <p>The RMSE learning curve for GBC approximately follows a power law: <span class="math inline">\(\text{RMSE}(n) \propto n^{-\beta}\)</span> for some exponent <span class="math inline">\(\beta &gt; 0\)</span>. Fitting a log-log regression to the six GBC data points yields <span class="math inline">\(\hat{\beta} \approx 0.30\)</span>, meaning that each doubling of training-set size reduces RMSE by approximately <span class="math inline">\(1 - 2^{-0.30} \approx 19\%\)</span>. This rate is slower than the parametric rate <span class="math inline">\(n^{-1/2}\)</span> that would apply if the model were correctly specified, reflecting the fact that the IQN must learn the function’s nonlinear structure from data rather than relying on a parametric form. The nonparametric minimax rate for a function with <span class="math inline">\(s\)</span> continuous derivatives in <span class="math inline">\(d\)</span> dimensions is <span class="math inline">\(n^{-s/(2s+d)}\)</span>; for the Friedman function (<span class="math inline">\(s = \infty\)</span> for the smooth components, effectively <span class="math inline">\(s \approx 2\)</span> when accounting for the interaction structure, and <span class="math inline">\(d_{\text{eff}} \approx 5\)</span> active dimensions), this rate is approximately <span class="math inline">\(n^{-2/9} \approx n^{-0.22}\)</span>. Our empirical <span class="math inline">\(\hat{\beta} = 0.30\)</span> exceeds this lower bound, suggesting that the IQN is achieving near-optimal learning rates on this problem.</p>
@@ -986,7 +1239,7 @@ Figure&nbsp;7.5: Decision guide for choosing a surrogate method. The choice depe
 <ol type="a">
 <li><p>Implement the Friedman function (<a href="#eq-friedman" class="quarto-xref">Eq.&nbsp;<span>7.7</span></a>) and generate datasets at <span class="math inline">\(n \in \{500, 1000, 2000, 5000\}\)</span>. For each <span class="math inline">\(n\)</span>, train an IQN and record the wall-clock training time and test RMSE on 500 held-out points.</p></li>
 <li><p>Fit a linear regression of <span class="math inline">\(\log(\text{time})\)</span> on <span class="math inline">\(\log(n)\)</span>. What is the estimated exponent? Is it consistent with <span class="math inline">\(\mathcal{O}(n)\)</span> scaling?</p></li>
-<li><p>If you have access to a GP implementation, repeat the timing for <span class="math inline">\(n \in \{500, 1000, 2000\}\)</span> and estimate the GP’s scaling exponent. Compare the crossover point to the one reported in <span class="quarto-unresolved-ref">?tbl-scaling</span>.</p></li>
+<li><p>If you have access to a GP implementation, repeat the timing for <span class="math inline">\(n \in \{500, 1000, 2000\}\)</span> and estimate the GP’s scaling exponent. Compare the crossover point to the one reported in <a href="#tbl-scaling" class="quarto-xref">Table&nbsp;<span>7.5</span></a>.</p></li>
 </ol>
 </div>
 <div id="exr-surr-3" class="theorem exercise">
@@ -998,7 +1251,7 @@ Figure&nbsp;7.5: Decision guide for choosing a surrogate method. The choice depe
 </ol>
 </div>
 <div id="exr-surr-4" class="theorem exercise">
-<p><span class="theorem-title"><strong>Exercise 7.4</strong></span> <strong>Ensemble surrogates.</strong> The motorcycle result in <span class="quarto-unresolved-ref">?tbl-moto</span> showed that ensembling <span class="math inline">\(K=5\)</span> IQNs improved CRPS from 12.56 to 12.49. Investigate ensembling on the Friedman function.</p>
+<p><span class="theorem-title"><strong>Exercise 7.4</strong></span> <strong>Ensemble surrogates.</strong> The motorcycle result in <a href="#tbl-moto" class="quarto-xref">Table&nbsp;<span>7.3</span></a> showed that ensembling <span class="math inline">\(K=5\)</span> IQNs improved CRPS from 12.56 to 12.49. Investigate ensembling on the Friedman function.</p>
 <ol type="a">
 <li><p>Train <span class="math inline">\(K \in \{1, 3, 5, 10\}\)</span> independent IQNs on the same Friedman training data (<span class="math inline">\(n = 2{,}000\)</span>), using different random seeds for each ensemble member.</p></li>
 <li><p>For each <span class="math inline">\(K\)</span>, compute CRPS and 90% coverage by pooling the quantile samples from all <span class="math inline">\(K\)</span> members. Does ensembling improve CRPS? Does it improve coverage?</p></li>
@@ -1036,7 +1289,7 @@ Figure&nbsp;7.5: Decision guide for choosing a surrogate method. The choice depe
 </ol>
 </div>
 <div id="exr-surr-8" class="theorem exercise">
-<p><span class="theorem-title"><strong>Exercise 7.8</strong></span> <strong>Coverage calibration on the Friedman function.</strong> Both GP and GBC exhibit over-coverage (<span class="math inline">\(&gt;99\%\)</span>) on the Friedman benchmark (<span class="quarto-unresolved-ref">?tbl-friedman</span>). This exercise investigates whether post-processing can correct it.</p>
+<p><span class="theorem-title"><strong>Exercise 7.8</strong></span> <strong>Coverage calibration on the Friedman function.</strong> Both GP and GBC exhibit over-coverage (<span class="math inline">\(&gt;99\%\)</span>) on the Friedman benchmark (<a href="#tbl-friedman" class="quarto-xref">Table&nbsp;<span>7.4</span></a>). This exercise investigates whether post-processing can correct it.</p>
 <ol type="a">
 <li><p>Train a GBC surrogate on <span class="math inline">\(n = 2{,}000\)</span> Friedman training points. Compute the 90% prediction intervals on 500 test points. Verify that empirical coverage exceeds 95%.</p></li>
 <li><p>Implement a simple <em>conformalization</em> procedure: split the training data into a proper training set (80%) and a calibration set (20%). Train the IQN on the proper set, then compute the conformity scores <span class="math inline">\(s_i = |y_i - \hat{Q}(0.5 \mid x_i)|\)</span> on the calibration set. Compute the <span class="math inline">\(\lceil 0.90 \cdot (n_{\text{cal}} + 1) \rceil / n_{\text{cal}}\)</span> quantile of the scores.</p></li>
@@ -1728,7 +1981,7 @@ Vecchia, Aldo V. 1988. <span>“Estimation and Model Identification for Continuo
 <span id="cb10-156"><a href="#cb10-156" aria-hidden="true" tabindex="-1"></a>@tbl-gp-vs-gbc summarizes the key differences between GP and GBC surrogates. The remainder of the chapter tests these claims empirically.</span>
 <span id="cb10-157"><a href="#cb10-157" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-158"><a href="#cb10-158" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Feature <span class="pp">|</span> GP <span class="pp">|</span> GBC (IQN) <span class="pp">|</span></span>
-<span id="cb10-159"><a href="#cb10-159" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, <span class="pp">|</span>:, <span class="pp">|</span>:, <span class="pp">|</span></span>
+<span id="cb10-159"><a href="#cb10-159" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---|:---|</span></span>
 <span id="cb10-160"><a href="#cb10-160" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Training cost <span class="pp">|</span> $\mathcal{O}(n^3)$ <span class="pp">|</span> $\mathcal{O}(n)$ per epoch <span class="pp">|</span></span>
 <span id="cb10-161"><a href="#cb10-161" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Prediction cost <span class="pp">|</span> $\mathcal{O}(n)$ per point <span class="pp">|</span> $\mathcal{O}(1)$ per point <span class="pp">|</span></span>
 <span id="cb10-162"><a href="#cb10-162" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Predictive distribution <span class="pp">|</span> Gaussian <span class="pp">|</span> Arbitrary (quantile function) <span class="pp">|</span></span>
@@ -1905,7 +2158,7 @@ Vecchia, Aldo V. 1988. <span>“Estimation and Model Identification for Continuo
 <span id="cb10-333"><a href="#cb10-333" aria-hidden="true" tabindex="-1"></a>@tbl-bgp reports the results averaged over 20 replicates. GBC achieves lower RMSE and CRPS at every dimension, with the advantage growing as $d$ increases.</span>
 <span id="cb10-334"><a href="#cb10-334" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-335"><a href="#cb10-335" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $d$ <span class="pp">|</span> GP RMSE <span class="pp">|</span> GP CRPS <span class="pp">|</span> GBC RMSE <span class="pp">|</span> GBC CRPS <span class="pp">|</span> GBC 90% Cov. <span class="pp">|</span></span>
-<span id="cb10-336"><a href="#cb10-336" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span></span>
+<span id="cb10-336"><a href="#cb10-336" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---:|:---:|:---:|:---:|:---:|:---:|</span></span>
 <span id="cb10-337"><a href="#cb10-337" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2 <span class="pp">|</span> $2.514 \pm 0.053$ <span class="pp">|</span> $1.379 \pm 0.024$ <span class="pp">|</span> $\mathbf{2.168 \pm 0.028}$ <span class="pp">|</span> $\mathbf{1.224 \pm 0.015}$ <span class="pp">|</span> 0.894 <span class="pp">|</span></span>
 <span id="cb10-338"><a href="#cb10-338" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 3 <span class="pp">|</span> $2.762 \pm 0.045$ <span class="pp">|</span> $1.515 \pm 0.022$ <span class="pp">|</span> $\mathbf{2.197 \pm 0.018}$ <span class="pp">|</span> $\mathbf{1.236 \pm 0.011}$ <span class="pp">|</span> 0.885 <span class="pp">|</span></span>
 <span id="cb10-339"><a href="#cb10-339" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 4 <span class="pp">|</span> $3.122 \pm 0.060$ <span class="pp">|</span> $1.716 \pm 0.030$ <span class="pp">|</span> $\mathbf{2.245 \pm 0.017}$ <span class="pp">|</span> $\mathbf{1.267 \pm 0.012}$ <span class="pp">|</span> 0.845 <span class="pp">|</span></span>
@@ -1953,7 +2206,7 @@ Vecchia, Aldo V. 1988. <span>“Estimation and Model Identification for Continuo
 <span id="cb10-381"><a href="#cb10-381" aria-hidden="true" tabindex="-1"></a>The take-away is that GBC, with no custom noise model, is competitive with a specialist GP even on its home turf, a small ($n = 133$), one-dimensional, heteroscedastic but Gaussian-conditional problem. The IQN's flexibility is not a liability even when the GP's assumptions are met.</span>
 <span id="cb10-382"><a href="#cb10-382" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-383"><a href="#cb10-383" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> RMSE <span class="pp">|</span> CRPS <span class="pp">|</span> 90% Coverage <span class="pp">|</span></span>
-<span id="cb10-384"><a href="#cb10-384" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, <span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span></span>
+<span id="cb10-384"><a href="#cb10-384" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---:|:---:|:---:|</span></span>
 <span id="cb10-385"><a href="#cb10-385" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> hetGP (Matern-$5/2$) <span class="pp">|</span> $\mathbf{23.81 \pm 0.49}$ <span class="pp">|</span> $12.56 \pm 0.24$ <span class="pp">|</span> 0.875 <span class="pp">|</span></span>
 <span id="cb10-386"><a href="#cb10-386" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> GBC (IQN, single) <span class="pp">|</span> $23.92 \pm 0.57$ <span class="pp">|</span> $12.56 \pm 0.29$ <span class="pp">|</span> 0.803 <span class="pp">|</span></span>
 <span id="cb10-387"><a href="#cb10-387" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> GBC (IQN, $K{=}5$ ensemble) <span class="pp">|</span> $23.88 \pm 0.57$ <span class="pp">|</span> $\mathbf{12.49 \pm 0.29}$ <span class="pp">|</span> 0.830 <span class="pp">|</span></span>
@@ -2045,7 +2298,7 @@ Vecchia, Aldo V. 1988. <span>“Estimation and Model Identification for Continuo
 <span id="cb10-473"><a href="#cb10-473" aria-hidden="true" tabindex="-1"></a>@tbl-friedman reports the results.</span>
 <span id="cb10-474"><a href="#cb10-474" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-475"><a href="#cb10-475" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> RMSE <span class="pp">|</span> CRPS <span class="pp">|</span> 90% Coverage <span class="pp">|</span></span>
-<span id="cb10-476"><a href="#cb10-476" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, <span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span></span>
+<span id="cb10-476"><a href="#cb10-476" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---:|:---:|:---:|</span></span>
 <span id="cb10-477"><a href="#cb10-477" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> GP (Matern-$5/2$) <span class="pp">|</span> $0.590 \pm 0.016$ <span class="pp">|</span> $0.378 \pm 0.005$ <span class="pp">|</span> 0.995 <span class="pp">|</span></span>
 <span id="cb10-478"><a href="#cb10-478" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> GBC (IQN) <span class="pp">|</span> $\mathbf{0.520 \pm 0.009}$ <span class="pp">|</span> $\mathbf{0.323 \pm 0.004}$ <span class="pp">|</span> 0.991 <span class="pp">|</span></span>
 <span id="cb10-479"><a href="#cb10-479" aria-hidden="true" tabindex="-1"></a></span>
@@ -2114,7 +2367,7 @@ Vecchia, Aldo V. 1988. <span>“Estimation and Model Identification for Continuo
 <span id="cb10-542"><a href="#cb10-542" aria-hidden="true" tabindex="-1"></a>@tbl-scaling reports training times and test RMSE at each sample size.</span>
 <span id="cb10-543"><a href="#cb10-543" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-544"><a href="#cb10-544" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $n$ <span class="pp">|</span> GP Time (s) <span class="pp">|</span> GP RMSE <span class="pp">|</span> GBC Time (s) <span class="pp">|</span> GBC RMSE <span class="pp">|</span></span>
-<span id="cb10-545"><a href="#cb10-545" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span></span>
+<span id="cb10-545"><a href="#cb10-545" aria-hidden="true" tabindex="-1"></a><span class="pp">|---:|:---:|:---:|:---:|:---:|</span></span>
 <span id="cb10-546"><a href="#cb10-546" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 500 <span class="pp">|</span> 2.9 <span class="pp">|</span> 1.26 <span class="pp">|</span> 9.6 <span class="pp">|</span> 0.91 <span class="pp">|</span></span>
 <span id="cb10-547"><a href="#cb10-547" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 1,000 <span class="pp">|</span> 9.7 <span class="pp">|</span> 0.76 <span class="pp">|</span> 10.4 <span class="pp">|</span> 0.71 <span class="pp">|</span></span>
 <span id="cb10-548"><a href="#cb10-548" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2,000 <span class="pp">|</span> 47.6 <span class="pp">|</span> 0.64 <span class="pp">|</span> 17.7 <span class="pp">|</span> 0.53 <span class="pp">|</span></span>

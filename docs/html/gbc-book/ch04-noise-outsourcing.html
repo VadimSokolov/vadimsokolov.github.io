@@ -725,9 +725,46 @@ F_{Y|X}(y \mid x) = \sup\{\tau \in (0,1) : G^*(\tau, x) \leq y\}.
 \]</span> From the CDF, we can compute any functional of the distribution: the mean <span class="math inline">\(\mathbb{E}[Y|X=x] = \int_0^1 G^*(\tau, x) \, d\tau\)</span>, the variance, any moment, the mode, the entropy, or any expected utility. <span class="math inline">\(\square\)</span></p>
 <p>The proposition may seem almost tautological, of course knowing the full quantile function is equivalent to knowing the full distribution. But the point is deeper than it appears. It tells us that <em>a single function of two arguments</em>, <span class="math inline">\(G^*(\tau, x)\)</span>, is a sufficient representation of the infinite-dimensional family of conditional distributions indexed by <span class="math inline">\(x\)</span>. We do not need a separate object for each <span class="math inline">\(x\)</span>; we need one function that takes <span class="math inline">\(x\)</span> as an input. This is why learning <span class="math inline">\(G^*\)</span> with a neural network is such a natural approach: the network parameterizes the entire family of conditional distributions simultaneously.</p>
 <p>It is instructive to compare what different “levels” of knowledge about the conditional distribution buy us:</p>
-<div class="line-block">What we know | What we can compute | What we miss |</div>
-<p>|, |, |, | | <span class="math inline">\(\mathbb{E}[Y \mid X = x]\)</span> | Point predictions, MSE-optimal forecasts | Uncertainty, intervals, tail risk | | <span class="math inline">\(\mathbb{E}[Y \mid X = x]\)</span> and <span class="math inline">\(\mathrm{Var}(Y \mid X = x)\)</span> | Prediction intervals (if Gaussian) | Skewness, multimodality, tail shape | | <span class="math inline">\(G^*(\tau, x)\)</span> for all <span class="math inline">\(\tau\)</span> | <em>Everything</em>: full distribution, any functional | Nothing, this is sufficient |</p>
-<p>: Hierarchy of conditional summaries. {#tbl-no-hierarchy}</p>
+<div id="tbl-no-hierarchy" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-no-hierarchy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4.1: Hierarchy of conditional summaries.
+</figcaption>
+<div aria-describedby="tbl-no-hierarchy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>What we know</th>
+<th>What we can compute</th>
+<th>What we miss</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(\mathbb{E}[Y \mid X = x]\)</span></td>
+<td>Point predictions, MSE-optimal forecasts</td>
+<td>Uncertainty, intervals, tail risk</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\mathbb{E}[Y \mid X = x]\)</span> and <span class="math inline">\(\mathrm{Var}(Y \mid X = x)\)</span></td>
+<td>Prediction intervals (if Gaussian)</td>
+<td>Skewness, multimodality, tail shape</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(G^*(\tau, x)\)</span> for all <span class="math inline">\(\tau\)</span></td>
+<td><em>Everything</em>: full distribution, any functional</td>
+<td>Nothing, this is sufficient</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The conditional quantile function sits at the top of this hierarchy. It is the minimal object that carries complete information about the conditional distribution. This is why the GBC approach, learning <span class="math inline">\(G^*\)</span> via an implicit quantile network, is fundamentally more informative than standard regression (which learns only the conditional mean) or heteroscedastic regression (which learns the mean and variance). The additional computational cost of learning the full quantile function, compared to learning just the mean, is modest: we simply add a <span class="math inline">\(\tau\)</span> input to the network and train with the pinball loss instead of squared error. The network size need not increase substantially, the <span class="math inline">\(\tau\)</span> input is a single scalar, and the cosine embedding (described in <a href="ch05-iqn.html" class="quarto-xref"><span>Chapter 5</span></a>) adds a modest number of features. The reward is enormous: we go from a single point prediction to the entire conditional distribution, with all the uncertainty quantification, interval estimation, and decision-theoretic capabilities that it entails. As we shall see in <a href="ch12-meu.html" class="quarto-xref"><span>Chapter 12</span></a>, having access to the full quantile function also enables density-free expected utility calculations, which are central to Bayesian decision theory.</p>
 </section>
 <section id="sec-no-gbc-corollary" class="level2" data-number="4.6">
@@ -906,9 +943,69 @@ Figure&nbsp;4.3: Noise outsourcing for a zero-inflated Poisson. Left: the quanti
 <p>The trade-off is that the noise outsourcing representation is inherently one-dimensional in the latent space (per output component). VAEs can use high-dimensional latent spaces to capture complex structure, which can be advantageous for high-dimensional data like images. However, the autoregressive extension in <a href="#sec-no-multivariate" class="quarto-xref"><span>Section 4.3</span></a> shows that multiple independent uniform draws can model arbitrary joint distributions, achieving the same expressive power through a different mechanism.</p>
 <p>There is also a connection to normalizing flows, which are another popular class of generative models. A normalizing flow learns an invertible map <span class="math inline">\(f_\phi : \mathcal{Z} \to \mathcal{Y}\)</span> from a base distribution (usually Gaussian) to the target. The key constraint is invertibility, which limits the architecture to invertible layers (coupling layers, autoregressive transforms, etc.) and requires computing the Jacobian determinant for the density. The noise outsourcing map <span class="math inline">\(G^*\)</span> faces no such constraint: it need not be invertible, it does not require a Jacobian, and it works with a uniform base rather than a Gaussian one. The price we pay is that <span class="math inline">\(G^*\)</span> does not give us a density, but for Bayesian computation, we rarely need the density. We need samples and quantiles, and those are exactly what <span class="math inline">\(G^*\)</span> provides.</p>
 <p>The following table summarizes the key differences among the three approaches:</p>
-<div class="line-block">Feature | Noise Outsourcing (GBC) | VAE | Normalizing Flow |</div>
-<p>|, |, |, |, | | Base distribution | Fixed <span class="math inline">\(\mathrm{Uniform}(0,1)\)</span> | Learned <span class="math inline">\(q_\phi(z \mid x)\)</span> | Fixed (e.g., <span class="math inline">\(\mathcal{N}(0,1)\)</span>) | | Map learned | <span class="math inline">\(G^*(\tau, x)\)</span> (quantile) | Decoder <span class="math inline">\(p_\psi(x \mid z)\)</span> | Invertible <span class="math inline">\(f_\phi(z)\)</span> | | Density available? | No (density-free) | Approximate (ELBO bound) | Yes (exact via Jacobian) | | Invertibility required? | No | No | Yes | | Quantiles available? | Yes (by construction) | No (requires post-hoc) | No (requires post-hoc) | | Posterior collapse? | Impossible | Common pathology | Not applicable |</p>
-<p>: Comparison of generative approaches. {#tbl-no-generative-comparison}</p>
+<div id="tbl-no-generative-comparison" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-no-generative-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4.2: Comparison of generative approaches.
+</figcaption>
+<div aria-describedby="tbl-no-generative-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Feature</th>
+<th>Noise Outsourcing (GBC)</th>
+<th>VAE</th>
+<th>Normalizing Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Base distribution</td>
+<td>Fixed <span class="math inline">\(\mathrm{Uniform}(0,1)\)</span></td>
+<td>Learned <span class="math inline">\(q_\phi(z \mid x)\)</span></td>
+<td>Fixed (e.g., <span class="math inline">\(\mathcal{N}(0,1)\)</span>)</td>
+</tr>
+<tr class="even">
+<td>Map learned</td>
+<td><span class="math inline">\(G^*(\tau, x)\)</span> (quantile)</td>
+<td>Decoder <span class="math inline">\(p_\psi(x \mid z)\)</span></td>
+<td>Invertible <span class="math inline">\(f_\phi(z)\)</span></td>
+</tr>
+<tr class="odd">
+<td>Density available?</td>
+<td>No (density-free)</td>
+<td>Approximate (ELBO bound)</td>
+<td>Yes (exact via Jacobian)</td>
+</tr>
+<tr class="even">
+<td>Invertibility required?</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td>Quantiles available?</td>
+<td>Yes (by construction)</td>
+<td>No (requires post-hoc)</td>
+<td>No (requires post-hoc)</td>
+</tr>
+<tr class="even">
+<td>Posterior collapse?</td>
+<td>Impossible</td>
+<td>Common pathology</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 </section>
 <section id="sec-no-ot" class="level2" data-number="4.9">
 <h2 data-number="4.9" class="anchored" data-anchor-id="sec-no-ot"><span class="header-section-number">4.9</span> Connection to Optimal Transport</h2>
@@ -1861,7 +1958,7 @@ Polson, Nick, Fabrizio Ruggeri, and Vadim Sokolov. 2024. <span>“Generative <sp
 <span id="cb4-326"><a href="#cb4-326" aria-hidden="true" tabindex="-1"></a>It is instructive to compare what different "levels" of knowledge about the conditional distribution buy us:</span>
 <span id="cb4-327"><a href="#cb4-327" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-328"><a href="#cb4-328" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> What we know <span class="pp">|</span> What we can compute <span class="pp">|</span> What we miss <span class="pp">|</span></span>
-<span id="cb4-329"><a href="#cb4-329" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, <span class="pp">|</span>, <span class="pp">|</span>, <span class="pp">|</span></span>
+<span id="cb4-329"><a href="#cb4-329" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
 <span id="cb4-330"><a href="#cb4-330" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $\mathbb{E}<span class="co">[</span><span class="ot">Y \mid X = x</span><span class="co">]</span>$ <span class="pp">|</span> Point predictions, MSE-optimal forecasts <span class="pp">|</span> Uncertainty, intervals, tail risk <span class="pp">|</span></span>
 <span id="cb4-331"><a href="#cb4-331" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $\mathbb{E}<span class="co">[</span><span class="ot">Y \mid X = x</span><span class="co">]</span>$ and $\mathrm{Var}(Y \mid X = x)$ <span class="pp">|</span> Prediction intervals (if Gaussian) <span class="pp">|</span> Skewness, multimodality, tail shape <span class="pp">|</span></span>
 <span id="cb4-332"><a href="#cb4-332" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $G^*(\tau, x)$ for all $\tau$ | *Everything*: full distribution, any functional <span class="pp">|</span> Nothing, this is sufficient <span class="pp">|</span></span>
@@ -2062,7 +2159,7 @@ Polson, Nick, Fabrizio Ruggeri, and Vadim Sokolov. 2024. <span>“Generative <sp
 <span id="cb4-527"><a href="#cb4-527" aria-hidden="true" tabindex="-1"></a>The following table summarizes the key differences among the three approaches:</span>
 <span id="cb4-528"><a href="#cb4-528" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-529"><a href="#cb4-529" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Feature <span class="pp">|</span> Noise Outsourcing (GBC) <span class="pp">|</span> VAE <span class="pp">|</span> Normalizing Flow <span class="pp">|</span></span>
-<span id="cb4-530"><a href="#cb4-530" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, <span class="pp">|</span>, <span class="pp">|</span>, <span class="pp">|</span>, <span class="pp">|</span></span>
+<span id="cb4-530"><a href="#cb4-530" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|---|</span></span>
 <span id="cb4-531"><a href="#cb4-531" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Base distribution <span class="pp">|</span> Fixed $\mathrm{Uniform}(0,1)$ <span class="pp">|</span> Learned $q_\phi(z \mid x)$ <span class="pp">|</span> Fixed (e.g., $\mathcal{N}(0,1)$) <span class="pp">|</span></span>
 <span id="cb4-532"><a href="#cb4-532" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Map learned <span class="pp">|</span> $G^*(\tau, x)$ (quantile) <span class="pp">|</span> Decoder $p_\psi(x \mid z)$ <span class="pp">|</span> Invertible $f_\phi(z)$ <span class="pp">|</span></span>
 <span id="cb4-533"><a href="#cb4-533" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Density available? <span class="pp">|</span> No (density-free) <span class="pp">|</span> Approximate (ELBO bound) <span class="pp">|</span> Yes (exact via Jacobian) <span class="pp">|</span></span>

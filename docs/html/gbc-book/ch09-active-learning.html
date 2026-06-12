@@ -551,9 +551,51 @@ G_{\phi_{k'}}(\tau, x) = g_{\phi_{k'}}(\tau, x) + \alpha \, g_{0,k'}(\tau, x).
 <p>The weight initialization distribution for the frozen network also matters. We use the default PyTorch initialization (Kaiming uniform for linear layers), which produces weights scaled to maintain unit variance through the network. Other initializations would produce different prior perturbation scales. For instance, initializing the frozen network with larger weights would effectively increase <span class="math inline">\(\alpha\)</span> without changing the prior scale parameter, while initializing with smaller weights would decrease the effective prior contribution. In practice, the combination of default initialization and <span class="math inline">\(\alpha = 0.5\)</span> produces perturbations of appropriate magnitude relative to the trainable network’s predictions, and we have not found it necessary to tune the initialization distribution separately.</p>
 <p>One might also consider using structured prior networks rather than random ones. For example, if the practitioner has prior knowledge about the response surface’s structure, such as periodicity, monotonicity, or known symmetries, this knowledge could be encoded in the frozen prior network’s architecture or initialization. A periodic prior network (using sinusoidal activation functions) would produce periodic perturbations, making the ensemble more sensitive to periodic features in the response surface. We have not explored structured priors in this chapter, but they represent a natural extension that would bridge the gap between the GP’s explicit prior (encoded in the kernel function) and the randomized prior’s implicit prior (encoded in the random network architecture).</p>
 <p>We tested four alternative uncertainty quantification strategies for active learning. All were inferior to randomized priors on our benchmarks.</p>
-<div class="line-block">Strategy | Mechanism | Problem |</div>
-<p>|, , -|, , –|, , | | Bootstrap ensemble | Train each member on a resampled dataset | Degenerate at small <span class="math inline">\(n\)</span>; 17–30% worse than random | | SNGP <span class="citation" data-cites="liu2020simple">(<a href="references.html#ref-liu2020simple" role="doc-biblioref">Liu et al. 2020</a>)</span> | Spectral-normalized GP last layer | No better than random on <span class="math inline">\(d \geq 7\)</span> | | Anchored ensemble | L2 penalty toward frozen initialization | Similar to randprior but less stable | | Single-model quantile spread | Width of IQN’s own predictive interval | Collapses as IQN overfits the training set |</p>
-<p>: Acquisition strategies tested for GBC active learning. {#tbl-al-strategies}</p>
+<div id="tbl-al-strategies" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-al-strategies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.1: Acquisition strategies tested for GBC active learning.
+</figcaption>
+<div aria-describedby="tbl-al-strategies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 38%">
+<col style="width: 28%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Strategy</th>
+<th>Mechanism</th>
+<th>Problem</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Bootstrap ensemble</td>
+<td>Train each member on a resampled dataset</td>
+<td>Degenerate at small <span class="math inline">\(n\)</span>; 17–30% worse than random</td>
+</tr>
+<tr class="even">
+<td>SNGP <span class="citation" data-cites="liu2020simple">(<a href="references.html#ref-liu2020simple" role="doc-biblioref">Liu et al. 2020</a>)</span></td>
+<td>Spectral-normalized GP last layer</td>
+<td>No better than random on <span class="math inline">\(d \geq 7\)</span></td>
+</tr>
+<tr class="odd">
+<td>Anchored ensemble</td>
+<td>L2 penalty toward frozen initialization</td>
+<td>Similar to randprior but less stable</td>
+</tr>
+<tr class="even">
+<td>Single-model quantile spread</td>
+<td>Width of IQN’s own predictive interval</td>
+<td>Collapses as IQN overfits the training set</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>Each of these failure modes deserves closer examination, because they illuminate why epistemic uncertainty is fundamentally difficult for neural networks.</p>
 <p><em>Bootstrap ensembles</em> fail because active learning operates in the small-<span class="math inline">\(n\)</span> regime where bootstrap resampling is most destructive. With <span class="math inline">\(n = 50\)</span> training points and sampling with replacement, approximately <span class="math inline">\(1 - (1 - 1/n)^n \approx 63\%\)</span> of the original points appear in each resample, meaning roughly a third of the data is missing from each member’s training set. When <span class="math inline">\(n\)</span> is small, those missing points may constitute the only observations in an entire region of input space, so the ensemble member trained without them produces wildly inaccurate predictions there, not because epistemic uncertainty is high, but because the training set is deficient. The resulting disagreement is driven by data poverty rather than genuine model uncertainty, creating an acquisition signal that is essentially noise.</p>
 <p>The problem is compounded by the sequential nature of active learning. After the first acquisition, the training set grows to <span class="math inline">\(n + 1\)</span> points. The bootstrap resample of this slightly larger set will still be degenerate, and the new point (which was selected based on the noisy acquisition signal) may not improve the situation. Over multiple iterations, the bootstrap ensemble can enter a pathological cycle: it selects uninformative points because its disagreement signal is noisy, and the uninformative points do not improve the disagreement signal, so the next selection is equally uninformative. In our 7D proxy benchmark, bootstrap ensemble acquisition performed 17% <em>worse</em> than uniform random sampling, meaning the acquisition signal was actively harmful, it directed acquisitions to worse locations than random chance would have produced. On the SatMini benchmark, the degradation was 30%, confirming that bootstrap ensembles are unsuitable for active learning with neural networks at small sample sizes.</p>
@@ -685,15 +727,62 @@ a(x) = \sqrt{\frac{1}{K-1} \sum_{k=1}^{K} \bigl(\tilde{y}_k(x) - \bar{\tilde{y}}
 </details>
 </div>
 <p>The GP’s ALC criterion (<a href="#eq-alc" class="quarto-xref">Eq.&nbsp;<span>9.2</span></a>) and the ensemble disagreement criterion (<a href="#eq-ensemble-disagreement" class="quarto-xref">Eq.&nbsp;<span>9.5</span></a>) target the same goal, identifying regions of high epistemic uncertainty, but through fundamentally different mechanisms.</p>
-<div class="line-block">Property | GP (ALC) | GBC (Ensemble Disagreement) |</div>
-<p>|, , -|, , -|, , , , , -| | Uncertainty source | Posterior covariance (Bayesian) | Inter-model variation (frequentist) | | Look-ahead | Yes (computes reduction in integrated variance) | No (greedy: max current disagreement) | | Smoothness prior | Explicit (kernel hyperparameters) | Implicit (network architecture + prior scale) | | Cost per acquisition | <span class="math inline">\(O(n^2)\)</span> update, <span class="math inline">\(O(n_{\text{cand}} \cdot n)\)</span> evaluation | <span class="math inline">\(O(K \cdot \text{training})\)</span> retrain from scratch | | Scaling | <span class="math inline">\(O(n^3)\)</span> per retrain (Cholesky) | <span class="math inline">\(O(n)\)</span> per retrain (SGD) |</p>
-<p>: Comparison of GP-ALC and GBC ensemble disagreement for active learning. {#tbl-al-comparison}</p>
+<div id="tbl-al-comparison" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-al-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.2: Comparison of GP-ALC and GBC ensemble disagreement for active learning.
+</figcaption>
+<div aria-describedby="tbl-al-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 23%">
+<col style="width: 23%">
+<col style="width: 53%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Property</th>
+<th>GP (ALC)</th>
+<th>GBC (Ensemble Disagreement)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Uncertainty source</td>
+<td>Posterior covariance (Bayesian)</td>
+<td>Inter-model variation (frequentist)</td>
+</tr>
+<tr class="even">
+<td>Look-ahead</td>
+<td>Yes (computes reduction in integrated variance)</td>
+<td>No (greedy: max current disagreement)</td>
+</tr>
+<tr class="odd">
+<td>Smoothness prior</td>
+<td>Explicit (kernel hyperparameters)</td>
+<td>Implicit (network architecture + prior scale)</td>
+</tr>
+<tr class="even">
+<td>Cost per acquisition</td>
+<td><span class="math inline">\(O(n^2)\)</span> update, <span class="math inline">\(O(n_{\text{cand}} \cdot n)\)</span> evaluation</td>
+<td><span class="math inline">\(O(K \cdot \text{training})\)</span> retrain from scratch</td>
+</tr>
+<tr class="odd">
+<td>Scaling</td>
+<td><span class="math inline">\(O(n^3)\)</span> per retrain (Cholesky)</td>
+<td><span class="math inline">\(O(n)\)</span> per retrain (SGD)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The table reveals a fundamental architectural difference: the GP computes uncertainty analytically from a probabilistic model, while GBC computes uncertainty empirically from an ensemble of point estimators. This difference has consequences that go beyond computational cost. The GP’s uncertainty is <em>calibrated</em> by construction (assuming the kernel is correctly specified): the posterior variance at a test point has a precise Bayesian interpretation as the expected squared error of the posterior mean. The ensemble disagreement has no such calibration guarantee, it is a heuristic measure of inter-model variation that correlates with true epistemic uncertainty but is not equal to it. On our benchmarks, the correlation between ensemble disagreement and true squared error ranges from 0.6 to 0.8 depending on the problem, which is sufficient for acquisition but not for downstream uncertainty quantification.</p>
 <p>The GP’s look-ahead property is a genuine advantage: ALC does not just find the point of highest uncertainty, it finds the point whose addition would most reduce <em>total</em> uncertainty. The ensemble disagreement criterion is greedy, it picks the point of highest current disagreement without considering the downstream effect. In practice, the greedy strategy works well because ensemble disagreement tends to be highest in the same regions where adding a point would most reduce global uncertainty, but the correspondence is not exact.</p>
 <p>The GP’s smoothness prior (discussed in <a href="ch07-surrogates.html#sec-surr-gp-limits" class="quarto-xref"><span>Section 7.1.3</span></a>) is both a strength and a weakness: powerful regularization on smooth functions with small <span class="math inline">\(n\)</span>, but a poor fit for discontinuous or heterogeneous response surfaces.</p>
 <p>There is a deeper connection between ALC and ensemble disagreement. Both criteria are attempting to estimate the same quantity: the <em>reduction in prediction error</em> that would result from evaluating the simulator at a candidate point. ALC estimates this directly, using the GP’s posterior to compute the expected variance reduction. Ensemble disagreement estimates it indirectly: points of high disagreement are points where the current surrogate is unreliable, and evaluating the simulator there will reduce the disagreement (and hence the prediction error) by providing data that resolves the inter-model ambiguity. The two criteria would be identical if the ensemble disagreement were perfectly calibrated, that is, if the standard deviation of ensemble predictions equaled the true standard deviation of the prediction error. In practice, the calibration is imperfect, but the correlation between disagreement and true error is strong enough (typically 0.6–0.8 in our experiments) that the greedy selection of maximum-disagreement points produces near-optimal acquisition sequences.</p>
 <p>The computational architecture of the two approaches also differs in a way that matters for implementation. The per-candidate cost is <span class="math inline">\(O(n^2)\)</span> for GP-ALC versus <span class="math inline">\(O(Kw^2L)\)</span> for the ensemble, comparable at small <span class="math inline">\(n\)</span>, but the GP cost grows quadratically while the network cost is independent of <span class="math inline">\(n\)</span>. See <a href="ch07-surrogates.html#sec-surr-scaling" class="quarto-xref"><span>Section 7.6</span></a> for the full flop-count comparison.</p>
-<p>There is another operational difference that matters in practice: the GP-based ALC criterion is typically implemented in R (via packages like <code>deepgp</code> or <code>hetGP</code>), while the IQN ensemble is implemented in Python/PyTorch. The GP implementation runs on CPU, while the IQN runs on GPU. This means that the wall-clock times for the two methods are not directly comparable, the GPU provides a substantial constant-factor speedup for the matrix operations involved in the network’s forward and backward passes. A fair comparison would require either running both methods on the same hardware or reporting asymptotic operation counts rather than wall-clock times. We have tried to do the latter in <span class="quarto-unresolved-ref">?tbl-al-comparison</span>, but the reader should be aware that the wall-clock advantage of GBC-AL is partly architectural (GPU vs.&nbsp;CPU) rather than purely algorithmic.</p>
+<p>There is another operational difference that matters in practice: the GP-based ALC criterion is typically implemented in R (via packages like <code>deepgp</code> or <code>hetGP</code>), while the IQN ensemble is implemented in Python/PyTorch. The GP implementation runs on CPU, while the IQN runs on GPU. This means that the wall-clock times for the two methods are not directly comparable, the GPU provides a substantial constant-factor speedup for the matrix operations involved in the network’s forward and backward passes. A fair comparison would require either running both methods on the same hardware or reporting asymptotic operation counts rather than wall-clock times. We have tried to do the latter in <a href="#tbl-al-comparison" class="quarto-xref">Table&nbsp;<span>9.2</span></a>, but the reader should be aware that the wall-clock advantage of GBC-AL is partly architectural (GPU vs.&nbsp;CPU) rather than purely algorithmic.</p>
 </section>
 <section id="sec-al-2d" class="level2" data-number="9.4">
 <h2 data-number="9.4" class="anchored" data-anchor-id="sec-al-2d"><span class="header-section-number">9.4</span> 2D Exponential Benchmark</h2>
@@ -703,9 +792,36 @@ a(x) = \sqrt{\frac{1}{K-1} \sum_{k=1}^{K} \bigl(\tilde{y}_k(x) - \bar{\tilde{y}}
 f(x_1, x_2) = 10 \, x_1 \exp(-x_1^2 - x_2^2), \quad (x_1, x_2) \in [-2, 2]^2,
 \tag{9.6}\]</span></span> with additive Gaussian noise <span class="math inline">\(\varepsilon \sim N(0, 0.1^2)\)</span>. The function is smooth, unimodal, and well-suited to a squared-exponential kernel. It is a setting where GPs should excel, and they do.</p>
 <p>Following <span class="citation" data-cites="sauer2023active">Sauer, Gramacy, and Higdon (<a href="references.html#ref-sauer2023active" role="doc-biblioref">2023</a>)</span>, we start with <span class="math inline">\(n_0 = 10\)</span> initial LHS points and acquire 90 additional points one at a time (<span class="math inline">\(n_{\text{total}} = 100\)</span>), retraining after each acquisition. We use <span class="math inline">\(K = 3\)</span> randomized-prior IQN members with 3,000 training epochs per round. The comparator is DGP+ALC, a two-layer deep GP with elliptical slice sampling, using the ALC acquisition criterion <span class="citation" data-cites="sauer2023active">(<a href="references.html#ref-sauer2023active" role="doc-biblioref">Sauer, Gramacy, and Higdon 2023</a>)</span>. We run 30 independent replicates.</p>
-<div class="line-block">Method | RMSE (<span class="math inline">\(n = 100\)</span>) | Replicates |</div>
-<p>|, –|, , , –|, , | | DGP+ALC | <em>0.072</em> | 30 | | GBC-AL (randprior, <span class="math inline">\(K\)</span>=3) | 0.087 <span class="math inline">\(\pm\)</span> 0.008 | 30 |</p>
-<p>: 2D Exponential active learning results. The GP-based method wins by 21%. {#tbl-al-2d}</p>
+<div id="tbl-al-2d" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-al-2d-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.3: 2D Exponential active learning results. The GP-based method wins by 21%.
+</figcaption>
+<div aria-describedby="tbl-al-2d-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>RMSE (<span class="math inline">\(n = 100\)</span>)</th>
+<th>Replicates</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DGP+ALC</td>
+<td><em>0.072</em></td>
+<td>30</td>
+</tr>
+<tr class="even">
+<td>GBC-AL (randprior, <span class="math inline">\(K\)</span>=3)</td>
+<td>0.087 <span class="math inline">\(\pm\)</span> 0.008</td>
+<td>30</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The DGP achieves 21% lower RMSE than GBC-AL. This gap is <em>structural</em>, not a tuning failure. We investigated several modifications (more ensemble members, longer training, different prior scales) and none closed the gap substantially.</p>
 <p>Why does GBC lose here? Three factors combine to favor the GP on this benchmark, and understanding each one clarifies when GBC-AL should and should not be used.</p>
 <p>The first factor is <em>exploration–exploitation balance</em>. ALC is a look-ahead criterion: it evaluates how much adding a candidate point would reduce the integrated posterior variance over the entire domain. This means ALC inherently balances exploration (sampling in regions of high uncertainty) with exploitation (refining predictions where the function varies most). The ensemble disagreement criterion, by contrast, is greedy, it simply picks the point of maximum current disagreement. On a smooth 2D surface, ALC’s ability to plan ahead matters: it recognizes that adding a point at one location will reduce uncertainty not just locally but over a neighborhood determined by the kernel length-scale. The greedy GBC criterion does not account for this spatial spillover, and occasionally selects points that are informative locally but redundant given nearby observations.</p>
@@ -725,9 +841,45 @@ f(x_1, x_2) = 10 \, x_1 \exp(-x_1^2 - x_2^2), \quad (x_1, x_2) \in [-2, 2]^2,
 <p>The LGBB benchmark has been a standard test case in the computer experiments literature since <span class="citation" data-cites="pamadi2004aerodynamic">Pamadi et al. (<a href="references.html#ref-pamadi2004aerodynamic" role="doc-biblioref">2004</a>)</span> introduced the simulator. <span class="citation" data-cites="gramacy2020surrogates">Gramacy (<a href="references.html#ref-gramacy2020surrogates" role="doc-biblioref">2020</a>)</span> uses it to illustrate the limitations of stationary GP kernels and the advantages of local GP methods. <span class="citation" data-cites="sauer2023active">Sauer, Gramacy, and Higdon (<a href="references.html#ref-sauer2023active" role="doc-biblioref">2023</a>)</span> uses it as one of three active learning benchmarks for deep GPs. Our comparison follows their protocol exactly, providing a controlled evaluation of GBC-AL against the state-of-the-art GP method on the same problem.</p>
 <p>Would a non-stationary GP, one with spatially varying length-scales or a treed partition of the input space, close the gap with GBC-AL on this benchmark? <span class="citation" data-cites="gramacy2020surrogates">Gramacy (<a href="references.html#ref-gramacy2020surrogates" role="doc-biblioref">2020</a>)</span> demonstrates that local GPs (which fit separate GPs in different regions of the input space) can improve on stationary GPs for the LGBB problem. However, local GPs require specifying or learning the partition, which adds complexity and hyperparameters. The DGP+ALC method used as our comparator is already a non-stationary GP method (the deep GP uses a two-layer architecture that can learn input warping), and it still underperforms GBC-AL by a factor of three. This suggests that the issue is not just stationarity but the GP’s fundamental reliance on kernel-based interpolation, which assigns positive correlation to nearby points even when they lie on opposite sides of a sharp feature.</p>
 <p>Following <span class="citation" data-cites="sauer2023active">Sauer, Gramacy, and Higdon (<a href="references.html#ref-sauer2023active" role="doc-biblioref">2023</a>)</span> exactly, we use <span class="math inline">\(n_0 = 50\)</span> initial LHS points, acquire 250 additional points via ensemble disagreement, and evaluate on a 1,000-point test set after each acquisition. We run 30 independent replicates.</p>
-<div class="line-block">Method | RMSE (<span class="math inline">\(n = 300\)</span>) | Ratio | Replicates |</div>
-<p>|, –|, , , –|, -|, , | | GBC-AL (randprior, <span class="math inline">\(K\)</span>=3) | <em>0.00723 <span class="math inline">\(\pm\)</span> 0.0008</em> | <em><span class="math inline">\(2.95\times\)</span> better</em> | 30 | | DGP+ALC | 0.0213 <span class="math inline">\(\pm\)</span> 0.001 |, | 50 |</p>
-<p>: Rocket LGBB active learning results. GBC wins by a factor of 2.95. {#tbl-al-rocket}</p>
+<div id="tbl-al-rocket" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-al-rocket-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.4: Rocket LGBB active learning results. GBC wins by a factor of 2.95.
+</figcaption>
+<div aria-describedby="tbl-al-rocket-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 42%">
+<col style="width: 15%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>RMSE (<span class="math inline">\(n = 300\)</span>)</th>
+<th>Ratio</th>
+<th>Replicates</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>GBC-AL (randprior, <span class="math inline">\(K\)</span>=3)</td>
+<td><em>0.00723 <span class="math inline">\(\pm\)</span> 0.0008</em></td>
+<td><em><span class="math inline">\(2.95\times\)</span> better</em></td>
+<td>30</td>
+</tr>
+<tr class="even">
+<td>DGP+ALC</td>
+<td>0.0213 <span class="math inline">\(\pm\)</span> 0.001</td>
+<td>,</td>
+<td>50</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p><a href="#fig-al-rocket-curves" class="quarto-xref">Figure&nbsp;<span>9.1</span></a> shows the learning curves across all 30 replicates. The 90% confidence bands separate completely by <span class="math inline">\(n \approx 150\)</span>, and every GBC replicate outperforms every DGP replicate.</p>
 <div id="cell-fig-al-rocket-curves" class="cell" data-execution_count="5">
 <div class="cell-output cell-output-display">
@@ -767,9 +919,45 @@ Figure&nbsp;9.1: Rocket LGBB active learning curves: RMSE vs.&nbsp;acquisition b
 <p>The stochastic nature of the TPMC simulator adds an additional layer of complexity. Each evaluation produces a noisy estimate of the drag coefficient, with Monte Carlo noise that varies in magnitude across the input space. The GP handles this noise through its nugget parameter, which must be estimated from the data (the replicate pairs in the initial design help with this estimation). The IQN handles noise implicitly through the quantile loss, which adapts to the local noise level without requiring an explicit noise model. In principle, the IQN’s ability to model heteroscedastic noise should give it an advantage on stochastic simulators, but in practice the GRACE simulator’s noise is approximately homoscedastic, so this advantage does not materialize here.</p>
 <p>Stochastic simulators also raise the question of <em>replication versus exploration</em>. Should the active learning algorithm evaluate the same input twice to reduce Monte Carlo noise, or should it always evaluate at a new input? The GP framework handles this naturally: the ALC criterion can recommend replication at an existing input if the noise reduction would produce a larger decrease in integrated posterior variance than evaluating at a new input. The GBC framework does not handle replication as naturally, because the ensemble disagreement is driven by inter-model variation at <em>new</em> inputs rather than noise reduction at <em>existing</em> inputs. In our GRACE experiments, we did not allow replication during the active learning phase (all acquisitions were at new inputs), which may have contributed to GBC-AL’s advantage in the early phase: by always exploring new regions, GBC-AL covers the input space faster, even if individual predictions are noisier.</p>
 <p>Following <span class="citation" data-cites="sauer2023active">Sauer, Gramacy, and Higdon (<a href="references.html#ref-sauer2023active" role="doc-biblioref">2023</a>)</span>, we use <span class="math inline">\(n_0 = 110\)</span> initial points (including 10 replicate pairs to estimate the noise variance) and acquire 390 additional points (10 independent replicates). The replicate pairs are important for the GP: they provide a direct estimate of the Monte Carlo noise variance <span class="math inline">\(\sigma^2_\varepsilon\)</span>, which the GP needs as an input to its likelihood. The IQN does not need noise variance estimates because the pinball loss adapts to the noise level implicitly through the conditional quantile function.</p>
-<div class="line-block">Method | RMSPE (<span class="math inline">\(n &lt; 300\)</span>) | RMSPE (<span class="math inline">\(n = 500\)</span>) | Replicates |</div>
-<p>|, –|, , , -|, , , -|, , | | GBC-AL (randprior, <span class="math inline">\(K\)</span>=3) | <em>1.89 <span class="math inline">\(\pm\)</span> 0.02</em> | 1.192 <span class="math inline">\(\pm\)</span> 0.01 | 10 | | DGP+ALC | 2.26 | <em>0.967</em> | 10 |</p>
-<p>: Satellite GRACE active learning results. GBC leads early; DGP overtakes at <span class="math inline">\(n \approx 300\)</span>. {#tbl-al-satellite}</p>
+<div id="tbl-al-satellite" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-al-satellite-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.5: Satellite GRACE active learning results. GBC leads early; DGP overtakes at <span class="math inline">\(n \approx 300\)</span>.
+</figcaption>
+<div aria-describedby="tbl-al-satellite-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 32%">
+<col style="width: 32%">
+<col style="width: 19%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>RMSPE (<span class="math inline">\(n &lt; 300\)</span>)</th>
+<th>RMSPE (<span class="math inline">\(n = 500\)</span>)</th>
+<th>Replicates</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>GBC-AL (randprior, <span class="math inline">\(K\)</span>=3)</td>
+<td><em>1.89 <span class="math inline">\(\pm\)</span> 0.02</em></td>
+<td>1.192 <span class="math inline">\(\pm\)</span> 0.01</td>
+<td>10</td>
+</tr>
+<tr class="even">
+<td>DGP+ALC</td>
+<td>2.26</td>
+<td><em>0.967</em></td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p><a href="#fig-al-satellite-curves" class="quarto-xref">Figure&nbsp;<span>9.2</span></a> shows the learning curves for the satellite benchmark, revealing the crossover at <span class="math inline">\(n \approx 300\)</span> where the GP’s smoothness prior begins to pay dividends.</p>
 <div id="cell-fig-al-satellite-curves" class="cell" data-execution_count="6">
 <div class="cell-output cell-output-display">
@@ -803,11 +991,95 @@ Figure&nbsp;9.2: Satellite GRACE active learning curves: RMSPE vs.&nbsp;acquisit
 <p>A third strategy is to <em>monitor the crossover</em> in real time. At each iteration, fit both a GBC surrogate and a GP surrogate to the current training set, and compare their leave-one-out prediction errors. When the GP begins outperforming the GBC surrogate on the LOO metric, switch the acquisition criterion from ensemble disagreement to ALC. This adaptive approach would automatically identify the crossover point and select the appropriate method for each phase of the experiment. The challenge is that computing LOO errors for the GP requires <span class="math inline">\(O(n^3)\)</span> computation at each iteration, which doubles the cost of the experiment. For expensive simulators where the surrogate retraining cost is negligible compared to the simulator cost, this overhead is acceptable.</p>
 <p>We note that the crossover phenomenon is specific to <em>smooth</em> response surfaces. On non-smooth surfaces like the LGBB, there is no crossover: GBC-AL leads at every sample size, and the gap grows with <span class="math inline">\(n\)</span> rather than shrinking. This is because the GP’s smoothness prior is not just neutral on non-smooth surfaces, it is actively harmful, causing the GP to oversmooth the sharp features regardless of how much data it accumulates. The IQN, with no smoothness constraint, learns the sharp features with increasing fidelity as more data become available. The practical implication is simple: if the response surface is known or expected to be non-smooth, use GBC-AL without reservation. The crossover analysis is only relevant for smooth problems.</p>
 <p>The crossover also depends on the GP implementation. The DGP+ALC method used here is a non-stationary extension of the standard GP that can, in principle, learn input warping through its two-layer architecture. A simpler stationary GP might cross over later (because it takes longer to learn the function) or might never fully catch up (because its stationarity assumption limits its ultimate accuracy). Conversely, a more sophisticated non-stationary GP, such as one with a treed partition or a locally adaptive kernel, might cross over earlier. Our results are specific to the DGP+ALC comparator and should not be interpreted as a universal comparison of “neural networks vs.&nbsp;Gaussian processes.”</p>
-<p><span class="quarto-unresolved-ref">?tbl-al-summary</span> consolidates the results across all active learning benchmarks.</p>
-<div class="line-block">Benchmark | <span class="math inline">\(d\)</span> | <span class="math inline">\(n\)</span> | GBC-AL | DGP+ALC | Winner | Note |</div>
-<p>|, , –|, –|, –|, –|, , |, –|, | | 2D Exponential | 2 | 100 | 0.087 | <em>0.072</em> | DGP | Smooth, small <span class="math inline">\(n\)</span> | | Rocket LGBB | 3 | 300 | <em>0.00723</em> | 0.0213 | GBC (<span class="math inline">\(2.95\times\)</span>) | Sharp ridge | | Satellite (<span class="math inline">\(n &lt; 300\)</span>) | 7 | 200 | <em>1.89</em> | 2.26 | GBC (<span class="math inline">\(+16\%\)</span>) | Early phase | | Satellite (<span class="math inline">\(n = 500\)</span>) | 7 | 500 | 1.192 | <em>0.967</em> | DGP (<span class="math inline">\(+23\%\)</span>) | Smooth, large <span class="math inline">\(n\)</span> | | SatMini | 7 | 60 | <em>5.30</em> | 7.91 | GBC (<span class="math inline">\(+33\%\)</span>) | Small budget | | 7D Proxy | 7 | 70 | <em>0.344</em> | 0.558 | GBC (<span class="math inline">\(+38\%\)</span>) | Small budget |</p>
-<p>: Summary of GBC-AL vs.&nbsp;DGP+ALC across all benchmarks. Bold indicates the better method. {#tbl-al-summary}</p>
-<p>The pattern across <span class="quarto-unresolved-ref">?tbl-al-summary</span> is consistent: GBC-AL wins on non-smooth surfaces and in the moderate-<span class="math inline">\(n\)</span> regime, while DGP+ALC wins on smooth surfaces with large budgets. Neither method dominates uniformly. The table is, in effect, a phase diagram of the GBC-AL/GP-AL tradeoff, parameterized by dimension, budget, and smoothness. GBC dominates when the response is non-smooth (LGBB) or when the budget is too small for the GP to estimate its kernel hyperparameters reliably. The GP dominates when the surface is smooth and <span class="math inline">\(n\)</span> is large enough for the smoothness prior to pay off. The crossover at <span class="math inline">\(n \approx 300\)</span> on the Satellite benchmark is the most informative result because it shows both methods in their respective regimes of advantage within a single experiment.</p>
+<p><a href="#tbl-al-summary" class="quarto-xref">Table&nbsp;<span>9.6</span></a> consolidates the results across all active learning benchmarks.</p>
+<div id="tbl-al-summary" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-al-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.6: Summary of GBC-AL vs.&nbsp;DGP+ALC across all benchmarks. Bold indicates the better method.
+</figcaption>
+<div aria-describedby="tbl-al-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 16%">
+<col style="width: 13%">
+<col style="width: 8%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Benchmark</th>
+<th><span class="math inline">\(d\)</span></th>
+<th><span class="math inline">\(n\)</span></th>
+<th>GBC-AL</th>
+<th>DGP+ALC</th>
+<th>Winner</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2D Exponential</td>
+<td>2</td>
+<td>100</td>
+<td>0.087</td>
+<td><em>0.072</em></td>
+<td>DGP</td>
+<td>Smooth, small <span class="math inline">\(n\)</span></td>
+</tr>
+<tr class="even">
+<td>Rocket LGBB</td>
+<td>3</td>
+<td>300</td>
+<td><em>0.00723</em></td>
+<td>0.0213</td>
+<td>GBC (<span class="math inline">\(2.95\times\)</span>)</td>
+<td>Sharp ridge</td>
+</tr>
+<tr class="odd">
+<td>Satellite (<span class="math inline">\(n &lt; 300\)</span>)</td>
+<td>7</td>
+<td>200</td>
+<td><em>1.89</em></td>
+<td>2.26</td>
+<td>GBC (<span class="math inline">\(+16\%\)</span>)</td>
+<td>Early phase</td>
+</tr>
+<tr class="even">
+<td>Satellite (<span class="math inline">\(n = 500\)</span>)</td>
+<td>7</td>
+<td>500</td>
+<td>1.192</td>
+<td><em>0.967</em></td>
+<td>DGP (<span class="math inline">\(+23\%\)</span>)</td>
+<td>Smooth, large <span class="math inline">\(n\)</span></td>
+</tr>
+<tr class="odd">
+<td>SatMini</td>
+<td>7</td>
+<td>60</td>
+<td><em>5.30</em></td>
+<td>7.91</td>
+<td>GBC (<span class="math inline">\(+33\%\)</span>)</td>
+<td>Small budget</td>
+</tr>
+<tr class="even">
+<td>7D Proxy</td>
+<td>7</td>
+<td>70</td>
+<td><em>0.344</em></td>
+<td>0.558</td>
+<td>GBC (<span class="math inline">\(+38\%\)</span>)</td>
+<td>Small budget</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The pattern across <a href="#tbl-al-summary" class="quarto-xref">Table&nbsp;<span>9.6</span></a> is consistent: GBC-AL wins on non-smooth surfaces and in the moderate-<span class="math inline">\(n\)</span> regime, while DGP+ALC wins on smooth surfaces with large budgets. Neither method dominates uniformly. The table is, in effect, a phase diagram of the GBC-AL/GP-AL tradeoff, parameterized by dimension, budget, and smoothness. GBC dominates when the response is non-smooth (LGBB) or when the budget is too small for the GP to estimate its kernel hyperparameters reliably. The GP dominates when the surface is smooth and <span class="math inline">\(n\)</span> is large enough for the smoothness prior to pay off. The crossover at <span class="math inline">\(n \approx 300\)</span> on the Satellite benchmark is the most informative result because it shows both methods in their respective regimes of advantage within a single experiment.</p>
 <p>One might wonder whether the results would change with a different GP comparator, for example, a stationary GP with ALC instead of the deep GP, or a GP with a different kernel (Mat'ern 3/2 or 5/2 instead of squared-exponential). The answer is likely yes for specific benchmarks but no for the overall pattern. The DGP+ALC method was chosen as the comparator because it represents the state of the art for GP-based sequential design <span class="citation" data-cites="sauer2023active">(<a href="references.html#ref-sauer2023active" role="doc-biblioref">Sauer, Gramacy, and Higdon 2023</a>)</span>, and it already incorporates non-stationarity through its two-layer architecture. A simpler stationary GP would perform worse on the LGBB benchmark (where non-stationarity is the key challenge) but might perform comparably on the 2D Exponential and Satellite benchmarks (where the function is smooth). The relative advantage of GBC-AL would therefore increase on non-smooth problems and remain roughly the same on smooth problems if we used a weaker GP baseline.</p>
 <p>The benchmarks do <em>not</em> cover several important settings. All three benchmarks have continuous inputs, scalar outputs, and static simulators (the output is a fixed function of the inputs). Many real-world simulators have discrete or mixed inputs, vector or functional outputs, time-varying behavior, or input constraints that restrict the feasible design space. Extending GBC-AL to these settings is straightforward in principle, the IQN can handle any type of input through appropriate encoding (one-hot encoding for discrete variables, mixed continuous-discrete architectures for hybrid inputs), and the ensemble disagreement criterion applies regardless of the output dimension, but the benchmarks in this chapter do not validate these extensions.</p>
 <p>Input constraints are particularly common in engineering applications: certain combinations of inputs may be physically impossible (e.g., a rocket cannot simultaneously have zero thrust and maximum drag), infeasible for the simulator (e.g., parameter combinations that cause numerical divergence), or outside the region of interest. The candidate pool <span class="math inline">\(\mathcal{C}\)</span> can be restricted to the feasible region, and the ensemble disagreement will automatically concentrate acquisitions within this constrained space. No modification to the acquisition function is needed, only the candidate pool changes.</p>
@@ -831,9 +1103,56 @@ Figure&nbsp;9.2: Satellite GRACE active learning curves: RMSPE vs.&nbsp;acquisit
 <h2 data-number="9.8" class="anchored" data-anchor-id="sec-al-cost"><span class="header-section-number">9.8</span> Computational Cost Analysis</h2>
 <p>Active learning’s appeal lies in reducing the number of expensive simulator evaluations. But the surrogate retraining cost at each iteration is also a consideration, particularly for methods like GBC that require training neural networks from scratch.</p>
 <p>The dominant cost in each GBC-AL iteration is retraining the <span class="math inline">\(K\)</span> ensemble members. Unlike GPs, where the posterior update after adding one point can be computed in <span class="math inline">\(O(n^2)\)</span> via rank-one Cholesky updates, the IQN ensemble must be retrained from scratch at each iteration. Why from scratch? The natural alternative, <em>warm-starting</em> from the previous iteration’s weights, fails because of distribution shift. When a new training point is added, the loss landscape changes, and the previous weights may be a local minimum of the old loss but not the new one. More importantly, warm-starting from the previous weights undermines the randomized-prior mechanism: the trainable component <span class="math inline">\(g_{\phi_k}\)</span> retains “memory” of the old training set, and the diversity injected by the frozen prior <span class="math inline">\(g_{0,k}\)</span> is partially cancelled by the warm-started trainable component even in regions where the new point provides no information. The result is that warm-started ensembles exhibit collapsed disagreement after a few iterations, losing the epistemic uncertainty signal that drives acquisition. We observed this empirically on the LGBB benchmark: warm-started GBC-AL degraded to performance comparable to random selection by iteration 50.</p>
-<div class="line-block">Component | GBC-AL (<span class="math inline">\(K=3\)</span>) | GP-AL (DGP+ALC) |</div>
-<p>|, , –|, , , -|, , , | | Surrogate retrain | <span class="math inline">\(O(K \cdot n \cdot E)\)</span> SGD steps | <span class="math inline">\(O(n^3)\)</span> Cholesky or <span class="math inline">\(O(n^2)\)</span> rank-1 update | | Acquisition evaluation | <span class="math inline">\(O(K \cdot n_{\text{cand}} \cdot L \cdot w^2)\)</span> | <span class="math inline">\(O(n_{\text{cand}} \cdot n^2)\)</span> for ALC | | Acquisition optimization | <span class="math inline">\(O(n_{\text{cand}})\)</span> argmax | <span class="math inline">\(O(n_{\text{cand}})\)</span> argmax | | Total per iteration (asymptotic) | <span class="math inline">\(O(K \cdot n \cdot E)\)</span> | <span class="math inline">\(O(n^3)\)</span> full retrain or <span class="math inline">\(O(n^2)\)</span> update | | Practical wall-clock (<span class="math inline">\(n=300\)</span>) | ~2 min (GPU) | ~5 min (CPU) |</p>
-<p>: Per-iteration cost comparison for GBC-AL vs.&nbsp;GP-AL. <span class="math inline">\(E\)</span> = training epochs, <span class="math inline">\(L\)</span> = network layers, <span class="math inline">\(w\)</span> = layer width. {#tbl-al-cost}</p>
+<div id="tbl-al-cost" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-al-cost-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.7: Per-iteration cost comparison for GBC-AL vs.&nbsp;GP-AL. <span class="math inline">\(E\)</span> = training epochs, <span class="math inline">\(L\)</span> = network layers, <span class="math inline">\(w\)</span> = layer width.
+</figcaption>
+<div aria-describedby="tbl-al-cost-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 29%">
+<col style="width: 37%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>GBC-AL (<span class="math inline">\(K=3\)</span>)</th>
+<th>GP-AL (DGP+ALC)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Surrogate retrain</td>
+<td><span class="math inline">\(O(K \cdot n \cdot E)\)</span> SGD steps</td>
+<td><span class="math inline">\(O(n^3)\)</span> Cholesky or <span class="math inline">\(O(n^2)\)</span> rank-1 update</td>
+</tr>
+<tr class="even">
+<td>Acquisition evaluation</td>
+<td><span class="math inline">\(O(K \cdot n_{\text{cand}} \cdot L \cdot w^2)\)</span></td>
+<td><span class="math inline">\(O(n_{\text{cand}} \cdot n^2)\)</span> for ALC</td>
+</tr>
+<tr class="odd">
+<td>Acquisition optimization</td>
+<td><span class="math inline">\(O(n_{\text{cand}})\)</span> argmax</td>
+<td><span class="math inline">\(O(n_{\text{cand}})\)</span> argmax</td>
+</tr>
+<tr class="even">
+<td>Total per iteration (asymptotic)</td>
+<td><span class="math inline">\(O(K \cdot n \cdot E)\)</span></td>
+<td><span class="math inline">\(O(n^3)\)</span> full retrain or <span class="math inline">\(O(n^2)\)</span> update</td>
+</tr>
+<tr class="odd">
+<td>Practical wall-clock (<span class="math inline">\(n=300\)</span>)</td>
+<td>~2 min (GPU)</td>
+<td>~5 min (CPU)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>The wall-clock comparison at <span class="math inline">\(n = 300\)</span> is rough and reflects both algorithmic and hardware differences (GBC runs on GPU, GP on CPU). The asymptotic difference is what matters: GBC scales as <span class="math inline">\(O(n)\)</span> per SGD epoch (linear in training set size), while the GP scales as <span class="math inline">\(O(n^3)\)</span> for a full retrain or <span class="math inline">\(O(n^2)\)</span> for a rank-one update. For the benchmarks in this chapter (<span class="math inline">\(n \leq 500\)</span>), the cubic cost is manageable, but at <span class="math inline">\(n &gt; 5{,}000\)</span> the GP retrain becomes prohibitive while GBC remains feasible.</p>
 <p>To put these costs in perspective: for the Satellite GRACE benchmark with 390 acquisition iterations, the total GBC-AL retraining time is approximately <span class="math inline">\(390 \times 3 \times 2\text{ min} = 39\)</span> hours on a single GPU (or 13 hours with parallelized ensemble training). The total simulator time for 390 evaluations at 86 seconds each is approximately 9.3 hours. So the surrogate retraining cost exceeds the simulator cost by a factor of four. This is unusual, for most computer experiment applications, the simulator cost dominates by orders of magnitude. The satellite benchmark is a moderately expensive simulator; for truly expensive simulators (hours per evaluation), the retraining cost is negligible.</p>
 <p>The warm-starting failure deserves further explanation because it is counterintuitive. In standard deep learning, warm-starting (also called transfer learning or fine-tuning) is a widely successful technique: initialize from a pretrained model and continue training on new data. Why does it fail for active learning with randomized priors? The answer lies in the interaction between the trainable and frozen components. After training on <span class="math inline">\(\mathcal{D}_n\)</span>, the trainable component <span class="math inline">\(g_{\phi_k}\)</span> has learned to predict <span class="math inline">\(f(x)\)</span> in data-rich regions by effectively “subtracting out” the frozen prior’s contribution: <span class="math inline">\(g_{\phi_k}(\tau, x) \approx f(x) - \alpha \, g_{0,k}(\tau, x)\)</span> where data are available. When we warm-start from these weights and add a new point <span class="math inline">\(x_{n+1}\)</span>, the trainable component already has a large magnitude in the neighborhood of <span class="math inline">\(x_{n+1}\)</span> (from fitting the function at nearby points), and this magnitude partially cancels the frozen prior even if <span class="math inline">\(x_{n+1}\)</span> is in a previously data-sparse region. The ensemble members therefore agree more than they should, and the disagreement signal is suppressed. Retraining from scratch with fresh random initialization restores the proper balance: the trainable component starts small and can only grow where the data support it.</p>
@@ -1637,7 +1956,7 @@ Titsias, Michalis K. 2009. <span>“Variational Learning of Inducing Variables i
 <span id="cb4-186"><a href="#cb4-186" aria-hidden="true" tabindex="-1"></a>We tested four alternative uncertainty quantification strategies for active learning. All were inferior to randomized priors on our benchmarks.</span>
 <span id="cb4-187"><a href="#cb4-187" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-188"><a href="#cb4-188" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Strategy <span class="pp">|</span> Mechanism <span class="pp">|</span> Problem <span class="pp">|</span></span>
-<span id="cb4-189"><a href="#cb4-189" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, , -<span class="pp">|</span>, , --<span class="pp">|</span>, , <span class="pp">|</span></span>
+<span id="cb4-189"><a href="#cb4-189" aria-hidden="true" tabindex="-1"></a><span class="pp">|-------|--------|------|</span></span>
 <span id="cb4-190"><a href="#cb4-190" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Bootstrap ensemble <span class="pp">|</span> Train each member on a resampled dataset <span class="pp">|</span> Degenerate at small $n$; 17--30% worse than random <span class="pp">|</span></span>
 <span id="cb4-191"><a href="#cb4-191" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> SNGP <span class="co">[</span><span class="ot">@liu2020simple</span><span class="co">]</span> <span class="pp">|</span> Spectral-normalized GP last layer <span class="pp">|</span> No better than random on $d \geq 7$ <span class="pp">|</span></span>
 <span id="cb4-192"><a href="#cb4-192" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Anchored ensemble <span class="pp">|</span> L2 penalty toward frozen initialization <span class="pp">|</span> Similar to randprior but less stable <span class="pp">|</span></span>
@@ -1795,7 +2114,7 @@ Titsias, Michalis K. 2009. <span>“Variational Learning of Inducing Variables i
 <span id="cb4-344"><a href="#cb4-344" aria-hidden="true" tabindex="-1"></a>The GP's ALC criterion (@eq-alc) and the ensemble disagreement criterion (@eq-ensemble-disagreement) target the same goal, identifying regions of high epistemic uncertainty, but through fundamentally different mechanisms.</span>
 <span id="cb4-345"><a href="#cb4-345" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-346"><a href="#cb4-346" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Property <span class="pp">|</span> GP (ALC) <span class="pp">|</span> GBC (Ensemble Disagreement) <span class="pp">|</span></span>
-<span id="cb4-347"><a href="#cb4-347" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, , -<span class="pp">|</span>, , -<span class="pp">|</span>, , , , , -<span class="pp">|</span></span>
+<span id="cb4-347"><a href="#cb4-347" aria-hidden="true" tabindex="-1"></a><span class="pp">|-------|-------|----------------|</span></span>
 <span id="cb4-348"><a href="#cb4-348" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Uncertainty source <span class="pp">|</span> Posterior covariance (Bayesian) <span class="pp">|</span> Inter-model variation (frequentist) <span class="pp">|</span></span>
 <span id="cb4-349"><a href="#cb4-349" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Look-ahead <span class="pp">|</span> Yes (computes reduction in integrated variance) <span class="pp">|</span> No (greedy: max current disagreement) <span class="pp">|</span></span>
 <span id="cb4-350"><a href="#cb4-350" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Smoothness prior <span class="pp">|</span> Explicit (kernel hyperparameters) <span class="pp">|</span> Implicit (network architecture + prior scale) <span class="pp">|</span></span>
@@ -1832,7 +2151,7 @@ Titsias, Michalis K. 2009. <span>“Variational Learning of Inducing Variables i
 <span id="cb4-381"><a href="#cb4-381" aria-hidden="true" tabindex="-1"></a>Following @sauer2023active, we start with $n_0 = 10$ initial LHS points and acquire 90 additional points one at a time ($n_{\text{total}} = 100$), retraining after each acquisition. We use $K = 3$ randomized-prior IQN members with 3,000 training epochs per round. The comparator is DGP+ALC, a two-layer deep GP with elliptical slice sampling, using the ALC acquisition criterion <span class="co">[</span><span class="ot">@sauer2023active</span><span class="co">]</span>. We run 30 independent replicates.</span>
 <span id="cb4-382"><a href="#cb4-382" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-383"><a href="#cb4-383" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> RMSE ($n = 100$) <span class="pp">|</span> Replicates <span class="pp">|</span></span>
-<span id="cb4-384"><a href="#cb4-384" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, --<span class="pp">|</span>, , , --<span class="pp">|</span>, , <span class="pp">|</span></span>
+<span id="cb4-384"><a href="#cb4-384" aria-hidden="true" tabindex="-1"></a><span class="pp">|-----|-----------|------|</span></span>
 <span id="cb4-385"><a href="#cb4-385" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> DGP+ALC <span class="pp">|</span> *0.072* <span class="pp">|</span> 30 <span class="pp">|</span></span>
 <span id="cb4-386"><a href="#cb4-386" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> GBC-AL (randprior, $K$=3) <span class="pp">|</span> 0.087 $\pm$ 0.008 <span class="pp">|</span> 30 <span class="pp">|</span></span>
 <span id="cb4-387"><a href="#cb4-387" aria-hidden="true" tabindex="-1"></a></span>
@@ -1874,7 +2193,7 @@ Titsias, Michalis K. 2009. <span>“Variational Learning of Inducing Variables i
 <span id="cb4-423"><a href="#cb4-423" aria-hidden="true" tabindex="-1"></a>Following @sauer2023active exactly, we use $n_0 = 50$ initial LHS points, acquire 250 additional points via ensemble disagreement, and evaluate on a 1,000-point test set after each acquisition. We run 30 independent replicates.</span>
 <span id="cb4-424"><a href="#cb4-424" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-425"><a href="#cb4-425" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> RMSE ($n = 300$) <span class="pp">|</span> Ratio <span class="pp">|</span> Replicates <span class="pp">|</span></span>
-<span id="cb4-426"><a href="#cb4-426" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, --<span class="pp">|</span>, , , --<span class="pp">|</span>, -<span class="pp">|</span>, , <span class="pp">|</span></span>
+<span id="cb4-426"><a href="#cb4-426" aria-hidden="true" tabindex="-1"></a><span class="pp">|-----|-----------|----|------|</span></span>
 <span id="cb4-427"><a href="#cb4-427" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> GBC-AL (randprior, $K$=3) <span class="pp">|</span> *0.00723 $\pm$ 0.0008* | *$2.95\times$ better* <span class="pp">|</span> 30 <span class="pp">|</span></span>
 <span id="cb4-428"><a href="#cb4-428" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> DGP+ALC <span class="pp">|</span> 0.0213 $\pm$ 0.001 <span class="pp">|</span>, <span class="pp">|</span> 50 <span class="pp">|</span></span>
 <span id="cb4-429"><a href="#cb4-429" aria-hidden="true" tabindex="-1"></a></span>
@@ -1939,7 +2258,7 @@ Titsias, Michalis K. 2009. <span>“Variational Learning of Inducing Variables i
 <span id="cb4-488"><a href="#cb4-488" aria-hidden="true" tabindex="-1"></a>Following @sauer2023active, we use $n_0 = 110$ initial points (including 10 replicate pairs to estimate the noise variance) and acquire 390 additional points (10 independent replicates). The replicate pairs are important for the GP: they provide a direct estimate of the Monte Carlo noise variance $\sigma^2_\varepsilon$, which the GP needs as an input to its likelihood. The IQN does not need noise variance estimates because the pinball loss adapts to the noise level implicitly through the conditional quantile function.</span>
 <span id="cb4-489"><a href="#cb4-489" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-490"><a href="#cb4-490" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> RMSPE ($n &lt; 300$) <span class="pp">|</span> RMSPE ($n = 500$) <span class="pp">|</span> Replicates <span class="pp">|</span></span>
-<span id="cb4-491"><a href="#cb4-491" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, --<span class="pp">|</span>, , , -<span class="pp">|</span>, , , -<span class="pp">|</span>, , <span class="pp">|</span></span>
+<span id="cb4-491"><a href="#cb4-491" aria-hidden="true" tabindex="-1"></a><span class="pp">|-----|----------|----------|------|</span></span>
 <span id="cb4-492"><a href="#cb4-492" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> GBC-AL (randprior, $K$=3) <span class="pp">|</span> *1.89 $\pm$ 0.02* <span class="pp">|</span> 1.192 $\pm$ 0.01 <span class="pp">|</span> 10 <span class="pp">|</span></span>
 <span id="cb4-493"><a href="#cb4-493" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> DGP+ALC <span class="pp">|</span> 2.26 <span class="pp">|</span> *0.967* <span class="pp">|</span> 10 <span class="pp">|</span></span>
 <span id="cb4-494"><a href="#cb4-494" aria-hidden="true" tabindex="-1"></a></span>
@@ -1997,7 +2316,7 @@ Titsias, Michalis K. 2009. <span>“Variational Learning of Inducing Variables i
 <span id="cb4-546"><a href="#cb4-546" aria-hidden="true" tabindex="-1"></a>@tbl-al-summary consolidates the results across all active learning benchmarks.</span>
 <span id="cb4-547"><a href="#cb4-547" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-548"><a href="#cb4-548" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Benchmark <span class="pp">|</span> $d$ <span class="pp">|</span> $n$ <span class="pp">|</span> GBC-AL <span class="pp">|</span> DGP+ALC <span class="pp">|</span> Winner <span class="pp">|</span> Note <span class="pp">|</span></span>
-<span id="cb4-549"><a href="#cb4-549" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, , --<span class="pp">|</span>, --<span class="pp">|</span>, --<span class="pp">|</span>, --<span class="pp">|</span>, , <span class="pp">|</span>, --<span class="pp">|</span>, <span class="pp">|</span></span>
+<span id="cb4-549"><a href="#cb4-549" aria-hidden="true" tabindex="-1"></a><span class="pp">|--------|-----|-----|-----|------|-----|---|</span></span>
 <span id="cb4-550"><a href="#cb4-550" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2D Exponential <span class="pp">|</span> 2 <span class="pp">|</span> 100 <span class="pp">|</span> 0.087 <span class="pp">|</span> *0.072* <span class="pp">|</span> DGP <span class="pp">|</span> Smooth, small $n$ <span class="pp">|</span></span>
 <span id="cb4-551"><a href="#cb4-551" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Rocket LGBB <span class="pp">|</span> 3 <span class="pp">|</span> 300 <span class="pp">|</span> *0.00723* <span class="pp">|</span> 0.0213 <span class="pp">|</span> GBC ($2.95\times$) <span class="pp">|</span> Sharp ridge <span class="pp">|</span></span>
 <span id="cb4-552"><a href="#cb4-552" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Satellite ($n &lt; 300$) <span class="pp">|</span> 7 <span class="pp">|</span> 200 <span class="pp">|</span> *1.89* <span class="pp">|</span> 2.26 <span class="pp">|</span> GBC ($+16\%$) <span class="pp">|</span> Early phase <span class="pp">|</span></span>
@@ -2051,7 +2370,7 @@ Titsias, Michalis K. 2009. <span>“Variational Learning of Inducing Variables i
 <span id="cb4-600"><a href="#cb4-600" aria-hidden="true" tabindex="-1"></a>The dominant cost in each GBC-AL iteration is retraining the $K$ ensemble members. Unlike GPs, where the posterior update after adding one point can be computed in $O(n^2)$ via rank-one Cholesky updates, the IQN ensemble must be retrained from scratch at each iteration. Why from scratch? The natural alternative, *warm-starting* from the previous iteration's weights, fails because of distribution shift. When a new training point is added, the loss landscape changes, and the previous weights may be a local minimum of the old loss but not the new one. More importantly, warm-starting from the previous weights undermines the randomized-prior mechanism: the trainable component $g_{\phi_k}$ retains "memory" of the old training set, and the diversity injected by the frozen prior $g_{0,k}$ is partially cancelled by the warm-started trainable component even in regions where the new point provides no information. The result is that warm-started ensembles exhibit collapsed disagreement after a few iterations, losing the epistemic uncertainty signal that drives acquisition. We observed this empirically on the LGBB benchmark: warm-started GBC-AL degraded to performance comparable to random selection by iteration 50.</span>
 <span id="cb4-601"><a href="#cb4-601" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-602"><a href="#cb4-602" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Component <span class="pp">|</span> GBC-AL ($K=3$) <span class="pp">|</span> GP-AL (DGP+ALC) <span class="pp">|</span></span>
-<span id="cb4-603"><a href="#cb4-603" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>, , --<span class="pp">|</span>, , , -<span class="pp">|</span>, , , <span class="pp">|</span></span>
+<span id="cb4-603"><a href="#cb4-603" aria-hidden="true" tabindex="-1"></a><span class="pp">|--------|----------|---------|</span></span>
 <span id="cb4-604"><a href="#cb4-604" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Surrogate retrain <span class="pp">|</span> $O(K \cdot n \cdot E)$ SGD steps <span class="pp">|</span> $O(n^3)$ Cholesky or $O(n^2)$ rank-1 update <span class="pp">|</span></span>
 <span id="cb4-605"><a href="#cb4-605" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Acquisition evaluation <span class="pp">|</span> $O(K \cdot n_{\text{cand}} \cdot L \cdot w^2)$ <span class="pp">|</span> $O(n_{\text{cand}} \cdot n^2)$ for ALC <span class="pp">|</span></span>
 <span id="cb4-606"><a href="#cb4-606" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Acquisition optimization <span class="pp">|</span> $O(n_{\text{cand}})$ argmax <span class="pp">|</span> $O(n_{\text{cand}})$ argmax <span class="pp">|</span></span>

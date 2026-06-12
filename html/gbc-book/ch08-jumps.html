@@ -668,14 +668,51 @@ Note
 </div>
 <p><em>Classifier accuracy matters.</em> The classifier’s accuracy is the single most important factor in Aug-IQN performance. If the classifier perfectly identifies the boundary, the IQN receives a clean signal about which regime each point belongs to, and the problem reduces to smooth quantile regression on each side. If the classifier is inaccurate, the augmented feature provides noisy regime information that the IQN must compensate for.</p>
 <p>This dependence was quantified empirically on the Phantom dataset:</p>
-<div class="line-block">Classifier | Accuracy | CRPS |</div>
-<p>|:, , –|:, –:|:, -:| | SVC (linear) | 82% | 0.024 | | MLP 128×2 / 1000 ep | 99.4% | 0.013 | | MLP 256×3 / 2000 ep | 99.9% | 0.010 | | MLP 256×3 / 3000 ep | 99.98% | 0.009 |</p>
-<p>: Classifier accuracy drives Aug-IQN performance. All other hyperparameters held constant. {#tbl-classifier-accuracy}</p>
+<div id="tbl-classifier-accuracy" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-classifier-accuracy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8.1: Classifier accuracy drives Aug-IQN performance. All other hyperparameters held constant.
+</figcaption>
+<div aria-describedby="tbl-classifier-accuracy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Classifier</th>
+<th style="text-align: center;">Accuracy</th>
+<th style="text-align: center;">CRPS</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">SVC (linear)</td>
+<td style="text-align: center;">82%</td>
+<td style="text-align: center;">0.024</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MLP 128×2 / 1000 ep</td>
+<td style="text-align: center;">99.4%</td>
+<td style="text-align: center;">0.013</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MLP 256×3 / 2000 ep</td>
+<td style="text-align: center;">99.9%</td>
+<td style="text-align: center;">0.010</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MLP 256×3 / 3000 ep</td>
+<td style="text-align: center;">99.98%</td>
+<td style="text-align: center;">0.009</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
 <p>Going from 82% to 99.98% accuracy reduces CRPS by a factor of 2.7. The marginal returns diminish, the jump from 99.4% to 99.98% only improves CRPS from 0.013 to 0.009, but even small improvements in classifier accuracy near the boundary translate to meaningful gains in downstream quantile estimation.</p>
 <p>This finding has a practical implication: invest computational budget in the classifier. Training the MLP for 3000 epochs with a width of 256 takes about 5 seconds on a modern GPU. This is a small fraction of the total Aug-IQN training time and yields the largest improvement.</p>
 <section id="sec-jumps-classifier-sensitivity" class="level3" data-number="8.3.1">
 <h3 data-number="8.3.1" class="anchored" data-anchor-id="sec-jumps-classifier-sensitivity"><span class="header-section-number">8.3.1</span> Sensitivity to Classifier Accuracy</h3>
-<p>The mechanism behind <span class="quarto-unresolved-ref">?tbl-classifier-accuracy</span> reveals when misclassification is catastrophic and when it is merely inconvenient.</p>
+<p>The mechanism behind <a href="#tbl-classifier-accuracy" class="quarto-xref">Table&nbsp;<span>8.1</span></a> reveals when misclassification is catastrophic and when it is merely inconvenient.</p>
 <p>Consider a point <span class="math inline">\(x_i\)</span> near the jump boundary that truly belongs to regime 0 but is misclassified as regime 1. The IQN receives the augmented input <span class="math inline">\(\tilde{x}_i = [x_i, \hat{f}(x_i)]\)</span> with <span class="math inline">\(\hat{f}(x_i) \approx 1\)</span>, and the training target is <span class="math inline">\(y_i \sim f_0(x_i) + \varepsilon_i\)</span>, a response from regime 0. From the IQN’s perspective, this is a point in regime 1 with an anomalously low (or high) response. If the misclassified point is near the boundary, the IQN can partially absorb the error, because nearby correctly classified points from regime 0 provide a smooth transition in the augmented feature space. The IQN learns that the region <span class="math inline">\(\hat{f}(x) \approx 0.5\)</span> is a transition zone where both regimes contribute, and a few misclassified points in this zone merely widen the transition slightly.</p>
 <p>The situation differs for a misclassified point far from the boundary. If <span class="math inline">\(x_i\)</span> is deep inside regime 0 (where <span class="math inline">\(\hat{f}(x_i)\)</span> should be near 0) but receives <span class="math inline">\(\hat{f}(x_i) \approx 1\)</span>, the IQN sees a regime-1 point with a regime-0 response at a location where all neighboring points agree on regime 1. This is a genuine outlier in the augmented feature space, and it corrupts the IQN’s learned quantile function for regime 1 at that location. Fortunately, such gross misclassifications are rare for any reasonable classifier, because the boundary is where classification is hardest and the interior is where it is easiest.</p>
 <p>This analysis explains the graceful degradation we observe empirically. Going from 99.98% to 99.4% classifier accuracy means roughly 50 additional misclassified points out of 9,000. If most of those 50 points are near the boundary, which they are, because the boundary is where the classifier’s sigmoid output is near 0.5 and the decision is hardest, the effect on the IQN is modest: CRPS increases from 0.009 to 0.013, a 44% increase that still leaves Aug-IQN far ahead of plain GBC’s 0.031. Going further down to 82% accuracy (an SVC with a linear kernel on the sinusoidal Phantom boundary) means roughly 1,600 misclassified points. At this level, many misclassified points are no longer confined to the boundary neighborhood; they are scattered throughout the domain wherever the linear decision boundary deviates from the true sine curve. The IQN’s CRPS rises to 0.024, still better than plain GBC’s 0.031, because even a poor classifier provides some boundary information, but no longer competitive with MJGP’s 0.010.</p>
@@ -913,10 +950,57 @@ Figure&nbsp;8.3: Ensemble blurring on a synthetic 1D jump function. Each ensembl
 <p>More broadly, the Phantom boundary is representative of a wide class of real-world jump boundaries that are smooth but nonlinear. In materials science, phase boundaries are often curved surfaces in composition-temperature space. In fluid dynamics, shock waves form curved manifolds in the Mach-angle-of-attack space. The sinusoidal geometry captures the essential challenge of these boundaries: they are smooth enough that a sufficiently flexible classifier can learn them, but nonlinear enough that simple classifiers fail.</p>
 <p>This geometry makes the Phantom an ideal test case for Aug-IQN. The EM clustering step is easy because the two regimes have well-separated means, so the marginal histogram is clearly bimodal. The classification step is the bottleneck: the classifier must learn a nonlinear decision boundary that tracks the sine wave through the input domain. The MLP’s universal approximation capacity is essential here, a linear or even polynomial classifier would introduce systematic errors over large regions of the input space, corrupting the downstream IQN.</p>
 <p>We compare three methods using the <span class="citation" data-cites="flowers2026modular">Flowers et al. (<a href="references.html#ref-flowers2026modular" role="doc-biblioref">2026</a>)</span> protocol: 90/10 train/test split, 20 replicates, full training set (<span class="math inline">\(n_{\mathrm{train}} \approx 9{,}000\)</span>). Response values are normalized to <span class="math inline">\([0, 1]\)</span>.</p>
-<div class="line-block">Method | RMSE | CRPS | 90% Coverage | Time/rep |</div>
-<p>|:, -|:, -:|:, -:|:, , :|:, –:| | MJGP <span class="citation" data-cites="flowers2026modular">(<a href="references.html#ref-flowers2026modular" role="doc-biblioref">Flowers et al. 2026</a>)</span> | 0.053 <span class="math inline">\(\pm\)</span> 0.001 | 0.010 <span class="math inline">\(\pm\)</span> 0.000 |, | ~600s | | Plain GBC | 0.095 <span class="math inline">\(\pm\)</span> 0.001 | 0.031 <span class="math inline">\(\pm\)</span> 0.001 | 0.89 | 18s | | <strong>Aug-IQN</strong> | <em>0.044 <span class="math inline">\(\pm\)</span> 0.002</em> | <em>0.009 <span class="math inline">\(\pm\)</span> 0.000</em> | <em>0.91</em> | <em>23s</em> |</p>
-<p>: Phantom benchmark (<span class="math inline">\(d = 2\)</span>, <span class="math inline">\(n = 9\)</span>k): Aug-IQN vs.&nbsp;MJGP and plain GBC. Mean <span class="math inline">\(\pm\)</span> SE over 20 replicates. Aug-IQN marginally outperforms MJGP on CRPS and is <span class="math inline">\(26\times\)</span> faster. {#tbl-phantom}</p>
-<p>Without boundary information, plain GBC struggles with the sinusoidal jump, a <span class="math inline">\(3\times\)</span> CRPS gap versus MJGP (<span class="quarto-unresolved-ref">?tbl-phantom</span>). Adding the classifier closes that gap entirely: Aug-IQN marginally outperforms MJGP on CRPS, improves RMSE by 17%, and runs <span class="math inline">\(26\times\)</span> faster, reflecting both the <span class="math inline">\(\mathcal{O}(n)\)</span> vs.&nbsp;<span class="math inline">\(\mathcal{O}(n^3)\)</span> algorithmic difference and GPU acceleration. Coverage is well-calibrated at 91%.</p>
+<div id="tbl-phantom" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-phantom-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8.2: Phantom benchmark (<span class="math inline">\(d = 2\)</span>, <span class="math inline">\(n = 9\)</span>k): Aug-IQN vs.&nbsp;MJGP and plain GBC. Mean <span class="math inline">\(\pm\)</span> SE over 20 replicates. Aug-IQN marginally outperforms MJGP on CRPS and is <span class="math inline">\(26\times\)</span> faster.
+</figcaption>
+<div aria-describedby="tbl-phantom-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 15%">
+<col style="width: 18%">
+<col style="width: 18%">
+<col style="width: 25%">
+<col style="width: 21%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Method</th>
+<th style="text-align: center;">RMSE</th>
+<th style="text-align: center;">CRPS</th>
+<th style="text-align: center;">90% Coverage</th>
+<th style="text-align: center;">Time/rep</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">MJGP <span class="citation" data-cites="flowers2026modular">(<a href="references.html#ref-flowers2026modular" role="doc-biblioref">Flowers et al. 2026</a>)</span></td>
+<td style="text-align: center;">0.053 <span class="math inline">\(\pm\)</span> 0.001</td>
+<td style="text-align: center;">0.010 <span class="math inline">\(\pm\)</span> 0.000</td>
+<td style="text-align: center;">,</td>
+<td style="text-align: center;">~600s</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Plain GBC</td>
+<td style="text-align: center;">0.095 <span class="math inline">\(\pm\)</span> 0.001</td>
+<td style="text-align: center;">0.031 <span class="math inline">\(\pm\)</span> 0.001</td>
+<td style="text-align: center;">0.89</td>
+<td style="text-align: center;">18s</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Aug-IQN</strong></td>
+<td style="text-align: center;"><em>0.044 <span class="math inline">\(\pm\)</span> 0.002</em></td>
+<td style="text-align: center;"><em>0.009 <span class="math inline">\(\pm\)</span> 0.000</em></td>
+<td style="text-align: center;"><em>0.91</em></td>
+<td style="text-align: center;"><em>23s</em></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Without boundary information, plain GBC struggles with the sinusoidal jump, a <span class="math inline">\(3\times\)</span> CRPS gap versus MJGP (<a href="#tbl-phantom" class="quarto-xref">Table&nbsp;<span>8.2</span></a>). Adding the classifier closes that gap entirely: Aug-IQN marginally outperforms MJGP on CRPS, improves RMSE by 17%, and runs <span class="math inline">\(26\times\)</span> faster, reflecting both the <span class="math inline">\(\mathcal{O}(n)\)</span> vs.&nbsp;<span class="math inline">\(\mathcal{O}(n^3)\)</span> algorithmic difference and GPU acceleration. Coverage is well-calibrated at 91%.</p>
 <p>The role of loss-weight selection is also important. A loss-weight ablation on Phantom (20 replicates, 6,000 epochs) confirms that the pinball-dominant configuration is optimal for jump data: <span class="math inline">\((0.05, 0.25, 0.70)\)</span> gives CRPS = 0.033; <span class="math inline">\((0.00, 0.30, 0.70)\)</span> gives 0.035; and the selected <span class="math inline">\((0.10, 0.20, 0.70)\)</span> gives 0.031. Removing the <span class="math inline">\(L_1\)</span> anchor entirely (<span class="math inline">\(w_1 = 0\)</span>) degrades performance, suggesting that a small anchor term stabilizes optimization without biasing the quantile estimates toward the boundary average. The largest gain, 20% on Phantom, comes from this loss reweighting alone, before any augmentation is applied. The gain decreases as the boundary becomes less sharp: 15% on Star, 9% on Michalewicz, and only 5% on the smooth AMHV.</p>
 <p>The RMSE improvement (0.044 vs.&nbsp;0.053) is worth discussing separately. MJGP fits a separate GP on each side of the boundary. Within each regime, the local GP must estimate its own length-scale and noise-variance parameters from only the subset of training points assigned to that regime. Near the boundary, the effective sample size for each local GP shrinks, because the assignment step removes points on the other side of the boundary. The IQN, by contrast, trains on <em>all</em> the data simultaneously with the augmented feature differentiating regimes. This pooling of information across the entire dataset gives the IQN a statistical advantage, especially in regions where one regime has relatively few training points.</p>
 </section>
@@ -927,10 +1011,57 @@ Figure&nbsp;8.3: Ensemble blurring on a synthetic 1D jump function. Each ensembl
 <p>Neighborhood mixing is also severe on the Star dataset. At the star’s tips, points from both regimes are densely interleaved within any small ball. The boundary length relative to the domain area is larger for the star than for the sine curve, meaning that a greater fraction of the total training points lie near the boundary where classification is uncertain. Put differently, the Star benchmark stress-tests the classifier more aggressively than the Phantom, requiring the MLP to learn fine-grained local structure at ten distinct boundary segments simultaneously.</p>
 <p>The MLP classifier still achieves over 99% accuracy on Star, because the EM clustering step produces clean labels and the MLP has sufficient capacity to represent the angular boundary. The three-layer architecture is essential: shallower networks (one hidden layer) struggle with the sharp corners because they approximate the boundary with a piecewise-linear surface that has too few segments to track ten angular features.</p>
 <p>The contrast between Phantom and Star illuminates when depth matters for the classifier. The Phantom’s smooth sine boundary can be approximated reasonably well by a shallow network with many units, a wide, shallow network can learn a smooth decision surface. The Star’s angular boundary, with its ten sharp corners, requires <em>compositional</em> features: the network must compose local angular detectors to form the global star shape. This compositional structure is exactly what depth provides. A two-layer network composes simple features (edges, half-planes) into more complex ones (angles, wedges), and a three-layer network composes these into the full star geometry. This depth advantage is a specific instance of the general principle that deep networks can represent compositional functions exponentially more efficiently than shallow ones.</p>
-<div class="line-block">Method | RMSE | CRPS | 90% Coverage | Time/rep |</div>
-<p>|:, -|:, -:|:, -:|:, , :|:, –:| | MJGP <span class="citation" data-cites="flowers2026modular">(<a href="references.html#ref-flowers2026modular" role="doc-biblioref">Flowers et al. 2026</a>)</span> | 0.085 <span class="math inline">\(\pm\)</span> 0.001 | 0.024 <span class="math inline">\(\pm\)</span> 0.001 |, | ~600s | | Plain GBC | 0.124 <span class="math inline">\(\pm\)</span> 0.001 | 0.045 <span class="math inline">\(\pm\)</span> 0.001 | 0.87 | 18s | | <strong>Aug-IQN</strong> | <em>0.059 <span class="math inline">\(\pm\)</span> 0.002</em> | <em>0.013 <span class="math inline">\(\pm\)</span> 0.000</em> | <em>0.89</em> | <em>22s</em> |</p>
-<p>: Star benchmark (<span class="math inline">\(d = 2\)</span>, <span class="math inline">\(n = 9\)</span>k): Aug-IQN outperforms MJGP by 46% on CRPS. {#tbl-star}</p>
-<p>On the Star dataset (<span class="quarto-unresolved-ref">?tbl-star</span>), Aug-IQN’s advantage over MJGP is <em>larger</em> than on Phantom: CRPS improves by 46%, RMSE by 31%, and the <span class="math inline">\(27\times\)</span> speedup holds.</p>
+<div id="tbl-star" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-star-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8.3: Star benchmark (<span class="math inline">\(d = 2\)</span>, <span class="math inline">\(n = 9\)</span>k): Aug-IQN outperforms MJGP by 46% on CRPS.
+</figcaption>
+<div aria-describedby="tbl-star-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 15%">
+<col style="width: 18%">
+<col style="width: 18%">
+<col style="width: 25%">
+<col style="width: 21%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Method</th>
+<th style="text-align: center;">RMSE</th>
+<th style="text-align: center;">CRPS</th>
+<th style="text-align: center;">90% Coverage</th>
+<th style="text-align: center;">Time/rep</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">MJGP <span class="citation" data-cites="flowers2026modular">(<a href="references.html#ref-flowers2026modular" role="doc-biblioref">Flowers et al. 2026</a>)</span></td>
+<td style="text-align: center;">0.085 <span class="math inline">\(\pm\)</span> 0.001</td>
+<td style="text-align: center;">0.024 <span class="math inline">\(\pm\)</span> 0.001</td>
+<td style="text-align: center;">,</td>
+<td style="text-align: center;">~600s</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Plain GBC</td>
+<td style="text-align: center;">0.124 <span class="math inline">\(\pm\)</span> 0.001</td>
+<td style="text-align: center;">0.045 <span class="math inline">\(\pm\)</span> 0.001</td>
+<td style="text-align: center;">0.87</td>
+<td style="text-align: center;">18s</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Aug-IQN</strong></td>
+<td style="text-align: center;"><em>0.059 <span class="math inline">\(\pm\)</span> 0.002</em></td>
+<td style="text-align: center;"><em>0.013 <span class="math inline">\(\pm\)</span> 0.000</em></td>
+<td style="text-align: center;"><em>0.89</em></td>
+<td style="text-align: center;"><em>22s</em></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>On the Star dataset (<a href="#tbl-star" class="quarto-xref">Table&nbsp;<span>8.3</span></a>), Aug-IQN’s advantage over MJGP is <em>larger</em> than on Phantom: CRPS improves by 46%, RMSE by 31%, and the <span class="math inline">\(27\times\)</span> speedup holds.</p>
 <p>Why does Aug-IQN’s advantage grow on the harder dataset? MJGP fits a separate GP on each side of the boundary, and the angular star geometry creates thin regions where each local GP has relatively few training points. The GP’s cubic scaling limits the amount of local data it can use. The IQN, by contrast, trains on <em>all</em> the data simultaneously and uses the augmented feature to differentiate regimes. It can use patterns learned in data-rich regions to improve predictions in data-poor regions near the star’s tips. The star geometry also exacerbates the GP’s length-scale problem: near the tips, the two regimes are so close together that the local GP’s length scale must be very short, which reduces the effective sample size for each local GP even further. In quantitative terms, a star tip with an opening angle of <span class="math inline">\(36°\)</span> (for a regular five-pointed star) creates a wedge-shaped region where the nearest boundary segment is only a few percent of the domain width away. A local GP assigned to this wedge has very few training points, perhaps only 2–3% of the total training set, making hyperparameter estimation unreliable and inflating posterior uncertainty.</p>
 <p>Across both datasets, the three-step Aug-IQN pipeline produces better CRPS and better RMSE than MJGP, runs <span class="math inline">\(27\times\)</span> faster, and achieves well-calibrated 90% coverage (0.91 on Phantom, 0.89 on Star). The key enabling factor is classifier accuracy. When the MLP achieves <span class="math inline">\(&gt;99\%\)</span> accuracy on the boundary, the augmented IQN receives nearly perfect regime information, and the downstream quantile estimation becomes a smooth-function regression problem where neural networks excel.</p>
 <p>On both Phantom and Star, Aug-IQN’s empirical 90% coverage (0.91 and 0.89, respectively) is close to the nominal level, with a single model and no post-hoc calibration. The slight under-coverage on Star (0.89 vs.&nbsp;the nominal 0.90) is consistent with the harder boundary geometry: the thin misclassified wedges near the star tips produce a small number of test points where the prediction intervals are too narrow because the IQN assigns them to the wrong regime. This is a local effect confined to the boundary neighborhood and does not affect the bulk of the test points, which is why the overall coverage remains close to nominal. For applications requiring guaranteed coverage, the conformal calibration methods of <a href="ch14-calibration.html" class="quarto-xref"><span>Chapter 14</span></a> can be applied as a post-processing step.</p>
@@ -942,21 +1073,109 @@ Figure&nbsp;8.3: Ensemble blurring on a synthetic 1D jump function. Each ensembl
 <p>Semiconductor fabrication facilities (fabs) are among the most expensive manufacturing environments in the world, with individual facilities costing <span class="math inline">\(10\)</span>–<span class="math inline">\(20\)</span> billion to construct. The AMHV system is responsible for moving work-in-progress between hundreds of processing tools, and the throughput of the entire fab depends on the AMHV’s efficiency. Even a 1% improvement in average transport time can translate to millions of dollars in annual revenue. This makes the AMHV an ideal candidate for surrogate-based optimization: the simulator is expensive to run (each evaluation requires simulating the full fab for a realistic production schedule), and the response surface is non-trivial because of the congestion effects.</p>
 <p>This capacity-induced phase transition produces a response surface that looks like a jump discontinuity in four-dimensional input space. But unlike the clean binary jumps in Phantom and Star, the AMHV transition is <em>gradual</em>. There is no sharp sine curve or star-shaped boundary separating two regions; instead, there is a fuzzy transition zone where congestion builds gradually as the system approaches its capacity limit. The marginal distribution of response values is not cleanly bimodal, the two regimes overlap substantially in the marginal, with many intermediate transport times that could belong to either the smooth or congested regime.</p>
 <p>This overlap means EM clustering cannot reliably separate the two regimes. Applying the augmentation pipeline to AMHV would produce noisy regime labels, a poorly trained classifier, and ultimately an augmented feature that provides more confusion than information.</p>
-<div class="line-block">Method | RMSE | CRPS | 90% Coverage |</div>
-<p>|:, -|:, -:|:, -:|:, , :| | MJGP <span class="citation" data-cites="flowers2026modular">(<a href="references.html#ref-flowers2026modular" role="doc-biblioref">Flowers et al. 2026</a>)</span> | 0.027 <span class="math inline">\(\pm\)</span> 0.000 | 0.012 <span class="math inline">\(\pm\)</span> 0.000 |, | | <em>Plain GBC</em> | <em>0.024 <span class="math inline">\(\pm\)</span> 0.000</em> | <em>0.011 <span class="math inline">\(\pm\)</span> 0.000</em> | <em>0.91</em> |</p>
-<p>: AMHV benchmark (<span class="math inline">\(d = 4\)</span>, <span class="math inline">\(n = 8.5\)</span>k): Plain GBC outperforms MJGP without augmentation. The jump-detection step in MJGP introduces overhead when the boundary is smooth. {#tbl-amhv}</p>
-<p>On AMHV (<span class="quarto-unresolved-ref">?tbl-amhv</span>), plain GBC outperforms MJGP on both RMSE and CRPS without any augmentation. The difference is small but telling: MJGP’s jump-detection machinery introduces overhead that does not pay off when the boundary is smooth rather than sharp.</p>
+<div id="tbl-amhv" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-amhv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8.4: AMHV benchmark (<span class="math inline">\(d = 4\)</span>, <span class="math inline">\(n = 8.5\)</span>k): Plain GBC outperforms MJGP without augmentation. The jump-detection step in MJGP introduces overhead when the boundary is smooth.
+</figcaption>
+<div aria-describedby="tbl-amhv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 24%">
+<col style="width: 24%">
+<col style="width: 32%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Method</th>
+<th style="text-align: center;">RMSE</th>
+<th style="text-align: center;">CRPS</th>
+<th style="text-align: center;">90% Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">MJGP <span class="citation" data-cites="flowers2026modular">(<a href="references.html#ref-flowers2026modular" role="doc-biblioref">Flowers et al. 2026</a>)</span></td>
+<td style="text-align: center;">0.027 <span class="math inline">\(\pm\)</span> 0.000</td>
+<td style="text-align: center;">0.012 <span class="math inline">\(\pm\)</span> 0.000</td>
+<td style="text-align: center;">,</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><em>Plain GBC</em></td>
+<td style="text-align: center;"><em>0.024 <span class="math inline">\(\pm\)</span> 0.000</em></td>
+<td style="text-align: center;"><em>0.011 <span class="math inline">\(\pm\)</span> 0.000</em></td>
+<td style="text-align: center;"><em>0.91</em></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>On AMHV (<a href="#tbl-amhv" class="quarto-xref">Table&nbsp;<span>8.4</span></a>), plain GBC outperforms MJGP on both RMSE and CRPS without any augmentation. The difference is small but telling: MJGP’s jump-detection machinery introduces overhead that does not pay off when the boundary is smooth rather than sharp.</p>
 <p>This illustrates a recurring pattern: <em>specialized methods can hurt when their structural assumptions are not well-matched to the data</em>. The IQN’s architecture is flexible enough to handle the smooth AMHV boundary without explicit jump detection. Its feedforward layers learn a locally varying quantile function that captures the gradual transition between regimes.</p>
 <p>The guideline: augment when the response histogram is clearly bimodal, as for Phantom and Star. Do not augment when the response modes overlap, the boundary is smooth, or the data has more than two regimes; in those cases, plain GBC already handles the non-stationarity, as AMHV illustrates. Plotting the marginal response distribution costs only seconds and can save hours of unnecessary experimentation.</p>
 <p>A useful quantitative diagnostic is the <em>overlap coefficient</em> of the fitted two-component Gaussian mixture. After fitting the GMM, compute the probability that a random draw from component 1 falls in the higher-density region of component 2. If this overlap exceeds 10–15%, the modes are not well-separated and augmentation is unlikely to help. For Phantom and Star, the overlap coefficient is effectively zero (the modes are separated by many standard deviations). For AMHV, it is approximately 25%, confirming that EM clustering cannot reliably separate the regimes. We formalize this diagnostic in <a href="#exr-amhv-diagnostic" class="quarto-xref">Exercise&nbsp;<span>8.8</span></a>.</p>
 </section>
 <section id="sec-jumps-summary" class="level2" data-number="8.8">
 <h2 data-number="8.8" class="anchored" data-anchor-id="sec-jumps-summary"><span class="header-section-number">8.8</span> Summary of Jump-Process Benchmarks</h2>
-<p><span class="quarto-unresolved-ref">?tbl-summary</span> collects results across all datasets discussed in this chapter, together with the Michalewicz benchmark (<span class="math inline">\(d = 4\)</span>, <span class="math inline">\(N = 90{,}000\)</span>) where MJGP is computationally infeasible (<span class="math inline">\(\geq 48\)</span> hours) but GBC trains in under 30 minutes.</p>
-<div class="line-block">Dataset | <span class="math inline">\(d\)</span> | <span class="math inline">\(n\)</span> | Best Method | CRPS | vs.&nbsp;MJGP |</div>
-<p>|:, –|:, :|:, :|:, , |:, -:|:, –:| | Phantom | 2 | 9k | Aug-IQN | 0.009 | +10% better | | Star | 2 | 9k | Aug-IQN | 0.013 | +46% better | | AMHV | 4 | 8.5k | Plain GBC | 0.011 | +8% better | | Michalewicz | 4 | 90k | Plain GBC | 0.031 | MJGP infeasible |</p>
-<p>: Summary of GBC performance across jump-process benchmarks. GBC (plain or augmented) wins on every dataset. {#tbl-summary}</p>
-<p>GBC wins on every dataset (<span class="quarto-unresolved-ref">?tbl-summary</span>). Aug-IQN beats MJGP on the sharp-jump datasets while running <span class="math inline">\(27\times\)</span> faster; plain GBC wins on AMHV without augmentation; and on Michalewicz (<span class="math inline">\(n = 90{,}000\)</span>), MJGP is infeasible while GBC trains in under 30 minutes.</p>
+<p><a href="#tbl-summary" class="quarto-xref">Table&nbsp;<span>8.5</span></a> collects results across all datasets discussed in this chapter, together with the Michalewicz benchmark (<span class="math inline">\(d = 4\)</span>, <span class="math inline">\(N = 90{,}000\)</span>) where MJGP is computationally infeasible (<span class="math inline">\(\geq 48\)</span> hours) but GBC trains in under 30 minutes.</p>
+<div id="tbl-summary" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8.5: Summary of GBC performance across jump-process benchmarks. GBC (plain or augmented) wins on every dataset.
+</figcaption>
+<div aria-describedby="tbl-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Dataset</th>
+<th style="text-align: center;"><span class="math inline">\(d\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(n\)</span></th>
+<th style="text-align: left;">Best Method</th>
+<th style="text-align: center;">CRPS</th>
+<th style="text-align: center;">vs.&nbsp;MJGP</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Phantom</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">9k</td>
+<td style="text-align: left;">Aug-IQN</td>
+<td style="text-align: center;">0.009</td>
+<td style="text-align: center;">+10% better</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Star</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">9k</td>
+<td style="text-align: left;">Aug-IQN</td>
+<td style="text-align: center;">0.013</td>
+<td style="text-align: center;">+46% better</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">AMHV</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">8.5k</td>
+<td style="text-align: left;">Plain GBC</td>
+<td style="text-align: center;">0.011</td>
+<td style="text-align: center;">+8% better</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Michalewicz</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">90k</td>
+<td style="text-align: left;">Plain GBC</td>
+<td style="text-align: center;">0.031</td>
+<td style="text-align: center;">MJGP infeasible</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>GBC wins on every dataset (<a href="#tbl-summary" class="quarto-xref">Table&nbsp;<span>8.5</span></a>). Aug-IQN beats MJGP on the sharp-jump datasets while running <span class="math inline">\(27\times\)</span> faster; plain GBC wins on AMHV without augmentation; and on Michalewicz (<span class="math inline">\(n = 90{,}000\)</span>), MJGP is infeasible while GBC trains in under 30 minutes.</p>
 <p>The Michalewicz benchmark deserves a brief comment. The standard Michalewicz function in <span class="math inline">\(d = 4\)</span> dimensions is modified by adding a 0.5 offset wherever <span class="math inline">\(f(x) \geq -0.01\)</span> (the precise definition is in <a href="ch02-datasets.html#sec-data-michalewicz" class="quarto-xref"><span>Section 2.2.4</span></a>), introducing a jump discontinuity along the level set <span class="math inline">\(\{x : f(x) = -0.01\}\)</span>. Unlike Phantom and Star, the marginal response is not bimodal, it is a point mass near 0.5 plus a scattered distribution in <span class="math inline">\([-4, 0]\)</span>, violating the Gaussian-mixture clustering assumption. Augmentation would fail here because EM cannot identify two clean modes. But with <span class="math inline">\(n_{\mathrm{train}} = 90{,}000\)</span> training points, the plain IQN has enough data to learn the jump structure directly from the input-output relationship, achieving CRPS = 0.031 without any boundary-detection preprocessing. This confirms our earlier point: augmentation is a tool for when it is needed, not a blanket prescription.</p>
 <p>The pattern: when the response histogram is clearly bimodal and the modes are well-separated, apply Aug-IQN. When the response modes overlap, or when the response has more than two distinct levels without clear separation, use plain GBC. A quick histogram plot is all that is needed to make this decision.</p>
 </section>
@@ -1117,7 +1336,7 @@ Figure&nbsp;8.4: Three-regime jump surface with EM clustering and multiclass cla
 <p><span class="theorem-title"><strong>Exercise 8.1 (EM clustering with overlapping modes)</strong></span> Generate a 1D dataset with two regimes where the jump magnitude equals the noise standard deviation: <span class="math inline">\(f_1(x) = 0\)</span>, <span class="math inline">\(f_2(x) = \sigma\)</span>, <span class="math inline">\(\varepsilon \sim \mathcal{N}(0, \sigma^2)\)</span>. Fit a two-component Gaussian mixture and measure the clustering accuracy as a function of <span class="math inline">\(\sigma \in \{0.1, 0.5, 1.0, 2.0, 5.0\}\)</span>, using <span class="math inline">\(n = 1{,}000\)</span> points per trial and 20 replicates. At what signal-to-noise ratio does EM clustering begin to fail (accuracy <span class="math inline">\(&lt; 90\%\)</span>)? Plot accuracy vs.&nbsp;signal-to-noise ratio.</p>
 </div>
 <div id="exr-classifier-ablation" class="theorem exercise">
-<p><span class="theorem-title"><strong>Exercise 8.2 (Classifier architecture ablation)</strong></span> On the synthetic jump dataset from <a href="#sec-jumps-em" class="quarto-xref"><span>Section 8.2</span></a> (jump at <span class="math inline">\(x = 0.5\)</span>), train the boundary classifier with four configurations: (a) logistic regression (0 hidden layers), (b) MLP with 1 hidden layer of 64 units, (c) MLP with 2 hidden layers of 128 units, (d) MLP with 3 hidden layers of 256 units. For each configuration, measure classification accuracy and the downstream CRPS when the classifier output is used in Aug-IQN with 3000 IQN epochs. Plot CRPS vs.&nbsp;classifier accuracy. Does the relationship match <span class="quarto-unresolved-ref">?tbl-classifier-accuracy</span>?</p>
+<p><span class="theorem-title"><strong>Exercise 8.2 (Classifier architecture ablation)</strong></span> On the synthetic jump dataset from <a href="#sec-jumps-em" class="quarto-xref"><span>Section 8.2</span></a> (jump at <span class="math inline">\(x = 0.5\)</span>), train the boundary classifier with four configurations: (a) logistic regression (0 hidden layers), (b) MLP with 1 hidden layer of 64 units, (c) MLP with 2 hidden layers of 128 units, (d) MLP with 3 hidden layers of 256 units. For each configuration, measure classification accuracy and the downstream CRPS when the classifier output is used in Aug-IQN with 3000 IQN epochs. Plot CRPS vs.&nbsp;classifier accuracy. Does the relationship match <a href="#tbl-classifier-accuracy" class="quarto-xref">Table&nbsp;<span>8.1</span></a>?</p>
 </div>
 <div id="exr-2d-jump" class="theorem exercise">
 <p><span class="theorem-title"><strong>Exercise 8.3 (2D jump function)</strong></span> Consider a 2D function with a circular jump boundary: <span class="math display">\[
@@ -1932,7 +2151,7 @@ Park, Chiwoo, Robert Waelder, Bonggwon Kang, Benji Maruyama, Soondo Hong, and Ro
 <span id="cb10-271"><a href="#cb10-271" aria-hidden="true" tabindex="-1"></a>This dependence was quantified empirically on the Phantom dataset:</span>
 <span id="cb10-272"><a href="#cb10-272" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-273"><a href="#cb10-273" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Classifier <span class="pp">|</span> Accuracy <span class="pp">|</span> CRPS <span class="pp">|</span></span>
-<span id="cb10-274"><a href="#cb10-274" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, , --<span class="pp">|</span>:, --:<span class="pp">|</span>:, -:<span class="pp">|</span></span>
+<span id="cb10-274"><a href="#cb10-274" aria-hidden="true" tabindex="-1"></a><span class="pp">|:--------|:-----:|:----:|</span></span>
 <span id="cb10-275"><a href="#cb10-275" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> SVC (linear) <span class="pp">|</span> 82% <span class="pp">|</span> 0.024 <span class="pp">|</span></span>
 <span id="cb10-276"><a href="#cb10-276" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> MLP 128×2 / 1000 ep <span class="pp">|</span> 99.4% <span class="pp">|</span> 0.013 <span class="pp">|</span></span>
 <span id="cb10-277"><a href="#cb10-277" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> MLP 256×3 / 2000 ep <span class="pp">|</span> 99.9% <span class="pp">|</span> 0.010 <span class="pp">|</span></span>
@@ -2183,7 +2402,7 @@ Park, Chiwoo, Robert Waelder, Bonggwon Kang, Benji Maruyama, Soondo Hong, and Ro
 <span id="cb10-522"><a href="#cb10-522" aria-hidden="true" tabindex="-1"></a>We compare three methods using the @flowers2026modular protocol: 90/10 train/test split, 20 replicates, full training set ($n_{\mathrm{train}} \approx 9{,}000$). Response values are normalized to $<span class="co">[</span><span class="ot">0, 1</span><span class="co">]</span>$.</span>
 <span id="cb10-523"><a href="#cb10-523" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-524"><a href="#cb10-524" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> RMSE <span class="pp">|</span> CRPS <span class="pp">|</span> 90% Coverage <span class="pp">|</span> Time/rep <span class="pp">|</span></span>
-<span id="cb10-525"><a href="#cb10-525" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, -<span class="pp">|</span>:, -:<span class="pp">|</span>:, -:<span class="pp">|</span>:, , :<span class="pp">|</span>:, --:<span class="pp">|</span></span>
+<span id="cb10-525"><a href="#cb10-525" aria-hidden="true" tabindex="-1"></a><span class="pp">|:----|:----:|:----:|:------:|:-----:|</span></span>
 <span id="cb10-526"><a href="#cb10-526" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> MJGP <span class="co">[</span><span class="ot">@flowers2026modular</span><span class="co">]</span> <span class="pp">|</span> 0.053 $\pm$ 0.001 <span class="pp">|</span> 0.010 $\pm$ 0.000 <span class="pp">|</span>, <span class="pp">|</span> ~600s <span class="pp">|</span></span>
 <span id="cb10-527"><a href="#cb10-527" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Plain GBC <span class="pp">|</span> 0.095 $\pm$ 0.001 <span class="pp">|</span> 0.031 $\pm$ 0.001 <span class="pp">|</span> 0.89 <span class="pp">|</span> 18s <span class="pp">|</span></span>
 <span id="cb10-528"><a href="#cb10-528" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Aug-IQN** <span class="pp">|</span> *0.044 $\pm$ 0.002* | *0.009 $\pm$ 0.000* | *0.91* | *23s* <span class="pp">|</span></span>
@@ -2210,7 +2429,7 @@ Park, Chiwoo, Robert Waelder, Bonggwon Kang, Benji Maruyama, Soondo Hong, and Ro
 <span id="cb10-549"><a href="#cb10-549" aria-hidden="true" tabindex="-1"></a>The contrast between Phantom and Star illuminates when depth matters for the classifier. The Phantom's smooth sine boundary can be approximated reasonably well by a shallow network with many units, a wide, shallow network can learn a smooth decision surface. The Star's angular boundary, with its ten sharp corners, requires *compositional* features: the network must compose local angular detectors to form the global star shape. This compositional structure is exactly what depth provides. A two-layer network composes simple features (edges, half-planes) into more complex ones (angles, wedges), and a three-layer network composes these into the full star geometry. This depth advantage is a specific instance of the general principle that deep networks can represent compositional functions exponentially more efficiently than shallow ones.</span>
 <span id="cb10-550"><a href="#cb10-550" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-551"><a href="#cb10-551" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> RMSE <span class="pp">|</span> CRPS <span class="pp">|</span> 90% Coverage <span class="pp">|</span> Time/rep <span class="pp">|</span></span>
-<span id="cb10-552"><a href="#cb10-552" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, -<span class="pp">|</span>:, -:<span class="pp">|</span>:, -:<span class="pp">|</span>:, , :<span class="pp">|</span>:, --:<span class="pp">|</span></span>
+<span id="cb10-552"><a href="#cb10-552" aria-hidden="true" tabindex="-1"></a><span class="pp">|:----|:----:|:----:|:------:|:-----:|</span></span>
 <span id="cb10-553"><a href="#cb10-553" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> MJGP <span class="co">[</span><span class="ot">@flowers2026modular</span><span class="co">]</span> <span class="pp">|</span> 0.085 $\pm$ 0.001 <span class="pp">|</span> 0.024 $\pm$ 0.001 <span class="pp">|</span>, <span class="pp">|</span> ~600s <span class="pp">|</span></span>
 <span id="cb10-554"><a href="#cb10-554" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Plain GBC <span class="pp">|</span> 0.124 $\pm$ 0.001 <span class="pp">|</span> 0.045 $\pm$ 0.001 <span class="pp">|</span> 0.87 <span class="pp">|</span> 18s <span class="pp">|</span></span>
 <span id="cb10-555"><a href="#cb10-555" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Aug-IQN** <span class="pp">|</span> *0.059 $\pm$ 0.002* | *0.013 $\pm$ 0.000* | *0.89* | *22s* <span class="pp">|</span></span>
@@ -2239,7 +2458,7 @@ Park, Chiwoo, Robert Waelder, Bonggwon Kang, Benji Maruyama, Soondo Hong, and Ro
 <span id="cb10-578"><a href="#cb10-578" aria-hidden="true" tabindex="-1"></a>This overlap means EM clustering cannot reliably separate the two regimes. Applying the augmentation pipeline to AMHV would produce noisy regime labels, a poorly trained classifier, and ultimately an augmented feature that provides more confusion than information.</span>
 <span id="cb10-579"><a href="#cb10-579" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-580"><a href="#cb10-580" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> RMSE <span class="pp">|</span> CRPS <span class="pp">|</span> 90% Coverage <span class="pp">|</span></span>
-<span id="cb10-581"><a href="#cb10-581" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, -<span class="pp">|</span>:, -:<span class="pp">|</span>:, -:<span class="pp">|</span>:, , :<span class="pp">|</span></span>
+<span id="cb10-581"><a href="#cb10-581" aria-hidden="true" tabindex="-1"></a><span class="pp">|:----|:----:|:----:|:------:|</span></span>
 <span id="cb10-582"><a href="#cb10-582" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> MJGP <span class="co">[</span><span class="ot">@flowers2026modular</span><span class="co">]</span> <span class="pp">|</span> 0.027 $\pm$ 0.000 <span class="pp">|</span> 0.012 $\pm$ 0.000 <span class="pp">|</span>, <span class="pp">|</span></span>
 <span id="cb10-583"><a href="#cb10-583" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> *Plain GBC* | *0.024 $\pm$ 0.000* | *0.011 $\pm$ 0.000* | *0.91* <span class="pp">|</span></span>
 <span id="cb10-584"><a href="#cb10-584" aria-hidden="true" tabindex="-1"></a></span>
@@ -2259,7 +2478,7 @@ Park, Chiwoo, Robert Waelder, Bonggwon Kang, Benji Maruyama, Soondo Hong, and Ro
 <span id="cb10-598"><a href="#cb10-598" aria-hidden="true" tabindex="-1"></a>@tbl-summary collects results across all datasets discussed in this chapter, together with the Michalewicz benchmark ($d = 4$, $N = 90{,}000$) where MJGP is computationally infeasible ($\geq 48$ hours) but GBC trains in under 30 minutes.</span>
 <span id="cb10-599"><a href="#cb10-599" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-600"><a href="#cb10-600" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Dataset <span class="pp">|</span> $d$ <span class="pp">|</span> $n$ <span class="pp">|</span> Best Method <span class="pp">|</span> CRPS <span class="pp">|</span> vs. MJGP <span class="pp">|</span></span>
-<span id="cb10-601"><a href="#cb10-601" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>:, --<span class="pp">|</span>:, :<span class="pp">|</span>:, :<span class="pp">|</span>:, , <span class="pp">|</span>:, -:<span class="pp">|</span>:, --:<span class="pp">|</span></span>
+<span id="cb10-601"><a href="#cb10-601" aria-hidden="true" tabindex="-1"></a><span class="pp">|:-----|:---:|:---:|:------|:----:|:-----:|</span></span>
 <span id="cb10-602"><a href="#cb10-602" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Phantom <span class="pp">|</span> 2 <span class="pp">|</span> 9k <span class="pp">|</span> Aug-IQN <span class="pp">|</span> 0.009 <span class="pp">|</span> +10% better <span class="pp">|</span></span>
 <span id="cb10-603"><a href="#cb10-603" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Star <span class="pp">|</span> 2 <span class="pp">|</span> 9k <span class="pp">|</span> Aug-IQN <span class="pp">|</span> 0.013 <span class="pp">|</span> +46% better <span class="pp">|</span></span>
 <span id="cb10-604"><a href="#cb10-604" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> AMHV <span class="pp">|</span> 4 <span class="pp">|</span> 8.5k <span class="pp">|</span> Plain GBC <span class="pp">|</span> 0.011 <span class="pp">|</span> +8% better <span class="pp">|</span></span>
