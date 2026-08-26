@@ -1,4 +1,4 @@
-# AI 600 course context
+# AII 600 course context
 
 *Reference material for the course tutor. Attach this alongside `tutor-instructions.md`.*
 
@@ -14,7 +14,7 @@
 | 6. Deep learning | `notes/06-dlai.html` | 12 to 13 | neural nets, ReLU and activations, projection pursuit, Kolmogorov-Arnold representation, trees versus nets |
 | Responsible AI | | 14 | fairness metrics, auditing, the decision log |
 
-Week 7 is the midterm. The recorded presentation is due in week 14. Week 15 is the defense.
+Week 7 is the midterm. Week 15 is the defense.
 
 Do not claim to have read a module note unless the note is available in the conversation or
 project sources.
@@ -32,26 +32,40 @@ one entry to its cumulative project decision log. Week 15 is the defense.
 
 ## Assessment
 
-The foundation phase is 50%: labs 10 and midterm 40. The project phase is 50%. Across the course that is 50% Understanding, 40% Judgment, and 10% Preparation.
+The foundation phase is 50%: labs 10 and midterm 40. The project phase is 50%. Across the
+course that is 50% Understanding, 40% Judgment, and 10% Preparation.
+
+Understanding means explaining mechanisms, interpreting results in context, applying
+foundations without an assistant, and predicting what changes when an assumption or
+condition changes. Judgment means stating the purpose, comparing reasonable alternatives,
+accounting for the consequences of error, calibrating claims to evidence, and identifying
+what would change the choice. Preparation is on-time lab submission.
+
+By the midterm, students should apply and explain probability, estimation, regression, and
+classification without an assistant, and diagnose a defective analysis. By the defense, they
+should choose and validate a model on held-out evidence, state error costs, explain how
+uncertainty affects the recommendation, stay accountable for delegated AI work, and revise a
+position under questioning.
 
 | Component | Weight | Measures |
 |---|---:|---|
-| Self-check labs (7, credit for submission) | 10% | Preparation |
+| Self-check labs (7, credit for on-time submission) | 10% | Preparation |
 | Midterm, in class, week 7, 2.5 hours, pen and paper, no AI | 40% | Understanding 25, Judgment 15 |
-| Studio pages | 10% | Judgment |
-| Project defense | 25% | Understanding |
-| Project presentation | 15% | Judgment |
+| Studio (weekly page and assigned oral critique) | 10% | Judgment |
+| Project defense | 40% | Understanding 25, Judgment 15 |
 
-Presentation points measure the team's judgment: the problem, the alternatives, the cost of
-error, and what would change the recommendation. Defense points measure individual
-understanding. Labs measure preparation: submit them, and the points are yours. The
-auto-grader is for the student; the instructor does not mark the lab. Code, plots,
-and analysis sit behind the presentation; they are not a separate graded product.
+The studio 10% covers the weekly page and both sides of the assigned oral critique. The page,
+before they leave, in this order: the decision; the finding; the evidence; the alternative
+they rejected; the strongest check that could have failed; what would change the decision.
 
-The proposal (week 9), mid-build (week 11), and decision log (submitted with the
-presentation in week 14) are required. They have no separate points. Presentation points
-are not assigned until they are in. They supply evidence and material for the presentation
-and the defense.
+Of the defense, 25 points measure individual understanding and 15 measure the team's
+judgment: the problem, the alternatives, the cost of error, and what would change the
+recommendation. Labs measure preparation: submit on time, and the points are yours. The
+auto-grader is for the student; the instructor does not mark the lab. Code, plots, and
+analysis sit behind the defense; they are not a separate graded product.
+
+The proposal (week 9), mid-build (week 11), and decision log (due week 14) are required.
+They have no separate points. Defense points are not assigned until they are in.
 
 The midterm and the defense happen in the room. Assistants are expected for labs, studios,
 and project work. They are prohibited during the midterm. Students disclose what they used.
@@ -59,9 +73,10 @@ No penalty attaches to the disclosure.
 
 ## Datasets in the repository
 
-Neutral descriptions. Several of these are used in exercises that turn on something not
-mentioned here, so do not speculate about their quality unprompted; if a student has found
-something and asks you to confirm it, engage with what they found.
+Neutral descriptions. Some exercises turn on an issue that students are expected to discover.
+Do not volunteer a known exercise-specific defect or hint at an answer key. Normal provenance
+questions and diagnostic checks are still expected. If a student presents evidence of a
+problem, help them investigate it.
 
 | File | Rows | Description and key columns |
 |---|---:|---|
@@ -70,7 +85,7 @@ something and asks you to confirm it, engage with what they found.
 | `hw/satgpa.csv` | 1,000 | `sex`, `sat_v`, `sat_m`, `sat_sum`, `hs_gpa`, `fy_gpa` |
 | `hw/epl.csv` | 380 | 2016-17 Premier League. `home_team_name`, `away_team_name`, `date_string`, `half_time_score`, `home_score`, `guest_score` |
 | `hw/ev.csv` | 51 | tab separated, no header: state name, electoral votes. Totals 538 |
-| `hw/dca_hourly.csv` | 140,184 | hourly weather at Washington National, 2008 to 2023, downloaded by `hw/weather.R` from the Open-Meteo archive (ERA5). Not tracked in git; the script fetches it |
+| `hw/dca_hourly.csv` | 140,184 | Hourly Open-Meteo historical reanalysis for a grid cell near Washington National Airport, 1 January 2008 through 28 December 2023. The raw CSV has metadata and a blank line before the data header; `weather.R` reads it with `skip = 3`. Generated locally; ignored by git |
 | `notes/data/Default.csv` | 10,000 | `default`, `student`, `balance`, `income` |
 | `notes/data/bodytemp.txt` | 130 | comma separated: `temperature` (°F), `gender` (1/2), `rate` (heart rate) |
 | `notes/data/circle.csv` | 200 | `label`, `x1`, `x2`. Two classes separated by a radius |
@@ -91,7 +106,9 @@ Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
   `testthat` dependency.
 - Notation in the notes: `n` sample size, `p` predictors, `y` response, `X` design matrix,
   `beta` coefficients, `e` residuals, `L` likelihood, `l` log-likelihood.
-- Data paths in student code are usually relative to the folder they were given.
+- Do not guess the working directory. If a path fails, use `getwd()` and `list.files()`
+  rather than inventing a location. Data files are usually relative to the folder the student
+  was given.
 
 Never invent R output or claim to have executed code that you have not run. Distinguish
 computed results from expected results.
@@ -102,10 +119,11 @@ If a student's question touches one of these, it is worth naming the connection.
 spine of the course and the defense questions are built on them.
 
 1. **Every threshold is a decision, and every decision has a loss function**, whether or not
-   anyone wrote it down. A default of 0.5 is a claim that the two errors cost the same.
+   anyone wrote it down. For a calibrated class probability under symmetric binary loss, a
+   threshold of 0.5 treats false positives and false negatives as equally costly.
 2. **A statistic is not a verdict.** R², accuracy, p-values and AUC all answer narrow
    questions, and none of them answers "is this model good", which is not well posed without
-   a decision.
+   a stated purpose, comparison, and criterion.
 3. **Comparisons must be on a common scale.** Two R² values from models with different
    response variables are not comparable, and neither is accuracy against an unstated base
    rate.
