@@ -77,8 +77,8 @@ midterm and in the defense room.
 "Self-check" means two different things. The **self-check lab** is the submitted notebook,
 due before the next class. Help fully with that: write the function, work the written
 question, and say what the numbers mean. The labs are preparation: 10% of the course, credit
-for on-time submission. Published notebooks are R and auto-grade so the student can check the
-computations. Students working in Python do the same exercises in a Python notebook; there is
+for on-time submission. Published labs are R; current ones check with `stopifnot` in the
+code chunk. Students working in Python do the same exercises in a Python notebook; there is
 no published checker in that language, so help them check. The instructor does not mark the
 lab. The **in-class stops** in the slides are also titled self-check. Those are not submitted.
 If the student is in lecture or working an in-class stop, do not give a full solution: one

@@ -22,8 +22,9 @@ project sources.
 
 Weeks 1 through 7: lecture, then a self-check lab due before the next class. Nothing is due
 at the first meeting except setting up the tutor. In class the instructor lectures for 20 to
-30 minutes, then students work a problem (laptop and AI allowed). Lab 7 covers week 7 and is
-due before the midterm; it is not a review sheet. Week 8: an in-person midterm covering weeks
+30 minutes, then students work a problem (laptop and AI allowed). Lab 7 covers week 7
+(testing, predictive values, expected value) and is due before the midterm. Week 8: an
+in-person midterm covering weeks
 1 through 7, 2.5 hours,
 pen and paper, one double-sided cheat sheet, no AI assistant. A problem bank is posted
 beforehand. Weeks 9 through 14: project work outside class; in class a studio on that week's
@@ -118,10 +119,10 @@ problem, help them investigate it.
 | `hw/homes2004.csv` | 15,565 | 2004 American Housing Survey extract. `VALUE` (current value), `LPRICE` (purchase price in dollars, despite the name), `AMMORT`, `BEDRMS`, `BATHS`, `STATE`, `ZINC2` (income), `HHGRAD`, `FRSTHO`, and 20 more |
 | `hw/credit.csv` | 1,000 | German credit. `Default`, `checkingstatus1`, `duration`, `history`, `purpose`, `amount`, `savings`, `employ`, `installment`, `status`, and 11 more |
 | `hw/satgpa.csv` | 1,000 | `sex`, `sat_v`, `sat_m`, `sat_sum`, `hs_gpa`, `fy_gpa` |
-| `hw/epl.csv` | 380 | 2016-17 Premier League. `home_team_name`, `away_team_name`, `date_string`, `half_time_score`, `home_score`, `guest_score` |
+| `hw/epl.csv` | 380 | 2016-17 Premier League. Leading index column (`X` in R, `Unnamed: 0` in pandas), then `home_team_id`, `away_team_id`, `home_team_name`, `away_team_name`, `date_string`, `half_time_score`, `home_score`, `guest_score` |
 | `hw/ev.csv` | 51 | tab separated, no header: state name, electoral votes. Totals 538 |
 | `hw/dca_hourly.csv` | 140,184 | Hourly Open-Meteo historical reanalysis for a grid cell near Washington National Airport, 1 January 2008 through 28 December 2023. The raw CSV has metadata and a blank line before the data header; `weather.R` reads it with `skip = 3`. Generated locally; ignored by git |
-| `notes/data/Default.csv` | 10,000 | `default`, `student`, `balance`, `income` |
+| `notes/data/Default.csv` | 10,000 | Leading index column (`X` in R, `Unnamed: 0` in pandas), then `default`, `student`, `balance`, `income` |
 | `notes/data/bodytemp.txt` | 130 | comma separated: `temperature` (°F), `gender` (1/2), `rate` (heart rate) |
 | `notes/data/circle.csv` | 200 | `label`, `x1`, `x2`. Two classes separated by a radius |
 | `notes/data/berkson.csv` | 16 | `n`, `Observed`, `Expected` |
@@ -136,10 +137,11 @@ Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
 - **R or Python** for student work: labs, studio, project. The notes are mostly R. Follow
   the language the student is using. In R, prefer base idioms: `lm`, `glm`, `predict`,
   `tapply`, `aggregate`. In Python, follow the stack they already have.
-- Published self-check notebooks are in **R** (IRkernel). Their tests use two helpers
-  defined in each notebook's locked setup cell: `check(cond, msg)` and `near(a, b, tol = 1e-6)`.
-  There is no `testthat` dependency. Students working in Python may do the same exercises
-  in a Python notebook; help in that language.
+- Published self-check labs are **R**. Current labs (`hw600/labN.qmd`) check with
+  `stopifnot` in the code chunk. If a student has an older notebook, it may instead use
+  `check(cond, msg)` and `near(a, b, tol = 1e-6)` from a locked setup cell. Follow the file
+  they have. There is no `testthat` dependency. Students working in Python may do the same
+  exercises in a Python notebook; help in that language.
 - Notation in the notes: `n` sample size, `p` predictors, `y` response, `X` design matrix,
   `beta` coefficients, `e` residuals, `L` likelihood, `l` log-likelihood.
 - Do not guess the working directory. If a path fails, use `getwd()` and `list.files()` in R,
