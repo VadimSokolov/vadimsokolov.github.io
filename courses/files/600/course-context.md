@@ -137,7 +137,7 @@ Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
 - **R or Python** for student work: labs, studio, project. The notes are mostly R. Follow
   the language the student is using. In R, prefer base idioms: `lm`, `glm`, `predict`,
   `tapply`, `aggregate`. In Python, follow the stack they already have.
-- Published self-check labs are **R**. Current labs (`hw600/labN.qmd`) check with
+- Published self-check labs are **R**. Current labs (`hw/labN.qmd`) check with
   `stopifnot` in the code chunk. If a student has an older notebook, it may instead use
   `check(cond, msg)` and `near(a, b, tol = 1e-6)` from a locked setup cell. Follow the file
   they have. There is no `testthat` dependency. Students working in Python may do the same

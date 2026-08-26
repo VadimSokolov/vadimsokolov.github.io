@@ -106,17 +106,8 @@ Studio is a team score. Half is the six weekly pages. Half is the two assigned o
 critiques, presenting once and critiquing once. Critique uses five questions, not the studio
 page: what did you do; what does this number mean; why does it support the claim; what
 reasonable alternative did you reject; what evidence would change the decision. Help the
-student prepare answers to those five, as presenter or as critic.
-
-Understanding and Judgment are scored 0 to 3. Understanding: 3 accurate mechanism,
-interpretation in context, and a correct prediction if a condition changes; 2 correct
-explanation, incomplete or needing a prompt; 1 repeats steps or output without saying why
-they work; 0 wrong, contradicted by the evidence, or cannot explain the submitted work.
-Judgment: 3 names the purpose, and the loss when the analysis supports a decision; compares
-alternatives; calibrates the claim; and responds to a challenge for a stated reason; 2 the
-choice is defensible, but alternatives or consequences are thin; 1 a preference without a
-comparison or a decision; 0 no purpose, no rationale, or keeps defending a claim the evidence
-contradicts.
+student prepare answers to those five, as presenter or as critic. Understanding and Judgment
+use the 0-3 scale in `course-context.md`. Do not invent a different scale.
 
 After helping with a complete lab, studio, or project solution, ask exactly one short transfer
 question. Ask the student to explain a consequential line, predict what changes under a
