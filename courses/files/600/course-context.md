@@ -9,26 +9,28 @@
 | 1. Foundations | `notes/01-intro.html` | 1 to 2 | the AI/ML landscape, probability, distributions, Bayes, dummy variables |
 | 2. Estimation | `notes/02-estimation.html` | 3 to 4 | CDFs and quantiles, method of moments, maximum likelihood, the CLT, bootstrap |
 | 3. Patterns | `notes/03-pattern.html` | 5 to 6 | correlation, OLS, residuals, transformations, multiple regression, logistic regression, classification, power laws |
-| 4. Decisions | `notes/04-decisions.html` | 8 to 9 | hypothesis testing, predictive values, expected value, utility, paradoxes, the Kelly criterion |
+| 4. Decisions | `notes/04-decisions.html` | 7 and 9 | hypothesis testing, predictive values, expected value, utility, paradoxes, the Kelly criterion |
 | 5. Model selection | `notes/05-modelselection.html` | 10 to 11 | bias-variance, cross-validation, ridge, lasso, shrinkage |
 | 6. Deep learning | `notes/06-dlai.html` | 12 to 13 | neural nets, ReLU and activations, projection pursuit, Kolmogorov-Arnold representation, trees versus nets |
 | Responsible AI | | 14 | fairness metrics, auditing, the decision log |
 
-Week 7 is the midterm. Week 15 is the defense.
+Week 8 is the midterm. Week 15 is the defense.
 
 Do not claim to have read a module note unless the note is available in the conversation or
 project sources.
 
 ## Weekly rhythm
 
-Weeks 1 through 6: reading and a self-check lab before class; lecture and worked examples in
-class. Week 7: a review lab, then an in-person midterm, 2.5 hours, pen and paper, one
-double-sided cheat sheet, no AI assistant. A problem bank is posted beforehand. Weeks 8 through
-14: project work outside class; in class a studio on that week's topic. Students work the
-problem with their assistants; the instructor does not walk them through it. Week 11 studio
-is mid-build on the team's own project. Then an assigned team-on-team critique. On each studio
-week, the team submits a one-page studio result before leaving. After class, the team adds
-one entry to its cumulative project decision log. Week 15 is the defense.
+Weeks 1 through 7: reading and a self-check lab before class. In class the instructor lectures
+for 20 to 30 minutes, then students work a problem (laptop and AI allowed). Lab 7 is the week 7
+lab, not a review sheet. Week 8: an in-person midterm covering weeks 1 through 7, 2.5 hours,
+pen and paper, one double-sided cheat sheet, no AI assistant. A problem bank is posted
+beforehand. Weeks 9 through 14: project work outside class; in class a studio on that week's
+topic. Students work the problem with their assistants; the instructor does not walk them
+through it. Week 11 studio is mid-build on the team's own project. Then an assigned
+team-on-team critique. On each studio week, the team submits a one-page studio result before
+leaving. After class, the team adds one entry to its cumulative project decision log. Week 15
+is the defense.
 
 ## Assessment
 
@@ -41,16 +43,17 @@ condition changes. Judgment means stating the purpose, comparing reasonable alte
 accounting for the consequences of error, calibrating claims to evidence, and identifying
 what would change the choice. Preparation is on-time lab submission.
 
-By the midterm, students should apply and explain probability, estimation, regression, and
-classification without an assistant, and diagnose a defective analysis. By the defense, they
+By the midterm, students should apply and explain probability, estimation, regression,
+classification, testing, predictive values, and expected value without an assistant, and
+diagnose a defective analysis. By the defense, they
 should choose and validate a model on held-out evidence, state error costs, explain how
 uncertainty affects the recommendation, stay accountable for delegated AI work, and revise a
 position under questioning.
 
 | Component | Weight | Measures |
 |---|---:|---|
-| Self-check labs (7, credit for on-time submission) | 10% | Preparation |
-| Midterm, in class, week 7, 2.5 hours, pen and paper, no AI | 40% | Understanding 25, Judgment 15 |
+| Self-check labs (7, credit for on-time submission, no drops) | 10% | Preparation |
+| Midterm, in class, week 8, covers weeks 1 to 7, 2.5 hours, pen and paper, no AI | 40% | Understanding 25, Judgment 15 |
 | Studio (weekly page and assigned oral critique) | 10% | Judgment |
 | Project defense | 40% | Understanding 25, Judgment 15 |
 
@@ -60,12 +63,25 @@ they rejected; the strongest check that could have failed; what would change the
 
 Of the defense, 25 points measure individual understanding and 15 measure the team's
 judgment: the problem, the alternatives, the cost of error, and what would change the
-recommendation. Labs measure preparation: submit on time, and the points are yours. The
-auto-grader is for the student; the instructor does not mark the lab. Code, plots, and
-analysis sit behind the defense; they are not a separate graded product.
+recommendation. Twelve teams of 3 or 4, locked in week 9, eleven minutes each, two minutes
+between, in the 165-minute exam block. About two minutes for the team's statement, then one
+directed question each from the project. Labs measure preparation: submit on time, no drops,
+and the points are yours. The auto-grader is for the student; the instructor does not mark
+the lab. Code, plots, and analysis sit behind the defense; they are not a separate graded
+product.
 
-The proposal (week 9), mid-build (week 11), and decision log (due week 14) are required.
-They have no separate points. Defense points are not assigned until they are in.
+Understanding and Judgment are scored 0 to 3. Understanding: 3 accurate mechanism,
+interpretation in context, and a correct prediction if a condition changes; 2 correct
+explanation, incomplete or needing a prompt; 1 repeats steps or output without saying why
+they work; 0 wrong, contradicted by the evidence, or cannot explain the submitted work.
+Judgment: 3 names the decision and the loss, compares alternatives, calibrates the claim,
+and responds to a challenge for a stated reason; 2 the choice is defensible, but
+alternatives or consequences are thin; 1 a preference without a comparison or a decision;
+0 no decision, no rationale, or keeps defending a claim the evidence contradicts.
+
+The proposal (week 10), mid-build (week 11), and decision log (due week 14) are required.
+They have no separate points. Late delays the posted defense score; missing at the scheduled
+slot means the defense is rescheduled, not skipped.
 
 The midterm and the defense happen in the room. Assistants are expected for labs, studios,
 and project work. They are prohibited during the midterm. Students disclose what they used.
