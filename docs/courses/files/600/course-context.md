@@ -6,38 +6,56 @@
 
 | Module | Notes file | Weeks | Topics |
 |---|---|---|---|
-| 1. Foundations | `01-intro.html` | 1 to 2 | the AI/ML landscape, probability, distributions, Bayes, dummy variables |
-| 2. Estimation | `02-estimation.html` | 3 to 4 | CDFs and quantiles, method of moments, maximum likelihood, the CLT, bootstrap |
-| 3. Patterns | `03-pattern.html` | 5 to 6 | correlation, OLS, residuals, transformations, multiple regression, power laws |
-| 4. Decisions | `04-decisions.html` | 8 to 9 | hypothesis testing, predictive values, expected value, utility, paradoxes, the Kelly criterion |
-| 5. Model selection | `05-modelselection.html` | 10 to 11 | bias-variance, cross-validation, ridge, lasso, shrinkage |
-| 6. Deep learning | `06-dlai.html` | 12 to 13 | neural nets, ReLU and activations, projection pursuit, Kolmogorov-Arnold representation, trees versus nets |
+| 1. Foundations | `notes/01-intro.html` | 1 to 2 | the AI/ML landscape, probability, distributions, Bayes, dummy variables |
+| 2. Estimation | `notes/02-estimation.html` | 3 to 4 | CDFs and quantiles, method of moments, maximum likelihood, the CLT, bootstrap |
+| 3. Patterns | `notes/03-pattern.html` | 5 to 6 | correlation, OLS, residuals, transformations, multiple regression, logistic regression, classification, power laws |
+| 4. Decisions | `notes/04-decisions.html` | 8 to 9 | hypothesis testing, predictive values, expected value, utility, paradoxes, the Kelly criterion |
+| 5. Model selection | `notes/05-modelselection.html` | 10 to 11 | bias-variance, cross-validation, ridge, lasso, shrinkage |
+| 6. Deep learning | `notes/06-dlai.html` | 12 to 13 | neural nets, ReLU and activations, projection pursuit, Kolmogorov-Arnold representation, trees versus nets |
 | Responsible AI | | 14 | fairness metrics, auditing, the decision log |
 
-Week 7 is the midterm. Week 15 is project presentations and defenses.
+Week 7 is the midterm. The recorded presentation is due in week 14. Week 15 is the defense.
+
+Do not claim to have read a module note unless the note is available in the conversation or
+project sources.
 
 ## Weekly rhythm
 
 Weeks 1 through 6: reading and a self-check lab before class; lecture and worked examples in
-class. Week 7: a review lab, then an in-person midterm with no AI assistant. Weeks 8 through
-14: project work outside class; in class a live analysis, a team studio, and an assigned
-team-on-team critique. After studio each team writes one decision-log entry. Week 15 is
-project defenses.
+class. Week 7: a review lab, then an in-person midterm, 2.5 hours, pen and paper, one
+double-sided cheat sheet, no AI assistant. A problem bank is posted beforehand. Weeks 8 through
+14: project work outside class; in class a studio on that week's topic. Students work the
+problem with their assistants; the instructor does not walk them through it. Week 11 studio
+is mid-build on the team's own project. Then an assigned team-on-team critique. On each studio
+week, the team submits a one-page studio result before leaving. After class, the team adds
+one entry to its cumulative project decision log. Week 15 is the defense.
 
 ## Assessment
 
-The grade is half midterm, half project.
+The foundation phase is 50%: labs 10 and midterm 40. The project phase is 50%. Across the course that is 50% Understanding, 40% Judgment, and 10% Preparation.
 
-| Component | Weight |
-|---|---:|
-| Self-check labs (7, lowest 2 dropped) | 10% |
-| Midterm, in class, week 7, no AI | 40% |
-| Studio pages | 10% |
-| Project defense | 25% |
-| Final project | 15% |
+| Component | Weight | Measures |
+|---|---:|---|
+| Self-check labs (7, credit for submission) | 10% | Preparation |
+| Midterm, in class, week 7, 2.5 hours, pen and paper, no AI | 40% | Understanding 25, Judgment 15 |
+| Studio pages | 10% | Judgment |
+| Project defense | 25% | Understanding |
+| Project presentation | 15% | Judgment |
 
-The midterm and the defense happen in the room. Assistants are expected. Students disclose
-what they used. No penalty attaches to the disclosure.
+Presentation points measure the team's judgment: the problem, the alternatives, the cost of
+error, and what would change the recommendation. Defense points measure individual
+understanding. Labs measure preparation: submit them, and the points are yours. The
+auto-grader is for the student; the instructor does not mark the lab. Code, plots,
+and analysis sit behind the presentation; they are not a separate graded product.
+
+The proposal (week 9), mid-build (week 11), and decision log (submitted with the
+presentation in week 14) are required. They have no separate points. Presentation points
+are not assigned until they are in. They supply evidence and material for the presentation
+and the defense.
+
+The midterm and the defense happen in the room. Assistants are expected for labs, studios,
+and project work. They are prohibited during the midterm. Students disclose what they used.
+No penalty attaches to the disclosure.
 
 ## Datasets in the repository
 
@@ -45,7 +63,7 @@ Neutral descriptions. Several of these are used in exercises that turn on someth
 mentioned here, so do not speculate about their quality unprompted; if a student has found
 something and asks you to confirm it, engage with what they found.
 
-| File | Rows | Columns |
+| File | Rows | Description and key columns |
 |---|---:|---|
 | `hw/homes2004.csv` | 15,565 | 2004 American Housing Survey extract. `VALUE` (current value), `LPRICE` (purchase price in dollars, despite the name), `AMMORT`, `BEDRMS`, `BATHS`, `STATE`, `ZINC2` (income), `HHGRAD`, `FRSTHO`, and 20 more |
 | `hw/credit.csv` | 1,000 | German credit. `Default`, `checkingstatus1`, `duration`, `history`, `purpose`, `amount`, `savings`, `employ`, `installment`, `status`, and 11 more |
@@ -65,13 +83,18 @@ Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
 
 ## Conventions
 
-- **R**, base idioms. `lm`, `glm`, `predict`, `tapply`, `aggregate`. Module 6 has some Python.
-- Notebooks run on **IRkernel**. Concept-check tests use two helpers defined in each
+- **R** for all student work: labs, studio, project, midterm. Base idioms. `lm`, `glm`,
+  `predict`, `tapply`, `aggregate`. Module 6 notes include some Python illustrations;
+  students do not need Python to complete the course.
+- Notebooks run on **IRkernel**. Self-check lab tests use two helpers defined in each
   notebook's locked setup cell: `check(cond, msg)` and `near(a, b, tol = 1e-6)`. There is no
   `testthat` dependency.
 - Notation in the notes: `n` sample size, `p` predictors, `y` response, `X` design matrix,
   `beta` coefficients, `e` residuals, `L` likelihood, `l` log-likelihood.
-- Data paths in student code are usually relative to the repository root.
+- Data paths in student code are usually relative to the folder they were given.
+
+Never invent R output or claim to have executed code that you have not run. Distinguish
+computed results from expected results.
 
 ## Recurring ideas the course keeps coming back to
 
