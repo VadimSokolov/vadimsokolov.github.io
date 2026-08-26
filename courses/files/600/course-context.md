@@ -6,24 +6,25 @@
 
 | Module | Notes file | Weeks | Topics |
 |---|---|---|---|
-| 1. Foundations | `notes/01-intro.html` | 1 to 2 | the AI/ML landscape, probability, distributions, Bayes, correlation, covariance |
+| 1. Foundations | `files/600/01-intro.html` | 1 to 2 | the AI/ML landscape, probability, distributions, Bayes, correlation, covariance |
 | 2. Estimation | `notes/02-estimation.html` | 3 to 4 | CDFs and quantiles, method of moments, maximum likelihood, the CLT, bootstrap |
 | 3. Patterns | `notes/03-pattern.html` | 5 to 6 | OLS, residuals, transformations, dummy variables, multiple regression, logistic regression, classification, power laws |
 | 4. Decisions | `notes/04-decisions.html` | 7 and 9 | hypothesis testing, predictive values, expected value, utility, paradoxes, the Kelly criterion |
 | 5. Model selection | `notes/05-modelselection.html` | 10 to 11 | bias-variance, cross-validation, ridge, lasso, shrinkage |
 | 6. Deep learning | `notes/06-dlai.html` | 12 to 13 | neural nets, ReLU and activations, projection pursuit, Kolmogorov-Arnold representation, trees versus nets |
-| Responsible AI | | 14 | fairness metrics, auditing, the decision log |
 
-Week 8 is the midterm. Week 15 is the defense.
+Week 8 is the midterm. Week 14 studio is fairness metrics, auditing, and the decision log. Week 15 is the defense.
 
 Do not claim to have read a module note unless the note is available in the conversation or
 project sources.
 
 ## Weekly rhythm
 
-Weeks 1 through 7: reading and a self-check lab before class. In class the instructor lectures
-for 20 to 30 minutes, then students work a problem (laptop and AI allowed). Lab 7 is the week 7
-lab, not a review sheet. Week 8: an in-person midterm covering weeks 1 through 7, 2.5 hours,
+Weeks 1 through 7: lecture, then a self-check lab due before the next class. Nothing is due
+at the first meeting except setting up the tutor. In class the instructor lectures for 20 to
+30 minutes, then students work a problem (laptop and AI allowed). Lab 7 covers week 7 and is
+due before the midterm; it is not a review sheet. Week 8: an in-person midterm covering weeks
+1 through 7, 2.5 hours,
 pen and paper, one double-sided cheat sheet, no AI assistant. A problem bank is posted
 beforehand. Weeks 9 through 14: project work outside class; in class a studio on that week's
 topic. Teams lock at the start of week 9, before studio. Students work the problem with their
@@ -32,8 +33,10 @@ defense practice; there is no assigned critique that night. Week 11 studio is mi
 the team's own project. Assigned team-on-team critiques run weeks 10 through 14: most of
 those nights two pairs, some three, so each of the twelve teams presents once and critiques
 once. On each studio week, the team submits a one-page studio result before leaving. After
-class, the team adds one entry to its cumulative project decision log. Week 15 is the
-defense.
+class, the team adds one entry to its cumulative project decision log: the decision, the
+alternative rejected, the evidence, and what would make them revisit the choice. That log is
+not the six-part studio page. It is due as a whole in week 14; do not reconstruct it then.
+Week 15 is the defense.
 
 ## Assessment
 
@@ -66,6 +69,11 @@ halves are team scores. The
 page, before they leave, in this order: the decision; the finding; the evidence; the
 alternative they rejected; the strongest check that could have failed; what would change the
 decision.
+
+Critique uses five questions, not those six: what did they do; what does this number mean;
+why does it support the claim; what reasonable alternative did they reject; what evidence
+would change the decision. The first three are mostly understanding. The last two are mostly
+judgment.
 
 Of the defense, 25 points measure individual understanding from that directed question, with
 follow-ups as needed, and 15 measure the team's judgment: the problem, the alternatives, the
