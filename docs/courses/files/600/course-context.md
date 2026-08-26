@@ -6,9 +6,9 @@
 
 | Module | Notes file | Weeks | Topics |
 |---|---|---|---|
-| 1. Foundations | `notes/01-intro.html` | 1 to 2 | the AI/ML landscape, probability, distributions, Bayes, dummy variables |
+| 1. Foundations | `notes/01-intro.html` | 1 to 2 | the AI/ML landscape, probability, distributions, Bayes, dummy variables, correlation, covariance |
 | 2. Estimation | `notes/02-estimation.html` | 3 to 4 | CDFs and quantiles, method of moments, maximum likelihood, the CLT, bootstrap |
-| 3. Patterns | `notes/03-pattern.html` | 5 to 6 | correlation, OLS, residuals, transformations, multiple regression, logistic regression, classification, power laws |
+| 3. Patterns | `notes/03-pattern.html` | 5 to 6 | OLS, residuals, transformations, multiple regression, logistic regression, classification, power laws |
 | 4. Decisions | `notes/04-decisions.html` | 7 and 9 | hypothesis testing, predictive values, expected value, utility, paradoxes, the Kelly criterion |
 | 5. Model selection | `notes/05-modelselection.html` | 10 to 11 | bias-variance, cross-validation, ridge, lasso, shrinkage |
 | 6. Deep learning | `notes/06-dlai.html` | 12 to 13 | neural nets, ReLU and activations, projection pursuit, Kolmogorov-Arnold representation, trees versus nets |
@@ -26,11 +26,14 @@ for 20 to 30 minutes, then students work a problem (laptop and AI allowed). Lab 
 lab, not a review sheet. Week 8: an in-person midterm covering weeks 1 through 7, 2.5 hours,
 pen and paper, one double-sided cheat sheet, no AI assistant. A problem bank is posted
 beforehand. Weeks 9 through 14: project work outside class; in class a studio on that week's
-topic. Students work the problem with their assistants; the instructor does not walk them
-through it. Week 11 studio is mid-build on the team's own project. Then an assigned
-team-on-team critique. On each studio week, the team submits a one-page studio result before
-leaving. After class, the team adds one entry to its cumulative project decision log. Week 15
-is the defense.
+topic. Teams lock at the start of week 9, before studio. Students work the problem with their
+assistants; the instructor does not walk them through it. Week 9 is studio and ungraded
+defense practice; there is no assigned critique that night. Week 11 studio is mid-build on
+the team's own project. Assigned team-on-team critiques run weeks 10 through 14: most of
+those nights two pairs, some three, so each of the twelve teams presents once and critiques
+once. On each studio week, the team submits a one-page studio result before leaving. After
+class, the team adds one entry to its cumulative project decision log. Week 15 is the
+defense.
 
 ## Assessment
 
@@ -57,35 +60,43 @@ position under questioning.
 | Studio (weekly page and assigned oral critique) | 10% | Judgment |
 | Project defense | 40% | Understanding 25, Judgment 15 |
 
-The studio 10% covers the weekly page and both sides of the assigned oral critique. The page,
-before they leave, in this order: the decision; the finding; the evidence; the alternative
-they rejected; the strongest check that could have failed; what would change the decision.
+The studio 10% splits evenly: half is the six weekly pages, equally weighted, required that
+night; half is the two assigned critique appearances, presenting and critiquing equally. Both
+halves are team scores. The
+page, before they leave, in this order: the decision; the finding; the evidence; the
+alternative they rejected; the strongest check that could have failed; what would change the
+decision.
 
-Of the defense, 25 points measure individual understanding and 15 measure the team's
-judgment: the problem, the alternatives, the cost of error, and what would change the
-recommendation. Twelve teams of 3 or 4, locked in week 9, eleven minutes each, two minutes
-between, in the 165-minute exam block. About two minutes for the team's statement, then one
-directed question each from the project. Labs measure preparation: submit on time, no drops,
-and the points are yours. The auto-grader is for the student; the instructor does not mark
-the lab. Code, plots, and analysis sit behind the defense; they are not a separate graded
-product.
+Of the defense, 25 points measure individual understanding from that directed question, with
+follow-ups as needed, and 15 measure the team's judgment: the problem, the alternatives, the
+cost of error, and what would change the recommendation. The midterm is the other individual
+Understanding sample. If those two conflict, there is a second five-minute conversation to
+resolve insufficient evidence. Twelve teams of 3 or 4, locked in week 9, eleven minutes each,
+two minutes between, in the 165-minute exam block. About two minutes for the team's statement
+(the decision, the alternative rejected, what would change the recommendation); the other
+three studio-page parts are material for questions. Then one directed question each from the
+project. Labs measure preparation: submit on time, no drops, and the points are yours.
+Published notebooks auto-grade in R; Python students work the same exercises without a
+published checker. The instructor does not mark the lab. Code, plots, and analysis sit behind
+the defense; they are not a separate graded product.
 
 Understanding and Judgment are scored 0 to 3. Understanding: 3 accurate mechanism,
 interpretation in context, and a correct prediction if a condition changes; 2 correct
 explanation, incomplete or needing a prompt; 1 repeats steps or output without saying why
 they work; 0 wrong, contradicted by the evidence, or cannot explain the submitted work.
-Judgment: 3 names the decision and the loss, compares alternatives, calibrates the claim,
-and responds to a challenge for a stated reason; 2 the choice is defensible, but
-alternatives or consequences are thin; 1 a preference without a comparison or a decision;
-0 no decision, no rationale, or keeps defending a claim the evidence contradicts.
+Judgment: 3 names the purpose, and the loss when the analysis supports a decision; compares
+alternatives; calibrates the claim; and responds to a challenge for a stated reason; 2 the
+choice is defensible, but alternatives or consequences are thin; 1 a preference without a
+comparison or a decision; 0 no purpose, no rationale, or keeps defending a claim the evidence
+contradicts.
 
 The proposal (week 10), mid-build (week 11), and decision log (due week 14) are required.
 They have no separate points. Late delays the posted defense score; missing at the scheduled
-slot means the defense is rescheduled, not skipped.
+slot means the defense is rescheduled by the last day of the exam period, not skipped.
 
 The midterm and the defense happen in the room. Assistants are expected for labs, studios,
-and project work. They are prohibited during the midterm. Students disclose what they used.
-No penalty attaches to the disclosure.
+and project work. They are prohibited during the midterm and in the defense room. Students
+disclose what they used. No penalty attaches to the disclosure.
 
 ## Datasets in the repository
 
