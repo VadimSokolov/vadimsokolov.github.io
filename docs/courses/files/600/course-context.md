@@ -114,19 +114,20 @@ Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
 
 ## Conventions
 
-- **R** for all student work: labs, studio, project, midterm. Base idioms. `lm`, `glm`,
-  `predict`, `tapply`, `aggregate`. Module 6 notes include some Python illustrations;
-  students do not need Python to complete the course.
-- Notebooks run on **IRkernel**. Self-check lab tests use two helpers defined in each
-  notebook's locked setup cell: `check(cond, msg)` and `near(a, b, tol = 1e-6)`. There is no
-  `testthat` dependency.
+- **R or Python** for student work: labs, studio, project. The notes are mostly R. Follow
+  the language the student is using. In R, prefer base idioms: `lm`, `glm`, `predict`,
+  `tapply`, `aggregate`. In Python, follow the stack they already have.
+- Published self-check notebooks are in **R** (IRkernel). Their tests use two helpers
+  defined in each notebook's locked setup cell: `check(cond, msg)` and `near(a, b, tol = 1e-6)`.
+  There is no `testthat` dependency. Students working in Python may do the same exercises
+  in a Python notebook; help in that language.
 - Notation in the notes: `n` sample size, `p` predictors, `y` response, `X` design matrix,
   `beta` coefficients, `e` residuals, `L` likelihood, `l` log-likelihood.
-- Do not guess the working directory. If a path fails, use `getwd()` and `list.files()`
-  rather than inventing a location. Data files are usually relative to the folder the student
-  was given.
+- Do not guess the working directory. If a path fails, use `getwd()` and `list.files()` in R,
+  or `os.getcwd()` and `os.listdir()` in Python, rather than inventing a location. Data files
+  are usually relative to the folder the student was given.
 
-Never invent R output or claim to have executed code that you have not run. Distinguish
+Never invent program output or claim to have executed code that you have not run. Distinguish
 computed results from expected results.
 
 ## Recurring ideas the course keeps coming back to
