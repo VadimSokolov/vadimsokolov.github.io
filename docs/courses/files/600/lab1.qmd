@@ -1,0 +1,327 @@
+---
+title: "AII 600. Lab 1"
+subtitle: "Due before class, 2 September 2026"
+format: html
+showsln: false
+---
+
+The Canvas submission is one Jupyter notebook, `lab1.ipynb`. Not this page. Credit is on-time submission. Every tool in Part A shows up as a cell in that notebook. Part B is the probability we reached tonight: random variables, the basic rules, independence, and the complement. Joint tables are Lab 2. Bayes and expectation come later.
+
+Part A is a cold start if the tools are new. Begin it before Sunday, not the hour before class.
+
+These are not the in-class stops. In class we work different problems with a neighbor.
+
+
+# Part A: toolchain
+
+Install these once. The notebook is how you show they work. You can do A1 and A2 by hand, or ask an agent to do them. If you do not already know the language or git, ask the agent to teach you enough to run a cell, read an error, and say what a commit is. Do not wait for a lecture on the tools. Seed the [tutor](https://vsokolov.org/courses/600.html#course-tutor) in A3 first if you want that agent to be the course one; any assistant is allowed. Installer failures are syntax questions: it should answer directly.
+
+## A1. R or Python
+
+Install one language you will actually defend in, yourself or by asking the agent. The notes are mostly R; Python is allowed. Module 6 has some Python. The notebook kernel should be that language. If the language is new, tell the agent that and have it install, then explain what you just installed and how you will run a cell.
+
+- R: install [R](https://cran.r-project.org) and Jupyter with an R kernel ([IRkernel](https://irkernel.github.io)), or use Positron / VS Code / Cursor with an R notebook.
+- Python: install Python 3.11+ (python.org, Miniconda, or `uv`). Create a virtual environment for this course and install `jupyter` (and later `numpy`, `pandas`, `matplotlib` as you need them).
+
+## A2. Git, `notes`, and `finalproject`
+
+Install [git](https://git-scm.com) if it is not already there (`git --version`). Same rule: do the steps below yourself, or paste them to the agent and have it run them. If you are new to git, ask agents to explain what is `init`, `add`, `commit`, `status`, and `.gitignore` are for before you treat the output as done.
+
+Create a course folder, then two folders inside it, then start tracking. Git does not see empty folders: put a file in each, write a `.gitignore`, then commit. If `git commit` refuses, set `user.name` and `user.email` (Mason email) first. On Windows, Git Bash is the easy way to run the same commands; change `~/aii600` if you put the folder somewhere else.
+
+**bash**
+
+```bash
+mkdir -p ~/aii600/notes ~/aii600/finalproject
+cd ~/aii600
+git init
+printf '%s\n' '.DS_Store' '.venv/' '__pycache__/' '.Rhistory' '.RData' > .gitignore
+printf 'personal notes and code from class\n' > notes/README.md
+printf 'project work, including before teams lock in week 9\n' > finalproject/README.md
+git add -A
+git commit -m "week 1 setup"
+git status
+git log --oneline
+git ls-files
+```
+
+`notes` is for personal notes and code chunks from class. `finalproject` is for the project, including work you do before teams lock in week 9. You do not have to push anywhere. A local repository is enough; GitHub is optional backup. Cell 1 asks what else you will track, and what else belongs in `.gitignore`.
+
+## A3. Course tutor
+
+Seed your assistant with the two course files. You do not have to download them. Point the agent at the URLs:
+
+- <https://vsokolov.org/courses/files/600/tutor-instructions.md>
+- <https://vsokolov.org/courses/files/600/course-context.md>
+
+Cursor, Claude Code, or similar: `@` those URLs, or save the files into `~/aii600` and set `tutor-instructions.md` as the instructions file. Claude or ChatGPT with Projects: paste `tutor-instructions.md` into the project instructions and add `course-context.md` as a project file. A chat with no Projects: paste both into the first message.
+
+Ask it one factual question (syntax) and one conceptual question from tonight.
+
+# Part B: the notebook, submitted on Canvas
+
+Create `lab1.ipynb` and upload that file. JupyterLab, VS Code / Cursor notebooks, Positron, or Google Colab all count. Python kernel or R kernel, matching A1. Run every code cell and leave the output in. Copy **R** or **Python**, not both. Change `~/aii600` if your folder is elsewhere.
+
+## Cell 1: markdown text
+
+Paste this into a markdown cell. Edit the list so it matches what you installed, and write the three answers.
+
+```markdown
+# AII 600, Lab 1
+
+What I installed:
+
+- language and version:
+- git
+- Jupyter
+
+Course page: [AII 600](https://vsokolov.org/courses/600.html)
+
+The complement rule is $P(\text{not }A)=1-P(A)$. One command from this lab is `git init`.
+
+Git. Look at the `.gitignore` you committed. What else belongs in the repo that is not there yet, and what else belongs in `.gitignore`? Name one of each, and one reason for each.
+
+YOUR ANSWER
+
+Tutor. Did it answer the syntax question directly, and did it ask you one question back before explaining the concept?
+
+YOUR ANSWER
+
+Disclose. What did you use (tutor, Cursor, ChatGPT, a classmate, nothing) and for which parts?
+
+YOUR ANSWER
+```
+
+::: {.content-hidden unless-meta="showsln"}
+Git: a `labs/` folder (or this notebook) is worth tracking; it is the work you will want later when you build the cheat sheet. The starter `.gitignore` already drops `.venv` and `.Rhistory`. API keys and large generated data still do not belong in the repo.
+:::
+ 
+
+## Cell 2: language version
+
+**R**
+
+```r
+R.version.string
+```
+
+**Python**
+
+```python
+import sys
+print(sys.version)
+```
+
+## Cell 3: git
+
+**R**
+
+```r
+system("git -C ~/aii600 status", intern = TRUE)
+system("git -C ~/aii600 log --oneline", intern = TRUE)
+system("git -C ~/aii600 ls-files", intern = TRUE)
+```
+
+**Python**
+
+```python
+import os, subprocess
+course = os.path.expanduser("~/aii600")
+for args in (["git", "status"], ["git", "log", "--oneline"], ["git", "ls-files"]):
+    print("$", *args)
+    print(subprocess.check_output(args, cwd=course, text=True))
+```
+
+## Cell 4: a random variable is a function
+
+A loan officer is about to open one of four applicant files, equally likely: $A$, $B$, $C$, $D$. Let $X$ be the number of late payments on the file.
+
+$$
+\begin{array}{c|c}
+\text{file} & X \\
+\hline
+A & 0 \\
+B & 0 \\
+C & 1 \\
+D & 3
+\end{array}
+$$
+
+$X$ is not the file. $X$ is a function from those four outcomes to a number.
+
+1. Write the distribution of $X$: $P(X=0)$, $P(X=1)$, $P(X=3)$.
+2. What is $P(X \ge 1)$? Use the complement.
+
+Copy one of the chunks, fill in the four numbers, run it.
+
+**R**
+
+```r
+p_x0 <- NA
+p_x1 <- NA
+p_x3 <- NA
+p_at_least_one <- NA
+if (!anyNA(c(p_x0, p_x1, p_x3, p_at_least_one))) {
+  stopifnot(
+    abs(p_x0 - 1/2) < 1e-12,
+    abs(p_x1 - 1/4) < 1e-12,
+    abs(p_x3 - 1/4) < 1e-12,
+    abs(p_at_least_one - 1/2) < 1e-12,
+    abs(p_x0 + p_x1 + p_x3 - 1) < 1e-12
+  )
+}
+c(p_x0 = p_x0, p_x1 = p_x1, p_x3 = p_x3, p_at_least_one = p_at_least_one)
+```
+
+**Python**
+
+```python
+p_x0 = None
+p_x1 = None
+p_x3 = None
+p_at_least_one = None
+vals = [p_x0, p_x1, p_x3, p_at_least_one]
+if all(v is not None for v in vals):
+    assert abs(p_x0 - 1/2) < 1e-12
+    assert abs(p_x1 - 1/4) < 1e-12
+    assert abs(p_x3 - 1/4) < 1e-12
+    assert abs(p_at_least_one - 1/2) < 1e-12
+    assert abs(p_x0 + p_x1 + p_x3 - 1) < 1e-12
+p_x0, p_x1, p_x3, p_at_least_one
+```
+
+::: {.content-hidden unless-meta="showsln"}
+Four equally likely files. Two of them have $X=0$, so $P(X=0)=1/2$, $P(X=1)=1/4$, $P(X=3)=1/4$. Complement: $P(X\ge 1)=1-P(X=0)=1/2$. No file maps to $2$, so $P(X=2)=0$ and you do not need a slot for it.
+:::
+
+## Cell 5: at least one, and overlap
+
+A barcode scanner fails to read 8% of packages, independently. Two packages come down the belt.
+
+1. What is $P(\text{at least one failure})$? Use independence and the complement. Do not add $0.08+0.08$.
+2. Estimate it with a simulation of at least 10,000 trials.
+
+A second, smaller question, using the overlap rule from the slides. Tonight's email goes to people who opened last week ($P(A)=0.12$) or who clicked last week ($P(B)=0.05$). Both: $P(A\text{ and }B)=0.03$. What is $P(A\text{ or }B)$?
+
+**R**
+
+```r
+p_fail <- 0.08
+p_at_least <- NA
+set.seed(1)
+p_sim <- NA
+p_open_or_click <- NA
+if (!anyNA(c(p_at_least, p_open_or_click))) {
+  stopifnot(
+    abs(p_at_least - 0.1536) < 1e-12,
+    abs(p_open_or_click - 0.14) < 1e-12
+  )
+}
+if (!anyNA(c(p_sim, p_at_least))) {
+  stopifnot(length(p_sim) == 1, abs(p_sim - p_at_least) < 0.05)
+}
+c(p_at_least = p_at_least, p_sim = p_sim, p_open_or_click = p_open_or_click)
+```
+
+**Python**
+
+```python
+import random
+p_fail = 0.08
+p_at_least = None
+random.seed(1)
+p_sim = None
+p_open_or_click = None
+if p_at_least is not None:
+    assert abs(p_at_least - 0.1536) < 1e-12
+if p_open_or_click is not None:
+    assert abs(p_open_or_click - 0.14) < 1e-12
+if p_sim is not None and p_at_least is not None:
+    assert isinstance(p_sim, (int, float))
+    assert abs(p_sim - p_at_least) < 0.05
+p_at_least, p_sim, p_open_or_click
+```
+
+::: {.content-hidden unless-meta="showsln"}
+$1-0.92^2=1-0.8464=0.1536$. Adding $0.08+0.08=0.16$ double-counts the night both fail. The simulation should land near $0.15$. Overlap: $P(A\text{ or }B)=0.12+0.05-0.03=0.14$, not $0.17$.
+
+**R**
+
+```r
+p_at_least <- 1 - (1 - p_fail)^2
+p_sim <- mean(replicate(10000, any(runif(2) < p_fail)))
+p_open_or_click <- 0.12 + 0.05 - 0.03
+```
+
+**Python**
+
+```python
+p_at_least = 1 - (1 - p_fail)**2
+p_sim = sum(any(random.random() < p_fail for _ in range(2)) for _ in range(10000)) / 10000
+p_open_or_click = 0.12 + 0.05 - 0.03
+```
+:::
+
+## Cell 6: independence twice
+
+A fraud filter scores three independent transactions a night. Each is flagged with probability $0.2$. A night is noisy if at least one transaction is flagged.
+
+1. What is $P(\text{a noisy night})$? Complement, then independence within the night.
+2. What is $P(\text{five noisy nights in a row})$? Independence across nights.
+
+This is the hitting-streak move from class: a probability built inside one block, then raised to the number of blocks. Do not use Rose's batting average or 44 games.
+
+**R**
+
+```r
+p_noisy <- NA
+p_five <- NA
+if (!anyNA(c(p_noisy, p_five))) {
+  stopifnot(
+    abs(p_noisy - (1 - 0.8^3)) < 1e-12,
+    abs(p_five - (1 - 0.8^3)^5) < 1e-12
+  )
+}
+c(p_noisy = p_noisy, p_five = p_five)
+```
+
+**Python**
+
+```python
+p_noisy = None
+p_five = None
+if p_noisy is not None and p_five is not None:
+    assert abs(p_noisy - (1 - 0.8**3)) < 1e-12
+    assert abs(p_five - (1 - 0.8**3)**5) < 1e-12
+p_noisy, p_five
+```
+
+::: {.content-hidden unless-meta="showsln"}
+One night, three independent misses: $P(\text{quiet})=0.8^3=0.512$, so $P(\text{noisy})=1-0.512=0.488$. Five independent noisy nights: $0.488^5\approx 0.0277$. Adding $0.2+0.2+0.2$ is the overlap mistake from Cell 5, now inside the night; multiplying $0.2$ five times is the wrong block.
+
+**R**
+
+```r
+p_noisy <- 1 - 0.8^3
+p_five <- p_noisy^5
+```
+
+**Python**
+
+```python
+p_noisy = 1 - 0.8**3
+p_five = p_noisy**5
+```
+:::
+
+```{r}
+#| echo: false
+#| include: false
+stopifnot(
+  abs(1/2 + 1/4 + 1/4 - 1) < 1e-12,
+  abs(1 - 0.92^2 - 0.1536) < 1e-12,
+  abs(0.12 + 0.05 - 0.03 - 0.14) < 1e-12,
+  abs((1 - 0.8^3) - 0.488) < 1e-12,
+  abs((1 - 0.8^3)^5 - 0.488^5) < 1e-10
+)
+```

@@ -137,11 +137,11 @@ Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
 - **R or Python** for student work: labs, studio, project. The notes are mostly R. Follow
   the language the student is using. In R, prefer base idioms: `lm`, `glm`, `predict`,
   `tapply`, `aggregate`. In Python, follow the stack they already have.
-- Published self-check labs are **R**. Current labs (`hw/labN.qmd`) check with
-  `stopifnot` in the code chunk. If a student has an older notebook, it may instead use
-  `check(cond, msg)` and `near(a, b, tol = 1e-6)` from a locked setup cell. Follow the file
-  they have. There is no `testthat` dependency. Students working in Python may do the same
-  exercises in a Python notebook; help in that language.
+- Lab 1 is an HTML page; students copy chunks into a Jupyter notebook they submit.
+  From Lab 2, published labs are **Jupyter notebooks** (`labN.ipynb`), Python kernel, with
+  `assert` checks in the cell. R is allowed: switch the kernel and use the R cells at the
+  bottom of the notebook (`stopifnot`). There is no `testthat` dependency. Follow the
+  language the student is using.
 - Notation in the notes: `n` sample size, `p` predictors, `y` response, `X` design matrix,
   `beta` coefficients, `e` residuals, `L` likelihood, `l` log-likelihood.
 - Do not guess the working directory. If a path fails, use `getwd()` and `list.files()` in R,
