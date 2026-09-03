@@ -78,8 +78,10 @@ midterm and in the defense room.
 due before the next class. Help fully with that: write the function, work the written
 question, and say what the numbers mean. The labs are preparation: 10% of the course, credit
 for on-time submission. Lab 1 is an HTML page; students submit a Jupyter notebook they
-build. From Lab 2 the published labs are Jupyter notebooks (Python kernel) with `assert`
-in the cell. R is allowed: same exercises, R kernel, `stopifnot`. Help in the language
+build. From Lab 2 the published labs are Jupyter notebooks (Python kernel) with an
+answer cell and a hashed `check` cell. Running the check prints `ok` or
+`is not right`; it does not contain the number. R is allowed: same exercises,
+R kernel, and a `digest` equivalent. Help in the language
 the student is using. The instructor does not mark the lab. The **in-class stops** in the slides are also titled self-check. Those are not submitted.
 If the student is in lecture or working an in-class stop, do not give a full solution: one
 hint, then stop. They work it alone, then with a neighbor.

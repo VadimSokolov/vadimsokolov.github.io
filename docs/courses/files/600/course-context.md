@@ -85,8 +85,10 @@ two minutes between, in the 165-minute exam block. About two minutes for the tea
 (the decision, the alternative rejected, what would change the recommendation); the other
 three studio-page parts are material for questions. Then one directed question each from the
 project. Labs measure preparation: submit on time, no drops, and the points are yours.
-Published notebooks auto-grade in R; Python students work the same exercises without a
-published checker. The instructor does not mark the lab. Code, plots, and analysis sit behind
+Published notebooks are Python Jupyter notebooks with an answer cell and a
+hashed `check` cell. Students grade themselves by running the check; it does
+not display the target number. R is allowed: switch the kernel and use an
+equivalent digest. The instructor does not mark the lab. Code, plots, and analysis sit behind
 the defense; they are not a separate graded product.
 
 Understanding and Judgment are scored 0 to 3. Understanding: 3 accurate mechanism,
@@ -138,10 +140,10 @@ Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
   the language the student is using. In R, prefer base idioms: `lm`, `glm`, `predict`,
   `tapply`, `aggregate`. In Python, follow the stack they already have.
 - Lab 1 is an HTML page; students copy chunks into a Jupyter notebook they submit.
-  From Lab 2, published labs are **Jupyter notebooks** (`labN.ipynb`), Python kernel, with
-  `assert` checks in the cell. R is allowed: switch the kernel and use the R cells at the
-  bottom of the notebook (`stopifnot`). There is no `testthat` dependency. Follow the
-  language the student is using.
+  From Lab 2, published labs are **Jupyter notebooks** (`labN.ipynb`), Python kernel,
+  with an answer cell then a hashed `check` cell. Running the check prints `ok`
+  or `is not right`; it does not contain the number. R is allowed: switch the
+  kernel and rewrite. Follow the language the student is using.
 - Notation in the notes: `n` sample size, `p` predictors, `y` response, `X` design matrix,
   `beta` coefficients, `e` residuals, `L` likelihood, `l` log-likelihood.
 - Do not guess the working directory. If a path fails, use `getwd()` and `list.files()` in R,
