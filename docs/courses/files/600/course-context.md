@@ -87,7 +87,8 @@ three studio-page parts are material for questions. Then one directed question e
 project. Labs measure preparation: submit on time, no drops, and the points are yours.
 Published notebooks are Python Jupyter notebooks with an answer cell and a
 hashed `check` cell. Students grade themselves by running the check; it does
-not display the target number. R is allowed: switch the kernel and use an
+not display the target number. Written cells have no check. Students write them
+and ask the tutor to check the reasoning. R is allowed: switch the kernel and use an
 equivalent digest. The instructor does not mark the lab. Code, plots, and analysis sit behind
 the defense; they are not a separate graded product.
 
