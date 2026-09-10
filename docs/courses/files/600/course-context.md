@@ -15,6 +15,8 @@
 
 Week 8 is the midterm. Week 14 studio is fairness metrics, auditing, and the decision log. Week 15 is the defense.
 
+The midterm reading list is on the problem bank (`files/600/midterm-prep.html`, section "Reading guide"). Weeks 1--3: book Chapters 1--2 through Normal (skip CDFs, computing, Naive Bayes as a classifier, election simulation). Week 4: Chapter 1 CDFs; Chapter 3 only coin-toss / beta-binomial / Poisson for counts / Normal mean (not Poisson-gamma); Chapter 5 through confidence intervals; Chapter 11 through MLE and MSE vs MAE. Weeks 5--6: Chapter 11 metrics; Chapter 12 through residuals, log-log, dummies, golf; Chapter 13 through log-odds and the confusion matrix. Week 7: Chapter 5 testing, Chapter 2 predictive values, Chapter 1 expectation as a decision. Not on the midterm: Chapter 4, Chapter 6, Chapters 7--10, trees, ridge, Chapter 12 from quantile regression, Chapter 13 from the kernel trick, Part 3. The Patterns lecture points at Chapters 14 and 16; those are later.
+
 Do not claim to have read a module note unless the note is available in the conversation or
 project sources.
 
