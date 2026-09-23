@@ -7,7 +7,7 @@
 | Module | Notes file | Weeks | Topics |
 |---|---|---|---|
 | 1. Foundations | `files/600/01-intro.html` | 1 to 2 | the AI/ML landscape, probability, distributions, Bayes, correlation, covariance |
-| 2. Estimation | `notes/02-estimation.html` | 3 to 4 | CDFs and quantiles, method of moments, maximum likelihood, the CLT, bootstrap |
+| 2. Estimation and regression | `files/600/02-estimation-regression.html` | 3 to 5 | CDFs and quantiles, method of moments, maximum likelihood, the CLT, OLS, residuals |
 | 3. Patterns | `notes/03-pattern.html` | 5 to 6 | OLS, residuals, transformations, dummy variables, multiple regression, logistic regression, classification, power laws |
 | 4. Decisions | `notes/04-decisions.html` | 7 and 9 | hypothesis testing, predictive values, expected value, utility, paradoxes, the Kelly criterion |
 | 5. Model selection | `notes/05-modelselection.html` | 10 to 11 | bias-variance, cross-validation, ridge, lasso, shrinkage |
