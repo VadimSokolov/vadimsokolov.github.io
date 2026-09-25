@@ -133,6 +133,8 @@ problem, help them investigate it.
 | `notes/data/berkson.csv` | 16 | `n`, `Observed`, `Expected` |
 | `notes/data/evans1953.txt` | 29 | `Count`, `Glauxmaritima`, `PotatoBeetles`. Counts for distribution fitting |
 | `notes/data/gamma-arrivals.txt` | 3,935 | one column, no header: inter-arrival times |
+| `files/600/duma_2026.csv.gz` | 87,799 | Lab 6 freeze, 24 Sep 2026. CEC party-list precincts. `region`, `is_deg`, `voters`, `issued`, `valid`, `ur_votes`. Not Meduza's 82,124-row cut; live zhizhin dumps will not match the hashes |
+| `files/600/duma_hist.csv.gz` | 479,755 | Lab 6. Duma 2003, 2007, 2011, 2016, 2021 from Kobak/Shpilkin. `year`, `region`, `turnout`, `ur_share` as fractions |
 
 Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
 `hw/deviance.R`, `hw/naref.R`, `hw/homes_start.R`.
