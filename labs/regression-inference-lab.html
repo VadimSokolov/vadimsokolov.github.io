@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Regression Inference Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: three instrument rows (one sample with CI/PI bands; 1,000 replications; bootstrap), each a plot board plus a control rail, then the lesson, notes and class exercises. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.8vw, 17px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .f { color: var(--fit); font-weight: 600; }
+.eqn .o { color: var(--ball); font-weight: 600; }
+canvas { display: block; width: 100%; }
+#plot { touch-action: none; cursor: crosshair; }
+#plot.move { cursor: grab; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.own { border-top-color: var(--ball); }
+.sw.ghost { border-top: 2px dashed var(--muted); }
+.sw.sq { width: 12px; height: 12px; border: 1.5px solid var(--fit); background: color-mix(in srgb, var(--fit) 16%, transparent); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); }
+.sw.inf { width: 10px; height: 10px; border: 2px solid var(--ball); border-radius: 50%; }
+.sw.inf2 { width: 10px; height: 10px; border: 2px solid var(--curve); border-radius: 50%; }
+.modehint { font-size: 12.5px; color: var(--muted); margin: 0; padding: 0 4px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+.tip b { font-family: var(--font-display); font-size: 13.5px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ball); }
+input[type=range] { width: 100%; accent-color: var(--ball); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.checks label.off { opacity: .5; cursor: not-allowed; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.est { color: var(--fit); }
+.stats td.own { color: var(--ball); }
+
+#plot { touch-action: pan-y; cursor: default; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.true { border-top: 2px dashed var(--curve); }
+.sw.ink { border-top: 2px dashed var(--ink); }
+.sw.ci { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 34%, transparent); }
+.sw.pi { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .75; }
+.sw.redc { border-top: 2.5px solid var(--curve); }
+.sw.miss { border-top: 2.5px solid var(--curve); }
+.sw.hit { border-top: 2.5px solid var(--accent); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); }
+.slider output { color: var(--accent); }
+input[type=range] { accent-color: var(--accent); }
+.slider.s output { color: var(--curve); }
+.slider.s input { accent-color: var(--curve); }
+.slider.x output { color: var(--ball); }
+.slider.x input { accent-color: var(--ball); }
+.stats td.th { color: var(--curve); }
+.stats td.ci { color: var(--fit); }
+.stats td.pi { color: var(--accent); }
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 84ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.pair > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.vbar { display: flex; height: 18px; border-radius: 5px; overflow: hidden; border: 1px solid var(--line); background: var(--board); }
+.vbar span { display: block; height: 100%; }
+.vbar .noise { background: var(--curve); opacity: .8; }
+.vbar .est { background: var(--fit); opacity: .85; }
+.vkey { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.vkey b { font-family: var(--font-mono); font-weight: 600; }
+.vkey .n { color: var(--curve); } .vkey .e { color: var(--fit); }
+.big { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: pre; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Regression inference</span>
+    <h1>Regression Inference Lab</h1>
+    <p class="lead">You choose the true line and the noise, the lab draws a sample and fits it. Compare the narrow confidence band for the mean with the wide prediction band for a new point, then replicate the experiment 1,000 times and bootstrap one sample to check every formula.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 12, <a href="https://vsokolov.org/html/_book/12-regression.html">Linear Regression</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <!-- 1. one sample -->
+  <main class="grid">
+    <section class="board" aria-label="One sample with fitted line, confidence band and prediction band">
+      <div class="eqn" id="eqn"></div>
+      <canvas id="plot" role="img" aria-label="Scatter of one simulated sample with the fitted line, a 95% confidence band for the mean and a wider 95% prediction band"></canvas>
+      <div class="legend">
+        <span><i class="sw pt"></i>Sample point</span>
+        <span><i class="sw true"></i>True line β₀ + β₁x</span>
+        <span><i class="sw"></i>Fitted line</span>
+        <span><i class="sw ci"></i>95% CI for the mean</span>
+        <span><i class="sw pi"></i>95% PI for a new y</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">The truth (data-generating process)</span>
+        <div class="slider"><div class="top"><label for="b0">Intercept β₀</label><output id="b0Out">2.0</output></div>
+          <input type="range" id="b0" min="-5" max="5" step="0.1" value="2"></div>
+        <div class="slider"><div class="top"><label for="b1">Slope β₁</label><output id="b1Out">3.0</output></div>
+          <input type="range" id="b1" min="-5" max="5" step="0.1" value="3"></div>
+        <div class="slider s"><div class="top"><label for="sigma">Noise SD σ</label><output id="sigmaOut">2.0</output></div>
+          <input type="range" id="sigma" min="0.2" max="6" step="0.1" value="2"></div>
+        <div class="slider"><div class="top"><label for="n">Sample size n</label><output id="nOut">50</output></div>
+          <input type="range" id="n" min="5" max="200" step="1" value="50"></div>
+        <div class="slider"><div class="top"><label for="w">Spread of x: x from −w to w</label><output id="wOut">2.00</output></div>
+          <input type="range" id="w" min="0.25" max="4" step="0.05" value="2"></div>
+        <div class="btns">
+          <button id="resample" class="primary">New sample</button>
+          <button id="defaults">Reference sample</button>
+        </div>
+        <p class="hint">The design is fixed, x = seq(−w, w, length.out = n), so Sxx is known exactly. The noise draws stay fixed while you move a slider.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Prediction at a new x</span>
+        <div class="slider x"><div class="top"><label for="xf">New point X<sub>f</sub></label><output id="xfOut">1.50</output></div>
+          <input type="range" id="xf" min="-5" max="5" step="0.05" value="1.5"></div>
+        <table class="stats">
+          <thead><tr><th></th><th>fit</th><th>lwr</th><th>upr</th></tr></thead>
+          <tbody>
+            <tr><td>CI (mean)</td><td id="cFit">–</td><td class="ci" id="cLo">–</td><td class="ci" id="cHi">–</td></tr>
+            <tr><td>PI (new y)</td><td id="pFit">–</td><td class="pi" id="pLo">–</td><td class="pi" id="pHi">–</td></tr>
+          </tbody>
+        </table>
+        <span class="label" style="margin-top:4px">Variance of a prediction error at X<sub>f</sub></span>
+        <div class="vbar" aria-hidden="true"><span class="noise" id="vbN"></span><span class="est" id="vbE"></span></div>
+        <div class="vkey"><span class="n">Noise σ² <b id="vNoise">–</b></span><span class="e">Estimation σ²(1/n + (X<sub>f</sub>−x̄)²/Sxx) <b id="vEst">–</b></span></div>
+        <table class="stats">
+          <thead><tr><th></th><th>True σ</th><th>With s</th></tr></thead>
+          <tbody>
+            <tr><td>Noise</td><td class="th" id="vn1">–</td><td id="vn2">–</td></tr>
+            <tr><td>Estimation</td><td class="th" id="ve1">–</td><td id="ve2">–</td></tr>
+            <tr><td>Total variance</td><td class="th" id="vt1">–</td><td id="vt2">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="group">
+        <span class="label">True value vs. this sample's estimate</span>
+        <table class="stats">
+          <thead><tr><th></th><th>True</th><th>Estimate</th></tr></thead>
+          <tbody>
+            <tr><td>Intercept β₀</td><td id="tB0">–</td><td class="est" id="eB0">–</td></tr>
+            <tr><td>Slope β₁</td><td id="tB1">–</td><td class="est" id="eB1">–</td></tr>
+            <tr><td>Noise SD</td><td id="tS">–</td><td class="est" id="eS">–</td></tr>
+            <tr><td>SE of β̂₁</td><td class="th" id="tSE">–</td><td class="est" id="eSE">–</td></tr>
+            <tr><td>t = β̂₁ / SE</td><td>–</td><td class="est" id="eT">–</td></tr>
+            <tr><td>95% CI for β₁</td><td>–</td><td class="est" id="eCI">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">True SE is σ/√Sxx. The estimate uses s = √(SSE/(n − 2)) in place of σ and t<sub>n−2</sub> quantiles (<span id="tq">–</span>).</p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- 2. replicate -->
+  <section class="sec" aria-labelledby="repH">
+    <div class="head">
+      <span class="eyebrow">The sampling distribution</span>
+      <h2 id="repH">Redraw the noise many times, keep the design</h2>
+      <p>Each replication draws new errors at the same x values, refits, and stores β̂₁ and its 95% interval. The red curve is computed in advance from σ and Sxx, not fitted to the bars.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <div class="pair">
+          <div><span class="cap">Histogram of β̂₁</span><canvas id="hist" role="img" aria-label="Histogram of simulated slope estimates with the theoretical normal curve"></canvas></div>
+          <div><span class="cap">First 100 intervals for β₁</span><canvas id="cov" role="img" aria-label="Coverage plot: 95% confidence intervals for the slope from the first 100 replications, misses in red"></canvas></div>
+        </div>
+        <div class="legend">
+          <span><i class="sw bar"></i>Simulated β̂₁</span>
+          <span><i class="sw redc"></i>Theory N(β₁, σ²/Sxx)</span>
+          <span><i class="sw ink"></i>True β₁</span>
+          <span><i class="sw hit"></i>CI covers β₁</span>
+          <span><i class="sw miss"></i>CI misses β₁</span>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Replicate</span>
+          <div class="btns">
+            <button id="rep1k" class="primary">Replicate 1,000 times</button>
+            <button id="rep10k">+10,000 more</button>
+          </div>
+          <button id="repClear">Clear replications</button>
+          <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+            <span class="label">Replications, M</span><span class="big" id="repM">0</span>
+          </div>
+        </div>
+        <div class="group">
+          <table class="stats">
+            <thead><tr><th></th><th>Theory</th><th>Monte Carlo</th></tr></thead>
+            <tbody>
+              <tr><td>E[β̂₁]</td><td class="th" id="rMeanT">–</td><td id="rMean">–</td></tr>
+              <tr><td>sd(β̂₁) = σ/√Sxx</td><td class="th" id="rSdT">–</td><td id="rSd">–</td></tr>
+              <tr><td>Coverage of 95% CIs</td><td class="th">0.950</td><td id="rCov">–</td></tr>
+              <tr><td>Average CI width</td><td class="th" id="rWT">–</td><td id="rW">–</td></tr>
+            </tbody>
+          </table>
+          <p class="hint">At the reference truth (β₁ = 3, σ = 2, n = 50, x from −2 to 2) 10,000 runs gave mean 2.999, sd 0.242 and coverage 0.948.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 3. bootstrap -->
+  <section class="sec" aria-labelledby="bootH">
+    <div class="head">
+      <span class="eyebrow">The bootstrap</span>
+      <h2 id="bootH">Resample the rows, refit, repeat</h2>
+      <p>The bootstrap never uses the SE formula. It treats the sample as the population, draws n rows with replacement, and refits. The spread of those refits estimates the standard error.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <div class="pair">
+          <div><span class="cap" id="bsCap">Data with 40 bootstrap lines</span><canvas id="bscat" role="img" aria-label="Scatter of the data with the fitted line and faint bootstrap refits"></canvas></div>
+          <div><span class="cap">Bootstrap β̂₁</span><canvas id="bhist" role="img" aria-label="Histogram of bootstrap slope estimates with the classical normal curve"></canvas></div>
+        </div>
+        <div class="legend">
+          <span><i class="sw bar"></i>Bootstrap β̂₁</span>
+          <span><i class="sw redc"></i>Classical normal N(β̂₁, SE²)</span>
+          <span><i class="sw ink"></i>Point estimate</span>
+          <span><i class="sw"></i>Fit to the data</span>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Data to resample</span>
+          <div class="seg" role="group" aria-label="Bootstrap data" style="grid-template-columns:1fr 1fr">
+            <button id="bsSample" aria-pressed="true">This sample</button>
+            <button id="bsMt" aria-pressed="false">mtcars: mpg ~ wt</button>
+          </div>
+          <p class="hint" id="bsNote"></p>
+          <div class="btns">
+            <button id="boot2k" class="primary">Bootstrap 2,000 times</button>
+            <button id="bootClear">Clear</button>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+            <span class="label">Resamples, B</span><span class="big" id="bootB">0</span>
+          </div>
+        </div>
+        <div class="group">
+          <table class="stats">
+            <tbody>
+              <tr><td>β̂₁ (full data)</td><td id="bEst">–</td></tr>
+              <tr><td>Classical SE, s/√Sxx</td><td class="th" id="bSE">–</td></tr>
+              <tr><td>Bootstrap SE, sd of refits</td><td id="bBS">–</td></tr>
+              <tr><td>Ratio bootstrap / classical</td><td id="bRatio">–</td></tr>
+              <tr><td>Classical 95% CI</td><td class="th" id="bCI">–</td></tr>
+              <tr><td>Bootstrap 2.5%–97.5%</td><td id="bPCI">–</td></tr>
+            </tbody>
+          </table>
+          <p class="hint" id="bsMsg"></p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Choose truth → simulate → estimate → compare</span>
+      <h2>Two intervals, two questions</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The confidence interval asks where the average response at X<sub>f</sub> is. The prediction interval asks where the next single observation will fall. Same point estimate, different width, because a new observation brings its own error ε.</p>
+      <div class="demo">
+        <button class="primary" id="demoSlide">Reference truth, 10,000 replications</button>
+        <button id="demoExtrap">Extrapolate: X<sub>f</sub> = 4.5</button>
+        <button id="demoNarrow">Narrow design: w = 0.5</button>
+        <button id="demoMt">mtcars bootstrap</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>The PI is wider by the noise σ²</h3>
+        <p>The variance of a prediction error splits into two parts. σ² is the noise in the new observation, and no amount of data removes it. σ²(1/n + (X<sub>f</sub> − x̄)²/Sxx) is the error from estimating the line, and it shrinks as n grows. The CI only has the second part.</p>
+      </div></li>
+      <li><div>
+        <h3>Prediction is worst far from x̄</h3>
+        <p>Both bands are narrowest at x̄ and flare out as X<sub>f</sub> moves away. Extrapolating beyond the data makes the estimation part grow quickly, especially when the x values are bunched together and Sxx is small.</p>
+      </div></li>
+      <li><div>
+        <h3>β̂₁ is a random variable</h3>
+        <p>Redraw the data and β̂₁ changes. Its histogram centers on the true β₁ (unbiasedness), has the predicted spread σ/√Sxx, and is normal. These are facts you can check, not assumptions.</p>
+      </div></li>
+      <li><div>
+        <h3>95% means about 19 in 20</h3>
+        <p>Each replication builds its own interval. About 1 in 20 misses the true β₁. The misses are drawn in red, and the coverage rate settles near 0.95 as M grows.</p>
+      </div></li>
+      <li><div>
+        <h3>The bootstrap checks the formula on real data</h3>
+        <p>For mtcars the classical SE is 0.559 and the bootstrap SE is about 0.71. The gap is a sign that constant variance is strained: heavier cars vary more. The bootstrap is roughly robust to that, because it resamples whole rows.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cp">Sampling distribution of the slope</div>
+        <div class="m">β̂₁ ~ N(β₁, σ²/Sxx),  Sxx = Σ(xᵢ − x̄)² = (n − 1)s<sub>x</sub>²</div>
+        <div class="m">SE(β̂₁) = s/√Sxx,   t = β̂₁ / SE(β̂₁)</div>
+      </div>
+      <div class="eq">
+        <div class="cp">Confidence interval for the mean at X<sub>f</sub></div>
+        <div class="m">Ŷ<sub>f</sub> ± t<sub>n−2</sub> · s · √(1/n + (X<sub>f</sub> − x̄)²/Sxx)</div>
+      </div>
+      <div class="eq">
+        <div class="cp">Prediction interval for a new Y at X<sub>f</sub></div>
+        <div class="m">Ŷ<sub>f</sub> ± t<sub>n−2</sub> · s · √(1 + 1/n + (X<sub>f</sub> − x̄)²/Sxx)</div>
+      </div>
+      <div class="eq">
+        <div class="cp">theory vs. Monte Carlo at the reference truth</div>
+        <div class="m">E[β̂₁]: 3.000 vs 2.999   sd(β̂₁): 0.240 vs 0.242</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> For prediction, a low s matters more than a high R². The PI can never be narrower than about ±2σ, however much data you collect. Hand someone a DGP with the numbers blanked out and ask them to make the estimator find the truth: statistics becomes something they do.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Sample R output</h2>
+      <p>A sales regression on price, predicted at price = 5. Same fit, very different intervals.</p>
+      <div class="formula">      fit     lwr     upr
+PI  431.61  397.09  466.13
+CI  431.61  416.80  446.43</div>
+    </div>
+    <div class="note">
+      <h2>Reference truth in R</h2>
+      <p>Four lines define the experiment this lab runs.</p>
+      <div class="formula">b0 &lt;- 2; b1 &lt;- 3; sigma &lt;- 2; n &lt;- 50
+x &lt;- seq(-2, 2, length.out = n)
+Sxx &lt;- sum((x - mean(x))^2)
+y &lt;- b0 + b1*x + rnorm(n, 0, sigma)</div>
+    </div>
+    <div class="note">
+      <h2>mtcars</h2>
+      <p>Fuel economy on weight for 32 cars. R² = 0.753: each extra 1,000 lbs costs about 5.3 mpg.</p>
+      <div class="formula">            Estimate Std.Err    t
+(Intercept)   37.285   1.878 19.9
+wt            -5.344   0.559 -9.6</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Ask students to guess how wide the PI is at x̄ compared with the CI. Then read the table: with n = 50 the PI is about 7 times wider. Raise n to 200 and the CI shrinks while the PI barely moves.</li>
+      <li>Drag X<sub>f</sub> from 0 out to 5. Watch the estimation share of the bar grow. Then set w = 0.5 and repeat: with bunched x values, extrapolation gets expensive fast.</li>
+      <li>Press "Replicate 1,000 times" and compare the Monte Carlo sd with σ/√Sxx. Double n and predict the new sd before you press again (it drops by about √2).</li>
+      <li>Count the red intervals in the coverage plot. Ask whether 3 or 8 misses out of 100 would be surprising, then add 10,000 replications and read the coverage.</li>
+      <li>Switch the bootstrap to mtcars. The bootstrap SE comes out near 0.71, above the classical 0.559. Ask what feature of the scatter could cause that.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  /* MATH-BEGIN (pure functions; no DOM) */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function normalFrom(R) { return () => { let u = 0, v = 0; while (!u) u = R(); while (!v) v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }; }
+  function lgamma(z) {
+    const g = 7, c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (z < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * z))) - lgamma(1 - z);
+    z -= 1; let x = c[0]; for (let i = 1; i < g + 2; i++) x += c[i] / (z + i);
+    const t = z + g + 0.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+  }
+  function betacf(a, b, x) {
+    const MAXIT = 300, EPS = 3e-14, FPMIN = 1e-300;
+    let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < FPMIN) d = FPMIN; d = 1 / d; let h = d;
+    for (let m = 1; m <= MAXIT; m++) {
+      const m2 = 2 * m; let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d;
+      const del = d * c; h *= del; if (Math.abs(del - 1) < EPS) break;
+    }
+    return h;
+  }
+  function ibeta(a, b, x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+    return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+  }
+  function pt(t, df) { const p = 0.5 * ibeta(df / 2, 0.5, df / (df + t * t)); return t > 0 ? 1 - p : p; }
+  function qt(p, df) { let lo = -200, hi = 200; for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (pt(m, df) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+
+  function design(n, w) { const x = []; for (let i = 0; i < n; i++) x.push(n === 1 ? 0 : -w + 2 * w * i / (n - 1)); return x; }
+  function slr(x, y) {
+    const n = x.length; let mx = 0, my = 0;
+    for (let i = 0; i < n; i++) { mx += x[i]; my += y[i]; } mx /= n; my /= n;
+    let sxx = 0, sxy = 0, syy = 0;
+    for (let i = 0; i < n; i++) { const dx = x[i] - mx, dy = y[i] - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+    const b1 = sxy / sxx, b0 = my - b1 * mx, sse = Math.max(0, syy - b1 * sxy), s = Math.sqrt(sse / (n - 2));
+    return { n, mx, my, sxx, b0, b1, sse, s, se1: s / Math.sqrt(sxx), se0: s * Math.sqrt(1 / n + mx * mx / sxx), r2: 1 - sse / syy };
+  }
+  // M replications with a fixed design: returns b1hat and 95% CI per replication
+  function replicate(x, b0, b1, sigma, M, nrm) {
+    const n = x.length; let mx = 0; for (const v of x) mx += v; mx /= n;
+    let sxx = 0; for (const v of x) sxx += (v - mx) ** 2;
+    const tq = qt(0.975, n - 2), out = { b1: new Float64Array(M), lo: new Float64Array(M), hi: new Float64Array(M), se: new Float64Array(M) };
+    const y = new Float64Array(n);
+    for (let m = 0; m < M; m++) {
+      let my = 0; for (let i = 0; i < n; i++) { y[i] = b0 + b1 * x[i] + sigma * nrm(); my += y[i]; } my /= n;
+      let sxy = 0, syy = 0; for (let i = 0; i < n; i++) { const dy = y[i] - my; sxy += (x[i] - mx) * dy; syy += dy * dy; }
+      const bh = sxy / sxx, s = Math.sqrt(Math.max(0, syy - bh * sxy) / (n - 2)), se = s / Math.sqrt(sxx);
+      out.b1[m] = bh; out.se[m] = se; out.lo[m] = bh - tq * se; out.hi[m] = bh + tq * se;
+    }
+    return out;
+  }
+  function bootstrap(x, y, B, R) {
+    const n = x.length, out = [], bx = new Float64Array(n), by = new Float64Array(n);
+    for (let b = 0; b < B; b++) {
+      for (let i = 0; i < n; i++) { const k = Math.floor(R() * n); bx[i] = x[k]; by[i] = y[k]; }
+      const f = slr(bx, by); if (isFinite(f.b1)) out.push({ b0: f.b0, b1: f.b1 });
+    }
+    return out;
+  }
+  // mtcars (R datasets): weight in 1000 lbs and miles per gallon, 32 cars
+  const MT_WT = [2.620, 2.875, 2.320, 3.215, 3.440, 3.460, 3.570, 3.190, 3.150, 3.440, 3.440, 4.070, 3.730, 3.780, 5.250, 5.424, 5.345, 2.200, 1.615, 1.835, 2.465, 3.520, 3.435, 3.840, 3.845, 1.935, 2.140, 1.513, 3.170, 2.770, 3.570, 2.780];
+  const MT_MPG = [21.0, 21.0, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4, 22.8, 19.2, 17.8, 16.4, 17.3, 15.2, 10.4, 10.4, 14.7, 32.4, 30.4, 33.9, 21.5, 15.5, 15.2, 13.3, 19.2, 27.3, 26.0, 30.4, 15.8, 19.7, 15.0, 21.4];
+  /* MATH-END */
+
+  const DEF = { b0: 2, b1: 3, sigma: 2, n: 50, w: 2, xf: 1.5, seed: 48132 };   // this seed gives estimates 2.20 and 2.99
+  const S = { ...DEF, z: [], fit: null, x: [], y: [], reps: null, M: 0, boot: [], bsrc: 'sample', yd: [-20, 20] };
+  const nrm = normalFrom(Math.random);
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'point', 'curve', 'fit', 'ball', 'board', 'surface']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const minus = s => s.replace(/^-/, '−').replace(/ -/g, ' −');
+  const fmt = (v, d = 2) => isFinite(v) ? minus(v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })) : '–';
+
+  function drawNoise() { const R = mulberry32(S.seed), N = normalFrom(R); S.z = []; for (let i = 0; i < 200; i++) S.z.push(N()); }
+  function makeSample() {
+    S.x = design(S.n, S.w); S.y = S.x.map((x, i) => S.b0 + S.b1 * x + S.sigma * S.z[i]);
+    S.fit = slr(S.x, S.y); S.tq = qt(0.975, S.n - 2);
+  }
+  function setYDomain() {
+    const a = S.b0 + S.b1 * -5, b = S.b0 + S.b1 * 5;
+    const lo = Math.min(a, b, ...S.y) - 1.5 * S.sigma, hi = Math.max(a, b, ...S.y) + 1.5 * S.sigma;
+    S.yd = [lo, hi];
+  }
+  const sxxTrue = () => S.fit.sxx;
+  function runReps(M, add) {
+    const r = replicate(S.x, S.b0, S.b1, S.sigma, M, nrm);
+    if (!add || !S.reps) { S.reps = { b1: [], lo: [], hi: [], se: [] }; }
+    for (const k of ['b1', 'lo', 'hi', 'se']) for (const v of r[k]) S.reps[k].push(v);
+    S.M = S.reps.b1.length;
+  }
+  function bsData() { return S.bsrc === 'mt' ? { x: MT_WT, y: MT_MPG } : { x: S.x, y: S.y }; }
+  function runBoot(B, add) { const d = bsData(); const r = bootstrap(d.x, d.y, B, Math.random); S.boot = add ? S.boot.concat(r) : r; }
+
+  // ---------- canvases ----------
+  function mkCanvas(id, aspect, minH, maxH) {
+    const cv = $(id), o = { cv, ctx: cv.getContext('2d'), W: 0, H: 0 };
+    o.resize = () => {
+      const w = cv.clientWidth || cv.parentElement.clientWidth, h = Math.round(Math.min(Math.max(w * aspect, minH), maxH)), d = window.devicePixelRatio || 1;
+      cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d); o.ctx.setTransform(d, 0, 0, d, 0, 0); o.W = w; o.H = h;
+    };
+    return o;
+  }
+  const P = mkCanvas('plot', 0.66, 330, 580), HI = mkCanvas('hist', 0.85, 240, 360), CO = mkCanvas('cov', 0.85, 240, 360), BS = mkCanvas('bscat', 0.85, 240, 360), BH = mkCanvas('bhist', 0.85, 240, 360);
+  const ALL = [P, HI, CO, BS, BH];
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function tickTxt(v, step) { const d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9)); return fmt(Math.abs(v) < step * 1e-6 ? 0 : v, d); }
+  function frame(o, m, xd, yd, opt = {}) {
+    const { ctx, W, H } = o;
+    const PX = x => m.l + (x - xd[0]) / (xd[1] - xd[0]) * (W - m.l - m.r);
+    const PY = y => m.t + (yd[1] - y) / (yd[1] - yd[0]) * (H - m.t - m.b);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1;
+    if (!opt.noY) {
+      const ys = niceStep(yd[1] - yd[0], opt.yt || 5); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (let y = Math.ceil(yd[0] / ys) * ys; y <= yd[1] + 1e-9; y += ys) {
+        const py = Math.round(PY(y)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(m.l, py); ctx.lineTo(W - m.r, py); ctx.stroke();
+        ctx.fillStyle = C.muted; ctx.fillText(tickTxt(y, ys), m.l - 6, py);
+      }
+    }
+    const xs = niceStep(xd[1] - xd[0], opt.xt || 6); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; let lastX = -1e9;
+    for (let x = Math.ceil(xd[0] / xs) * xs; x <= xd[1] + 1e-9; x += xs) {
+      const px = Math.round(PX(x)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(px, m.t); ctx.lineTo(px, H - m.b); ctx.stroke();
+      const t = tickTxt(x, xs), tw = ctx.measureText(t).width;
+      if (px - tw / 2 > lastX + 6) { ctx.fillStyle = C.muted; ctx.fillText(t, px, H - m.b + 6); lastX = px + tw / 2; }
+    }
+    ctx.strokeStyle = C.line; ctx.strokeRect(m.l + .5, m.t + .5, W - m.l - m.r - 1, H - m.t - m.b - 1);
+    ctx.fillStyle = C.muted;
+    if (opt.xlab) { ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlab, W - m.r, H - 2); }
+    if (opt.ylab) { ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.ylab, m.l, m.t - 5); }
+    return { PX, PY };
+  }
+  const clip = (o, m) => { o.ctx.save(); o.ctx.beginPath(); o.ctx.rect(m.l, m.t, o.W - m.l - m.r, o.H - m.t - m.b); o.ctx.clip(); };
+
+  function band(ctx, PX, PY, f, k, extra, x0, x1) {
+    const top = [], bot = [];
+    for (let i = 0; i <= 120; i++) {
+      const x = x0 + (x1 - x0) * i / 120, yh = f.b0 + f.b1 * x, hw = S.tq * f.s * Math.sqrt(extra + 1 / f.n + (x - f.mx) ** 2 / f.sxx);
+      top.push([PX(x), PY(yh + hw)]); bot.push([PX(x), PY(yh - hw)]);
+    }
+    ctx.beginPath(); top.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); for (let i = bot.length - 1; i >= 0; i--) ctx.lineTo(bot[i][0], bot[i][1]); ctx.closePath();
+    void k;
+  }
+  function drawMain() {
+    const o = P, { ctx, W, H } = o, m = { l: 46, r: 14, t: 22, b: 38 }, f = S.fit;
+    ctx.clearRect(0, 0, W, H);
+    const { PX, PY } = frame(o, m, [-5, 5], S.yd, { xlab: 'x', ylab: 'y', xt: 10 });
+    clip(o, m);
+    // bands
+    ctx.fillStyle = C.accent; ctx.globalAlpha = 0.13; band(ctx, PX, PY, f, 0, 1, -5, 5); ctx.fill();
+    ctx.fillStyle = C.fit; ctx.globalAlpha = 0.30; band(ctx, PX, PY, f, 0, 0, -5, 5); ctx.fill(); ctx.globalAlpha = 1;
+    // data range marker
+    ctx.fillStyle = C.muted; ctx.globalAlpha = 0.08; ctx.fillRect(PX(-S.w), m.t, PX(S.w) - PX(-S.w), H - m.t - m.b); ctx.globalAlpha = 1;
+    // true line
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.setLineDash([7, 5]);
+    ctx.beginPath(); ctx.moveTo(PX(-5), PY(S.b0 - 5 * S.b1)); ctx.lineTo(PX(5), PY(S.b0 + 5 * S.b1)); ctx.stroke(); ctx.setLineDash([]);
+    // fitted
+    ctx.strokeStyle = C.fit; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(PX(-5), PY(f.b0 - 5 * f.b1)); ctx.lineTo(PX(5), PY(f.b0 + 5 * f.b1)); ctx.stroke();
+    // points
+    const r = S.n > 120 ? 2.6 : 3.4; ctx.fillStyle = C.point; ctx.globalAlpha = 0.8;
+    for (let i = 0; i < S.n; i++) { ctx.beginPath(); ctx.arc(PX(S.x[i]), PY(S.y[i]), r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // Xf
+    const xf = S.xf, yh = f.b0 + f.b1 * xf, se2 = 1 / f.n + (xf - f.mx) ** 2 / f.sxx;
+    const ci = S.tq * f.s * Math.sqrt(se2), pi = S.tq * f.s * Math.sqrt(1 + se2), px = PX(xf);
+    ctx.strokeStyle = C.ball; ctx.lineWidth = 1.25; ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(px + .5, m.t); ctx.lineTo(px + .5, H - m.b); ctx.stroke(); ctx.setLineDash([]);
+    const bar = (dx, lo, hi, col, wdt) => {
+      ctx.strokeStyle = col; ctx.lineWidth = wdt; ctx.beginPath();
+      ctx.moveTo(px + dx, PY(lo)); ctx.lineTo(px + dx, PY(hi));
+      ctx.moveTo(px + dx - 6, PY(lo)); ctx.lineTo(px + dx + 6, PY(lo)); ctx.moveTo(px + dx - 6, PY(hi)); ctx.lineTo(px + dx + 6, PY(hi)); ctx.stroke();
+    };
+    bar(-9, yh - pi, yh + pi, C.accent, 3); bar(9, yh - ci, yh + ci, C.fit, 3.5);
+    ctx.fillStyle = C.ball; ctx.strokeStyle = C.surface; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, PY(yh), 5.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.font = '600 11.5px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline = 'middle';
+    const right = px + 20 + 70 < W - m.r; ctx.textAlign = right ? 'left' : 'right';
+    const tx = right ? px + 20 : px - 20;
+    const lab = (txt, y, col) => {
+      const tw = ctx.measureText(txt).width, x0 = right ? tx - 4 : tx - tw - 4;
+      ctx.fillStyle = C.surface; ctx.globalAlpha = 0.88; ctx.fillRect(x0, y - 9, tw + 8, 18); ctx.globalAlpha = 1;
+      ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.strokeRect(x0 + .5, y - 8.5, tw + 7, 17);
+      ctx.fillStyle = col; ctx.fillText(txt, tx, y);
+    };
+    const yPI = Math.max(m.t + 10, PY(yh + pi)), yCI = Math.max(yPI + 22, PY(yh) - 12);
+    lab('PI ±' + fmt(pi), yPI, C.accent); lab('CI ±' + fmt(ci), yCI, C.fit);
+    ctx.restore();
+    ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('shaded: range of the data', PX(-S.w) + 4 > m.l ? PX(-S.w) + 4 : m.l + 4, m.t + 4);
+  }
+
+  function hist(o, vals, xd, curve, mark, xlab, missMask) {
+    const { ctx, W, H } = o, m = { l: 40, r: 10, t: 20, b: 36 };
+    ctx.clearRect(0, 0, W, H);
+    const nb = 40, bw = (xd[1] - xd[0]) / nb, cnt = new Array(nb).fill(0);
+    let N = 0; for (const v of vals) { const k = Math.floor((v - xd[0]) / bw); if (k >= 0 && k < nb) cnt[k]++; N++; }
+    const dens = cnt.map(c => N ? c / (N * bw) : 0);
+    let top = Math.max(...dens, curve ? curve.peak : 0) * 1.12 || 1;
+    const { PX, PY } = frame(o, m, xd, [0, top], { xlab, ylab: 'density', yt: 4, xt: 5 });
+    clip(o, m);
+    ctx.fillStyle = C.accent; ctx.globalAlpha = 0.72;
+    for (let k = 0; k < nb; k++) if (dens[k] > 0) { const x0 = PX(xd[0] + k * bw), x1 = PX(xd[0] + (k + 1) * bw), y = PY(dens[k]); ctx.fillRect(x0 + .5, y, Math.max(1, x1 - x0 - 1), PY(0) - y); }
+    ctx.globalAlpha = 1;
+    if (curve) {
+      ctx.strokeStyle = C.curve; ctx.lineWidth = 2.25; ctx.beginPath();
+      for (let i = 0; i <= 200; i++) { const x = xd[0] + (xd[1] - xd[0]) * i / 200, z = (x - curve.mu) / curve.sd, d = Math.exp(-0.5 * z * z) / (curve.sd * Math.sqrt(2 * Math.PI)); i ? ctx.lineTo(PX(x), PY(d)) : ctx.moveTo(PX(x), PY(d)); }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.75; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(PX(mark) + .5, m.t); ctx.lineTo(PX(mark) + .5, H - m.b); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    if (!N) { ctx.fillStyle = C.muted; ctx.font = '13px "Atkinson Hyperlegible", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Press the button to run.', W / 2, H / 2); }
+    void missMask;
+  }
+
+  function drawReps() {
+    const sd = S.sigma / Math.sqrt(sxxTrue()), xd = [S.b1 - 4.5 * sd, S.b1 + 4.5 * sd];
+    hist(HI, S.reps ? S.reps.b1 : [], xd, { mu: S.b1, sd, peak: 1 / (sd * Math.sqrt(2 * Math.PI)) }, S.b1, 'β̂₁');
+    // coverage plot
+    const o = CO, { ctx, W, H } = o, m = { l: 40, r: 10, t: 20, b: 36 }, K = Math.min(100, S.M);
+    ctx.clearRect(0, 0, W, H);
+    const { PX, PY } = frame(o, m, xd, [0, 101], { xlab: 'β₁ 95% CI', ylab: 'replication', yt: 5, xt: 5 });
+    clip(o, m);
+    for (let i = 0; i < K; i++) {
+      const lo = S.reps.lo[i], hi = S.reps.hi[i], miss = lo > S.b1 || hi < S.b1, y = PY(i + 1);
+      ctx.strokeStyle = miss ? C.curve : C.accent; ctx.lineWidth = miss ? 2.25 : 1.5; ctx.globalAlpha = miss ? 1 : 0.7;
+      ctx.beginPath(); ctx.moveTo(PX(lo), y); ctx.lineTo(PX(hi), y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.75; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(PX(S.b1) + .5, m.t); ctx.lineTo(PX(S.b1) + .5, H - m.b); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  function bsFit() { const d = bsData(); return slr(d.x, d.y); }
+  function drawBoot() {
+    const d = bsData(), f = bsFit();
+    // scatter
+    {
+      const o = BS, { ctx, W, H } = o, m = { l: 40, r: 10, t: 20, b: 36 };
+      ctx.clearRect(0, 0, W, H);
+      const pad = (a, fr) => { const lo = Math.min(...a), hi = Math.max(...a), p = (hi - lo) * fr || 1; return [lo - p, hi + p]; };
+      const xd = pad(d.x, 0.08), yd = pad(d.y, 0.12);
+      const { PX, PY } = frame(o, m, xd, yd, S.bsrc === 'mt' ? { xlab: 'weight (1000 lbs)', ylab: 'mpg', xt: 5, yt: 5 } : { xlab: 'x', ylab: 'y', xt: 5, yt: 5 });
+      clip(o, m);
+      ctx.strokeStyle = C.accent; ctx.globalAlpha = 0.18; ctx.lineWidth = 1;
+      for (const b of S.boot.slice(0, 40)) { ctx.beginPath(); ctx.moveTo(PX(xd[0]), PY(b.b0 + b.b1 * xd[0])); ctx.lineTo(PX(xd[1]), PY(b.b0 + b.b1 * xd[1])); ctx.stroke(); }
+      ctx.globalAlpha = 1; ctx.strokeStyle = C.fit; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(PX(xd[0]), PY(f.b0 + f.b1 * xd[0])); ctx.lineTo(PX(xd[1]), PY(f.b0 + f.b1 * xd[1])); ctx.stroke();
+      ctx.fillStyle = C.point; ctx.globalAlpha = 0.85;
+      for (let i = 0; i < d.x.length; i++) { ctx.beginPath(); ctx.arc(PX(d.x[i]), PY(d.y[i]), 3.2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = 1; ctx.restore();
+    }
+    const bv = S.boot.map(b => b.b1);
+    const sp = Math.max(f.se1, sdOf(bv) || 0) * 4.5;
+    hist(BH, bv, [f.b1 - sp, f.b1 + sp], { mu: f.b1, sd: f.se1, peak: 1 / (f.se1 * Math.sqrt(2 * Math.PI)) }, f.b1, 'β̂₁ (bootstrap)');
+  }
+  function sdOf(a) { const n = a.length; if (n < 2) return NaN; let m = 0; for (const v of a) m += v; m /= n; let s = 0; for (const v of a) s += (v - m) ** 2; return Math.sqrt(s / (n - 1)); }
+  function meanOf(a) { let m = 0; for (const v of a) m += v; return a.length ? m / a.length : NaN; }
+  function quant(a, p) { const s = [...a].sort((x, y) => x - y); if (!s.length) return NaN; const h = (s.length - 1) * p, lo = Math.floor(h); return s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (h - lo); }
+
+  // ---------- readouts ----------
+  function updateText() {
+    const f = S.fit, sg = (v) => v < 0 ? '−' : '+';
+    $('eqn').innerHTML = `ŷ = <span class="f">${fmt(f.b0, 3)}</span> ${sg(f.b1)} <span class="f">${fmt(Math.abs(f.b1), 3)}</span>·x&nbsp;&nbsp; s = <span class="f">${fmt(f.s, 3)}</span>&nbsp;&nbsp; R² = <span class="f">${fmt(f.r2, 3)}</span>&nbsp;&nbsp; <span style="color:var(--muted)">truth: ${fmt(S.b0, 1)} ${sg(S.b1)} ${fmt(Math.abs(S.b1), 1)}·x, σ = ${fmt(S.sigma, 1)}</span>`;
+    $('tB0').textContent = fmt(S.b0, 3); $('eB0').textContent = fmt(f.b0, 3);
+    $('tB1').textContent = fmt(S.b1, 3); $('eB1').textContent = fmt(f.b1, 3);
+    $('tS').textContent = fmt(S.sigma, 3); $('eS').textContent = fmt(f.s, 3);
+    $('tSE').textContent = fmt(S.sigma / Math.sqrt(f.sxx), 3); $('eSE').textContent = fmt(f.se1, 3);
+    $('eT').textContent = fmt(f.b1 / f.se1, 1);
+    $('eCI').textContent = `[${fmt(f.b1 - S.tq * f.se1, 2)}, ${fmt(f.b1 + S.tq * f.se1, 2)}]`;
+    $('tq').textContent = `t₀.₉₇₅,${S.n - 2} = ${fmt(S.tq, 3)}`;
+    const xf = S.xf, yh = f.b0 + f.b1 * xf, q = 1 / f.n + (xf - f.mx) ** 2 / f.sxx;
+    const ci = S.tq * f.s * Math.sqrt(q), pi = S.tq * f.s * Math.sqrt(1 + q);
+    $('cFit').textContent = fmt(yh); $('pFit').textContent = fmt(yh);
+    $('cLo').textContent = fmt(yh - ci); $('cHi').textContent = fmt(yh + ci); $('pLo').textContent = fmt(yh - pi); $('pHi').textContent = fmt(yh + pi);
+    const s2 = S.sigma ** 2, e1 = s2 * q, e2 = f.s ** 2 * q;
+    $('vn1').textContent = fmt(s2, 3); $('ve1').textContent = fmt(e1, 3); $('vt1').textContent = fmt(s2 + e1, 3);
+    $('vn2').textContent = fmt(f.s ** 2, 3); $('ve2').textContent = fmt(e2, 3); $('vt2').textContent = fmt(f.s ** 2 + e2, 3);
+    const pn = s2 / (s2 + e1) * 100;
+    $('vbN').style.width = pn + '%'; $('vbE').style.width = (100 - pn) + '%';
+    $('vNoise').textContent = pn.toFixed(0) + '%'; $('vEst').textContent = (100 - pn).toFixed(0) + '%';
+    // reps
+    const sdT = S.sigma / Math.sqrt(f.sxx);
+    $('repM').textContent = S.M.toLocaleString();
+    $('rMeanT').textContent = fmt(S.b1, 3); $('rSdT').textContent = fmt(sdT, 3);
+    $('rWT').textContent = fmt(2 * S.tq * sdT * Math.exp(lgamma((S.n - 1) / 2) - lgamma((S.n - 2) / 2)) * Math.sqrt(2 / (S.n - 2)), 3);
+    if (S.M) {
+      const r = S.reps; let hit = 0, w = 0;
+      for (let i = 0; i < S.M; i++) { if (r.lo[i] <= S.b1 && S.b1 <= r.hi[i]) hit++; w += r.hi[i] - r.lo[i]; }
+      $('rMean').textContent = fmt(meanOf(r.b1), 3); $('rSd').textContent = fmt(sdOf(r.b1), 3);
+      $('rCov').textContent = fmt(hit / S.M, 3); $('rW').textContent = fmt(w / S.M, 3);
+    } else for (const id of ['rMean', 'rSd', 'rCov', 'rW']) $(id).textContent = '–';
+    // bootstrap
+    const g = bsFit(), bv = S.boot.map(b => b.b1), tqb = qt(0.975, g.n - 2);
+    $('bootB').textContent = S.boot.length.toLocaleString();
+    $('bEst').textContent = fmt(g.b1, 3); $('bSE').textContent = fmt(g.se1, 3);
+    $('bCI').textContent = `[${fmt(g.b1 - tqb * g.se1, 2)}, ${fmt(g.b1 + tqb * g.se1, 2)}]`;
+    const bse = sdOf(bv);
+    $('bBS').textContent = fmt(bse, 3); $('bRatio').textContent = isFinite(bse) ? fmt(bse / g.se1, 2) + '×' : '–';
+    $('bPCI').textContent = bv.length ? `[${fmt(quant(bv, 0.025), 2)}, ${fmt(quant(bv, 0.975), 2)}]` : '–';
+    $('bsNote').textContent = S.bsrc === 'mt'
+      ? 'Real data: R\'s built-in mtcars, 32 cars. The fit: 37.285 − 5.344·wt, SE 0.559.'
+      : `The current simulated sample of n = ${S.n} from the panel above. Its errors have constant variance by construction.`;
+    $('bsMsg').textContent = S.bsrc === 'mt'
+      ? 'The worked example reports a bootstrap SE of 0.714 against a classical 0.559. Each run differs a little.'
+      : 'With constant variance the two SEs should be close. Switch to mtcars to see them disagree.';
+    $('bsCap').textContent = S.bsrc === 'mt' ? 'mtcars with 40 bootstrap lines' : 'This sample with 40 bootstrap lines';
+  }
+
+  let dirty = true;
+  function loop() { if (dirty) { drawMain(); drawReps(); drawBoot(); dirty = false; } requestAnimationFrame(loop); }
+
+  // ---------- recompute pipeline ----------
+  let pend = 0;
+  function dgpChanged() { // the truth or the design changed: refit, rerun 1,000 replications and the sample bootstrap
+    makeSample(); runReps(1000, false); if (S.bsrc === 'sample') runBoot(2000, false);
+    updateText(); dirty = true;
+  }
+  function schedule() { if (pend) return; pend = requestAnimationFrame(() => { pend = 0; dgpChanged(); }); }
+
+  const sliders = { b0: [1, false], b1: [1, false], sigma: [1, false], n: [0, true], w: [2, false] };
+  for (const [id, [d, isInt]] of Object.entries(sliders)) {
+    $(id).addEventListener('input', e => { S[id] = isInt ? parseInt(e.target.value, 10) : +e.target.value; $(id + 'Out').textContent = isInt ? S[id] : S[id].toFixed(d); schedule(); });
+    $(id).addEventListener('change', () => { setYDomain(); dirty = true; });
+  }
+  $('xf').addEventListener('input', e => { S.xf = +e.target.value; $('xfOut').textContent = fmt(S.xf, 2); updateText(); dirty = true; });
+  function setAll(v) {
+    Object.assign(S, v);
+    if (v.seed !== undefined) drawNoise();
+    for (const [id, [d, isInt]] of Object.entries(sliders)) { $(id).value = S[id]; $(id + 'Out').textContent = isInt ? S[id] : S[id].toFixed(d); }
+    $('xf').value = S.xf; $('xfOut').textContent = fmt(S.xf, 2);
+    makeSample(); setYDomain(); dgpChanged();
+  }
+  $('resample').onclick = () => { S.seed = (S.seed * 7919 + 13) % 2147483647; drawNoise(); makeSample(); setYDomain(); dgpChanged(); };
+  $('defaults').onclick = () => setAll({ ...DEF });
+  $('rep1k').onclick = () => { runReps(1000, false); updateText(); dirty = true; };
+  $('rep10k').onclick = () => { runReps(10000, true); updateText(); dirty = true; };
+  $('repClear').onclick = () => { S.reps = null; S.M = 0; updateText(); dirty = true; };
+  function setBsrc(src) {
+    S.bsrc = src; $('bsSample').setAttribute('aria-pressed', src === 'sample'); $('bsMt').setAttribute('aria-pressed', src === 'mt');
+    runBoot(2000, false); updateText(); dirty = true;
+  }
+  $('bsSample').onclick = () => setBsrc('sample'); $('bsMt').onclick = () => setBsrc('mt');
+  $('boot2k').onclick = () => { runBoot(2000, true); updateText(); dirty = true; };
+  $('bootClear').onclick = () => { S.boot = []; updateText(); dirty = true; };
+
+  const smooth = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+  $('demoSlide').onclick = () => { setAll({ ...DEF }); runReps(9000, true); updateText(); dirty = true; $('repH').scrollIntoView({ behavior: smooth(), block: 'start' }); };
+  $('demoExtrap').onclick = () => { setAll({ ...DEF, xf: 4.5 }); document.querySelector('.board').scrollIntoView({ behavior: smooth(), block: 'start' }); };
+  $('demoNarrow').onclick = () => { setAll({ ...DEF, w: 0.5, xf: 3 }); document.querySelector('.board').scrollIntoView({ behavior: smooth(), block: 'start' }); };
+  $('demoMt').onclick = () => { setBsrc('mt'); runBoot(3000, true); updateText(); dirty = true; $('bootH').scrollIntoView({ behavior: smooth(), block: 'start' }); };
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  for (const o of ALL) new ResizeObserver(() => { o.resize(); dirty = true; }).observe(o.cv.parentElement);
+  for (const o of ALL) o.resize();
+  drawNoise(); makeSample(); setYDomain(); dgpChanged();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>

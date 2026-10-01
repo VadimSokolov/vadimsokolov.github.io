@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Bayesian Search Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the search grid heatmap is the hero; search actions, readouts, scenarios and detection settings in the right rail; strategy comparison, lesson and class notes below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.board canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.dot { width: 10px; border-radius: 50%; }
+.sw.line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px dashed var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+.tip b { font-family: var(--font-display); }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.7vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button[aria-pressed="true"]:not(.primary) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; box-shadow: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; max-width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.th { color: var(--curve); }
+.stats td.ob { color: var(--accent); }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; max-width: 100%; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula + .formula { margin-top: 6px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.status { font-size: 15px; font-weight: 700; min-height: 1.5em; padding: 0 4px; }
+.status.found { color: var(--fit); }
+.ramp { display: inline-block; width: 70px; height: 10px; border-radius: 2px; flex: none; }
+.sw.last { background: transparent; box-shadow: inset 0 0 0 2px var(--ball); }
+.sw.wreck { background: var(--curve); border-radius: 50%; width: 10px; }
+.sw.cnt { background: transparent; width: auto; height: auto; font-family: var(--font-mono); font-size: 11px; color: var(--ink); }
+.panel .stats td + td { white-space: nowrap; padding-left: 8px; }
+.scen { display: flex; flex-direction: column; gap: 10px; }
+.scen .slider label { font-weight: 400; font-size: 14px; }
+.scen .slider label b { font-family: var(--font-mono); }
+.cmpGrid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .cmpGrid { grid-template-columns: minmax(0, 1fr); } }
+.cmpBoard { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; }
+.cmpBoard canvas { display: block; width: 100%; }
+.sw.sp { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.spq { height: 0; border-top: 2.5px solid var(--fit); border-radius: 0; background: none; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Bayesian search</span>
+    <h1>Bayesian Search Lab</h1>
+    <p class="lead">A lost submarine lies somewhere on a 15 × 15 grid. The map starts as a prior built from three weighted scenarios. Each failed search lowers the probability of the searched cell and raises every other cell. Hunt by hand, then compare two search rules over many simulated hunts.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 2, <a href="https://vsokolov.org/html/_book/02-bayes.html">Bayes' Rule</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Search grid heatmap">
+      <div class="status" id="status" aria-live="polite"></div>
+      <canvas id="map" role="img" aria-label="15 by 15 grid shaded by probability; click a cell to search it"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="ramp" id="ramp"></i><span id="rampLab">Posterior P(cell)</span></span>
+        <span><i class="sw last"></i>Last cell searched</span>
+        <span><i class="sw cnt">3</i>Times searched</span>
+        <span><i class="sw wreck"></i>True location (when shown)</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Search</span>
+        <div class="btns">
+          <button id="bestP" class="primary">Search best cell</button>
+          <button id="bestPQ">Search best p × q</button>
+          <button id="auto">Search best ×10</button>
+          <button id="newHunt">New hunt</button>
+        </div>
+        <p class="hint">"Best cell" has the highest posterior p. "Best p × q" has the highest chance of finding the wreck on this search. You can also click any cell.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Map shows</span>
+        <div class="seg" role="group" aria-label="Map layer">
+          <button id="vP" aria-pressed="true">Posterior p</button>
+          <button id="vQ" aria-pressed="false">Detection q</button>
+          <button id="vPQ" aria-pressed="false">p × q</button>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="showScen" checked> Mark scenario centers</label>
+          <label><input type="checkbox" id="showWreck"> Show the true location</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+          <span class="label">Searches this hunt</span><span class="big" id="nSearch">0</span>
+        </div>
+        <table class="stats">
+          <tbody>
+            <tr><td>Last cell searched</td><td id="sLast">–</td></tr>
+            <tr><td>Its p before → after</td><td id="sPP">–</td></tr>
+            <tr><td>Best cell now (p)</td><td id="sBest">–</td></tr>
+            <tr><td>Best cell now (p × q)</td><td id="sBestPQ">–</td></tr>
+            <tr><td>P(found by now), from the prior</td><td class="th" id="sFound">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="group scen">
+        <span class="label">Prior scenarios (simulated)</span>
+        <div class="slider"><div class="top"><label for="w0"><b>A</b> Turned back toward port</label><output id="w0Out">0.45</output></div><input type="range" id="w0" min="0" max="1" step="0.05" value="0.45"></div>
+        <div class="slider"><div class="top"><label for="w1"><b>B</b> Sank on its planned route</label><output id="w1Out">0.35</output></div><input type="range" id="w1" min="0" max="1" step="0.05" value="0.35"></div>
+        <div class="slider"><div class="top"><label for="w2"><b>C</b> Drifted south while sinking</label><output id="w2Out">0.20</output></div><input type="range" id="w2" min="0" max="1" step="0.05" value="0.2"></div>
+        <p class="hint">Weights are rescaled to sum to 1. Each scenario spreads its weight around a center. A further 2% is spread evenly over the whole grid.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Detection probability when the wreck is in the cell</span>
+        <div class="slider"><div class="top"><label for="qHi">Open seabed, q</label><output id="qHiOut">0.90</output></div><input type="range" id="qHi" min="0.1" max="1" step="0.05" value="0.9"></div>
+        <div class="slider"><div class="top"><label for="qLo">Deep trench, q</label><output id="qLoOut">0.15</output></div><input type="range" id="qLo" min="0.05" max="1" step="0.05" value="0.15"></div>
+        <p class="hint">Switch the map to "Detection q" to see the trench. Changing any setting starts a new hunt.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card" aria-labelledby="cmpH">
+    <h2 id="cmpH">Which cell should you search next?</h2>
+    <p class="hint" style="font-size:14px;max-width:90ch">Each simulated hunt draws a wreck location from the prior and searches until it is found. Both rules use the same wreck locations and the same detection luck, so only the choice of cell differs.</p>
+    <div class="cmpGrid">
+      <div class="cmpBoard">
+        <canvas id="cmp" role="img" aria-label="Share of hunts finished against the number of searches for the two rules"></canvas>
+        <div class="legend" style="padding-top:6px">
+          <span><i class="sw sp"></i>Search the highest p</span>
+          <span><i class="sw spq"></i>Search the highest p × q</span>
+        </div>
+      </div>
+      <div class="group">
+        <button id="runCmp" class="primary">Run 1,000 hunts per rule</button>
+        <table class="stats">
+          <thead><tr><th>Searches to find</th><th>Highest p</th><th>Highest p×q</th></tr></thead>
+          <tbody>
+            <tr><td>Average</td><td class="ob" id="mP">–</td><td id="mPQ" style="color:var(--fit)">–</td></tr>
+            <tr><td>Median</td><td class="ob" id="medP">–</td><td id="medPQ" style="color:var(--fit)">–</td></tr>
+            <tr><td>90th percentile</td><td class="ob" id="q9P">–</td><td id="q9PQ" style="color:var(--fit)">–</td></tr>
+            <tr><td>Hunts</td><td id="hP">–</td><td id="hPQ">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint" id="cmpNote"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">John Craven and the USS Scorpion, 1968</span>
+      <h2>Prior belief + facts = revised belief</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Craven had experts bet on what had happened to the Scorpion, turned the scenarios into a probability map, and searched where the map pointed. This lab follows his four steps on a made-up grid. The scenarios, trench and detection rates are simulated for teaching and are not the real Scorpion search data.</p>
+      <div class="demo">
+        <button class="primary" id="demoHard">Deep trench hides the likely spot</button>
+        <button id="demoFlat">Same detection everywhere</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Prior map</h3><p>Combine expert scenarios into P(location) for every cell, and record how likely a search is to spot the wreck if it is there (q). Deep water makes q small.</p></div></li>
+      <li><div><h3>Search the highest-probability cell</h3><p>The simple rule: search the cell with the largest p, for example C5. A refinement uses p × q, the chance that this search succeeds.</p></div></li>
+      <li><div><h3>Update after a failed search</h3><p>Nothing found is evidence. The searched cell keeps only the part of its probability where the search missed, p(1 − q), and every cell is rescaled by 1 − p·q so the map sums to 1 again. Other cells rise.</p></div></li>
+      <li><div><h3>Iterate</h3><p>Repeat steps 2 and 3 until you find the target. A cell with low q gets searched again and again, because one miss there says little.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">Bayes' rule</div><div class="m">P(loc | evidence) = P(evidence | loc)·P(loc) / P(evidence)</div></div>
+      <div class="eq"><div class="cap">Searched cell i, nothing found</div><div class="m">P(no find) = 1 − p<sub>i</sub>·q<sub>i</sub></div><div class="m">p<sub>i</sub> ← p<sub>i</sub>(1 − q<sub>i</sub>) / (1 − p<sub>i</sub>q<sub>i</sub>)</div></div>
+      <div class="eq"><div class="cap">Every other cell j</div><div class="m">p<sub>j</sub> ← p<sub>j</sub> / (1 − p<sub>i</sub>q<sub>i</sub>)</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> A failed search is not wasted. It moves probability to the cells you have not checked. The same update finds lost aircraft (Air France 447) and, run millions of times a second, tells a self-driving car where it is (SLAM).</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Before any search, ask students to name the cell they would search first. Then switch the map between "Posterior p", "Detection q" and "p × q" and ask whether they would change their answer.</li>
+      <li>Press "Search best cell" five times and watch the searched cell fade while scenario B's area darkens. Read "Its p before → after" and check it against p(1 − q) / (1 − pq).</li>
+      <li>Click a cell far from every scenario and search it. Its p barely changes, and neither does the rest of the map. Ask why a search there tells you so little.</li>
+      <li>Run the comparison. Then press "Same detection everywhere" and run it again. When q is the same in every cell, the two rules pick the same cells and tie.</li>
+      <li>Set scenario A's weight to 0 and start a new hunt. Ask what the experts' bet would cost if the wreck really was near A, then tick "Show the true location".</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('map'), ctx = cv.getContext('2d'), tip = $('tip');
+  const cc = $('cmp'), cx = cc.getContext('2d');
+  const G = 15, NC = G * G, COLS = 'ABCDEFGHIJKLMNO';
+  const SCEN = [ { name: 'A', x: 10.5, y: 3.5, sd: 1.0 }, { name: 'B', x: 4.5, y: 8, sd: 1.2 }, { name: 'C', x: 9, y: 11.5, sd: 1.5 } ];
+  const TRENCH = { x: 10.5, y: 3.5, sd: 1.8 };
+  const S = { w: [0.45, 0.35, 0.2], qHi: 0.9, qLo: 0.15, view: 'p', showScen: true, showWreck: false,
+              prior: null, q: null, p: null, wreck: 0, found: false, n: 0, counts: null, last: -1, lastPP: null, notFound: 1, cmp: null };
+  let C = {}, L = {}, LC = {};
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'fit', 'ball', 'coinB', 'board', 'surface'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const cellName = i => COLS[i % G] + (Math.floor(i / G) + 1);
+  const f3 = x => x < 0.001 && x > 0 ? x.toExponential(1) : x.toFixed(3);
+
+  function buildMaps() {
+    const ws = S.w.reduce((a, b) => a + b, 0) || 1, prior = new Float64Array(NC), q = new Float64Array(NC);
+    for (let s = 0; s < 3; s++) {
+      const sc = SCEN[s], w = (ws ? S.w[s] / ws : 1 / 3) * 0.98; let tot = 0; const tmp = new Float64Array(NC);
+      for (let i = 0; i < NC; i++) { const x = i % G + 0.5, y = Math.floor(i / G) + 0.5; tmp[i] = Math.exp(-((x - sc.x) ** 2 + (y - sc.y) ** 2) / (2 * sc.sd * sc.sd)); tot += tmp[i]; }
+      for (let i = 0; i < NC; i++) prior[i] += w * tmp[i] / tot;
+    }
+    for (let i = 0; i < NC; i++) {
+      prior[i] += 0.02 / NC;
+      const x = i % G + 0.5, y = Math.floor(i / G) + 0.5;
+      const t = Math.exp(-((x - TRENCH.x) ** 2 + (y - TRENCH.y) ** 2) / (2 * TRENCH.sd ** 2));
+      q[i] = S.qHi + (S.qLo - S.qHi) * t;
+    }
+    let tot = 0; for (let i = 0; i < NC; i++) tot += prior[i];
+    for (let i = 0; i < NC; i++) prior[i] /= tot;
+    S.prior = prior; S.q = q;
+  }
+  function drawFrom(p) { let u = Math.random(), i = 0; for (; i < NC - 1; i++) { u -= p[i]; if (u <= 0) break; } return i; }
+  function argmax(p, q) { let b = 0, bv = -1; for (let i = 0; i < NC; i++) { const v = q ? p[i] * q[i] : p[i]; if (v > bv) { bv = v; b = i; } } return b; }
+  function updateFail(p, q, i) {
+    const d = 1 - p[i] * q[i];
+    p[i] *= (1 - q[i]);
+    for (let j = 0; j < NC; j++) p[j] /= d;
+    return d;
+  }
+
+  function newHunt() {
+    S.p = Float64Array.from(S.prior); S.wreck = drawFrom(S.prior); S.found = false; S.n = 0;
+    S.counts = new Int32Array(NC); S.last = -1; S.lastPP = null; S.notFound = 1;
+    stats(); dirty = true;
+  }
+  function search(i) {
+    if (S.found) return;
+    const before = S.p[i];
+    S.n++; S.counts[i]++; S.last = i;
+    S.notFound *= (1 - S.p[i] * S.q[i]);
+    if (i === S.wreck && Math.random() < S.q[i]) { S.found = true; S.lastPP = [before, 1]; }
+    else { updateFail(S.p, S.q, i); S.lastPP = [before, S.p[i]]; }
+    stats(); dirty = true;
+  }
+
+  function stats() {
+    const st = $('status');
+    if (S.found) { st.className = 'status found'; st.textContent = `Found in ${cellName(S.wreck)} after ${S.n} search${S.n === 1 ? '' : 'es'}. Press "New hunt" to hide a new wreck.`; }
+    else { st.className = 'status'; st.textContent = S.n ? `Searched ${cellName(S.last)}: nothing found. The map has been updated.` : 'A new wreck is hidden, drawn from the prior map. Pick a cell to search.'; }
+    $('nSearch').textContent = S.n;
+    $('sLast').textContent = S.last >= 0 ? `${cellName(S.last)} (q = ${S.q[S.last].toFixed(2)})` : '–';
+    $('sPP').textContent = S.lastPP ? `${f3(S.lastPP[0])} → ${S.found ? 'found' : f3(S.lastPP[1])}` : '–';
+    const b = argmax(S.p), bq = argmax(S.p, S.q);
+    $('sBest').textContent = `${cellName(b)} · ${f3(S.p[b])}`;
+    $('sBestPQ').textContent = `${cellName(bq)} · ${f3(S.p[bq] * S.q[bq])}`;
+    $('sFound').textContent = (1 - S.notFound).toFixed(3);
+    for (const id of ['bestP', 'bestPQ', 'auto']) $(id).disabled = S.found;
+  }
+
+  // ---- heatmap
+  function resize() {
+    const w = Math.max(240, cv.parentElement.clientWidth - 24), side = Math.min(w, 640);
+    const d = window.devicePixelRatio || 1;
+    cv.style.width = side + 'px'; cv.style.height = side + 'px'; cv.style.margin = '0 auto';
+    cv.width = Math.round(side * d); cv.height = Math.round(side * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    const ml = 26, mt = 20, cell = (side - ml - 4) / G;
+    L = { side, ml, mt, cell };
+    dirty = true;
+  }
+  function layer() {
+    if (S.view === 'q') return { v: S.q, max: 1, col: C.fit, name: 'Detection probability q' };
+    const v = S.view === 'pq' ? S.p.map((x, i) => x * S.q[i]) : S.p;
+    let m = 0; for (const x of v) m = Math.max(m, x);
+    return { v, max: m, col: S.view === 'pq' ? C.coinB : C.accent, name: S.view === 'pq' ? 'p × q, scaled to its maximum' : 'Posterior p, scaled to its maximum' };
+  }
+  function draw() {
+    const { side, ml, mt, cell } = L;
+    ctx.clearRect(0, 0, side, side);
+    const ly = layer();
+    ctx.font = '10px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let c = 0; c < G; c++) ctx.fillText(COLS[c], ml + (c + 0.5) * cell, mt / 2);
+    ctx.textAlign = 'right';
+    for (let r = 0; r < G; r++) ctx.fillText(String(r + 1), ml - 5, mt + (r + 0.5) * cell);
+    for (let i = 0; i < NC; i++) {
+      const x = ml + (i % G) * cell, y = mt + Math.floor(i / G) * cell;
+      const t = ly.max > 0 ? ly.v[i] / ly.max : 0;
+      ctx.fillStyle = C.surface; ctx.fillRect(x, y, cell, cell);
+      ctx.globalAlpha = 0.04 + 0.96 * (S.view === 'q' ? t : Math.sqrt(t));
+      ctx.fillStyle = ly.col; ctx.fillRect(x, y, cell, cell);
+      ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = C.board; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let k = 0; k <= G; k++) { ctx.moveTo(ml + k * cell, mt); ctx.lineTo(ml + k * cell, mt + G * cell); ctx.moveTo(ml, mt + k * cell); ctx.lineTo(ml + G * cell, mt + k * cell); }
+    ctx.stroke();
+    // search counts
+    ctx.font = `600 ${Math.max(9, Math.min(12, cell * 0.38))}px "JetBrains Mono", ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let i = 0; i < NC; i++) if (S.counts[i]) {
+      const x = ml + (i % G + 0.5) * cell, y = mt + (Math.floor(i / G) + 0.5) * cell;
+      const t = ly.max > 0 ? ly.v[i] / ly.max : 0;
+      ctx.fillStyle = (S.view === 'q' ? t : Math.sqrt(t)) > 0.55 ? C.surface : C.ink;
+      ctx.fillText(String(S.counts[i]), x, y);
+    }
+    if (S.showScen) {
+      ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace';
+      for (let s = 0; s < 3; s++) {
+        const sc = SCEN[s], x = ml + sc.x * cell, y = mt + sc.y * cell;
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 1.25; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(x, y, sc.sd * cell, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = C.surface; ctx.beginPath(); ctx.arc(x, y - sc.sd * cell, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = C.ink; ctx.stroke();
+        ctx.fillStyle = C.ink; ctx.fillText(sc.name, x, y - sc.sd * cell + 0.5);
+      }
+    }
+    if (S.last >= 0) {
+      const x = ml + (S.last % G) * cell, y = mt + Math.floor(S.last / G) * cell;
+      ctx.strokeStyle = C.ball; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
+    }
+    if (S.showWreck || S.found) {
+      const x = ml + (S.wreck % G + 0.5) * cell, y = mt + (Math.floor(S.wreck / G) + 0.5) * cell;
+      ctx.fillStyle = C.curve; ctx.strokeStyle = C.surface; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, Math.max(4, cell * 0.24), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    $('rampLab').textContent = ly.name;
+    $('ramp').style.background = `linear-gradient(90deg, color-mix(in srgb, ${ly.col} 6%, var(--surface)), ${ly.col})`;
+  }
+  function cellAt(ev) {
+    const r = cv.getBoundingClientRect(), x = ev.clientX - r.left - L.ml, y = ev.clientY - r.top - L.mt;
+    const c = Math.floor(x / L.cell), rr = Math.floor(y / L.cell);
+    if (c < 0 || rr < 0 || c >= G || rr >= G) return -1;
+    return rr * G + c;
+  }
+  function showTip(ev) {
+    const i = cellAt(ev);
+    if (i < 0) { tip.hidden = true; return; }
+    tip.innerHTML = `<b>${cellName(i)}</b><br>p = ${f3(S.p[i])} (prior ${f3(S.prior[i])})<br>q = ${S.q[i].toFixed(2)}<br>p × q = ${f3(S.p[i] * S.q[i])}<br>Searched ${S.counts[i]}×`;
+    tip.hidden = false;
+    const r = cv.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+    const left = cv.offsetLeft + x + 16, maxX = cv.parentElement.clientWidth - tip.offsetWidth - 8;
+    tip.style.left = Math.max(8, Math.min(left, maxX)) + 'px';
+    tip.style.top = Math.max(8, cv.offsetTop + y - tip.offsetHeight - 12) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+  cv.addEventListener('click', ev => { const i = cellAt(ev); if (i >= 0) { search(i); showTip(ev); } });
+
+  // ---- strategy comparison (common random numbers)
+  const MAXS = 3000;
+  function huntOnce(useQ, wreck, us) {
+    const p = Float64Array.from(S.prior), q = S.q, seen = new Int32Array(NC);
+    for (let n = 1; n <= MAXS; n++) {
+      const i = argmax(p, useQ ? q : null);
+      if (i === wreck) { const u = us[seen[i]++ % us.length]; if (u < q[i]) return n; }
+      updateFail(p, q, i);
+    }
+    return MAXS;
+  }
+  function runCmp(H = 1000) {
+    const rP = [], rQ = [];
+    for (let h = 0; h < H; h++) {
+      const wreck = drawFrom(S.prior), us = []; for (let k = 0; k < 64; k++) us.push(Math.random());
+      rP.push(huntOnce(false, wreck, us)); rQ.push(huntOnce(true, wreck, us));
+    }
+    const sum = a => { const s = a.slice().sort((x, y) => x - y); return { s, mean: a.reduce((x, y) => x + y, 0) / a.length, med: s[Math.floor(s.length / 2)], q9: s[Math.floor(s.length * 0.9)] }; };
+    S.cmp = { P: sum(rP), Q: sum(rQ), H };
+    const c = S.cmp;
+    $('mP').textContent = c.P.mean.toFixed(1); $('mPQ').textContent = c.Q.mean.toFixed(1);
+    $('medP').textContent = c.P.med; $('medPQ').textContent = c.Q.med;
+    $('q9P').textContent = c.P.q9; $('q9PQ').textContent = c.Q.q9;
+    $('hP').textContent = H.toLocaleString(); $('hPQ').textContent = H.toLocaleString();
+    const d = c.P.mean - c.Q.mean;
+    $('cmpNote').textContent = Math.abs(d) < 0.05 * c.Q.mean
+      ? 'The two rules finish in about the same number of searches with these settings.'
+      : d > 0 ? `Searching the highest p × q saves about ${d.toFixed(1)} searches per hunt (${(d / c.P.mean * 100).toFixed(0)}%). The highest-p rule keeps returning to trench cells where a search usually misses.`
+              : `With these settings the highest-p rule is faster by ${(-d).toFixed(1)} searches per hunt.`;
+    dirtyC = true;
+  }
+  function cmpResize() {
+    const w = Math.max(240, cc.parentElement.clientWidth - 20), h = Math.round(Math.min(Math.max(w * 0.5, 220), 320));
+    const d = window.devicePixelRatio || 1;
+    cc.style.height = h + 'px'; cc.width = Math.round(w * d); cc.height = Math.round(h * d);
+    cx.setTransform(d, 0, 0, d, 0, 0);
+    LC = { W: w, H: h, ml: 42, mr: 12, mt: 12, mb: 34 };
+    dirtyC = true;
+  }
+  function drawCmp() {
+    const { W, H, ml, mr, mt, mb } = LC; cx.clearRect(0, 0, W, H);
+    if (!S.cmp) return;
+    const c = S.cmp, raw = Math.max(c.P.s[Math.floor(c.H * 0.97)], c.Q.s[Math.floor(c.H * 0.97)]);
+    const stp = raw > 200 ? 50 : raw > 100 ? 25 : raw > 40 ? 10 : 5, xmax = Math.ceil(raw / stp) * stp;
+    const PX = x => ml + x / xmax * (W - ml - mr), PY = y => mt + (1 - y) * (H - mt - mb);
+    cx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    cx.strokeStyle = C.grid; cx.lineWidth = 1; cx.fillStyle = C.muted; cx.textAlign = 'right'; cx.textBaseline = 'middle';
+    for (let y = 0; y <= 1.0001; y += 0.25) { const py = Math.round(PY(y)) + .5; cx.beginPath(); cx.moveTo(ml, py); cx.lineTo(W - mr, py); cx.stroke(); cx.fillText(y.toFixed(2), ml - 6, py); }
+    cx.textAlign = 'center'; cx.textBaseline = 'top';
+    const every = (W < 420 ? 2 : 1) * stp * (xmax / stp > 8 ? 2 : 1);
+    for (let x = 0; x <= xmax; x += every) { const px = Math.round(PX(x)) + .5; cx.beginPath(); cx.moveTo(px, mt); cx.lineTo(px, H - mb); cx.stroke(); cx.fillText(String(x), px, H - mb + 7); }
+    cx.textAlign = 'right'; cx.fillText('searches', W - mr, H - 12);
+    cx.textAlign = 'left'; cx.textBaseline = 'top'; cx.fillText('share of hunts finished', ml + 6, mt + 4);
+    for (const [s, col] of [[c.P.s, C.accent], [c.Q.s, C.fit]]) {
+      cx.strokeStyle = col; cx.lineWidth = 2.25; cx.beginPath(); cx.moveTo(PX(0), PY(0));
+      let j = 0;
+      for (let k = 1; k <= xmax; k++) { while (j < s.length && s[j] <= k) j++; cx.lineTo(PX(k), PY(j / s.length)); }
+      cx.stroke();
+    }
+    cx.strokeStyle = C.line; cx.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
+  }
+
+  // ---- controls
+  function settingsChanged(rerun) { buildMaps(); newHunt(); if (rerun) runCmp(); }
+  for (let s = 0; s < 3; s++) {
+    $('w' + s).oninput = e => { S.w[s] = +e.target.value; $('w' + s + 'Out').textContent = S.w[s].toFixed(2); settingsChanged(false); };
+    $('w' + s).onchange = () => runCmp();
+  }
+  for (const k of ['qHi', 'qLo']) {
+    $(k).oninput = e => { S[k] = +e.target.value; $(k + 'Out').textContent = S[k].toFixed(2); settingsChanged(false); };
+    $(k).onchange = () => runCmp();
+  }
+  $('bestP').onclick = () => search(argmax(S.p));
+  $('bestPQ').onclick = () => search(argmax(S.p, S.q));
+  $('auto').onclick = () => { for (let k = 0; k < 10 && !S.found; k++) search(argmax(S.p)); };
+  $('newHunt').onclick = newHunt;
+  const views = { vP: 'p', vQ: 'q', vPQ: 'pq' };
+  for (const [id, v] of Object.entries(views)) $(id).onclick = () => { S.view = v; for (const k of Object.keys(views)) $(k).setAttribute('aria-pressed', k === id); dirty = true; };
+  $('showScen').onchange = e => { S.showScen = e.target.checked; dirty = true; };
+  $('showWreck').onchange = e => { S.showWreck = e.target.checked; dirty = true; };
+  $('runCmp').onclick = () => runCmp();
+  function setQ(hi, lo) { S.qHi = hi; S.qLo = lo; $('qHi').value = hi; $('qLo').value = lo; $('qHiOut').textContent = hi.toFixed(2); $('qLoOut').textContent = lo.toFixed(2); settingsChanged(true);
+    document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
+  $('demoHard').onclick = () => setQ(0.9, 0.15);
+  $('demoFlat').onclick = () => setQ(0.6, 0.6);
+
+  let dirty = true, dirtyC = true;
+  function frame() { if (dirty) { draw(); dirty = false; } if (dirtyC) { drawCmp(); dirtyC = false; } requestAnimationFrame(frame); }
+  readColors();
+  const recolor = () => { readColors(); dirty = dirtyC = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(resize).observe(cv.parentElement);
+  new ResizeObserver(cmpResize).observe(cc.parentElement);
+  resize(); cmpResize();
+  buildMaps(); newHunt(); runCmp();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

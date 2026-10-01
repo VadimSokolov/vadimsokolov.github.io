@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Power and Sample Size Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: H0/H1 curves and the power curve on the left, sliders, readouts and the sample-size calculator in the right rail, lesson and notes below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: -14px; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.8vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .a { color: var(--accent); font-weight: 600; }
+.eqn .s { color: var(--curve); font-weight: 600; }
+.eqn .h { color: var(--ball); font-weight: 600; }
+#plot { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; background: var(--accent); }
+.sw.curve { height: 0; border-top: 2.5px solid var(--curve); border-radius: 0; background: none; }
+.sw.tail { background: color-mix(in srgb, var(--curve) 30%, transparent); border: 1px solid var(--curve); }
+.sw.obs { width: 0; height: 14px; border-left: 2.5px solid var(--ball); background: none; border-radius: 0; }
+.sw.simt { background: var(--ball); }
+.sw.ci { height: 0; border-top: 3px solid var(--fit); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.verdict { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 8px; padding: 10px 14px; }
+.verdict.yes { border-left-color: var(--fit); }
+.verdict.edge { border-left-color: var(--ball); }
+.verdict.no { border-left-color: var(--curve); }
+.verdict .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.verdict h3 { font-family: var(--font-display); font-size: 18px; margin: 2px 0 4px; }
+.verdict p { margin: 0; max-width: 80ch; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.seg { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.err { font-size: 13px; color: var(--curve); margin: 0; font-weight: 700; }
+
+.data { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; align-items: center; }
+.data .h { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.data .g { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+.data .g.a { color: var(--accent); }
+.data .g.b { color: var(--fit); }
+input[type=number] { font: inherit; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--board); color: var(--ink); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13.5px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats td.st { color: var(--muted); font-size: 11.5px; padding-left: 8px; width: 3.2em; }
+.stats tr:last-child td { border-bottom: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps li.live::before { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.steps .v { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; color: var(--accent); }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.formula + .formula { margin-top: 6px; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.sw.h0 { width: 14px; height: 10px; border-radius: 2px; background: color-mix(in srgb, var(--curve) 32%, transparent); border: 1.5px solid var(--curve); }
+.sw.pw { width: 14px; height: 10px; border-radius: 2px; background: color-mix(in srgb, var(--fit) 38%, transparent); border: 1.5px solid var(--fit); }
+.sw.be { width: 14px; height: 10px; border-radius: 2px; background: color-mix(in srgb, var(--ball) 38%, transparent); border: 1.5px solid var(--ball); }
+.sw.pc { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ball); }
+.sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding: 6px 4px 0; border-top: 1px solid var(--line); }
+#pcurve { display: block; width: 100%; touch-action: pan-y; }
+.calc { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.calc .m { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; }
+.calc .res { font-family: var(--font-display); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.errs { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+.errs th, .errs td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+.errs thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; background: var(--board); }
+.errs td b { font-family: var(--font-mono); }
+.errs .t1 b { color: var(--curve); } .errs .t2 b { color: var(--ball); } .errs .pw b { color: var(--fit); }
+.tbl-wrap { overflow-x: auto; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Power and sample size</span>
+    <h1>Power and Sample Size Lab</h1>
+    <p class="lead">The red curve is the test statistic when there is no effect. The green curve is the same statistic when the effect is real and as large as your minimum detectable effect. Move the sliders to see how α, the effect size, the baseline and the sample size trade off, and how many users you need for 80% power.</p>
+  </header>
+  <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 5, <a href="https://vsokolov.org/html/_book/05-ab.html">A/B Testing</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+
+  <main class="grid">
+    <section class="board" aria-label="Sampling distributions under H0 and H1, and power as a function of sample size">
+      <div class="eqn" id="eqn"></div>
+      <canvas id="dist" role="img" aria-label="Two normal curves for the z statistic, under H0 and under H1, with the rejection region, beta and power shaded"></canvas>
+      <div class="legend">
+        <span><i class="sw curve"></i>z under H0 (no effect)</span>
+        <span><i class="sw h0"></i>α: reject a true H0 (Type I)</span>
+        <span><i class="sw ci"></i>z under H1 (effect = MDE)</span>
+        <span><i class="sw be"></i>β: miss a real effect (Type II)</span>
+        <span><i class="sw pw"></i>Power 1 − β</span>
+      </div>
+      <div class="sub">Power as the sample grows</div>
+      <canvas id="pcurve" role="img" aria-label="Power plotted against sample size on a log scale, with the current sample size marked"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw pc"></i>Power at each n (theory)</span>
+        <span><i class="sw dot"></i>Current n</span>
+        <span><i class="sw dash" style="width:16px;border-top:2px dashed var(--muted);height:0;background:none"></i>Target power and required n</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Worked cases</span>
+        <div class="btns">
+          <button id="pKaraca" aria-pressed="true">Karaca AIDA</button>
+          <button id="pCoke" aria-pressed="false">Coke vs Pepsi</button>
+        </div>
+        <p class="hint" id="caseNote"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Metric and test</span>
+        <div class="seg" role="group" aria-label="Kind of test">
+          <button id="mTwo" aria-pressed="true">Two<br>proportions</button>
+          <button id="mOne" aria-pressed="false">One proportion<br>vs p₀</button>
+          <button id="mMean" aria-pressed="false">Two<br>means</button>
+        </div>
+        <div class="seg" style="--n:2" role="group" aria-label="Sidedness">
+          <button id="sTwo" aria-pressed="true">Two-sided</button>
+          <button id="sOne" aria-pressed="false">One-sided</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Inputs</span>
+        <div class="slider">
+          <div class="top"><label for="alpha">Significance level, α</label><output id="alphaOut">0.05</output></div>
+          <input type="range" id="alpha" min="0" max="6" step="1" value="4">
+        </div>
+        <div class="slider" id="baseBox">
+          <div class="top"><label for="base" id="baseLab">Baseline rate, p₀</label><output id="baseOut">3.0%</output></div>
+          <input type="range" id="base" min="0.005" max="0.95" step="0.005" value="0.03">
+        </div>
+        <div class="slider" id="sigBox" hidden>
+          <div class="top"><label for="sig">Standard deviation, σ</label><output id="sigOut">10</output></div>
+          <input type="range" id="sig" min="1" max="100" step="1" value="10">
+        </div>
+        <div class="slider">
+          <div class="top"><label for="mde" id="mdeLab">True effect (MDE), δ</label><output id="mdeOut">0.50 pp</output></div>
+          <input type="range" id="mde" min="0.05" max="30" step="0.05" value="0.5">
+        </div>
+        <div class="slider">
+          <div class="top"><label for="n" id="nLab">Sample size per group, n</label><output id="nOut">19,744</output></div>
+          <input type="range" id="n" min="1" max="6" step="0.005" value="4.3">
+        </div>
+      </div>
+
+      <div class="group">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+          <span class="label">Power, 1 − β</span><span class="big" id="powBig">–</span>
+        </div>
+        <table class="stats">
+          <thead><tr><th></th><th>Value</th></tr></thead>
+          <tbody id="tbl"></tbody>
+        </table>
+      </div>
+
+      <div class="group">
+        <span class="label">Step 5 · Sample-size calculator</span>
+        <div class="slider">
+          <div class="top"><label for="target">Target power, 1 − β</label><output id="targetOut">0.80</output></div>
+          <input type="range" id="target" min="0.5" max="0.99" step="0.01" value="0.8">
+        </div>
+        <div class="calc">
+          <div class="m" id="cF"></div>
+          <div class="m" id="cN"></div>
+          <div class="m" id="cD"></div>
+          <div class="res" id="cRes">–</div>
+          <p class="hint" id="cNote"></p>
+        </div>
+        <button id="useN" class="primary">Set n to the required size</button>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Hypothesis testing building blocks</span>
+      <h2>Power is decided before the data arrive</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The test rejects when z passes the critical value. α is the red area beyond that line under H0. Power is the green area beyond the same line under H1. Everything that pushes the two curves apart, a bigger effect, a bigger sample or a smaller spread, raises power.</p>
+      <div class="demo">
+        <button class="primary" id="dKaraca">Karaca: 3% baseline, 0.5 pp MDE</button>
+        <button id="dCoke">Coke vs Pepsi: 6 points from 100 drinkers</button>
+        <button id="dCoke430">Coke vs Pepsi with 430 drinkers</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Set up H0 and H1</h3><p>H0 is "no effect". The red curve is the distribution of z if H0 is true: N(0, 1).</p></div></li>
+      <li><div><h3>Choose α</h3><p>α is the false-positive rate you accept: 0.05 in business, 0.01 in clinical trials, 5σ in physics. It fixes the critical value: <span class="v" id="l2"></span></p></div></li>
+      <li><div><h3>The test statistic</h3><p>z = (estimate − null value) / SE. If the true effect is δ, z is centred at λ = δ / SE instead of 0. <span class="v" id="l3"></span></p></div></li>
+      <li><div><h3>Decision rule</h3><p>Two-sided: reject if |z| &gt; z<sub>α/2</sub>. One-sided: reject if z &gt; z<sub>α</sub>. Choose the side before looking at the data.</p></div></li>
+      <li><div><h3>Power</h3><p>Power is the chance of rejecting H0 when the effect is real. <span class="v" id="l5"></span></p></div></li>
+      <li><div><h3>p-value and CI</h3><p>These come after the data (step 7). Power tells you whether a non-significant result means "no effect" or "too small a test".</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Two proportions, equal arms</div>
+        <div class="m">n ≈ 2(z<sub>α/2</sub> + z<sub>β</sub>)² · p̄(1 − p̄) / MDE²</div>
+        <div class="m">2(1.96 + 0.84)² · 0.0325 · 0.9675 / 0.005² ≈ 19,700</div>
+      </div>
+      <div class="eq">
+        <div class="cap">One proportion, one-sided</div>
+        <div class="m">n ≈ (z<sub>α</sub> + z<sub>β</sub>)² · p₀(1 − p₀) / δ²</div>
+        <div class="m">(1.645 + 0.84)² · 0.25 / 0.06² ≈ 430</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Two errors, live values</div>
+        <div class="tbl-wrap">
+          <table class="errs">
+            <thead><tr><th></th><th>H0 true</th><th>H0 false</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Do not reject</th><td>Correct, 1 − α = <b id="e1"></b></td><td class="t2">Type II, β = <b id="e2"></b></td></tr>
+              <tr><th scope="row">Reject</th><td class="t1">Type I, α = <b id="e3"></b></td><td class="pw">Power, 1 − β = <b id="e4"></b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> Most A/B tests in industry fail because the sample is too small to detect anything. Pepsi's 56 out of 100 had only about a one-in-three chance of reaching significance even if the 6-point lead were real. Required n grows with the square of 1/MDE: halving the effect you want to detect quadruples the sample.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Karaca: how big a sample?</h2>
+      <p>Baseline 3%, MDE 0.5 pp (a 17% relative lift), α = 0.05 two-sided, 80% power. About 19,700 sessions per arm, 40,000 in total: a few days of Karaca's online traffic.</p>
+      <div class="formula">p̄ = 0.03 + 0.005/2 = 0.0325</div>
+    </div>
+    <div class="note">
+      <h2>Coke vs Pepsi: why 100 is not enough</h2>
+      <p>z = 1.2 fell short of 1.645. To detect a 6-point lead with 80% power you need about 430 tasters. Pepsi's real campaign used thousands per market.</p>
+      <div class="formula">SE₀ = √(0.5 · 0.5 / 100) = 0.05</div>
+    </div>
+    <div class="note">
+      <h2>Where the quantiles come from</h2>
+      <p>z<sub>α/2</sub> puts α/2 in each tail of N(0, 1). z<sub>β</sub> is the point with β below it. Textbooks often round z<sub>0.80</sub> = 0.8416 to 0.84; the lab uses exact quantiles, so its n can differ by a few units.</p>
+      <div class="formula">1.96 = z<sub>0.025</sub>, 1.645 = z<sub>0.05</sub>, 0.84 = z<sub>0.20</sub></div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load Coke vs Pepsi. Power is about 33%. Ask: if Pepsi really is preferred by 56%, how often does a 100-person test show it? Then press "Set n to the required size" and watch the green curve move past the critical line.</li>
+      <li>Load Karaca and halve the MDE to 0.25 pp. The required n roughly quadruples to about 78,000 per arm. Double it to 1 pp and n drops to about 5,000.</li>
+      <li>Keep Karaca and move α from 0.05 to 0.01. The red area shrinks, the critical line moves right, and power falls. Ask what it costs in sessions to get the 80% back.</li>
+      <li>Switch Karaca from two-sided to one-sided. The required n falls by about a fifth. Discuss why two-sided is still the usual recommendation.</li>
+      <li>Raise the baseline from 3% to 30% with the MDE at 0.5 pp. p̄(1 − p̄) grows, so the same absolute lift needs many more users. Then try the same 17% relative lift (5 pp).</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('dist'), ctx = cv.getContext('2d');
+  const pc = document.getElementById('pcurve'), pctx = pc.getContext('2d');
+  const tip = document.getElementById('tip');
+  const $ = id => document.getElementById(id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // ---------- normal distribution helpers ----------
+  function erfc(x) { // Numerical Recipes erfcc, fractional error < 1.2e-7
+    const z = Math.abs(x), t = 1 / (1 + 0.5 * z);
+    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? r : 2 - r;
+  }
+  const Phi = x => 0.5 * erfc(-x / Math.SQRT2);
+  const Qn = x => 0.5 * erfc(x / Math.SQRT2);
+  function qnorm(p) { // Acklam
+    const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.383577518672690e2, -3.066479806614716e1, 2.506628277459239];
+    const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1, -1.328068155288572e1];
+    const c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+    const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
+    const pl = 0.02425;
+    if (p < pl) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+    if (p > 1 - pl) return -qnorm(1 - p);
+    const q = p - 0.5, r = q * q;
+    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+  }
+  const dnorm = z => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+  function randn() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  const ALPHAS = [0.001, 0.005, 0.01, 0.02, 0.05, 0.10, 0.20];
+  const S = { mode: 'two', side: 'two', ai: 4, base: 0.03, sig: 10, mde: 0.5, n: 19744, target: 0.8, preset: 'pKaraca' };
+  const NOTES = {
+    pKaraca: 'Baseline conversion 3%, MDE 0.5 percentage points, α = 0.05 two-sided, power 0.80. n is set to the required size per arm.',
+    pCoke: 'One proportion against p₀ = 0.5, a 6-point lead, one-sided α = 0.05, with the 100 drinkers of the original test.'
+  };
+  let C = {}, L = {}, P = {}, R = null, dirty = true;
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'fit', 'board'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+
+  // ---------- theory ----------
+  function compute() {
+    const a = ALPHAS[S.ai], r = { a };
+    r.za = S.side === 'two' ? qnorm(1 - a / 2) : qnorm(1 - a);
+    r.zb = qnorm(S.target);
+    if (S.mode === 'two') {
+      r.d = S.mde / 100; r.pbar = S.base + r.d / 2; r.v = 2 * r.pbar * (1 - r.pbar);
+    } else if (S.mode === 'one') {
+      r.d = S.mde / 100; r.v = S.base * (1 - S.base);
+    } else {
+      r.d = S.mde; r.v = 2 * S.sig * S.sig;
+    }
+    r.seAt = n => Math.sqrt(r.v / n);
+    r.powAt = n => { const lam = r.d / r.seAt(n); return S.side === 'two' ? Qn(r.za - lam) + Phi(-r.za - lam) : Qn(r.za - lam); };
+    r.se = r.seAt(S.n); r.lam = r.d / r.se; r.pow = r.powAt(S.n); r.beta = 1 - r.pow;
+    r.nreq = (r.za + r.zb) ** 2 * r.v / (r.d * r.d);
+    return r;
+  }
+  const effOK = () => S.mode === 'means' || (S.base + S.mde / 100 < 1);
+
+  // ---------- text ----------
+  const N = v => Math.round(v).toLocaleString();
+  const f = (v, d = 2) => (v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
+  const fa = a => String(+a.toPrecision(3));
+  function update() {
+    if (!effOK()) { S.mde = Math.max(0.05, Math.floor((0.99 - S.base) * 2000) / 20); $('mde').value = S.mde; }
+    R = compute();
+    const two = S.side === 'two', unit = S.mode === 'means' ? '' : ' pp';
+    $('alphaOut').textContent = fa(R.a);
+    $('baseOut').textContent = (S.base * 100).toFixed(1) + '%';
+    $('sigOut').textContent = S.sig;
+    $('mdeOut').textContent = S.mde.toFixed(2) + unit;
+    $('nOut').textContent = N(S.n);
+    $('targetOut').textContent = S.target.toFixed(2);
+    $('powBig').textContent = (R.pow * 100).toFixed(1) + '%';
+    const zaLab = two ? 'z<sub>α/2</sub>' : 'z<sub>α</sub>';
+    const seTxt = S.mode === 'means' ? R.se.toFixed(3) : R.se.toFixed(5);
+    $('eqn').innerHTML = `λ = δ / SE = ${S.mode === 'means' ? S.mde.toFixed(2) : R.d.toFixed(4)} / ${seTxt} = <span class="h">${R.lam.toFixed(2)}</span>,&nbsp; ${zaLab} = <span class="s">${R.za.toFixed(3)}</span>,&nbsp; power = <span class="a">${(R.pow * 100).toFixed(1)}%</span>`;
+    const rows = [
+      ['Standard error, SE', seTxt],
+      ['Expected z under H1, λ', R.lam.toFixed(3)],
+      ['Critical value', (two ? '±' : '') + R.za.toFixed(3)],
+      ['α (Type I error)', fa(R.a)],
+      ['β (Type II error)', R.beta.toFixed(3)],
+      ['Power, 1 − β', R.pow.toFixed(3)],
+      [`Required n for ${Math.round(S.target * 100)}% power`, N(Math.ceil(R.nreq))]
+    ];
+    if (S.mode === 'two') rows.splice(1, 0, ['p̄ = p₀ + δ/2', (R.pbar * 100).toFixed(2) + '%']);
+    $('tbl').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+
+    // calculator
+    const zs = `(${R.za.toFixed(3)} + ${R.zb.toFixed(3)})²`;
+    if (S.mode === 'two') {
+      $('cF').innerHTML = `n = 2(${zaLab} + z<sub>β</sub>)² · p̄(1 − p̄) / δ²`;
+      $('cN').textContent = `= 2·${zs} · ${R.pbar.toFixed(4)}·${(1 - R.pbar).toFixed(4)} / ${R.d.toFixed(4)}²`;
+    } else if (S.mode === 'one') {
+      $('cF').innerHTML = `n = (${zaLab} + z<sub>β</sub>)² · p₀(1 − p₀) / δ²`;
+      $('cN').textContent = `= ${zs} · ${S.base.toFixed(3)}·${(1 - S.base).toFixed(3)} / ${R.d.toFixed(4)}²`;
+    } else {
+      $('cF').innerHTML = `n = 2(${zaLab} + z<sub>β</sub>)² · σ² / δ²`;
+      $('cN').textContent = `= 2·${zs} · ${S.sig}² / ${S.mde.toFixed(2)}²`;
+    }
+    $('cD').textContent = `= ${R.nreq.toLocaleString(undefined, { maximumFractionDigits: 1 })}`;
+    const per = S.mode === 'one' ? 'participants' : 'per group';
+    $('cRes').textContent = `${N(Math.ceil(R.nreq))} ${per}`;
+    $('cNote').textContent = S.mode === 'one' ? `Rounded up. Rounded z values give about 430.`
+      : S.mode === 'two' ? `Rounded up; ${N(2 * Math.ceil(R.nreq))} in total. With rounded 1.96 and 0.84 the Karaca case gives 19,722 ≈ 19,700.`
+      : `Rounded up; ${N(2 * Math.ceil(R.nreq))} in total.`;
+
+    // lesson live bits
+    $('l2').textContent = `α = ${fa(R.a)}, ${two ? 'two' : 'one'}-sided, critical value ${(two ? '±' : '') + R.za.toFixed(3)}.`;
+    $('l3').textContent = `Now λ = ${R.lam.toFixed(2)}.`;
+    $('l5').textContent = `Now ${(R.pow * 100).toFixed(1)}% at n = ${N(S.n)}; ${N(Math.ceil(R.nreq))} needed for ${Math.round(S.target * 100)}%.`;
+    $('e1').textContent = (1 - R.a).toFixed(3); $('e2').textContent = R.beta.toFixed(3);
+    $('e3').textContent = fa(R.a); $('e4').textContent = R.pow.toFixed(3);
+
+    $('nLab').textContent = S.mode === 'one' ? 'Sample size, n' : 'Sample size per group, n';
+    $('baseLab').textContent = S.mode === 'one' ? 'Null proportion, p₀' : 'Baseline rate, p₀';
+    $('mdeLab').textContent = S.mode === 'means' ? 'True effect (MDE), δ in units' : S.mode === 'one' ? 'True shift from p₀ (MDE), δ' : 'True lift (MDE), δ';
+    $('baseBox').hidden = S.mode === 'means'; $('sigBox').hidden = S.mode !== 'means';
+    for (const [id, m] of [['mTwo', 'two'], ['mOne', 'one'], ['mMean', 'means']]) $(id).setAttribute('aria-pressed', S.mode === m);
+    $('sTwo').setAttribute('aria-pressed', two); $('sOne').setAttribute('aria-pressed', !two);
+    for (const id of ['pKaraca', 'pCoke']) $(id).setAttribute('aria-pressed', S.preset === id);
+    $('caseNote').textContent = S.preset ? NOTES[S.preset] : 'Your own settings.';
+    dirty = true;
+  }
+
+  // ---------- canvases ----------
+  function resize() {
+    const w = cv.parentElement.clientWidth - 28, dpr = window.devicePixelRatio || 1;
+    const h = Math.round(Math.min(Math.max(w * 0.48, 300), 420));
+    cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    L = { W: w, H: h, ml: 12, mr: 12, mt: 34, mb: 44 };
+    const h2 = Math.round(Math.min(Math.max(w * 0.34, 220), 300));
+    pc.style.height = h2 + 'px'; pc.width = Math.round(w * dpr); pc.height = Math.round(h2 * dpr); pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    P = { W: w, H: h2, ml: 44, mr: 14, mt: 14, mb: 34 };
+    dirty = true;
+  }
+  const mono = '"JetBrains Mono", ui-monospace, monospace';
+
+  function fillUnder(c, X, Y, mu, a, b) {
+    c.beginPath(); c.moveTo(X(a), Y(0));
+    for (let i = 0; i <= 90; i++) { const z = a + (b - a) * i / 90; c.lineTo(X(z), Y(dnorm(z - mu))); }
+    c.lineTo(X(b), Y(0)); c.closePath(); c.fill();
+  }
+  function curve(c, X, Y, mu, lo, hi) {
+    c.beginPath();
+    for (let i = 0; i <= 300; i++) { const z = lo + (hi - lo) * i / 300; i ? c.lineTo(X(z), Y(dnorm(z - mu))) : c.moveTo(X(z), Y(dnorm(z - mu))); }
+    c.stroke();
+  }
+
+  function drawDist() {
+    const { W, H, ml, mr, mt, mb } = L, c = ctx, lam = R.lam, za = R.za, two = S.side === 'two';
+    c.clearRect(0, 0, W, H);
+    const lo = -4, hi = Math.max(4.5, lam + 3.6);
+    const X = z => ml + (z - lo) / (hi - lo) * (W - ml - mr);
+    const Y = d => H - mb - d / 0.44 * (H - mb - mt);
+    // grid + ticks
+    const step = hi - lo > 24 ? 4 : hi - lo > 12 ? 2 : 1;
+    c.font = '11px ' + mono; c.textAlign = 'center'; c.textBaseline = 'top';
+    for (let z = Math.ceil(lo / step) * step; z <= hi; z += step) {
+      const x = Math.round(X(z)) + .5;
+      c.strokeStyle = C.grid; c.lineWidth = 1; c.beginPath(); c.moveTo(x, mt); c.lineTo(x, H - mb); c.stroke();
+      c.fillStyle = C.muted; c.fillText((z < 0 ? '−' : '') + Math.abs(z), x, H - mb + 6);
+    }
+    c.textAlign = 'left'; c.fillText('z = (estimate − null) / SE', ml, H - mb + 24);
+    c.strokeStyle = C.line; c.lineWidth = 1.5; c.beginPath(); c.moveTo(ml, H - mb + .5); c.lineTo(W - mr, H - mb + .5); c.stroke();
+
+    // H1 shading: beta (amber) between critical lines, power (teal) beyond
+    c.globalAlpha = 0.34; c.fillStyle = C.ball;
+    fillUnder(c, X, Y, lam, Math.max(lo, two ? -za : lo), Math.min(hi, za));
+    c.fillStyle = C.fit; c.globalAlpha = 0.38;
+    if (za < hi) fillUnder(c, X, Y, lam, za, hi);
+    if (two && -za > lo) fillUnder(c, X, Y, lam, lo, -za);
+    // H0 rejection region (red)
+    c.fillStyle = C.curve; c.globalAlpha = 0.4;
+    if (za < hi) fillUnder(c, X, Y, 0, za, hi);
+    if (two) fillUnder(c, X, Y, 0, lo, -za);
+    c.globalAlpha = 1;
+    // curves
+    c.lineWidth = 2.25; c.strokeStyle = C.curve; curve(c, X, Y, 0, lo, hi);
+    c.strokeStyle = C.fit; curve(c, X, Y, lam, lo, hi);
+    // critical lines
+    c.strokeStyle = C.ink; c.globalAlpha = 0.7; c.setLineDash([4, 4]); c.lineWidth = 1.25;
+    for (const z of two ? [-za, za] : [za]) if (z > lo && z < hi) { c.beginPath(); c.moveTo(X(z), mt - 4); c.lineTo(X(z), H - mb); c.stroke(); }
+    c.setLineDash([]); c.globalAlpha = 1;
+    c.fillStyle = C.ink; c.font = '600 11.5px ' + mono; c.textBaseline = 'bottom'; c.textAlign = 'left';
+    c.fillText(`reject H0 →`, Math.min(X(za) + 5, W - mr - 84), mt - 6);
+    if (two && X(-za) > ml + 84) { c.textAlign = 'right'; c.fillText('← reject H0', X(-za) - 5, mt - 6); }
+    // curve labels
+    c.font = '600 12px ' + mono; c.textBaseline = 'bottom';
+    c.fillStyle = C.curve; c.textAlign = 'center';
+    const sep = Math.abs(X(lam) - X(0)) > 60;
+    c.fillText('H0', X(0), Y(dnorm(0)) - 4);
+    c.fillStyle = C.fit; c.fillText('H1', X(lam) + (sep ? 0 : 26), Y(dnorm(0)) - 4);
+    // area labels, stacked at the top left (always clear of both curves)
+    c.font = '600 ' + (W < 520 ? 11 : 12.5) + 'px ' + mono; c.textBaseline = 'top'; c.textAlign = 'left';
+    const lines = [[C.curve, two ? `α/2 = ${fa(R.a / 2)}` : `α = ${fa(R.a)}`], [C.ball, `β = ${R.beta.toFixed(3)}`], [C.fit, `power = ${R.pow.toFixed(3)}`]];
+    lines.forEach(([col, t], i) => { c.fillStyle = col; halo(c, t, ml + 2, mt + 2 + i * 17); });
+  }
+
+  function halo(c, t, x, y) { c.save(); c.strokeStyle = C.board; c.lineWidth = 4; c.lineJoin = 'round'; c.strokeText(t, x, y); c.restore(); c.fillText(t, x, y); }
+  function nicePowTicks(lo, hi) { const t = []; for (let e = Math.ceil(lo); e <= Math.floor(hi); e++) t.push(e); return t; }
+  function drawPower() {
+    const { W, H, ml, mr, mt, mb } = P, c = pctx;
+    c.clearRect(0, 0, W, H);
+    const l0 = 1, l1 = 6;
+    const X = n => ml + (Math.log10(n) - l0) / (l1 - l0) * (W - ml - mr);
+    const Y = p => mt + (1 - p) * (H - mt - mb);
+    c.font = '11px ' + mono; c.lineWidth = 1;
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (const p of [0, 0.2, 0.4, 0.6, 0.8, 1]) {
+      const y = Math.round(Y(p)) + .5; c.strokeStyle = C.grid; c.beginPath(); c.moveTo(ml, y); c.lineTo(W - mr, y); c.stroke();
+      c.fillStyle = C.muted; c.fillText((p * 100).toFixed(0) + '%', ml - 6, y);
+    }
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    const labs = { 1: '10', 2: '100', 3: '1k', 4: '10k', 5: '100k', 6: '1M' };
+    for (const e of nicePowTicks(l0, l1)) {
+      const x = Math.round(X(10 ** e)) + .5; c.strokeStyle = C.grid; c.beginPath(); c.moveTo(x, mt); c.lineTo(x, H - mb); c.stroke();
+      c.fillStyle = C.muted; c.fillText(labs[e], x, H - mb + 6);
+    }
+    c.textAlign = 'right'; c.fillText(S.mode === 'one' ? 'n (log scale)' : 'n per group (log scale)', W - mr, H - mb + 20);
+    c.strokeStyle = C.line; c.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
+    // alpha floor
+    c.strokeStyle = C.curve; c.setLineDash([2, 3]); c.globalAlpha = 0.8;
+    const af = S.side === 'two' ? R.a : R.a; c.beginPath(); c.moveTo(ml, Y(af)); c.lineTo(W - mr, Y(af)); c.stroke();
+    c.globalAlpha = 1; c.setLineDash([]);
+    // target + required
+    c.strokeStyle = C.muted; c.setLineDash([5, 4]); c.lineWidth = 1.25;
+    c.beginPath(); c.moveTo(ml, Y(S.target)); c.lineTo(W - mr, Y(S.target)); c.stroke();
+    const nr = R.nreq;
+    if (nr >= 10 && nr <= 1e6) { c.beginPath(); c.moveTo(X(nr), Y(S.target)); c.lineTo(X(nr), H - mb); c.stroke(); }
+    c.setLineDash([]);
+    // curve
+    c.strokeStyle = C.accent; c.lineWidth = 2.5; c.beginPath();
+    for (let i = 0; i <= 300; i++) { const n = 10 ** (l0 + (l1 - l0) * i / 300), y = Y(R.powAt(n)); i ? c.lineTo(X(n), y) : c.moveTo(X(n), y); }
+    c.stroke();
+    // labels
+    c.font = '600 11.5px ' + mono; c.textBaseline = 'bottom';
+    c.fillStyle = C.curve; c.textAlign = 'right'; halo(c, `α = ${fa(R.a)}`, W - mr - 6, Y(af) - 3);
+    if (nr >= 10 && nr <= 1e6 && Math.abs(Math.log10(nr / S.n)) > 0.35) {
+      c.fillStyle = C.muted; const lab = `need ${N(Math.ceil(nr))}`, tw = c.measureText(lab).width;
+      const right = X(nr) + 6 + tw < W - mr; c.textAlign = right ? 'left' : 'right';
+      halo(c, lab, right ? X(nr) + 6 : X(nr) - 6, Y(S.target) - 4);
+    }
+    // current point
+    const cx = X(S.n), cy = Y(R.pow);
+    c.fillStyle = C.ball; c.beginPath(); c.arc(cx, cy, 6, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = C.board; c.lineWidth = 2; c.stroke();
+    c.fillStyle = C.ink; c.font = '600 12px ' + mono; c.textBaseline = 'middle';
+    const cl = `n = ${N(S.n)}: ${(R.pow * 100).toFixed(0)}%`, cw = c.measureText(cl).width;
+    const rgt = cx + 12 + cw < W - mr; c.textAlign = rgt ? 'left' : 'right';
+    halo(c, cl, rgt ? cx + 12 : cx - 12, Math.min(Math.max(cy + (R.pow > 0.85 ? 16 : -14), mt + 10), H - mb - 10));
+  }
+
+  function frame() { if (dirty) { drawDist(); drawPower(); dirty = false; } requestAnimationFrame(frame); }
+
+  // ---------- controls ----------
+  const nToSlider = n => Math.log10(n);
+  function setN(n) { S.n = Math.max(10, Math.min(1e6, Math.round(n))); $('n').value = nToSlider(S.n); }
+  function syncSliders() {
+    $('alpha').value = S.ai; $('base').value = S.base; $('sig').value = S.sig; $('mde').value = S.mde; $('target').value = S.target; $('n').value = nToSlider(S.n);
+  }
+  function preset(id) {
+    if (id === 'pKaraca') Object.assign(S, { mode: 'two', side: 'two', ai: 4, base: 0.03, mde: 0.5, target: 0.8 });
+    else Object.assign(S, { mode: 'one', side: 'one', ai: 4, base: 0.5, mde: 6, target: 0.8 });
+    S.preset = id;
+    R = compute();
+    S.n = id === 'pKaraca' ? Math.ceil(R.nreq) : 100;
+    syncSliders(); update();
+  }
+  const touch = () => { S.preset = null; };
+  $('pKaraca').onclick = () => preset('pKaraca');
+  $('pCoke').onclick = () => preset('pCoke');
+  const go = id => document.querySelector('.board').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  $('dKaraca').onclick = () => { preset('pKaraca'); go(); };
+  $('dCoke').onclick = () => { preset('pCoke'); go(); };
+  $('dCoke430').onclick = () => { preset('pCoke'); setN(430); S.preset = null; update(); $('caseNote').textContent = '430 drinkers, the sample size a 6-point lead needs.'; go(); };
+  $('alpha').oninput = e => { S.ai = +e.target.value; touch(); update(); };
+  $('base').oninput = e => { S.base = +e.target.value; touch(); update(); };
+  $('sig').oninput = e => { S.sig = +e.target.value; touch(); update(); };
+  $('mde').oninput = e => { S.mde = +e.target.value; touch(); update(); };
+  $('n').oninput = e => { const v = +e.target.value; S.n = Math.round(10 ** v); touch(); update(); };
+  $('target').oninput = e => { S.target = +e.target.value; update(); };
+  $('useN').onclick = () => { setN(Math.ceil(R.nreq)); update(); };
+  for (const [id, m] of [['mTwo', 'two'], ['mOne', 'one'], ['mMean', 'means']]) $(id).onclick = () => {
+    if (S.mode === m) return; S.mode = m; touch();
+    if (m === 'means') { S.mde = 2; S.sig = 10; }
+    if (m === 'one' && S.base < 0.1) { S.base = 0.5; S.mde = 6; }
+    syncSliders(); update();
+  };
+  $('sTwo').onclick = () => { S.side = 'two'; touch(); update(); };
+  $('sOne').onclick = () => { S.side = 'one'; touch(); update(); };
+
+  // hover on the power curve
+  function showTip(ev) {
+    const rc = pc.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    if (mx < P.ml || mx > P.W - P.mr) { tip.hidden = true; return; }
+    const n = 10 ** (1 + (mx - P.ml) / (P.W - P.ml - P.mr) * 5);
+    tip.innerHTML = `n = ${N(n)}<br>power = ${(R.powAt(n) * 100).toFixed(1)}%`;
+    tip.hidden = false;
+    tip.style.left = Math.max(14, Math.min(mx + 30, pc.clientWidth - tip.offsetWidth + 14)) + 'px';
+    tip.style.top = Math.max(14, my + pc.offsetTop - tip.offsetHeight - 8) + 'px';
+  }
+  pc.addEventListener('pointermove', showTip);
+  pc.addEventListener('pointerdown', showTip);
+  pc.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => resize()).observe(cv.parentElement);
+  resize(); preset('pKaraca');
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

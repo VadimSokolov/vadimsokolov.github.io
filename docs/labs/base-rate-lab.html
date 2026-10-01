@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Base-Rate Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 1,000-person icon array is the hero, with Bayes' rule and the confusion matrix under it; test settings, posteriors and the "test again" stepper in the right rail; the two-headed coin panel, lesson and class notes below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.board canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.dot { width: 10px; border-radius: 50%; }
+.sw.line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px dashed var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+.tip b { font-family: var(--font-display); }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.7vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button[aria-pressed="true"]:not(.primary) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; box-shadow: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; max-width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.th { color: var(--curve); }
+.stats td.ob { color: var(--accent); }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; max-width: 100%; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula + .formula { margin-top: 6px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.sw.tp { background: var(--curve); border-radius: 50%; width: 10px; }
+.sw.fn { background: var(--coinB); border-radius: 50%; width: 10px; }
+.sw.fp { background: var(--ball); border-radius: 50%; width: 10px; }
+.sw.tn { background: var(--line); border-radius: 50%; width: 10px; }
+.sw.pt { background: var(--ball); border-radius: 50%; width: 10px; }
+.readouts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+@media (max-width: 700px) { .readouts { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.box .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.box .m { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; line-height: 1.7; }
+table.cm { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.cm th, .cm td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.cm th { font-weight: 400; color: var(--muted); font-size: 11px; }
+.cm th:first-child { text-align: left; }
+.cm tr:last-child td, .cm tr:last-child th { border-bottom: 0; }
+.cm .tp { color: var(--curve); font-weight: 600; } .cm .fp { color: var(--ball); font-weight: 600; }
+.cm .fn { color: var(--coinB); font-weight: 600; } .cm .tn { color: var(--muted); }
+.post { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.post > div { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.post .k { font-size: 12.5px; color: var(--muted); }
+.post .big { color: var(--curve); font-size: 28px; }
+.post .big.neg { color: var(--coinB); }
+.panel .stats td + td { padding-left: 10px; white-space: nowrap; }
+.chain { font-family: var(--font-mono); font-size: 13.5px; line-height: 1.7; font-variant-numeric: tabular-nums; word-break: break-word; }
+.chain .p { color: var(--curve); font-weight: 600; } .chain .n { color: var(--coinB); font-weight: 600; } .chain .s { color: var(--muted); }
+.coinGrid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .coinGrid { grid-template-columns: minmax(0, 1fr); } }
+.coinBoard { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; }
+.coinBoard canvas { display: block; width: 100%; }
+.flips { font-family: var(--font-mono); font-size: 14px; letter-spacing: .1em; color: var(--ball); min-height: 1.5em; word-break: break-all; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Bayes' rule and base rates</span>
+    <h1>Base-Rate Lab</h1>
+    <p class="lead">One thousand people take a test. Red dots are sick and test positive, amber dots are healthy but test positive. Move the prevalence, sensitivity and specificity sliders and watch how many of the positives are real.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 2, <a href="https://vsokolov.org/html/_book/02-bayes.html">Bayes' Rule</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Icon array of 1,000 people with Bayes' rule and confusion matrix">
+      <div class="eqn" id="eqn"></div>
+      <canvas id="icons" role="img" aria-label="1,000 dots colored by disease status and test result"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw tp"></i>True positive (<span id="lgTP">0</span>)</span>
+        <span><i class="sw fp"></i>False positive (<span id="lgFP">0</span>)</span>
+        <span><i class="sw fn"></i>False negative (<span id="lgFN">0</span>)</span>
+        <span><i class="sw tn"></i>True negative (<span id="lgTN">0</span>)</span>
+      </div>
+      <div class="readouts">
+        <div class="box">
+          <div class="cap">Bayes' rule with the current numbers</div>
+          <div class="m" id="bayes"></div>
+        </div>
+        <div class="box">
+          <div class="cap" id="cmCap">Confusion matrix</div>
+          <div class="scroll"><table class="cm" id="cm"></table></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Worked cases</span>
+        <div class="btns">
+          <button id="pMammo" aria-pressed="true">Mammogram</button>
+          <button id="pWatch" aria-pressed="false">Apple Watch ECG</button>
+          <button id="pDisease" aria-pressed="false">Disease test</button>
+          <button id="pMarket" aria-pressed="false">Test marketing</button>
+        </div>
+        <p class="hint" id="caseNote"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Test settings</span>
+        <div class="slider"><div class="top"><label for="prev">Prevalence, P(<span class="cn">D</span>)</label><output id="prevOut">1.0%</output></div>
+          <input type="range" id="prev" min="0" max="1" step="0.001" value="0.333"></div>
+        <div class="slider"><div class="top"><label for="sens">Sensitivity, P(+ | <span class="cn">D</span>)</label><output id="sensOut">80%</output></div>
+          <input type="range" id="sens" min="0.5" max="1" step="0.01" value="0.8"></div>
+        <div class="slider"><div class="top"><label for="spec">Specificity, P(− | no <span class="cn">D</span>)</label><output id="specOut">90.0%</output></div>
+          <input type="range" id="spec" min="0.5" max="0.999" step="0.001" value="0.9"></div>
+        <p class="hint">The prevalence slider uses a log scale so small base rates are easy to set.</p>
+        <div class="checks"><label><input type="checkbox" id="onlyPos"> Show only people who test positive</label></div>
+      </div>
+
+      <div class="group">
+        <span class="label">Posterior</span>
+        <div class="post">
+          <div><div class="k">P(<span class="cn">D</span> | +)</div><div class="big" id="ppv">–</div></div>
+          <div><div class="k">P(<span class="cn">D</span> | −)</div><div class="big neg" id="npv">–</div></div>
+        </div>
+        <table class="stats">
+          <thead><tr><th></th><th>Dots</th><th>Exact</th></tr></thead>
+          <tbody>
+            <tr><td>P(+)</td><td class="ob" id="dPos">–</td><td class="th" id="tPos">–</td></tr>
+            <tr><td>P(<span class="cn">D</span> | +)</td><td class="ob" id="dPPV">–</td><td class="th" id="tPPV">–</td></tr>
+            <tr><td>P(<span class="cn">D</span> | −)</td><td class="ob" id="dNPV">–</td><td class="th" id="tNPV">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">Dots are rounded to whole people out of 1,000. The exact column uses Bayes' rule.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Test again</span>
+        <p class="hint">Each result turns the posterior into the next prior. Tests are assumed independent given the true status.</p>
+        <div class="chain" id="chain"></div>
+        <div class="btns">
+          <button id="againPos" class="primary">Positive again</button>
+          <button id="againNeg">Negative</button>
+          <button id="chainReset" class="wide">Back to the base rate</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card" aria-labelledby="coinH">
+    <span class="eyebrow">Strong prior vs repeated evidence</span>
+    <h2 id="coinH">The two-headed coin</h2>
+    <div class="coinGrid">
+      <div class="coinBoard">
+        <canvas id="coin" role="img" aria-label="Posterior probability of the two-headed coin against the number of heads in a row"></canvas>
+        <div class="legend" style="padding-top:6px">
+          <span><i class="sw curve" style="border-top-style:solid"></i>P(two-headed | k heads in a row)</span>
+          <span><i class="sw pt"></i>Your coin after k flips</span>
+        </div>
+      </div>
+      <div class="group">
+        <div class="slider"><div class="top"><label for="jar">Fair coins in the jar</label><output id="jarOut">1,024</output></div>
+          <input type="range" id="jar" min="0" max="20" step="1" value="10"></div>
+        <p class="hint">The jar also holds one two-headed coin. You draw one coin at random and flip it. Every flip so far came up heads.</p>
+        <div class="btns">
+          <button id="flip" class="primary">Flip: heads again</button>
+          <button id="flip10">Flip 10 heads</button>
+          <button id="flipReset" class="wide">Put the coin back</button>
+        </div>
+        <div class="flips" id="flips" aria-live="polite"></div>
+        <table class="stats">
+          <tbody>
+            <tr><td>Heads in a row, k</td><td id="cK">0</td></tr>
+            <tr><td>Prior odds, two-headed : fair</td><td id="cPrior">–</td></tr>
+            <tr><td>Likelihood ratio, 2<sup>k</sup> : 1</td><td id="cLR">–</td></tr>
+            <tr><td>Posterior odds</td><td id="cPost">–</td></tr>
+            <tr><td>P(two-headed | k heads)</td><td class="th" id="cP">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="hint" style="font-size:14px;max-width:90ch">Each head is a "positive test" with sensitivity 1 (a two-headed coin always lands heads) and a false-positive rate of 1/2 (a fair coin lands heads half the time). The posterior reaches 50/50 when the evidence 2<sup>k</sup> matches the prior odds against, 1,024 : 1 at k = 10.</p>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Bayes' rule with natural frequencies</span>
+      <h2>Most positives come from the healthy majority</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">A test result is evidence, not a verdict. The posterior depends on three numbers, and the base rate is the one people forget. When a condition is rare, even a small false-positive rate applied to the large healthy group produces more false alarms than the test finds real cases.</p>
+      <div class="demo">
+        <button class="primary" id="demoMammo">Alice's mammogram: 1% → 7.5%</button>
+        <button id="demoWatch">Apple Watch: "98% accurate" → 67%</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Start with 1,000 people</h3><p>With prevalence 1%, 10 women like Alice have cancer and 990 do not. This split is the prior, before anyone is tested.</p></div></li>
+      <li><div><h3>Apply the test to each group</h3><p>Sensitivity 80% finds 8 of the 10 cancers. A false-positive rate of 10% flags 99 of the 990 healthy women. That gives 107 positive mammograms.</p></div></li>
+      <li><div><h3>Condition on the positive result</h3><p>Keep only the 107 positives. Of these, 8 have cancer, so P(cancer | positive) = 8 / 107 ≈ 7.5%. A positive mammogram still leaves Alice about 92% likely to be healthy.</p></div></li>
+      <li><div><h3>Test again</h3><p>A second positive starts from 7.5% instead of 1% and moves the posterior to 39%. A third moves it to 84%. Repeated evidence can overcome a low prior, as long as the tests make independent errors.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">Bayes' rule for a positive test</div><div class="m">P(D | +) = P(+ | D)·P(D) / P(+)</div><div class="m">P(+) = P(+ | D)·P(D) + P(+ | no D)·P(no D)</div></div>
+      <div class="eq"><div class="cap">Confusion-matrix rates</div><div class="m">sensitivity = P(+ | D) = 1 − β</div><div class="m">specificity = P(− | no D) = 1 − α</div></div>
+      <div class="eq"><div class="cap">Mammogram</div><div class="m">0.80 × 0.01 / (0.80 × 0.01 + 0.10 × 0.99)</div><div class="m">= 0.008 / 0.107 ≈ 0.075</div></div>
+      <div class="eq"><div class="cap">Test marketing</div><div class="m">0.70 × 0.08 / (0.70 × 0.08 + 0.15 × 0.92)</div><div class="m">= 0.056 / 0.194 = 0.288</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> "98% accurate" describes P(test | truth). The decision needs P(truth | test). Bayes' rule converts one into the other, and the conversion runs through the base rate. Without the prior you cannot interpret the test.</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load the mammogram case and ask students to guess P(cancer | positive) before you show the panel. Most guesses land near 80%. Then count the red and amber dots.</li>
+      <li>Hold sensitivity and specificity fixed and drag prevalence from 1% to 30%. The amber cloud stays almost the same size while the red group grows, and the posterior climbs past 75%.</li>
+      <li>Load the Apple Watch case. Raise specificity from 99% to 99.9% and watch the posterior jump from 67% to about 95%. With a rare condition, specificity matters more than sensitivity.</li>
+      <li>Load the mammogram case and press "Positive again" twice. Ask why a second opinion from the same machine might not count as independent evidence.</li>
+      <li>In the coin panel, set the jar to 1,048,576 fair coins and ask how many heads it takes to reach 50/50. Each extra head doubles the odds, so the answer is k = 20.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('icons'), ctx = cv.getContext('2d'), tip = $('tip');
+  const cc = $('coin'), cx = cc.getContext('2d');
+  const CASES = {
+    mammo: { prev: 0.01, sens: 0.80, spec: 0.90, N: 1000, cond: 'cancer', note: 'Alice, 40. Prevalence 1%, detection rate 80%, false-positive rate 10%.' },
+    watch: { prev: 0.02, sens: 0.98, spec: 0.99, N: 100000, cond: 'AF', note: 'Apple Watch Series 4 ECG for atrial fibrillation (AF). Table shown for 100,000 wearers.' },
+    disease: { prev: 0.02, sens: 0.95, spec: 0.99, N: 100000, cond: 'D', note: 'Textbook disease test. Table shown for 100,000 people.' },
+    market: { prev: 0.08, sens: 0.70, spec: 0.85, N: 1000, cond: 'High', note: 'D = high sales, + = positive test market. Neutral and negative results are combined into "−", so P(+ | low sales) = 0.15 gives specificity 0.85.' }
+  };
+  const S = { key: 'mammo', prev: 0.01, sens: 0.8, spec: 0.9, N: 1000, cond: 'cancer', onlyPos: false, chain: [], k: 0, jarExp: 10 };
+  let C = {}, L = {}, LC = {}, dots = [], cnt = {};
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'ball', 'coinB', 'board', 'peg'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const pct = (x, d = 1) => (x * 100).toFixed(d) + '%';
+  const f3 = x => x.toFixed(3), f4 = x => x.toFixed(4);
+  const int = x => Math.round(x).toLocaleString();
+  const prevToU = p => (Math.log10(p) + 3) / 3;
+  const uToPrev = u => { const p = Math.pow(10, -3 + 3 * u); return Math.min(0.999, +p.toPrecision(2)); };
+
+  function theory() {
+    const { prev: p, sens: se, spec: sp } = S;
+    const pos = se * p + (1 - sp) * (1 - p);
+    return { pos, ppv: se * p / pos, npv: (1 - se) * p / ((1 - se) * p + sp * (1 - p)) };
+  }
+
+  function counts() {
+    const sick = Math.round(1000 * S.prev), tp = Math.round(sick * S.sens), fp = Math.round((1000 - sick) * (1 - S.spec));
+    cnt = { sick, tp, fn: sick - tp, fp, tn: 1000 - sick - fp };
+    dots = [];
+    for (const [t, n] of [['tp', cnt.tp], ['fn', cnt.fn], ['fp', cnt.fp], ['tn', cnt.tn]]) for (let i = 0; i < n; i++) dots.push(t);
+  }
+
+  function update() {
+    counts();
+    const T = theory(), cn = S.cond;
+    document.querySelectorAll('.cn').forEach(e => e.textContent = cn);
+    $('prevOut').textContent = pct(S.prev, S.prev < 0.1 ? 1 : 0);
+    $('sensOut').textContent = pct(S.sens, 0);
+    $('specOut').textContent = pct(S.spec, 1);
+    $('lgTP').textContent = cnt.tp; $('lgFP').textContent = cnt.fp; $('lgFN').textContent = cnt.fn; $('lgTN').textContent = cnt.tn;
+    $('ppv').textContent = pct(T.ppv); $('npv').textContent = pct(T.npv, T.npv < 0.01 ? 2 : 1);
+    const dpos = cnt.tp + cnt.fp, dneg = cnt.fn + cnt.tn;
+    $('dPos').textContent = `${dpos}/1,000`; $('tPos').textContent = f4(T.pos);
+    $('dPPV').textContent = dpos ? `${cnt.tp}/${dpos}` : '–'; $('tPPV').textContent = f4(T.ppv);
+    $('dNPV').textContent = dneg ? `${cnt.fn}/${dneg}` : '–'; $('tNPV').textContent = f4(T.npv);
+    const a = S.sens * S.prev, b = (1 - S.spec) * (1 - S.prev);
+    $('eqn').innerHTML = `P(${cn} | +) = <span style="color:var(--curve);font-weight:600">${cnt.tp}</span> / (<span style="color:var(--curve);font-weight:600">${cnt.tp}</span> + <span style="color:var(--ball);font-weight:600">${cnt.fp}</span>) ≈ <b>${pct(T.ppv)}</b>`;
+    $('bayes').innerHTML =
+      `P(+) = ${S.sens.toFixed(2)} × ${S.prev.toFixed(3)} + ${(1 - S.spec).toFixed(3)} × ${(1 - S.prev).toFixed(3)}<br>` +
+      `&nbsp;&nbsp;&nbsp;&nbsp; = ${a.toFixed(4)} + ${b.toFixed(4)} = ${T.pos.toFixed(4)}<br>` +
+      `P(${cn} | +) = ${a.toFixed(4)} / ${T.pos.toFixed(4)} = <b style="color:var(--curve)">${f3(T.ppv)}</b><br>` +
+      `P(${cn} | −) = ${((1 - S.sens) * S.prev).toFixed(4)} / ${(1 - T.pos).toFixed(4)} = <b style="color:var(--coinB)">${f4(T.npv)}</b>`;
+    // confusion matrix with expected counts in a population of N
+    const N = S.N, sick = N * S.prev, well = N - sick;
+    const tp = sick * S.sens, fn = sick - tp, fp = well * (1 - S.spec), tn = well - fp;
+    $('cmCap').textContent = `Confusion matrix, expected counts for ${N.toLocaleString()} people`;
+    $('cm').innerHTML = `<tr><th></th><th>${cn} (${int(sick)})</th><th>No ${cn} (${int(well)})</th><th>Total</th></tr>
+      <tr><th>Test +</th><td class="tp">${int(tp)}</td><td class="fp">${int(fp)}</td><td>${int(tp + fp)}</td></tr>
+      <tr><th>Test −</th><td class="fn">${int(fn)}</td><td class="tn">${int(tn)}</td><td>${int(fn + tn)}</td></tr>`;
+    // chain
+    if (!S.chain.length) S.chain = [{ p: S.prev, r: null }];
+    $('chain').innerHTML = S.chain.map((c, i) => (i ? ` <span class="s">→${c.r === '+' ? '<span class="p">+</span>' : '<span class="n">−</span>'}→</span> ` : '<span class="s">prior </span>') + pct(c.p)).join('');
+    dirty = true;
+  }
+
+  function setSliders() {
+    $('prev').value = prevToU(S.prev); $('sens').value = S.sens; $('spec').value = S.spec;
+  }
+  function loadCase(key) {
+    const c = CASES[key]; S.key = key;
+    Object.assign(S, { prev: c.prev, sens: c.sens, spec: c.spec, N: c.N, cond: c.cond, chain: [] });
+    for (const [id, k] of [['pMammo', 'mammo'], ['pWatch', 'watch'], ['pDisease', 'disease'], ['pMarket', 'market']]) $(id).setAttribute('aria-pressed', k === key);
+    $('caseNote').textContent = c.note;
+    setSliders(); update();
+  }
+
+  function step(sign) {
+    const T = theory(), np = sign === '+' ? T.ppv : T.npv;
+    S.prev = Math.min(0.999999, Math.max(1e-6, np));
+    S.chain.push({ p: S.prev, r: sign });
+    setSliders(); update();
+  }
+
+  // icon array
+  function resize() {
+    const w = Math.max(240, cv.parentElement.clientWidth - 24);
+    const cols = w >= 560 ? 50 : 25, rows = 1000 / cols;
+    const cell = w / cols, h = Math.ceil(cell * rows);
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    L = { W: w, H: h, cols, rows, cell };
+    dirty = true;
+  }
+  const dotXY = i => { const c = Math.floor(i / L.rows), r = i % L.rows; return { x: (c + 0.5) * L.cell, y: (r + 0.5) * L.cell }; };
+  function drawIcons() {
+    ctx.clearRect(0, 0, L.W, L.H);
+    const col = { tp: C.curve, fn: C.coinB, fp: C.ball, tn: C.line };
+    const r = L.cell * 0.36;
+    for (let i = 0; i < dots.length; i++) {
+      const t = dots[i], p = dotXY(i);
+      const neg = t === 'fn' || t === 'tn';
+      ctx.globalAlpha = S.onlyPos && neg ? 0.15 : 1;
+      ctx.fillStyle = col[t];
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  const NAMES = { tp: 'True positive', fn: 'False negative', fp: 'False positive', tn: 'True negative' };
+  function showTip(ev) {
+    const rc = cv.getBoundingClientRect(), x = ev.clientX - rc.left, y = ev.clientY - rc.top;
+    const c = Math.floor(x / L.cell), r = Math.floor(y / L.cell), i = c * L.rows + r;
+    if (c < 0 || r < 0 || r >= L.rows || i >= dots.length) { tip.hidden = true; return; }
+    const t = dots[i], sick = t === 'tp' || t === 'fn', pos = t === 'tp' || t === 'fp';
+    tip.innerHTML = `<b>Person ${i + 1}</b><br>${NAMES[t]}<br>${sick ? 'Has ' + S.cond : 'No ' + S.cond}, tests ${pos ? 'positive' : 'negative'}<br>${cnt[t]} people in this group`;
+    tip.hidden = false;
+    const left = cv.offsetLeft + x + 14, maxX = cv.offsetLeft + cv.clientWidth - tip.offsetWidth;
+    tip.style.left = Math.max(12, Math.min(left, maxX)) + 'px';
+    tip.style.top = Math.max(8, cv.offsetTop + y - tip.offsetHeight - 10) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  // two-headed coin
+  const KMAX = 24;
+  function coinResize() {
+    const w = Math.max(240, cc.parentElement.clientWidth - 20), h = Math.round(Math.min(Math.max(w * 0.48, 220), 320));
+    const d = window.devicePixelRatio || 1;
+    cc.style.height = h + 'px'; cc.width = Math.round(w * d); cc.height = Math.round(h * d);
+    cx.setTransform(d, 0, 0, d, 0, 0);
+    LC = { W: w, H: h, ml: 42, mr: 12, mt: 14, mb: 32 };
+    dirtyC = true;
+  }
+  const coinPost = k => 1 / (1 + Math.pow(2, S.jarExp - k));
+  function drawCoin() {
+    const { W, H, ml, mr, mt, mb } = LC;
+    cx.clearRect(0, 0, W, H);
+    const PX = k => ml + k / KMAX * (W - ml - mr), PY = y => mt + (1 - y) * (H - mt - mb);
+    cx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    cx.strokeStyle = C.grid; cx.lineWidth = 1; cx.fillStyle = C.muted; cx.textAlign = 'right'; cx.textBaseline = 'middle';
+    for (let y = 0; y <= 1.0001; y += 0.25) { const py = Math.round(PY(y)) + .5; cx.beginPath(); cx.moveTo(ml, py); cx.lineTo(W - mr, py); cx.stroke(); cx.fillText(y.toFixed(2), ml - 6, py); }
+    cx.textAlign = 'center'; cx.textBaseline = 'top';
+    const every = W < 420 ? 4 : 2;
+    for (let k = 0; k <= KMAX; k += every) cx.fillText(String(k), PX(k), H - mb + 7);
+    cx.textAlign = 'right'; cx.fillText('heads in a row, k', W - mr, H - mb + 19 > H - 12 ? H - 12 : H - mb + 19);
+    // 50/50 crossing
+    const kb = S.jarExp;
+    cx.strokeStyle = C.muted; cx.setLineDash([3, 4]);
+    cx.beginPath(); cx.moveTo(PX(kb), mt); cx.lineTo(PX(kb), PY(0)); cx.stroke(); cx.setLineDash([]);
+    cx.fillStyle = C.muted; cx.textAlign = kb > KMAX * 0.6 ? 'right' : 'left'; cx.textBaseline = 'top';
+    cx.fillText(`50/50 at k = ${kb}`, PX(kb) + (kb > KMAX * 0.6 ? -6 : 6), mt + 2);
+    // theory curve
+    cx.strokeStyle = C.curve; cx.lineWidth = 2.25; cx.beginPath();
+    for (let t = 0; t <= KMAX + 1e-9; t += 0.1) { const y = PY(coinPost(t)); t ? cx.lineTo(PX(t), y) : cx.moveTo(PX(t), y); }
+    cx.stroke();
+    cx.fillStyle = C.curve;
+    for (let k = 0; k <= KMAX; k++) { cx.beginPath(); cx.arc(PX(k), PY(coinPost(k)), 2.2, 0, Math.PI * 2); cx.fill(); }
+    const kk = Math.min(S.k, KMAX);
+    cx.fillStyle = C.ball; cx.beginPath(); cx.arc(PX(kk), PY(coinPost(kk)), 7, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = C.board; cx.lineWidth = 2; cx.stroke();
+    cx.strokeStyle = C.line; cx.lineWidth = 1; cx.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
+  }
+  function oddsTxt(a, b) {
+    if (a >= b) return `${(a / b).toLocaleString(undefined, { maximumFractionDigits: 2 })} : 1`;
+    return `1 : ${(b / a).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  }
+  function coinUpdate() {
+    const n = Math.pow(2, S.jarExp), k = S.k;
+    $('jarOut').textContent = n.toLocaleString();
+    $('cK').textContent = k;
+    $('cPrior').textContent = oddsTxt(1, n);
+    $('cLR').textContent = Math.pow(2, k).toLocaleString() + ' : 1';
+    $('cPost').textContent = oddsTxt(Math.pow(2, k), n);
+    const p = coinPost(k);
+    $('cP').textContent = p < 0.001 ? p.toExponential(2) : p.toFixed(4);
+    $('flips').textContent = k ? 'H'.repeat(Math.min(k, 40)) + (k > 40 ? ` … (${k})` : '') : 'No flips yet.';
+    $('flip').disabled = k >= 60;
+    dirtyC = true;
+  }
+
+  // controls
+  $('prev').oninput = e => { S.prev = uToPrev(+e.target.value); S.chain = []; update(); };
+  $('sens').oninput = e => { S.sens = +e.target.value; S.chain = []; update(); };
+  $('spec').oninput = e => { S.spec = +e.target.value; S.chain = []; update(); };
+  $('onlyPos').onchange = e => { S.onlyPos = e.target.checked; dirty = true; };
+  $('pMammo').onclick = () => loadCase('mammo');
+  $('pWatch').onclick = () => loadCase('watch');
+  $('pDisease').onclick = () => loadCase('disease');
+  $('pMarket').onclick = () => loadCase('market');
+  $('againPos').onclick = () => step('+');
+  $('againNeg').onclick = () => step('−');
+  $('chainReset').onclick = () => { if (S.chain.length) { S.prev = S.chain[0].p; S.chain = []; setSliders(); update(); } };
+  const toBoard = () => document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  $('demoMammo').onclick = () => { loadCase('mammo'); toBoard(); };
+  $('demoWatch').onclick = () => { loadCase('watch'); toBoard(); };
+  $('jar').oninput = e => { S.jarExp = +e.target.value; coinUpdate(); };
+  $('flip').onclick = () => { S.k++; coinUpdate(); };
+  $('flip10').onclick = () => { S.k = Math.min(60, S.k + 10); coinUpdate(); };
+  $('flipReset').onclick = () => { S.k = 0; coinUpdate(); };
+
+  let dirty = true, dirtyC = true;
+  function frame() {
+    if (dirty) { drawIcons(); dirty = false; }
+    if (dirtyC) { drawCoin(); dirtyC = false; }
+    requestAnimationFrame(frame);
+  }
+  readColors();
+  const recolor = () => { readColors(); dirty = dirtyC = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(resize).observe(cv.parentElement);
+  new ResizeObserver(coinResize).observe(cc.parentElement);
+  resize(); coinResize();
+  loadCase('mammo');
+  S.k = 3; coinUpdate();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

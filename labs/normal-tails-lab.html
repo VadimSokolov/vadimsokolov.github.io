@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Normal Tails Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --grid: #e3e7ec;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+#board { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 8px 4px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; }
+.sw.ball { background: var(--ball); border-radius: 50%; width: 10px; }
+.sw.a { background: var(--coinA); border-radius: 50%; width: 10px; }
+.sw.b { background: var(--coinB); border-radius: 50%; width: 10px; }
+.sw.dash { height: 0; border-top: 2px solid var(--ink); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px solid var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tip b { font-family: var(--font-display); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary[aria-pressed="true"] { background: var(--curve); border-color: var(--curve); }
+.btns .wide { grid-column: span 2; }
+
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+.slider.a output { color: var(--coinA); }
+.slider.b output { color: var(--coinB); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider.a input { accent-color: var(--coinA); }
+.slider.b input { accent-color: var(--coinB); }
+.mixbox { display: flex; flex-direction: column; gap: 10px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.path { font-family: var(--font-mono); font-size: 13px; line-height: 1.6; word-break: break-word; min-height: 1.6em; }
+.path .r { color: var(--accent); font-weight: 600; }
+.path .l { color: var(--muted); }
+.path .to { color: var(--ink); font-weight: 600; }
+.path .ca { color: var(--coinA); font-weight: 600; }
+.path .cb { color: var(--coinB); font-weight: 600; }
+
+/* CLT lesson */
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.eq table { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.eq th, .eq td { text-align: right; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.eq th:first-child, .eq td:first-child { text-align: left; }
+.eq th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.eq tr:last-child td { border-bottom: 0; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+canvas.plot { display: block; width: 100%; touch-action: pan-y; }
+.board { display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; line-height: 1.6; }
+.eqn .a { color: var(--accent); font-weight: 600; } .eqn .c { color: var(--curve); font-weight: 600; } .eqn .t { color: var(--coinA); font-weight: 600; } .eqn .p { color: var(--coinB); font-weight: 600; } .eqn .h { color: var(--ball); font-weight: 600; }
+.seg.two { grid-template-columns: repeat(2, 1fr); }
+.btns.two { grid-template-columns: 1fr 1fr; }
+.btns.one { grid-template-columns: 1fr; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.kpi .k { font-size: 12.5px; color: var(--muted); }
+.kpi .v { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi .s { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats td.obs { color: var(--accent); }
+.stats td.th { color: var(--curve); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.field { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.field label { font-weight: 700; }
+.field input[type=number] { width: 96px; font: inherit; font-family: var(--font-mono); font-size: 14px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--board); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.field input[type=number]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tablewrap { overflow-x: auto; }
+.stats td + td, .stats th + th { padding-left: 10px; }
+
+.sw.area { background: color-mix(in srgb, var(--accent) 35%, transparent); border: 1px solid var(--accent); }
+.sw.t { height: 0; border-top: 2px dashed var(--coinB); border-radius: 0; background: none; }
+.sw.ev { height: 0; border-top: 2px dashed var(--ball); border-radius: 0; background: none; }
+.cap { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--ink); margin: 2px 0 4px 2px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button { font-size: 13px; padding: 7px 9px; text-align: left; line-height: 1.25; }
+.presets button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.seg.three { grid-template-columns: repeat(3, 1fr); }
+.walk { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.walk ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; }
+.walk li { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; overflow-x: auto; }
+.walk li .n { color: var(--muted); font-family: var(--font-body); font-size: 13px; }
+.walk .a { color: var(--accent); font-weight: 600; } .walk .c { color: var(--curve); font-weight: 600; } .walk .p { color: var(--coinB); font-weight: 600; } .walk .h { color: var(--ball); font-weight: 600; }
+select { font: inherit; font-size: 14px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--board); color: var(--ink); }
+.stats td { white-space: nowrap; font-size: 13px; }
+.slider.t output { color: var(--coinB); } .slider.t input { accent-color: var(--coinB); }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Normal distribution and fat tails</span>
+    <h1>Normal Tails Lab</h1>
+    <p class="lead">Shade a tail of the normal curve and read its probability. Standardize the cutoff to z, then turn the probability into "once in how many years". Load a historic market crash and see how a fat-tailed Student-t changes the answer.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 1, <a href="https://vsokolov.org/html/_book/01-prob.html">Probability and Uncertainty</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Normal density with shaded tail and a log-scale tail comparison">
+      <div class="kpis" id="kpis"></div>
+      <p class="cap" id="capD">Density</p>
+      <canvas id="dens" class="plot" role="img" aria-label="Normal density curve with a shaded area"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw area"></i>Shaded probability</span>
+        <span><i class="sw curve"></i>Normal N(μ, σ²)</span>
+        <span><i class="sw t" id="legT"></i>Student-t, same mean and SD</span>
+        <span><i class="sw ev"></i>Cutoff</span>
+      </div>
+      <p class="cap" id="capL">Tail probability on a log scale</p>
+      <canvas id="tail" class="plot" role="img" aria-label="Probability of a move beyond k standard deviations, normal vs Student-t, log scale"></canvas>
+      <div class="walk" aria-live="polite">
+        <span class="label">Standardize, step by step</span>
+        <ol id="walk"></ol>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Worked cases</span>
+        <div class="presets" role="group" aria-label="Preset events">
+          <button id="p87" aria-pressed="true">1987 crash, −21.76% month</button>
+          <button id="pN5" aria-pressed="false">NVIDIA, lose ≥ 5% in a day</button>
+          <button id="pN24" aria-pressed="false">NVIDIA +24.7%, May 25, 2023</button>
+          <button id="pN17" aria-pressed="false">NVIDIA −17%, Jan 27, 2025</button>
+          <button id="pN95" aria-pressed="false">NVIDIA −9.5%, Aug 6, 2024</button>
+          <button id="pHiggs" aria-pressed="false">5-sigma (Higgs standard)</button>
+        </div>
+        <p class="hint" id="presetHint"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Distribution</span>
+        <div class="field"><label for="mu">Mean, μ</label><input type="number" id="mu" step="0.01" value="1.2"></div>
+        <div class="field"><label for="sd">SD, σ</label><input type="number" id="sd" step="0.01" min="0.01" value="4.3"></div>
+        <div class="field"><label for="per">One draw is</label>
+          <select id="per"><option value="12">a month</option><option value="252">a trading day</option><option value="1">a year</option><option value="0">one trial</option></select></div>
+      </div>
+
+      <div class="group">
+        <span class="label">Area to shade</span>
+        <div class="seg three" role="group" aria-label="Area">
+          <button id="aLo" aria-pressed="true">X &lt; a</button>
+          <button id="aHi" aria-pressed="false">X &gt; b</button>
+          <button id="aMid" aria-pressed="false">a &lt; X &lt; b</button>
+        </div>
+        <div class="field" id="fa"><label for="a">Cutoff a</label><input type="number" id="a" step="0.01" value="-21.76"></div>
+        <div class="field" id="fb"><label for="b">Cutoff b</label><input type="number" id="b" step="0.01" value="10"></div>
+        <p class="hint">Or drag on the density chart to move a cutoff.</p>
+        <div class="btns two">
+          <button id="rule1">μ ± 1σ</button>
+          <button id="rule2">μ ± 2σ</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Fat tails</span>
+        <div class="checks"><label><input type="checkbox" id="useT" checked> Compare with Student-t</label></div>
+        <div class="slider t" id="dfBox"><div class="top"><label for="df">Degrees of freedom, ν</label><output id="dfOut">4</output></div>
+          <input type="range" id="df" min="3" max="30" step="1" value="4"></div>
+        <p class="hint">The t is rescaled so its SD equals σ: X = μ + σ·√((ν−2)/ν)·T. Smaller ν means fatter tails; ν = 30 is close to normal.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Probability of the shaded area</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Normal</th><th>Student-t</th></tr></thead>
+          <tbody>
+            <tr><td>Probability</td><td class="th" id="pN">–</td><td id="pT" style="color:var(--coinB)">–</td></tr>
+            <tr><td>1 in …</td><td class="th" id="oN">–</td><td id="oT" style="color:var(--coinB)">–</td></tr>
+            <tr><td>Wait</td><td class="th" id="yN">–</td><td id="yT" style="color:var(--coinB)">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Extreme market events</span>
+      <h2>A 5-sigma month and a 7-sigma day</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Before October 1987, S&amp;P 500 monthly returns had μ = 1.2% and σ = 4.3%. The crash month was −21.76%, so z = (−21.76 − 1.2) / 4.3 = −5.34. Under the normal that is about 5 in 100 million, or once in 1.8 million years of months. NVIDIA's daily returns since 2023 have mean 0.38% and SD 3.3%; the +24.7% day on May 25, 2023 is z ≈ 7.4.</p>
+      <div class="demo">
+        <button class="primary" id="d87">1987 crash</button>
+        <button id="dN24">NVIDIA 7-sigma day</button>
+        <button id="d95">95% between ±1.96</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>Only intervals have probability</h3>
+        <p>For a continuous random variable, P(X = a) = 0. Probabilities are areas under the density, P(a &lt; X &lt; b) = ∫ f(x) dx from a to b. The shaded region is that integral.</p>
+      </div></li>
+      <li><div>
+        <h3>Standardize to use one table</h3>
+        <p>Z = (X − μ) / σ is N(0, 1) for any normal X. So P(X &lt; a) = Φ((a − μ)/σ), and every normal question becomes a question about z. In R this is pnorm(a, mean, sd); in Excel NORMDIST(a, mean, sd, TRUE).</p>
+      </div></li>
+      <li><div>
+        <h3>Turn a probability into a waiting time</h3>
+        <p>If one draw is a month, a tail probability p means about 12p such months per year, so the event happens once every 1/(12p) years on average. For daily returns, use 252 trading days.</p>
+      </div></li>
+      <li><div>
+        <h3>The normal understates extremes</h3>
+        <p>The log-scale chart shows why. Normal tail probabilities fall like e<sup>−z²/2</sup>, so each extra sigma divides the chance by a growing factor. A Student-t tail falls like a power of z. At 5 to 7 SDs the gap is many orders of magnitude.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Normal density and standardization</div>
+        <div class="m">f(x) = exp(−(x − μ)² / (2σ²)) / (√(2π) σ)</div>
+        <div class="m">Z = (X − μ) / σ ~ N(0, 1)</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Common quantiles, checked in this page</div>
+        <table>
+          <thead><tr><th>Upper tail</th><th>z</th><th>Use</th></tr></thead>
+          <tbody id="qtab"></tbody>
+        </table>
+      </div>
+      <div class="eq">
+        <div class="cap">Historic events under the normal</div>
+        <table>
+          <thead><tr><th>Event</th><th>z</th><th>Normal p</th></tr></thead>
+          <tbody id="etab"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> The normal is a useful approximation for typical days and months, and it is badly wrong about the extremes that matter for risk. Other examples: the COVID crash (S&amp;P 500 down 34% in 33 days, March 2020), the 2022 rate shock (60/40 portfolios lost 16%), VIX at 65 in August 2024, and NVIDIA's DeepSeek day. There are no μ and σ here for the first three, so they are not presets here. In an A/B test the same lesson reads: be careful with p-values when the metric is not normal.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load "NVIDIA, lose ≥ 5% in a day". Check z = −1.63 and P ≈ 5%. Ask how many such days a year that implies (about 13).</li>
+      <li>Load the 1987 crash. Read the normal's waiting time, then the Student-t's with ν = 4. Ask which one matches a market that has had several crashes in a century.</li>
+      <li>Load the NVIDIA 7-sigma day and move ν from 30 down to 3. Watch the purple tail line on the log chart lift by many orders of magnitude while the density barely changes shape.</li>
+      <li>Press "μ ± 2σ" and check the empirical rule: 95.4% for the normal. With the t at ν = 4 the band holds about the same (95.3%), yet the chance of a move beyond 3σ is 1.3% instead of 0.27%. Fat tails hide out past the middle.</li>
+      <li>Load the 5-sigma Higgs standard. Confirm 1 in 3.5 million, the physics discovery threshold, and compare with how often 5-sigma market moves really happen.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cvD = $('dens'), cD = cvD.getContext('2d'), cvL = $('tail'), cL = cvL.getContext('2d'), tip = $('tip');
+  let C = {}, LD = {}, LL = {};
+
+  // ---------- math: Phi via erfc with < 1.2e-7 relative error (good deep in the tails); t via the incomplete beta ----------
+  function erfc(x) {
+    const z = Math.abs(x), t = 1 / (1 + 0.5 * z);
+    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? r : 2 - r;
+  }
+  const Phi = z => 0.5 * erfc(-z / Math.SQRT2);       // lower tail
+  const PhiU = z => 0.5 * erfc(z / Math.SQRT2);       // upper tail, no cancellation
+  function lgamma(x) {
+    const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgamma(1 - x);
+    x -= 1; let a = c[0]; const t = x + 7.5; for (let i = 1; i < 9; i++) a += c[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  function betacf(a, b, x) {
+    const FP = 1e-300; const qab = a + b, qap = a + 1, qam = a - 1; let c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < FP) d = FP; d = 1 / d; let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m; let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FP) d = FP; c = 1 + aa / c; if (Math.abs(c) < FP) c = FP; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FP) d = FP; c = 1 + aa / c; if (Math.abs(c) < FP) c = FP; d = 1 / d;
+      const del = d * c; h *= del; if (Math.abs(del - 1) < 1e-15) break;
+    }
+    return h;
+  }
+  function ibeta(a, b, x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+    return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+  }
+  const tU = (t, nu) => { const p = 0.5 * ibeta(nu / 2, 0.5, nu / (nu + t * t)); return t >= 0 ? p : 1 - p; };  // P(T > t)
+  const tL = (t, nu) => tU(-t, nu);
+  const tDens = (t, nu) => Math.exp(lgamma((nu + 1) / 2) - lgamma(nu / 2) - 0.5 * Math.log(nu * Math.PI) - (nu + 1) / 2 * Math.log1p(t * t / nu));
+  // in z units (X standardized by mu and sigma); the t is scaled to unit SD
+  const sc = nu => Math.sqrt((nu - 2) / nu);
+  const tLz = (z, nu) => tL(z / sc(nu), nu), tUz = (z, nu) => tU(z / sc(nu), nu);
+  const tDz = (z, nu) => tDens(z / sc(nu), nu) / sc(nu);
+  const nDz = z => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+
+  const PRE = {
+    p87: { mu: 1.2, sd: 4.3, per: 12, area: 'lo', a: -21.76, b: 10, hint: 'pre-October 1987 S&P 500 monthly returns, μ = 1.2%, σ = 4.3%. The crash month: −21.76%.' },
+    pN5: { mu: 0.38, sd: 3.3, per: 252, area: 'lo', a: -5, b: 5, hint: 'NVIDIA daily returns since 2023, mean 0.0038 and sd 0.033. Losing at least 5% in a day.' },
+    pN24: { mu: 0.38, sd: 3.3, per: 252, area: 'hi', a: -5, b: 24.7, hint: 'the May 25, 2023 jump of +24.7%, z ≈ +7.4. This is "essentially impossible" under the normal.' },
+    pN17: { mu: 0.38, sd: 3.3, per: 252, area: 'lo', a: -17, b: 5, hint: 'Jan 27, 2025, −17% on the DeepSeek release. Same μ and σ as the NVIDIA daily-return preset.' },
+    pN95: { mu: 0.38, sd: 3.3, per: 252, area: 'lo', a: -9.5, b: 5, hint: 'Aug 6, 2024, −9.5% on AI-bubble fears. Same μ and σ as the NVIDIA daily-return preset.' },
+    pHiggs: { mu: 0, sd: 1, per: 0, area: 'hi', a: -5, b: 5, hint: 'Higgs boson: a 5-sigma result corresponds to p ≈ 1 in 3.5 million (one-sided).' }
+  };
+  const S = { key: 'p87', ...PRE.p87, useT: true, nu: 4 };
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'board', 'coinB']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+
+  // ---------- formatting ----------
+  const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  function sci(x, d = 2) {
+    if (!(x > 0)) return '0';
+    let e = Math.floor(Math.log10(x)), m = x / Math.pow(10, e);
+    if (+m.toFixed(d) >= 10) { m /= 10; e += 1; }
+    return m.toFixed(d) + ' × 10' + String(e).split('').map(c => SUP[c]).join('');
+  }
+  const prob = x => x >= 0.9995 ? (x * 100).toFixed(2) + '%' : x >= 0.001 ? (x * 100).toFixed(x < 0.1 ? 2 : 1) + '%' : sci(x);
+  function big(v) {
+    if (!isFinite(v)) return '∞';
+    if (v < 10) return v.toFixed(1);
+    if (v < 1e6) return Math.round(v).toLocaleString();
+    if (v < 1e9) return (v / 1e6).toFixed(v < 1e7 ? 2 : 1) + ' million';
+    if (v < 1e12) return (v / 1e9).toFixed(v < 1e10 ? 2 : 1) + ' billion';
+    return sci(v, 1);
+  }
+  const f = (x, d = 2) => (x < 0 ? '−' : '') + Math.abs(x).toFixed(d);
+  const unit = () => S.per === 0 ? '' : '%';
+
+  // ---------- probabilities ----------
+  function probs() {
+    const za = (S.a - S.mu) / S.sd, zb = (S.b - S.mu) / S.sd, nu = S.nu;
+    let pn, pt;
+    if (S.area === 'lo') { pn = Phi(za); pt = tLz(za, nu); }
+    else if (S.area === 'hi') { pn = PhiU(zb); pt = tUz(zb, nu); }
+    else { const lo = Math.min(za, zb), hi = Math.max(za, zb); pn = Phi(hi) - Phi(lo); pt = tLz(hi, nu) - tLz(lo, nu); }
+    return { za, zb, pn, pt };
+  }
+  function waiting(p) {
+    if (S.per === 0) return '–';
+    if (p <= 0) return '∞';
+    const yrs = 1 / (p * S.per);
+    if (yrs < 1) { const per = S.per === 12 ? 'months' : S.per === 252 ? 'trading days' : 'years'; return `${big(1 / p)} ${per}`; }
+    return `${big(yrs)} years`;
+  }
+
+  function updateText() {
+    const P = probs(), u = unit(), tail = S.area !== 'mid';
+    const lab = S.area === 'lo' ? `P(X < ${f(S.a)}${u})` : S.area === 'hi' ? `P(X > ${f(S.b)}${u})` : `P(${f(Math.min(S.a, S.b))} < X < ${f(Math.max(S.a, S.b))})`;
+    const z = S.area === 'lo' ? P.za : P.zb;
+    const kp = (k, v, s) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+    let html = '';
+    if (S.area === 'mid') html += kp('z values', `${f(Math.min(P.za, P.zb))}, ${f(Math.max(P.za, P.zb))}`, 'z = (x − μ)/σ');
+    else html += kp('z = (x − μ)/σ', f(z), `${Math.abs(z).toFixed(1)} SDs ${z < 0 ? 'below' : 'above'} the mean`);
+    html += kp(lab + ', normal', prob(P.pn), tail ? '1 in ' + big(1 / P.pn) : '');
+    if (tail && S.per) html += kp('Once every, normal', waiting(P.pn), S.useT ? `Student-t (ν = ${S.nu}): ${waiting(P.pt)}` : 'if draws are independent');
+    else if (S.useT) html += kp(`Student-t, ν = ${S.nu}`, prob(P.pt), tail ? '1 in ' + big(1 / P.pt) : 'same mean and SD');
+    $('kpis').innerHTML = html;
+    $('pN').textContent = prob(P.pn); $('oN').textContent = tail ? big(1 / P.pn) : '–'; $('yN').textContent = tail ? waiting(P.pn) : '–';
+    $('pT').textContent = S.useT ? prob(P.pt) : '–'; $('oT').textContent = S.useT && tail ? big(1 / P.pt) : '–'; $('yT').textContent = S.useT && tail ? waiting(P.pt) : '–';
+
+    // step-by-step walk
+    const steps = [];
+    const per = S.per === 12 ? 'month' : S.per === 252 ? 'trading day' : S.per === 1 ? 'year' : 'trial';
+    if (S.area === 'mid') {
+      steps.push(`<span class="n">Standardize both cutoffs:</span> z<sub>a</sub> = (${f(S.a)} − ${f(S.mu)}) / ${f(S.sd)} = <span class="a">${f(P.za)}</span>,  z<sub>b</sub> = (${f(S.b)} − ${f(S.mu)}) / ${f(S.sd)} = <span class="a">${f(P.zb)}</span>`);
+      steps.push(`<span class="n">Subtract two lower tails:</span> Φ(${f(Math.max(P.za, P.zb))}) − Φ(${f(Math.min(P.za, P.zb))}) = <span class="c">${prob(P.pn)}</span>`);
+      steps.push(`<span class="n">In R:</span> pnorm(${f(Math.max(S.a, S.b))}, ${f(S.mu)}, ${f(S.sd)}) − pnorm(${f(Math.min(S.a, S.b))}, ${f(S.mu)}, ${f(S.sd)})`);
+    } else {
+      const x = S.area === 'lo' ? S.a : S.b;
+      steps.push(`<span class="n">Distance from the mean:</span> x − μ = ${f(x)} − ${f(S.mu)} = ${f(x - S.mu)}${u}`);
+      steps.push(`<span class="n">In SDs:</span> z = ${f(x - S.mu)} / ${f(S.sd)} = <span class="a">${f(z)}</span>`);
+      steps.push(S.area === 'lo'
+        ? `<span class="n">Lower tail:</span> P(X < ${f(x)}) = Φ(${f(z)}) = <span class="c">${prob(P.pn)}</span>  <span class="n">· R: pnorm(${f(x)}, ${f(S.mu)}, ${f(S.sd)})</span>`
+        : `<span class="n">Upper tail:</span> P(X > ${f(x)}) = 1 − Φ(${f(z)}) = <span class="c">${prob(P.pn)}</span>  <span class="n">· R: pnorm(${f(x)}, ${f(S.mu)}, ${f(S.sd)}, lower.tail = F)</span>`);
+      if (S.per) steps.push(`<span class="n">Waiting time:</span> one draw per ${per}, ${S.per} per year → 1 / (${S.per} × ${sci(P.pn)}) = <span class="h">${waiting(P.pn)}</span>`);
+      else steps.push(`<span class="n">As odds:</span> 1 / ${sci(P.pn)} = <span class="h">1 in ${big(1 / P.pn)}</span>`);
+      if (S.useT) steps.push(`<span class="n">Student-t, ν = ${S.nu}, same SD:</span> <span class="p">${prob(P.pt)}</span>${S.per ? `, once every <span class="p">${waiting(P.pt)}</span>` : `, 1 in <span class="p">${big(1 / P.pt)}</span>`} · ${(P.pt / P.pn) >= 10 ? big(P.pt / P.pn) + '× the normal' : (P.pt / P.pn).toFixed(2) + '× the normal'}`);
+    }
+    $('walk').innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+    $('presetHint').textContent = S.key ? PRE[S.key].hint : 'Custom values.';
+    $('capD').textContent = `Density of X ~ N(${f(S.mu)}, ${f(S.sd)}²)${S.per === 12 ? ', monthly return (%)' : S.per === 252 ? ', daily return (%)' : ''}`;
+    $('capL').textContent = `P(move more than k SDs ${S.area === 'hi' ? 'above' : 'below'} the mean), log scale`;
+    $('dfOut').textContent = S.nu; $('dfBox').hidden = !S.useT; $('legT').parentElement.hidden = !S.useT;
+    $('fa').hidden = S.area === 'hi'; $('fb').hidden = S.area === 'lo';
+    for (const [id, ar] of [['aLo', 'lo'], ['aHi', 'hi'], ['aMid', 'mid']]) $(id).setAttribute('aria-pressed', S.area === ar);
+    for (const k of Object.keys(PRE)) $(k).setAttribute('aria-pressed', S.key === k);
+    dirty = true;
+  }
+
+  // ---------- drawing ----------
+  function size(cv, ctx, aspect, minH, maxH) {
+    const w = cv.parentElement.clientWidth - 28;
+    const h = Math.round(Math.min(Math.max(w * aspect, minH), maxH));
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    return { W: w, H: h, ml: 50, mr: 14, mt: 14, mb: 40 };
+  }
+  function resize() { LD = size(cvD, cD, 0.42, 250, 360); LL = size(cvL, cL, 0.36, 230, 300); dirty = true; }
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  const mono = (sz = 11, wt = '') => `${wt} ${sz}px "JetBrains Mono", ui-monospace, monospace`;
+
+  let XD = null;
+  function zRange() {
+    const za = (S.a - S.mu) / S.sd, zb = (S.b - S.mu) / S.sd;
+    let lo = -4, hi = 4;
+    if (S.area !== 'hi') lo = Math.min(lo, Math.max(za - 0.6, -9)); if (S.area !== 'lo') hi = Math.max(hi, Math.min(zb + 0.6, 9));
+    if (S.area !== 'hi') hi = Math.max(hi, Math.min(za + 0.6, 9)); if (S.area !== 'lo') lo = Math.min(lo, Math.max(zb - 0.6, -9));
+    return [lo, hi];
+  }
+  function drawDensity() {
+    const ctx = cD, L = LD; ctx.clearRect(0, 0, L.W, L.H);
+    const [zl, zh] = zRange(), x0 = S.mu + zl * S.sd, x1 = S.mu + zh * S.sd;
+    const nu = S.nu, peak = Math.max(nDz(0), S.useT ? tDz(0, nu) : 0) / S.sd * 1.12;
+    const PX = x => L.ml + (x - x0) / (x1 - x0) * (L.W - L.ml - L.mr), PY = y => L.mt + (1 - y / peak) * (L.H - L.mt - L.mb);
+    XD = { PX, x0, x1 };
+    // x grid: σ ticks in z, labels in x units
+    ctx.font = mono(11); ctx.lineWidth = 1;
+    const step = Math.ceil((zh - zl) / (L.W < 520 ? 5 : 10));
+    for (let k = Math.ceil(zl); k <= Math.floor(zh); k += step) {
+      const x = S.mu + k * S.sd, px = Math.round(PX(x)) + .5;
+      ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(px, L.mt); ctx.lineTo(px, L.H - L.mb); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(+x.toFixed(2) + '', px, L.H - L.mb + 5);
+      ctx.fillStyle = k === 0 ? C.ink : C.muted; ctx.fillText(k === 0 ? 'μ' : (k > 0 ? '+' : '−') + Math.abs(k) + 'σ', px, L.H - L.mb + 19);
+    }
+    ctx.strokeStyle = C.line; ctx.beginPath(); ctx.moveTo(L.ml, PY(0) + .5); ctx.lineTo(L.W - L.mr, PY(0) + .5); ctx.stroke();
+    ctx.fillStyle = C.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('density', 4, L.mt);
+    // shaded area under the normal
+    const za = (S.a - S.mu) / S.sd, zb = (S.b - S.mu) / S.sd;
+    let lo = zl, hi = zh;
+    if (S.area === 'lo') hi = Math.min(za, zh); else if (S.area === 'hi') lo = Math.max(zb, zl); else { lo = Math.max(Math.min(za, zb), zl); hi = Math.min(Math.max(za, zb), zh); }
+    if (hi > lo) {
+      ctx.beginPath(); ctx.moveTo(PX(S.mu + lo * S.sd), PY(0));
+      for (let i = 0; i <= 200; i++) { const z = lo + (hi - lo) * i / 200; ctx.lineTo(PX(S.mu + z * S.sd), PY(nDz(z) / S.sd)); }
+      ctx.lineTo(PX(S.mu + hi * S.sd), PY(0)); ctx.closePath();
+      ctx.fillStyle = C.accent; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    const curve = (fn, col, lw, dash) => {
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath();
+      for (let i = 0; i <= 400; i++) { const z = zl + (zh - zl) * i / 400, x = PX(S.mu + z * S.sd), y = PY(fn(z) / S.sd); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke(); ctx.setLineDash([]);
+    };
+    if (S.useT) curve(z => tDz(z, nu), C.coinB, 2, [6, 4]);
+    curve(nDz, C.curve, 2.5, []);
+    // cutoffs
+    ctx.font = mono(12, '600');
+    const cut = (x, name) => {
+      const px = PX(x);
+      ctx.strokeStyle = C.ball; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(px, L.mt + 16); ctx.lineTo(px, PY(0)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C.ink; ctx.textBaseline = 'top';
+      const right = px > L.W * 0.62; ctx.textAlign = right ? 'right' : 'left';
+      ctx.fillText(`${name} = ${f(x)}${unit()}, z = ${f((x - S.mu) / S.sd)}`, px + (right ? -6 : 6), L.mt);
+    };
+    if (S.area !== 'hi') cut(S.a, 'a');
+    if (S.area !== 'lo') cut(S.b, 'b');
+    const P = probs();
+    if (S.area !== 'mid' && P.pn < 0.002) {
+      const px = PX(S.area === 'lo' ? S.a : S.b), right = px > L.W * 0.62;
+      ctx.font = mono(11); ctx.fillStyle = C.muted; ctx.textAlign = right ? 'right' : 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`shaded area ${sci(P.pn, 1)}: too thin to see`, px + (right ? -6 : 6), L.mt + 17);
+      if (L.W >= 520) ctx.fillText('the log chart below shows it', px + (right ? -6 : 6), L.mt + 31);
+    }
+  }
+
+  function drawTail() {
+    const ctx = cL, L = LL; ctx.clearRect(0, 0, L.W, L.H);
+    const P = probs(), zEv = S.area === 'hi' ? P.zb : S.area === 'lo' ? -P.za : Math.max(Math.abs(P.za), Math.abs(P.zb));
+    const kMax = Math.max(6, Math.min(10, Math.ceil(Math.abs(zEv) + 1)));
+    const eMin = Math.min(-4, Math.floor(Math.log10(PhiU(kMax))) );
+    const PX = k => L.ml + k / kMax * (L.W - L.ml - L.mr), PY = e => L.mt + (0 - e) / (0 - eMin) * (L.H - L.mt - L.mb);
+    ctx.font = mono(11); ctx.lineWidth = 1;
+    const es = Math.ceil(-eMin / 6);
+    for (let e = 0; e >= eMin; e -= es) {
+      const y = Math.round(PY(e)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(L.ml, y); ctx.lineTo(L.W - L.mr, y); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(e === 0 ? '1' : '10' + String(e).split('').map(c => SUP[c]).join(''), L.ml - 6, y);
+    }
+    for (let k = 0; k <= kMax; k++) {
+      const x = Math.round(PX(k)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(x, L.mt); ctx.lineTo(x, L.H - L.mb); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(k + 'σ', x, L.H - L.mb + 6);
+    }
+    ctx.textAlign = 'right'; ctx.fillText('k, number of SDs beyond the mean', L.W - L.mr, L.H - L.mb + 22);
+    ctx.save(); ctx.beginPath(); ctx.rect(L.ml, L.mt, L.W - L.ml - L.mr, L.H - L.mt - L.mb); ctx.clip();
+    const line = (fn, col, lw, dash) => {
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath();
+      for (let i = 0; i <= 300; i++) { const k = kMax * i / 300, p = fn(k), y = PY(Math.log10(Math.max(p, 1e-300))); i ? ctx.lineTo(PX(k), y) : ctx.moveTo(PX(k), y); }
+      ctx.stroke(); ctx.setLineDash([]);
+    };
+    line(k => PhiU(k), C.curve, 2.5, []);
+    if (S.useT) line(k => tUz(k, S.nu), C.coinB, 2, [6, 4]);
+    // event
+    if (S.area !== 'mid' && zEv > 0) {
+      const x = PX(zEv);
+      ctx.strokeStyle = C.ball; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(x, L.mt); ctx.lineTo(x, L.H - L.mb); ctx.stroke(); ctx.setLineDash([]);
+      const dot = (p, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, PY(Math.log10(p)), 5.5, 0, Math.PI * 2); ctx.fill(); };
+      dot(P.pn, C.curve); if (S.useT) dot(P.pt, C.coinB);
+      ctx.font = mono(12, '600'); ctx.textBaseline = 'middle';
+      const right = x > L.W * 0.6; ctx.textAlign = right ? 'right' : 'left';
+      const dx = right ? -10 : 10;
+      ctx.fillStyle = C.curve; ctx.fillText(`normal ${sci(P.pn, 1)}`, x + dx, Math.min(PY(Math.log10(P.pn)) + 16, L.H - L.mb - 10));
+      if (S.useT) { ctx.fillStyle = C.coinB; ctx.fillText(`t, ν = ${S.nu}: ${sci(P.pt, 1)}`, x + dx, Math.max(PY(Math.log10(P.pt)) - 16, L.mt + 10)); }
+    }
+    ctx.restore();
+  }
+  let dirty = true;
+  function frame() { if (dirty) { drawDensity(); drawTail(); dirty = false; } requestAnimationFrame(frame); }
+
+  // ---------- controls ----------
+  function syncInputs() { $('mu').value = S.mu; $('sd').value = S.sd; $('a').value = +S.a.toFixed(2); $('b').value = +S.b.toFixed(2); $('per').value = S.per; }
+  function preset(k) { Object.assign(S, { key: k }, PRE[k]); syncInputs(); updateText(); }
+  for (const k of Object.keys(PRE)) $(k).onclick = () => preset(k);
+  const num = (id, key, min) => $(id).oninput = e => { const v = parseFloat(e.target.value); if (!isFinite(v) || (min != null && v < min)) return; S[key] = v; S.key = null; updateText(); };
+  num('mu', 'mu'); num('sd', 'sd', 0.0001); num('a', 'a'); num('b', 'b');
+  $('per').onchange = e => { S.per = +e.target.value; S.key = null; updateText(); };
+  $('aLo').onclick = () => { S.area = 'lo'; updateText(); };
+  $('aHi').onclick = () => { S.area = 'hi'; updateText(); };
+  $('aMid').onclick = () => { S.area = 'mid'; if (S.b <= S.a) S.b = S.a + 2 * S.sd; syncInputs(); updateText(); };
+  const rule = k => { S.area = 'mid'; S.a = S.mu - k * S.sd; S.b = S.mu + k * S.sd; syncInputs(); updateText(); };
+  $('rule1').onclick = () => rule(1); $('rule2').onclick = () => rule(2);
+  $('useT').onchange = e => { S.useT = e.target.checked; updateText(); };
+  $('df').oninput = e => { S.nu = +e.target.value; updateText(); };
+  function toBoard() { document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
+  $('d87').onclick = () => { preset('p87'); toBoard(); };
+  $('dN24').onclick = () => { preset('pN24'); toBoard(); };
+  $('d95').onclick = () => { Object.assign(S, { key: null, mu: 0, sd: 1, per: 0, area: 'mid', a: -1.96, b: 1.96 }); syncInputs(); updateText(); toBoard(); };
+
+  // drag cutoffs on the density chart
+  let dragging = null;
+  function xAt(ev) { const rc = cvD.getBoundingClientRect(), mx = ev.clientX - rc.left; return XD.x0 + (mx - LD.ml) / (LD.W - LD.ml - LD.mr) * (XD.x1 - XD.x0); }
+  cvD.addEventListener('pointerdown', ev => {
+    if (!XD) return; const x = xAt(ev);
+    dragging = S.area === 'lo' ? 'a' : S.area === 'hi' ? 'b' : (Math.abs(x - S.a) < Math.abs(x - S.b) ? 'a' : 'b');
+    cvD.setPointerCapture(ev.pointerId); S[dragging] = Math.round(x * 100) / 100; S.key = null; syncInputs(); updateText();
+  });
+  cvD.addEventListener('pointermove', ev => {
+    if (!XD) return;
+    const x = xAt(ev);
+    if (dragging) { S[dragging] = Math.round(x * 100) / 100; syncInputs(); updateText(); }
+    const z = (x - S.mu) / S.sd, rc = cvD.getBoundingClientRect();
+    tip.innerHTML = `<b>x = ${f(x)}${unit()}</b> · z = ${f(z)}<br>P(X &lt; x) = ${prob(Phi(z))}<br>P(X &gt; x) = ${prob(PhiU(z))}`;
+    tip.hidden = false;
+    const mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    tip.style.left = Math.max(14, Math.min(mx + 24, cvD.clientWidth - tip.offsetWidth + 14)) + 'px';
+    tip.style.top = Math.max(14, my + cvD.offsetTop - tip.offsetHeight - 8) + 'px';
+  });
+  const stop = () => { dragging = null; };
+  cvD.addEventListener('pointerup', stop); cvD.addEventListener('pointercancel', stop);
+  cvD.addEventListener('pointerleave', () => { tip.hidden = true; });
+
+  // tables in the lesson, computed with the same functions
+  $('qtab').innerHTML = [[1.645, '95% one-sided CI'], [1.96, '95% two-sided CI'], [2.326, '99% one-sided CI'], [2.576, '99% two-sided CI']]
+    .map(([z, u]) => `<tr><td>${PhiU(z).toFixed(4)}</td><td>+${z}</td><td>${u}</td></tr>`).join('');
+  $('etab').innerHTML = [['1987 crash', (-21.76 - 1.2) / 4.3, 'lo'], ['NVIDIA −5% day', (-5 - 0.38) / 3.3, 'lo'], ['NVIDIA −17% day', (-17 - 0.38) / 3.3, 'lo'], ['NVIDIA +24.7% day', (24.7 - 0.38) / 3.3, 'hi'], ['5-sigma', 5, 'hi']]
+    .map(([n, z, s]) => `<tr><td>${n}</td><td>${f(z)}</td><td>${prob(s === 'lo' ? Phi(z) : PhiU(z))}</td></tr>`).join('');
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => resize()).observe(cvD.parentElement);
+
+  resize(); preset('p87'); requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

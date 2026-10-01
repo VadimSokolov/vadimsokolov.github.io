@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Sampling Distribution Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one tall canvas on the left stacks population, current sample and the histogram of sample means; controls and observed-vs-theory table in the right rail; Newton's Trial of the Pyx panel, notes and class exercises below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; margin-top: 2px; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+a:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 8px 4px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; }
+.sw.pop { background: color-mix(in srgb, var(--peg) 22%, transparent); border: 1.5px solid var(--peg); }
+.sw.ball { background: var(--ball); border-radius: 50%; width: 10px; }
+.sw.est { height: 0; border-top: 3px solid var(--coinA); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px solid var(--curve); border-radius: 0; background: none; }
+.sw.win { background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid var(--accent); }
+.sw.winA { background: color-mix(in srgb, var(--coinA) 28%, transparent); border: 1px solid var(--coinA); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.btns.two { grid-template-columns: 1fr 1fr; }
+.btns .wide { grid-column: span 2; }
+.btns .full { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+select { font: inherit; font-size: 14px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--board); color: var(--ink); width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-weight: 700; }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td + td { white-space: nowrap; padding-left: 8px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.obs { color: var(--accent); }
+.stats td.th { color: var(--curve); }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* Newton panel */
+.pyx { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; align-items: start; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px 24px; }
+@media (max-width: 900px) { .pyx { grid-template-columns: minmax(0, 1fr); } }
+.pyx .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.pyx h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.pyx .head p { margin: 0; max-width: 84ch; }
+.pyx .plot { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pyx .ctrl { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.callout { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.callout b { font-family: var(--font-display); }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note .demo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.formula + .formula { margin-top: 6px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Sampling distributions</span>
+    <h1>Sampling Distribution Lab</h1>
+    <p class="lead">Pick a population, draw a sample of n values, and drop its average into the histogram below. Repeat a thousand times and the averages pile up around the population mean with spread σ/√n, close to a normal curve even when the population is far from normal.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 5, <a href="https://vsokolov.org/html/_book/05-ab.html">A/B Testing</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Population, current sample and histogram of sample means">
+      <canvas id="cv" role="img" aria-label="Top: population distribution. Middle: the current sample as dots with its mean. Bottom: histogram of sample means with the normal curve predicted by the CLT."></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw pop"></i>Population</span>
+        <span><i class="sw ball"></i>One draw</span>
+        <span><i class="sw est"></i>Sample mean x̄</span>
+        <span><i class="sw"></i>Observed sample means</span>
+        <span><i class="sw curve"></i>N(μ, σ²/n), predicted</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Draw samples</span>
+        <div class="btns">
+          <button id="d1" class="primary">Draw 1</button>
+          <button id="d10">Draw 10</button>
+          <button id="d1000">1,000 now</button>
+        </div>
+        <button id="reset">Clear the means</button>
+      </div>
+
+      <div class="group">
+        <span class="label">Population</span>
+        <div class="field">
+          <label for="pop">Shape of the population</label>
+          <select id="pop">
+            <option value="normal">Normal, mean 50, SD 10</option>
+            <option value="uniform">Uniform from 0 to 100</option>
+            <option value="exp" selected>Right-skewed: exponential, mean 20</option>
+            <option value="lognorm">Very skewed: lognormal</option>
+            <option value="bimodal">Bimodal: two humps at 30 and 70</option>
+            <option value="bern">Bernoulli(p): 0 or 1</option>
+            <option value="t3">Fat-tailed: t with 3 df</option>
+          </select>
+        </div>
+        <div class="slider" id="pBox" hidden>
+          <div class="top"><label for="p">Chance of a 1, p</label><output id="pOut">0.50</output></div>
+          <input type="range" id="p" min="0.01" max="0.99" step="0.01" value="0.5">
+        </div>
+        <div class="slider">
+          <div class="top"><label for="n">Sample size, n</label><output id="nOut">10</output></div>
+          <input type="range" id="n" min="0" max="23" step="1" value="7">
+        </div>
+        <p class="hint">Changing the population or n clears the means.</p>
+        <div class="checks">
+          <label><input type="checkbox" id="showCurve" checked> Show the normal curve N(μ, σ²/n)</label>
+          <label><input type="checkbox" id="zoom"> Zoom the means axis to μ ± 4.5 σ/√n</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+          <span class="label">Samples drawn</span><span class="big" id="nObs">0</span>
+        </div>
+        <table class="stats">
+          <thead><tr><th></th><th>Observed</th><th>Theory</th></tr></thead>
+          <tbody>
+            <tr><td>Mean of x̄</td><td class="obs" id="mObs">–</td><td class="th" id="mTh">–</td></tr>
+            <tr><td>SD of x̄ (standard error)</td><td class="obs" id="sObs">–</td><td class="th" id="sTh">–</td></tr>
+            <tr><td>Population SD ÷ SD of x̄</td><td class="obs" id="rObs">–</td><td class="th" id="rTh">–</td></tr>
+            <tr><td>Skewness of x̄</td><td class="obs" id="kObs">–</td><td class="th" id="kTh">–</td></tr>
+            <tr><td>x̄ within μ ± 1.96 σ/√n</td><td class="obs" id="wObs">–</td><td class="th" id="wTh">95.0%</td></tr>
+          </tbody>
+        </table>
+        <p class="hint" id="popNote"></p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="pyx" id="pyx">
+    <div class="head">
+      <span class="eyebrow">Newton at the Royal Mint</span>
+      <h2>The Trial of the Pyx: a box of coins varies like σ√n, not nσ</h2>
+      <p>The Mint tests a batch of n = 2,500 coins. Each should weigh 100 grams, with a tolerance of ±1 gram per coin. The Trial allowed the batch average the same ±1 gram, which means the whole box could be off by n × 1 = 2,500 grams. If each coin varies with SD σ = 1 gram, the box total varies with SD σ√n = 50 grams, so an honest box never comes close to that limit. A Master of the Mint can shave gold off every coin and still pass. These are illustrative numbers.</p>
+    </div>
+    <div class="plot">
+      <canvas id="pyxCv" role="img" aria-label="Distribution of the total weight of a box of coins, with the Mint's wide tolerance window and the narrow square-root-n window"></canvas>
+      <div class="legend" style="padding-top:0">
+        <span><i class="sw win"></i>Mint rule: n × 1 g</span>
+        <span><i class="sw winA"></i>√n rule</span>
+        <span><i class="sw curve"></i>Box total, shaved coins</span>
+        <span><i class="sw ball"></i>A weighed box</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <div class="slider"><div class="top"><label for="shave">Gold shaved per coin, δ</label><output id="shaveOut">0.50 g</output></div>
+        <input type="range" id="shave" min="0" max="1.2" step="0.01" value="0.5"></div>
+      <div class="slider"><div class="top"><label for="csd">SD of one coin, σ</label><output id="csdOut">1.00 g</output></div>
+        <input type="range" id="csd" min="0.2" max="2" step="0.05" value="1"></div>
+      <div class="slider"><div class="top"><label for="nc">Coins in the box, n</label><output id="ncOut">2,500</output></div>
+        <input type="range" id="nc" min="0" max="7" step="1" value="5"></div>
+      <div class="field">
+        <span class="label" id="kLab">√n rule: average within ± k · σ/√n</span>
+        <div class="seg" role="group" aria-labelledby="kLab">
+          <button id="k1" aria-pressed="true">k = 1</button>
+          <button id="k2" aria-pressed="false">k = 2</button>
+          <button id="k3" aria-pressed="false">k = 3</button>
+        </div>
+      </div>
+      <div class="btns two">
+        <button id="weigh" class="primary">Weigh 20 boxes</button>
+        <button id="pyxReset">Reference numbers</button>
+      </div>
+      <table class="stats">
+        <thead><tr><th></th><th>Mint rule</th><th>√n rule</th></tr></thead>
+        <tbody>
+          <tr><td>Allowed error on the total</td><td id="tWin1">–</td><td id="tWin2">–</td></tr>
+          <tr><td>Allowed error on the average</td><td id="aWin1">–</td><td id="aWin2">–</td></tr>
+          <tr><td>P(honest box passes)</td><td id="hp1">–</td><td id="hp2">–</td></tr>
+          <tr><td>P(shaved box passes)</td><td id="sp1">–</td><td id="sp2">–</td></tr>
+          <tr><td>Largest δ that passes 95% of the time</td><td id="mx1">–</td><td id="mx2">–</td></tr>
+          <tr><td>Weighed boxes that passed</td><td id="wb1">–</td><td id="wb2">–</td></tr>
+        </tbody>
+      </table>
+      <div class="callout" id="pyxCall"></div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Averages vary less than individuals</h2>
+      <p>Each draw has variance σ². The mean of n independent draws has variance σ²/n, so its SD, the standard error, is σ/√n. To halve the standard error you need four times the data.</p>
+      <div class="formula">Var(x̄) = σ² / n,   SE(x̄) = σ / √n</div>
+      <div class="formula">Var(total) = n σ²,  SD(total) = σ √n</div>
+    </div>
+    <div class="note">
+      <h2>The sampling distribution of x̄</h2>
+      <p>Across many datasets of size n, x̄ is centered on μ and is close to normal once n is moderate. Skewed populations need a larger n: the skewness of x̄ shrinks like 1/√n. In practice σ is unknown and s replaces it.</p>
+      <div class="formula">x̄ ~ N(μ, σ² / n)  approximately</div>
+      <div class="demo">
+        <button id="dExp30">Exponential, n = 30</button>
+        <button id="dLog">Lognormal, n = 5 vs 100</button>
+      </div>
+    </div>
+    <div class="note">
+      <h2>Recipe 5: simulate it yourself</h2>
+      <p>A classic exercise asks for 10,000 simulated A/B tests with 5,000 users per arm and 3% conversion. One arm's conversion rate is the mean of 5,000 Bernoulli(0.03) draws. Its histogram is the sampling distribution that the Z-test relies on.</p>
+      <div class="formula">SE(p̂) = √(0.03 × 0.97 / 5,000) = 0.00241</div>
+      <div class="demo">
+        <button id="dRecipe">Bernoulli(0.03), n = 5,000</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Start with the exponential population and n = 1. The means histogram copies the population. Step n up to 2, 5, 10 and 30 and press "1,000 now" each time. Ask when the pile starts to look normal.</li>
+      <li>Read the SD row of the table at n = 25 and n = 100. The standard error halves when n goes up four times, just as σ/√n predicts.</li>
+      <li>Switch to "Bimodal" with n = 2. The means have three humps. By n = 10 they have one.</li>
+      <li>Choose Bernoulli with p = 0.03 and n = 30. The means are badly skewed and lumpy. Run Recipe 5 (n = 5,000) and the same population gives a clean bell around 0.03.</li>
+      <li>In the Pyx panel, ask students how much gold per coin a Master could shave and still pass the Mint's rule. Then switch on the √n rule and weigh 20 boxes.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d'), tip = $('tip');
+  const NS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200, 300, 500, 1000, 2500, 5000];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'peg', 'board', 'surface', 'coinA', 'coinB'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const nf = (x, d) => x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  function randn() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  // normal CDF via erf (Abramowitz–Stegun 7.1.26, |err| < 1.5e-7)
+  function Phi(z) {
+    const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z / 2);
+    return z >= 0 ? 0.5 + 0.5 * y : 0.5 - 0.5 * y;
+  }
+  const npdf = z => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+
+  // ---- populations ----
+  const LNm = 10 * Math.exp(0.5), LNv = 100 * (Math.E - 1) * Math.E;
+  const POPS = {
+    normal: { name: 'Normal(50, 10²)', lo: 10, hi: 90, mu: 50, sd: 10, skew: 0,
+      draw: () => 50 + 10 * randn(), pdf: x => npdf((x - 50) / 10) / 10 },
+    uniform: { name: 'Uniform(0, 100)', lo: -10, hi: 110, mu: 50, sd: 100 / Math.sqrt(12), skew: 0,
+      draw: () => 100 * Math.random(), pdf: x => (x >= 0 && x <= 100) ? 0.01 : 0 },
+    exp: { name: 'Exponential, mean 20', lo: 0, hi: 120, mu: 20, sd: 20, skew: 2,
+      draw: () => -20 * Math.log(1 - Math.random()), pdf: x => x < 0 ? 0 : Math.exp(-x / 20) / 20,
+      note: 'Values above 120 (0.25% of the population) are drawn at the right edge.' },
+    lognorm: { name: 'Lognormal, 10·e^Z', lo: 0, hi: 100, mu: LNm, sd: Math.sqrt(LNv), skew: (Math.E + 2) * Math.sqrt(Math.E - 1),
+      draw: () => 10 * Math.exp(randn()), pdf: x => x <= 0 ? 0 : npdf(Math.log(x / 10)) / x,
+      note: 'About 1% of the population lies above 100 and is drawn at the right edge. The long tail is why this one needs a large n.' },
+    bimodal: { name: 'Mixture of N(30, 6²) and N(70, 6²)', lo: 0, hi: 100, mu: 50, sd: Math.sqrt(36 + 400), skew: 0,
+      draw: () => (Math.random() < 0.5 ? 30 : 70) + 6 * randn(), pdf: x => 0.5 * npdf((x - 30) / 6) / 6 + 0.5 * npdf((x - 70) / 6) / 6 },
+    bern: { name: 'Bernoulli(p)', lo: -0.25, hi: 1.25, discrete: true },
+    t3: { name: '50 + 5·t₃', lo: 0, hi: 100, mu: 50, sd: 5 * Math.sqrt(3), skew: null,
+      draw: () => { const z = randn(), a = randn(), b = randn(), c = randn(); return 50 + 5 * z / Math.sqrt((a * a + b * b + c * c) / 3); },
+      pdf: x => { const t = (x - 50) / 5; return 2 / (Math.PI * Math.sqrt(3)) * Math.pow(1 + t * t / 3, -2) / 5; },
+      note: 't with 3 df has finite variance but no finite third or fourth moment, so rare huge draws keep showing up. Values beyond 0 or 100 are drawn at the edge.' }
+  };
+  const S = { pop: 'exp', p: 0.5, ni: 7, means: [], sum: 0, sum2: 0, sum3: 0, within: 0, last: null, lastMean: null,
+              queue: 0, anim: null, showCurve: true, zoom: false };
+  const P = () => {
+    const d = POPS[S.pop];
+    if (S.pop === 'bern') {
+      const p = S.p;
+      d.mu = p; d.sd = Math.sqrt(p * (1 - p)); d.skew = (1 - 2 * p) / d.sd;
+      d.draw = () => Math.random() < p ? 1 : 0;
+    }
+    return d;
+  };
+  const N = () => NS[S.ni];
+  const SE = () => P().sd / Math.sqrt(N());
+
+  // ---- layout ----
+  let L = {};
+  function resize() {
+    const w = cv.parentElement.clientWidth - 24;
+    const h = Math.round(Math.min(Math.max(w * 0.9, 540), 740));
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    const popTop = 30, popBot = Math.round(h * 0.30);
+    const stripTop = popBot + 46, stripBot = stripTop + Math.round(h * 0.11);
+    const mTop = stripBot + 62, mBot = h - 26;
+    L = { W: w, H: h, ml: 14, mr: 14, popTop, popBot, stripTop, stripBot, mTop, mBot };
+    dirty = true;
+  }
+  const PX = v => { const d = P(); return L.ml + (Math.min(Math.max(v, d.lo), d.hi) - d.lo) / (d.hi - d.lo) * (L.W - L.ml - L.mr); };
+  function meansDomain() {
+    const d = P();
+    if (S.zoom) { const h = 4.5 * SE(); return { lo: d.mu - h, hi: d.mu + h }; }
+    return { lo: d.lo, hi: d.hi };
+  }
+  const MX = (v, dom) => L.ml + (v - dom.lo) / (dom.hi - dom.lo) * (L.W - L.ml - L.mr);
+
+  function niceStep(range, target) {
+    const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+  }
+  const decs = st => Math.max(0, -Math.floor(Math.log10(st) + 1e-9));
+  function axis(y, lo, hi, X) {
+    const st = niceStep(hi - lo, Math.max(3, Math.floor((L.W - 28) / 80))), dd = decs(st);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L.ml, y + .5); ctx.lineTo(L.W - L.mr, y + .5); ctx.stroke();
+    ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let v = Math.ceil(lo / st - 1e-9) * st; v <= hi + 1e-9; v += st) {
+      const x = X(v); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 4); ctx.stroke();
+      ctx.fillText(nf(Math.abs(v) < st * 1e-6 ? 0 : v, dd), Math.min(Math.max(x, L.ml + 12), L.W - L.mr - 12), y + 6);
+    }
+  }
+
+  // ---- bins for the means histogram ----
+  function bins() {
+    const dom = meansDomain(), n = N(), d = P();
+    let w = niceStep(dom.hi - dom.lo, 50), start;
+    if (d.discrete) { w = Math.max(1, Math.round(w * n)) / n; start = (Math.floor(dom.lo * n) - 0.5) / n; }
+    else start = Math.floor(dom.lo / w) * w;
+    const k = Math.ceil((dom.hi - start) / w) + 1;
+    const counts = new Array(k).fill(0);
+    for (const m of S.means) { const i = Math.floor((m - start) / w); if (i >= 0 && i < k) counts[i]++; }
+    return { dom, w, start, counts };
+  }
+
+  // ---- sampling ----
+  function sampleVals() { const d = P(), n = N(), out = new Float64Array(n); for (let i = 0; i < n; i++) out[i] = d.draw(); return out; }
+  function addMean(m) {
+    const d = P(), se = SE();
+    S.means.push(m); S.sum += m; S.sum2 += m * m; S.sum3 += m * m * m;
+    if (Math.abs(m - d.mu) <= 1.96 * se) S.within++;
+  }
+  function commit(vals, m) { addMean(m); S.last = vals; S.lastMean = m; }
+  function instant(k) {
+    const n = N(), d = P(); let vals = null, m = 0;
+    for (let j = 0; j < k; j++) {
+      let s = 0; vals = j === k - 1 ? new Float64Array(n) : null;
+      for (let i = 0; i < n; i++) { const x = d.draw(); s += x; if (vals) vals[i] = x; }
+      m = s / n; if (j < k - 1) addMean(m);
+    }
+    commit(vals, m);
+    updateStats(); dirty = true;
+  }
+  function startAnim() {
+    const vals = sampleVals(); let s = 0; for (const v of vals) s += v;
+    const m = s / vals.length;
+    if (reduce.matches) { commit(vals, m); updateStats(); dirty = true; return; }
+    const shown = Math.min(vals.length, 60), spread = Math.min(0.9, 0.05 * shown);
+    const dots = [];
+    for (let i = 0; i < shown; i++) dots.push({ v: vals[i], u: Math.random(), j: Math.random(), delay: shown > 1 ? spread * i / (shown - 1) : 0 });
+    S.anim = { vals, m, dots, t: 0, fallEnd: spread + 0.45 };
+  }
+  function flushAnim() { if (S.anim) { commit(S.anim.vals, S.anim.m); S.anim = null; } }
+
+  function resetMeans() {
+    S.means = []; S.sum = 0; S.sum2 = 0; S.sum3 = 0; S.within = 0; S.last = null; S.lastMean = null; S.anim = null; S.queue = 0;
+    updateStats(); dirty = true;
+  }
+
+  // ---- stats ----
+  function updateStats() {
+    const d = P(), n = N(), K = S.means.length, se = SE();
+    $('nObs').textContent = K.toLocaleString();
+    const dd = d.discrete ? 4 : 2, ds = se < 0.01 ? 5 : se < 0.1 ? 4 : se < 1 ? 3 : 2;
+    $('mTh').textContent = nf(d.mu, dd);
+    $('sTh').textContent = nf(se, ds);
+    $('rTh').textContent = nf(Math.sqrt(n), 2);
+    $('kTh').textContent = d.skew === null ? 'undefined' : nf(d.skew / Math.sqrt(n), 3);
+    if (K) {
+      const m = S.sum / K; $('mObs').textContent = nf(m, dd);
+      if (K > 2) {
+        const v = Math.max(0, (S.sum2 - K * m * m) / (K - 1)), sd = Math.sqrt(v);
+        $('sObs').textContent = nf(sd, ds);
+        $('rObs').textContent = sd > 0 ? nf(d.sd / sd, 2) : '–';
+        const m3 = S.sum3 / K - 3 * m * S.sum2 / K + 2 * m * m * m;
+        const vb = S.sum2 / K - m * m;
+        $('kObs').textContent = vb > 0 ? nf(m3 / Math.pow(vb, 1.5), 3) : '–';
+      } else { $('sObs').textContent = '–'; $('rObs').textContent = '–'; $('kObs').textContent = '–'; }
+      $('wObs').textContent = nf(S.within / K * 100, 1) + '%';
+    } else for (const id of ['mObs', 'sObs', 'rObs', 'kObs', 'wObs']) $(id).textContent = '–';
+    const pre = `Population: μ = ${nf(d.mu, d.discrete ? 2 : 2)}, σ = ${nf(d.sd, d.discrete ? 3 : 2)}. `;
+    const skewTxt = d.skew === null ? '' : ` Population skewness ${nf(d.skew, 2)}.`;
+    $('popNote').textContent = pre + (d.note || '') + skewTxt + (n > 1 && d.skew ? '' : '');
+  }
+
+  // ---- drawing ----
+  function popHeight(v) {
+    const d = P(), H = L.popBot - L.popTop - 18;
+    if (d.discrete) return 0;
+    return d.pdf(v) / L.pmax * H;
+  }
+  function draw() {
+    const { W, H, ml, mr } = L, d = P(), n = N();
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = '12px "Atkinson Hyperlegible", system-ui, sans-serif'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+
+    // population panel
+    ctx.fillStyle = C.ink; ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace';
+    const ttl = `Population: ${d.name}`, tw = ctx.measureText(ttl).width;
+    ctx.fillText(ttl, ml, 16);
+    ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.font = '12px "JetBrains Mono", ui-monospace, monospace';
+    const ms = `μ = ${nf(d.mu, 2)}, σ = ${nf(d.sd, 2)}`;
+    if (tw + ctx.measureText(ms).width + 24 < W - ml - mr) ctx.fillText(ms, W - mr, 16);
+    ctx.textAlign = 'left';
+    const base = L.popBot;
+    if (d.discrete) {
+      const bw = (PX(0.1) - PX(0)), Hh = base - L.popTop - 18;
+      for (const [x, pr] of [[0, 1 - S.p], [1, S.p]]) {
+        const h = pr * Hh;
+        ctx.fillStyle = C.peg; ctx.globalAlpha = 0.2; ctx.fillRect(PX(x) - bw / 2, base - h, bw, h); ctx.globalAlpha = 1;
+        ctx.strokeStyle = C.peg; ctx.lineWidth = 1.5; ctx.strokeRect(PX(x) - bw / 2 + .5, base - h + .5, bw - 1, h);
+        ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.fillText(nf(pr, 2), PX(x), base - h - 5); ctx.textAlign = 'left';
+      }
+    } else {
+      L.pmax = 0; const steps = 400;
+      for (let i = 0; i <= steps; i++) { const v = d.lo + (d.hi - d.lo) * i / steps; L.pmax = Math.max(L.pmax, d.pdf(v)); }
+      ctx.beginPath(); ctx.moveTo(PX(d.lo), base);
+      for (let i = 0; i <= steps; i++) { const v = d.lo + (d.hi - d.lo) * i / steps; ctx.lineTo(PX(v), base - popHeight(v)); }
+      ctx.lineTo(PX(d.hi), base); ctx.closePath();
+      ctx.fillStyle = C.peg; ctx.globalAlpha = 0.16; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.peg; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    axis(base, d.lo, d.hi, PX);
+    // μ marker
+    ctx.strokeStyle = C.ink; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PX(d.mu), L.popTop + 4); ctx.lineTo(PX(d.mu), base); ctx.stroke(); ctx.setLineDash([]);
+
+    // sample strip
+    const sT = L.stripTop, sB = L.stripBot;
+    ctx.fillStyle = C.surface; ctx.fillRect(ml, sT, W - ml - mr, sB - sT);
+    ctx.strokeStyle = C.line; ctx.strokeRect(ml + .5, sT + .5, W - ml - mr - 1, sB - sT - 1);
+    const A = S.anim;
+    let stripVals = null, stripMean = null, label;
+    if (A) { stripVals = A.dots; label = `Drawing a sample of n = ${n.toLocaleString()}…`; if (A.t >= A.fallEnd) stripMean = A.m; }
+    else if (S.last) { stripVals = null; stripMean = S.lastMean; }
+    ctx.fillStyle = C.ink; ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    if (!A) label = S.last ? `Last sample, n = ${n.toLocaleString()}: x̄ = ${nf(S.lastMean, d.discrete ? 4 : 2)}` : 'No sample yet';
+    if (A && stripMean !== null) label = `Sample of n = ${n.toLocaleString()}: x̄ = ${nf(A.m, d.discrete ? 4 : 2)}`;
+    ctx.fillText(label, ml, sT - 10);
+    const r = n > 200 ? 2.2 : n > 50 ? 3 : 4.2;
+    const yJ = j => sT + 8 + j * (sB - sT - 16);
+    const dxJ = () => d.discrete ? (PX(0.1) - PX(0)) * 0.8 : 0;
+    if (A) {
+      ctx.fillStyle = C.ball;
+      for (const dot of A.dots) {
+        const s = Math.min(1, Math.max(0, (A.t - dot.delay) / 0.45));
+        if (A.t < dot.delay) continue;
+        const x = PX(dot.v) + (dot.j - 0.5) * dxJ();
+        const y0 = d.discrete ? base - 6 - dot.u * 30 : base - dot.u * popHeight(dot.v);
+        const y = y0 + (yJ(dot.j) - y0) * s * s;
+        ctx.beginPath(); ctx.arc(x, y, Math.max(r, 3.2), 0, Math.PI * 2); ctx.fill();
+      }
+      if (A.vals.length > A.dots.length && A.t >= A.fallEnd) {
+        ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'right';
+        ctx.fillText(`showing 60 of ${A.vals.length.toLocaleString()} draws`, W - mr, sT - 10); ctx.textAlign = 'left';
+      }
+    } else if (S.last) {
+      const k = Math.min(S.last.length, 600);
+      ctx.fillStyle = C.ball; ctx.globalAlpha = k > 200 ? 0.55 : 0.9;
+      for (let i = 0; i < k; i++) {
+        const j = ((i * 0.6180339887) % 1);
+        ctx.beginPath(); ctx.arc(PX(S.last[i]) + (j - 0.5) * dxJ(), yJ(j), r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      if (S.last.length > k) { ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'right'; ctx.fillText(`showing ${k} of ${S.last.length.toLocaleString()} draws`, W - mr, sT - 10); ctx.textAlign = 'left'; }
+    }
+    if (stripMean !== null) {
+      const x = PX(stripMean);
+      ctx.strokeStyle = C.coinA; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, sT - 2); ctx.lineTo(x, sB + 2); ctx.stroke();
+    }
+
+    // means histogram
+    const B = bins(), dom = B.dom, X = v => MX(v, dom), K = S.means.length;
+    const mT = L.mTop, mB = L.mBot, Hm = mB - mT - 6;
+    ctx.fillStyle = C.ink; ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'left';
+    ctx.fillText(`Sample means x̄ from ${K.toLocaleString()} samples`, ml, mT - 26);
+    ctx.fillStyle = C.muted; ctx.font = '12px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText(S.zoom ? 'axis zoomed to μ ± 4.5 σ/√n' : 'same axis as the population', ml, mT - 10);
+    const se = SE();
+    const expBin = x => K * (Phi((x + B.w / 2 - d.mu) / se) - Phi((x - B.w / 2 - d.mu) / se));
+    let maxC = 1; for (const c of B.counts) maxC = Math.max(maxC, c);
+    if (S.showCurve && K) maxC = Math.max(maxC, expBin(d.mu));
+    const unit = Hm / maxC;
+    ctx.fillStyle = C.accent;
+    B.counts.forEach((c, i) => {
+      if (!c) return;
+      const x0 = X(B.start + i * B.w), x1 = X(B.start + (i + 1) * B.w);
+      const gap = x1 - x0 > 4 ? 1 : 0;
+      ctx.fillRect(Math.max(x0, ml) + gap / 2, mB - c * unit, Math.min(x1, W - mr) - Math.max(x0, ml) - gap, c * unit);
+    });
+    if (S.showCurve && K) {
+      ctx.strokeStyle = C.curve; ctx.lineWidth = 2.25; ctx.beginPath();
+      const steps = 500;
+      for (let i = 0; i <= steps; i++) { const v = dom.lo + (dom.hi - dom.lo) * i / steps, y = mB - expBin(v) * unit; i ? ctx.lineTo(X(v), y) : ctx.moveTo(X(v), y); }
+      ctx.stroke();
+    }
+    axis(mB, dom.lo, dom.hi, X);
+    ctx.strokeStyle = C.ink; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(d.mu), mT - 2); ctx.lineTo(X(d.mu), mB); ctx.stroke(); ctx.setLineDash([]);
+    if (!S.anim && S.lastMean !== null) {
+      const x = X(S.lastMean);
+      if (x >= ml && x <= W - mr) { ctx.fillStyle = C.coinA; ctx.beginPath(); ctx.moveTo(x, mB + 1); ctx.lineTo(x - 5, mB + 9); ctx.lineTo(x + 5, mB + 9); ctx.closePath(); ctx.fill(); }
+    }
+    // falling mean
+    if (A && A.t >= A.fallEnd) {
+      const s = Math.min(1, (A.t - A.fallEnd) / 0.5);
+      const x0 = PX(A.m), x1 = Math.min(Math.max(X(A.m), ml), W - mr);
+      const y0 = sB, y1 = mB - 6;
+      const x = x0 + (x1 - x0) * s, y = y0 + (y1 - y0) * s * s;
+      ctx.fillStyle = C.coinA; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'right';
+    ctx.fillText(`SE = σ/√n = ${nf(se, se < 0.01 ? 5 : se < 0.1 ? 4 : 3)}`, W - mr, mT - 10);
+  }
+
+  // ---- main loop ----
+  let dirty = true, prev = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    if (!S.anim && S.queue > 0) { S.queue--; startAnim(); }
+    if (S.anim) {
+      const speed = 1 + Math.min(5, S.queue * 0.6);
+      S.anim.t += dt * speed;
+      if (S.anim.t >= S.anim.fallEnd + 0.5) { flushAnim(); updateStats(); }
+      dirty = true;
+    }
+    if (dirty) { draw(); dirty = false; }
+    requestAnimationFrame(frame);
+  }
+
+  // ---- controls ----
+  $('d1').onclick = () => { S.queue += 1; };
+  $('d10').onclick = () => { S.queue += 10; };
+  $('d1000').onclick = () => { S.queue = 0; flushAnim(); instant(1000); };
+  $('reset').onclick = resetMeans;
+  function setPop(v) { S.pop = v; $('pop').value = v; $('pBox').hidden = v !== 'bern'; resetMeans(); updateStats(); }
+  function setN(i) { S.ni = i; $('n').value = i; $('nOut').textContent = N().toLocaleString(); resetMeans(); }
+  function setP(p) { S.p = p; $('p').value = p; $('pOut').textContent = p.toFixed(2); }
+  $('pop').onchange = e => { setPop(e.target.value); instant(1000); };
+  $('p').oninput = e => { setP(+e.target.value); resetMeans(); instant(1000); };
+  $('n').oninput = e => { setN(+e.target.value); instant(1000); };
+  $('showCurve').onchange = e => { S.showCurve = e.target.checked; dirty = true; };
+  $('zoom').onchange = e => { S.zoom = e.target.checked; dirty = true; };
+  const toBoard = () => document.querySelector('.board').scrollIntoView({ behavior: reduce.matches ? 'auto' : 'smooth', block: 'start' });
+  function preset(pop, n, zoom, p) {
+    if (p !== undefined) setP(p);
+    S.zoom = zoom; $('zoom').checked = zoom;
+    setPop(pop); setN(NS.indexOf(n)); instant(1000); toBoard();
+  }
+  $('dExp30').onclick = () => preset('exp', 30, false);
+  let logBig = false;
+  $('dLog').onclick = () => { logBig = !logBig; preset('lognorm', logBig ? 5 : 100, true); $('dLog').textContent = logBig ? 'Now try n = 100' : 'Lognormal, n = 5 vs 100'; };
+  $('dRecipe').onclick = () => preset('bern', 5000, true, 0.03);
+
+  // tooltip over the means histogram
+  function showTip(ev) {
+    const rc = cv.getBoundingClientRect(), x = ev.clientX - rc.left, y = ev.clientY - rc.top;
+    if (y < L.mTop - 4 || y > L.mBot + 4 || !S.means.length) { tip.hidden = true; return; }
+    const B = bins(), dom = B.dom, v = dom.lo + (x - L.ml) / (L.W - L.ml - L.mr) * (dom.hi - dom.lo);
+    const i = Math.floor((v - B.start) / B.w); if (i < 0 || i >= B.counts.length) { tip.hidden = true; return; }
+    const a = B.start + i * B.w, b = a + B.w, d = P(), se = SE(), K = S.means.length;
+    const dd = Math.max(decs(B.w), 0) + 1;
+    const ex = K * (Phi((b - d.mu) / se) - Phi((a - d.mu) / se));
+    tip.innerHTML = `x̄ from ${nf(a, dd)} to ${nf(b, dd)}<br>Observed: ${B.counts[i].toLocaleString()} (${nf(B.counts[i] / K * 100, 1)}%)<br>Normal predicts: ${nf(ex, 1)}`;
+    tip.hidden = false;
+    const left = Math.min(x + 26, cv.clientWidth - tip.offsetWidth + 12);
+    tip.style.left = Math.max(12, left) + 'px';
+    tip.style.top = Math.max(12, y - tip.offsetHeight + 4) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  // ================= Trial of the Pyx =================
+  const pc = $('pyxCv'), pctx = pc.getContext('2d');
+  const NC = [100, 250, 500, 1000, 1500, 2500, 5000, 10000];
+  const TAU = 1, W0 = 100;
+  const Q = { shave: 0.5, sd: 1, ni: 5, k: 1, boxes: [] };
+  let PL = {}, pdirty = true;
+  const nC = () => NC[Q.ni];
+  function presize() {
+    const w = pc.parentElement.clientWidth - 20, h = Math.round(Math.min(Math.max(w * 0.5, 260), 360)), d = window.devicePixelRatio || 1;
+    pc.style.height = h + 'px'; pc.width = Math.round(w * d); pc.height = Math.round(h * d);
+    pctx.setTransform(d, 0, 0, d, 0, 0); PL = { W: w, H: h, ml: 12, mr: 12, mt: 46, mb: 30 }; pdirty = true;
+  }
+  function pyxCalc() {
+    const n = nC(), s = Q.sd, sdT = s * Math.sqrt(n), nom = W0 * n;
+    const win1 = n * TAU, win2 = Q.k * s * Math.sqrt(n);
+    const pass = (shift, win) => Phi((win - shift) / sdT) - Phi((-win - shift) / sdT);
+    const mean = -n * Q.shave;
+    const mx = win => { const v = (win - 1.645 * sdT) / n; return v; };
+    return { n, sdT, nom, win1, win2, hp1: pass(0, win1), hp2: pass(0, win2), sp1: pass(mean, win1), sp2: pass(mean, win2), mx1: mx(win1), mx2: mx(win2), mean };
+  }
+  const grams = g => Math.abs(g) >= 1000 ? nf(g / 1000, 2) + ' kg' : nf(g, g < 10 ? 2 : 0) + ' g';
+  const pct = p => p > 0.9995 ? '> 99.9%' : p < 0.0005 ? '< 0.1%' : nf(p * 100, 1) + '%';
+  function pyxUpdate() {
+    const R = pyxCalc();
+    $('tWin1').textContent = '± ' + grams(R.win1); $('tWin2').textContent = '± ' + grams(R.win2);
+    $('aWin1').textContent = '± ' + nf(TAU, 2) + ' g'; $('aWin2').textContent = '± ' + nf(R.win2 / R.n, R.win2 / R.n < 0.01 ? 4 : 3) + ' g';
+    $('hp1').textContent = pct(R.hp1); $('hp2').textContent = pct(R.hp2);
+    $('sp1').textContent = pct(R.sp1); $('sp2').textContent = pct(R.sp2);
+    const mxs = v => v <= 0 ? 'none' : nf(v, v < 0.01 ? 4 : v < 0.1 ? 3 : 2) + ' g';
+    $('mx1').textContent = mxs(R.mx1); $('mx2').textContent = mxs(R.mx2);
+    const nb = Q.boxes.length;
+    if (nb) {
+      let a = 0, b = 0; for (const t of Q.boxes) { if (Math.abs(t) <= R.win1) a++; if (Math.abs(t) <= R.win2) b++; }
+      $('wb1').textContent = `${a} of ${nb}`; $('wb2').textContent = `${b} of ${nb}`;
+    } else { $('wb1').textContent = '–'; $('wb2').textContent = '–'; }
+    const skim = R.n * Q.shave;
+    $('pyxCall').innerHTML = `<b>One box of ${R.n.toLocaleString()} coins.</b> SD of the total is σ√n = ${grams(R.sdT)}, not nσ = ${grams(R.n * Q.sd)}. Shaving ${nf(Q.shave, 2)} g per coin keeps ${grams(skim)} of gold per box`
+      + ` and passes the Mint rule ${pct(R.sp1)} of the time. Under the √n rule it passes ${pct(R.sp2)} of the time.`
+      + (R.mx2 <= 0 ? ` With k = ${Q.k}, even an honest box fails the √n rule ${pct(1 - R.hp2)} of the time, so a working rule needs k of about 2 or more.` : '');
+    pdirty = true;
+  }
+  function pyxDraw() {
+    const { W, H, ml, mr, mt, mb } = PL, R = pyxCalc();
+    pctx.clearRect(0, 0, W, H);
+    const half = Math.max(R.win1 * 1.25, R.win2 * 1.25, 4.5 * R.sdT + Math.abs(R.mean));
+    const lo = -half, hi = half, X = g => ml + (g - lo) / (hi - lo) * (W - ml - mr);
+    const base = H - mb, top = mt;
+    // windows
+    for (const [win, col, a] of [[R.win1, C.accent, 0.10], [R.win2, C.coinA, 0.28]]) {
+      const x0 = Math.max(ml, X(-win)), x1 = Math.min(W - mr, X(win));
+      pctx.fillStyle = col; pctx.globalAlpha = a; pctx.fillRect(x0, top, Math.max(1.5, x1 - x0), base - top); pctx.globalAlpha = 1;
+      pctx.strokeStyle = col; pctx.lineWidth = 1.25; pctx.beginPath();
+      if (X(-win) >= ml) { pctx.moveTo(X(-win) + .5, top); pctx.lineTo(X(-win) + .5, base); }
+      if (X(win) <= W - mr) { pctx.moveTo(X(win) - .5, top); pctx.lineTo(X(win) - .5, base); }
+      pctx.stroke();
+    }
+    pctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace'; pctx.textBaseline = 'bottom';
+    pctx.fillStyle = C.accent; pctx.textAlign = 'left';
+    pctx.fillText(`Mint rule ± ${grams(R.win1)}`, Math.max(ml, X(-R.win1)) + 4, top - 4);
+    pctx.fillStyle = C.coinA; pctx.textAlign = 'right';
+    pctx.fillText(`√n rule ± ${grams(R.win2)}`, Math.min(W - mr, X(R.win1)) - 4, W < 560 ? top - 18 : top - 4);
+    // curves: honest (dashed) and shaved (solid)
+    const peak = (base - top) * 0.8;
+    for (const [m, dash, alpha] of [[0, [5, 4], 0.5], [R.mean, [], 1]]) {
+      pctx.strokeStyle = C.curve; pctx.globalAlpha = alpha; pctx.setLineDash(dash); pctx.lineWidth = 2; pctx.beginPath();
+      const steps = 600; let first = true;
+      for (let i = 0; i <= steps; i++) {
+        const g = lo + (hi - lo) * i / steps, z = (g - m) / R.sdT, y = base - Math.exp(-0.5 * z * z) * peak;
+        if (first) { pctx.moveTo(X(g), y); first = false; } else pctx.lineTo(X(g), y);
+      }
+      pctx.stroke(); pctx.setLineDash([]); pctx.globalAlpha = 1;
+    }
+    pctx.fillStyle = C.curve; pctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; pctx.textBaseline = 'alphabetic';
+    if (Q.shave > 0) {
+      const xm = X(R.mean), left = xm > W / 2;
+      pctx.textAlign = left ? 'right' : 'left';
+      pctx.fillText(`shaved: −${grams(-R.mean)}`, xm + (left ? -8 : 8), base - peak + 10);
+    }
+    pctx.fillStyle = C.muted; pctx.textAlign = 'right'; pctx.fillText('dashed: honest box', W - mr - 4, base - 6);
+    // boxes
+    pctx.fillStyle = C.ball;
+    Q.boxes.forEach((t, i) => { pctx.beginPath(); pctx.arc(X(t), base - 10 - (i % 5) * 9, 4, 0, Math.PI * 2); pctx.fill(); });
+    // axis: total minus nominal
+    pctx.strokeStyle = C.line; pctx.lineWidth = 1; pctx.beginPath(); pctx.moveTo(ml, base + .5); pctx.lineTo(W - mr, base + .5); pctx.stroke();
+    const st = niceStep(hi - lo, Math.max(3, Math.floor(W / 90)));
+    pctx.fillStyle = C.muted; pctx.textAlign = 'center'; pctx.textBaseline = 'top';
+    for (let g = Math.ceil(lo / st) * st; g <= hi + 1e-9; g += st) {
+      const x = X(g); pctx.beginPath(); pctx.moveTo(x, base); pctx.lineTo(x, base + 4); pctx.stroke();
+      const lab = (g > 0 ? '+' : g < 0 ? '−' : '') + (Math.abs(g) >= 1000 ? nf(Math.abs(g) / 1000, Math.abs(st) >= 1000 ? 0 : 1) + ' kg' : nf(Math.abs(g), 0) + ' g');
+      pctx.fillText(lab, Math.min(Math.max(x, ml + 20), W - mr - 20), base + 6);
+    }
+    pctx.textAlign = 'left'; pctx.textBaseline = 'top'; pctx.fillStyle = C.ink; pctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace';
+    pctx.fillText(`Box total minus ${grams(R.nom)}`, ml, 4);
+  }
+  function weigh() {
+    const n = nC(), m = W0 - Q.shave; Q.boxes = [];
+    for (let b = 0; b < 20; b++) { let s = 0; for (let i = 0; i < n; i++) s += m + Q.sd * randn(); Q.boxes.push(s - W0 * n); }
+    pyxUpdate();
+  }
+  function setK(k) { Q.k = k; for (const j of [1, 2, 3]) $('k' + j).setAttribute('aria-pressed', j === k); pyxUpdate(); }
+  $('shave').oninput = e => { Q.shave = +e.target.value; $('shaveOut').textContent = Q.shave.toFixed(2) + ' g'; Q.boxes = []; pyxUpdate(); };
+  $('csd').oninput = e => { Q.sd = +e.target.value; $('csdOut').textContent = Q.sd.toFixed(2) + ' g'; Q.boxes = []; pyxUpdate(); };
+  $('nc').oninput = e => { Q.ni = +e.target.value; $('ncOut').textContent = nC().toLocaleString(); Q.boxes = []; pyxUpdate(); };
+  for (const j of [1, 2, 3]) $('k' + j).onclick = () => setK(j);
+  $('weigh').onclick = weigh;
+  $('pyxReset').onclick = () => {
+    Q.shave = 0.5; Q.sd = 1; Q.ni = 5; $('shave').value = 0.5; $('csd').value = 1; $('nc').value = 5;
+    $('shaveOut').textContent = '0.50 g'; $('csdOut').textContent = '1.00 g'; $('ncOut').textContent = '2,500';
+    setK(1); weigh();
+  };
+  function pframe() { if (pdirty) { pyxDraw(); pdirty = false; } requestAnimationFrame(pframe); }
+
+  // ---- boot ----
+  readColors();
+  const recolor = () => { readColors(); dirty = true; pdirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => resize()).observe(cv.parentElement);
+  new ResizeObserver(() => presize()).observe(pc.parentElement);
+  resize(); presize();
+  $('nOut').textContent = N().toLocaleString();
+  updateStats(); instant(1000);
+  weigh();
+  requestAnimationFrame(frame); requestAnimationFrame(pframe);
+})();
+</script>
+
+</body></html>

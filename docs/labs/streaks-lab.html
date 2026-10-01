@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Streaks Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --grid: #e3e7ec;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+#board { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 8px 4px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; }
+.sw.ball { background: var(--ball); border-radius: 50%; width: 10px; }
+.sw.a { background: var(--coinA); border-radius: 50%; width: 10px; }
+.sw.b { background: var(--coinB); border-radius: 50%; width: 10px; }
+.sw.dash { height: 0; border-top: 2px solid var(--ink); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px solid var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tip b { font-family: var(--font-display); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary[aria-pressed="true"] { background: var(--curve); border-color: var(--curve); }
+.btns .wide { grid-column: span 2; }
+
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+.slider.a output { color: var(--coinA); }
+.slider.b output { color: var(--coinB); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider.a input { accent-color: var(--coinA); }
+.slider.b input { accent-color: var(--coinB); }
+.mixbox { display: flex; flex-direction: column; gap: 10px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.path { font-family: var(--font-mono); font-size: 13px; line-height: 1.6; word-break: break-word; min-height: 1.6em; }
+.path .r { color: var(--accent); font-weight: 600; }
+.path .l { color: var(--muted); }
+.path .to { color: var(--ink); font-weight: 600; }
+.path .ca { color: var(--coinA); font-weight: 600; }
+.path .cb { color: var(--coinB); font-weight: 600; }
+
+/* CLT lesson */
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.eq table { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.eq th, .eq td { text-align: right; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.eq th:first-child, .eq td:first-child { text-align: left; }
+.eq th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.eq tr:last-child td { border-bottom: 0; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+canvas.plot { display: block; width: 100%; touch-action: pan-y; }
+.board { display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; line-height: 1.6; }
+.eqn .a { color: var(--accent); font-weight: 600; } .eqn .c { color: var(--curve); font-weight: 600; } .eqn .t { color: var(--coinA); font-weight: 600; } .eqn .p { color: var(--coinB); font-weight: 600; } .eqn .h { color: var(--ball); font-weight: 600; }
+.seg.two { grid-template-columns: repeat(2, 1fr); }
+.btns.two { grid-template-columns: 1fr 1fr; }
+.btns.one { grid-template-columns: 1fr; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.kpi .k { font-size: 12.5px; color: var(--muted); }
+.kpi .v { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi .s { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats td.obs { color: var(--accent); }
+.stats td.th { color: var(--curve); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.field { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.field label { font-weight: 700; }
+.field input[type=number] { width: 96px; font: inherit; font-family: var(--font-mono); font-size: 14px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--board); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.field input[type=number]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tablewrap { overflow-x: auto; }
+.stats td + td, .stats th + th { padding-left: 10px; }
+
+.sw.tail { background: color-mix(in srgb, var(--ball) 30%, transparent); border: 1px solid var(--ball); }
+.sw.miss { background: var(--line); }
+.sw.hot { background: var(--ball); }
+.sw.dot { border-radius: 50%; width: 10px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Streaks, Bernoulli and binomial</span>
+    <h1>Streaks Lab</h1>
+    <p class="lead">A one-in-a-million event almost never happens to one person, and it happens all the time to somebody. Count how many chances there were: 32 NFL teams tossing coins, or thousands of hitters chasing a streak over many seasons.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 1, <a href="https://vsokolov.org/html/_book/01-prob.html">Probability and Uncertainty</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Streak probability charts">
+      <div class="kpis" id="kpis"></div>
+      <div class="eqn" id="eqn"></div>
+      <canvas id="plot" class="plot" role="img" aria-label="Binomial or streak distribution, with the chance that at least one of many players sees the rare event"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend" id="legCoin">
+        <span><i class="sw dot"></i>Simulated team (one dot each)</span>
+        <span><i class="sw dot hot"></i>Team in the news region</span>
+        <span><i class="sw curve"></i>Theory: expected teams, and P(at least one)</span>
+        <span><i class="sw tail"></i>News region</span>
+      </div>
+      <div class="legend" id="legHit" hidden>
+        <span><i class="sw"></i>Hit in game / simulated seasons</span>
+        <span><i class="sw miss"></i>No hit</span>
+        <span><i class="sw hot"></i>Longest streak this season</span>
+        <span><i class="sw curve"></i>Theory (exact recursion)</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Mode</span>
+        <div class="seg two" role="group" aria-label="Lab mode">
+          <button id="mCoin" aria-pressed="true">Coin tosses</button>
+          <button id="mHit" aria-pressed="false">Hitting streaks</button>
+        </div>
+      </div>
+
+      <!-- coin mode -->
+      <div class="group" id="gCoinRun">
+        <span class="label">Simulate</span>
+        <div class="btns two">
+          <button id="cSeason" class="primary">New season</button>
+          <button id="cRun">Run 1,000 seasons</button>
+        </div>
+      </div>
+      <div class="group" id="gCoinPar">
+        <span class="label">Coin tosses</span>
+        <div class="slider"><div class="top"><label for="cn">Tosses per team, n</label><output id="cnOut">25</output></div>
+          <input type="range" id="cn" min="5" max="50" step="1" value="25"></div>
+        <div class="slider"><div class="top"><label for="ck">News if a team wins at least</label><output id="ckOut">19</output></div>
+          <input type="range" id="ck" min="1" max="25" step="1" value="19"></div>
+        <div class="slider"><div class="top"><label for="cp">P(win one toss), p</label><output id="cpOut">0.50</output></div>
+          <input type="range" id="cp" min="0.3" max="0.7" step="0.01" value="0.5"></div>
+        <div class="slider"><div class="top"><label for="ct">Teams in the league</label><output id="ctOut">32</output></div>
+          <input type="range" id="ct" min="1" max="64" step="1" value="32"></div>
+        <div class="slider"><div class="top"><label for="cs">Seasons the media watch</label><output id="csOut">1</output></div>
+          <input type="range" id="cs" min="1" max="30" step="1" value="1"></div>
+        <div class="checks">
+          <label><input type="checkbox" id="cTwo"> Losing streaks are news too (≤ n − k wins)</label>
+        </div>
+        <p class="hint">Each team is treated as independent. In a real league one team's toss win is its opponent's loss, which changes the answer very little.</p>
+      </div>
+      <div class="group" id="gCoinStats">
+        <span class="label">One season vs 1,000 simulated</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Observed</th><th>Theory</th></tr></thead>
+          <tbody>
+            <tr><td>P(X = k), one team</td><td>–</td><td class="th" id="cPk">–</td></tr>
+            <tr><td>P(X ≥ k), one team</td><td class="obs" id="cQo">–</td><td class="th" id="cQ">–</td></tr>
+            <tr><td>News teams per season</td><td class="obs" id="cEo">–</td><td class="th" id="cE">–</td></tr>
+            <tr><td>P(at least one story)</td><td class="obs" id="cAo">–</td><td class="th" id="cA">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint" id="cHint"></p>
+      </div>
+
+      <!-- hit mode -->
+      <div class="group" id="gHitRun" hidden>
+        <span class="label">Simulate</span>
+        <div class="btns two">
+          <button id="hSeason" class="primary">New season</button>
+          <button id="hRun">Run 1,000 seasons</button>
+        </div>
+      </div>
+      <div class="group" id="gHitPar" hidden>
+        <span class="label">Hitter</span>
+        <div class="slider"><div class="top"><label for="ha">Batting average</label><output id="haOut">.300</output></div>
+          <input type="range" id="ha" min="0.200" max="0.400" step="0.001" value="0.300"></div>
+        <div class="slider"><div class="top"><label for="hab">At-bats per game</label><output id="habOut">4</output></div>
+          <input type="range" id="hab" min="2" max="6" step="1" value="4"></div>
+        <div class="slider"><div class="top"><label for="hL">Streak to beat, L games</label><output id="hLOut">44</output></div>
+          <input type="range" id="hL" min="5" max="70" step="1" value="44"></div>
+        <span class="label">Chances</span>
+        <div class="slider"><div class="top"><label for="hg">Games per season</label><output id="hgOut">162</output></div>
+          <input type="range" id="hg" min="60" max="162" step="1" value="162"></div>
+        <div class="slider"><div class="top"><label for="hs">Seasons per career</label><output id="hsOut">15</output></div>
+          <input type="range" id="hs" min="1" max="25" step="1" value="15"></div>
+        <div class="slider"><div class="top"><label for="hp">Hitters of this quality</label><output id="hpOut">1,000</output></div>
+          <input type="range" id="hp" min="0" max="5" step="0.05" value="3"></div>
+        <p class="hint">Games are independent with the same hit probability. Season length, career length and the number of hitters are your assumptions; the batting averages are given.</p>
+      </div>
+      <div class="group" id="gHitStats" hidden>
+        <span class="label">1,000 simulated seasons vs exact</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Observed</th><th>Theory</th></tr></thead>
+          <tbody>
+            <tr><td>Mean longest streak</td><td class="obs" id="hMo">–</td><td class="th" id="hM">–</td></tr>
+            <tr><td>Seasons with a 20+ streak</td><td class="obs" id="h20o">–</td><td class="th" id="h20">–</td></tr>
+            <tr><td>Seasons with streak ≥ L</td><td class="obs" id="hLo">–</td><td class="th" id="hLt">–</td></tr>
+            <tr><td>Longest seen</td><td class="obs" id="hMax">–</td><td>–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">A thousand seasons is far too few to see a 44-game streak. The bottom chart scales the exact answer up to many hitters.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">The law of very large numbers</span>
+      <h2>Same template, different p and different number of chances</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The Pete Rose calculation and the Patriots calculation are the same template. Each one multiplies small probabilities for one person. The real question is how many chances there were for the rare event to happen somewhere.</p>
+      <div class="demo">
+        <button class="primary" id="dPats">Patriots: 19 of 25 tosses, 32 teams</button>
+        <button id="dRose">Pete Rose: .300, 44 games</button>
+        <button id="dJoe">DiMaggio: .325, 56 games</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>One game is a Bernoulli trial</h3>
+        <p>Rose hit .300 with 4 at-bats per game. He fails to get a hit only if all 4 at-bats are outs, so P(hit in a game) = 1 − 0.7⁴ = 0.76. For DiMaggio at .325 it is 1 − 0.675⁴ = 0.792. Both use the binomial X ~ Bin(4, p): a hit in the game means X ≥ 1.</p>
+      </div></li>
+      <li><div>
+        <h3>A fixed run of games multiplies</h3>
+        <p>If games are independent, 44 hits in 44 named games has probability 0.76⁴⁴ ≈ 5.7 × 10⁻⁶, about 1 in 175,000. DiMaggio's 56 is 0.792⁵⁶ ≈ 2.1 × 10⁻⁶, about 1 in 456,000. That is the number for one particular stretch of games.</p>
+      </div></li>
+      <li><div>
+        <h3>A season has many starting points</h3>
+        <p>A streak can start in any game. The chance of a 44-game streak somewhere in a 162-game season is about 30 times the fixed-stretch number. The lab gets it exactly with a recursion that tracks the current run length game by game.</p>
+      </div></li>
+      <li><div>
+        <h3>Many players and seasons make it likely</h3>
+        <p>If one season has chance q, then m independent player-seasons give 1 − (1 − q)<sup>m</sup>. With m ≈ 1/q chances this is already 63%. The Patriots' 19 of 25 is about 1 in 137 for one team, and about 1 in 5 for "some team this season".</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Binomial count of toss wins</div>
+        <div class="m">P(X = k) = C(n, k) p<sup>k</sup> (1 − p)<sup>n−k</sup></div>
+        <div class="m">P(X = 19) = 177,100 × 2⁻²⁵ ≈ 0.0053</div>
+        <div class="m">P(X ≥ 19) = 0.0073 ≈ 1 in 137</div>
+      </div>
+      <div class="eq">
+        <div class="cap">At least one of m independent chances</div>
+        <div class="m">P(some team) = 1 − (1 − 0.0073)³² ≈ 0.209</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Exact streak recursion. State r = current run length, r = 0, …, L−1.</div>
+        <div class="m">After a hit:  r → r + 1  (prob p)</div>
+        <div class="m">After a miss: r → 0      (prob 1 − p)</div>
+        <div class="m">P(streak ≥ L) = total probability of ever reaching r = L</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Worked cases (one season, exact)</div>
+        <table>
+          <thead><tr><th>Case</th><th>p<sup>L</sup></th><th>Season</th></tr></thead>
+          <tbody>
+            <tr><td>Rose, 0.76, L = 44, 162 g</td><td>5.7e−6</td><td>1.7e−4</td></tr>
+            <tr><td>DiMaggio, 0.792, L = 56, 154 g</td><td>2.2e−6</td><td>4.7e−5</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> Before you are impressed by a rare event, ask how many chances there were for it to happen somewhere, and whether you only heard about it because it was unusual. That is selection bias in the news. It is also why a fund manager with a 10-year winning streak, or a drug trial with one good subgroup, needs the same check.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Bernoulli process</h2>
+      <p>Independent trials with the same p. Two successes in a row have probability p², and L in a row have p<sup>L</sup>.</p>
+      <div class="formula">P(X₁ = 1, …, X<sub>L</sub> = 1) = p<sup>L</sup></div>
+    </div>
+    <div class="note">
+      <h2>Binomial mean and variance</h2>
+      <p>For 25 fair tosses the mean is 12.5 and the SD is 2.5. Nineteen wins is 2.6 SDs above the mean.</p>
+      <div class="formula">E(X) = np,  Var(X) = np(1 − p)</div>
+    </div>
+    <div class="note">
+      <h2>DiMaggio: more than 2 hits</h2>
+      <p>A classic exercise asks for more than 2 hits in 4 at-bats at .325. A solid game is rare even for an elite hitter.</p>
+      <div class="formula">P(X &gt; 2) = 0.093 + 0.011 = 0.104</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Start in coin mode. Press "New season" a few times and count how often some dot lands in the shaded news region. Then press "Run 1,000 seasons" and compare with the theory of about 21%.</li>
+      <li>Set teams to 1. The chance falls to 0.7%. Ask: would the Patriots story feel as surprising if you knew it had a 1-in-5 chance of happening to some team?</li>
+      <li>Tick "Losing streaks are news too". The chance of some story rises to about 38%, because 6 or fewer wins is just as rare as 19 or more.</li>
+      <li>Switch to hitting streaks with the Rose preset. Compare p<sup>L</sup> (1 in 176,000) with the season chance (1 in 6,000). Then raise the number of hitters until the bottom curve passes 50%.</li>
+      <li>Load DiMaggio and move the batting average from .325 down to .300. The 56-game chance per season drops by about a factor of 9. Small changes in p matter a lot when raised to the 56th power.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('plot'), ctx = cv.getContext('2d');
+  const tip = document.getElementById('tip');
+  const $ = id => document.getElementById(id);
+  let C = {}, L = {};
+  const S = {
+    mode: 'coin',
+    c: { n: 25, k: 19, p: 0.5, teams: 32, seasons: 1, two: false, season: [], runs: 0, anyHits: 0, teamHits: 0, teamTotal: 0 },
+    h: { avg: 0.3, ab: 4, L: 44, games: 162, seasons: 15, pexp: 3, timeline: [], hist: [], runs: 0, sumLong: 0, n20: 0, nL: 0, maxLong: 0 },
+    T: {}, hover: null
+  };
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'peg', 'board', 'surface', 'coinA', 'coinB'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+
+  // ---------- math ----------
+  const LF = [0]; for (let i = 1; i <= 400; i++) LF[i] = LF[i - 1] + Math.log(i);
+  function binom(n, p) { const o = []; for (let k = 0; k <= n; k++) o.push(Math.exp(LF[n] - LF[k] - LF[n - k] + k * Math.log(p) + (n - k) * Math.log(1 - p))); return o; }
+  // P(at least one in m independent chances), stable for tiny q
+  const atLeastOne = (q, m) => q >= 1 ? 1 : -Math.expm1(m * Math.log1p(-q));
+  // P(longest run of successes >= m) in n trials: accumulate the mass that first reaches run length m
+  function runAtLeast(n, p, m) {
+    if (m <= 0) return 1;
+    if (m > n) return 0;
+    let s = new Float64Array(m); s[0] = 1; let hit = 0;
+    for (let g = 0; g < n; g++) {
+      const t = new Float64Array(m); let tot = 0;
+      for (let r = 0; r < m; r++) tot += s[r];
+      t[0] = tot * (1 - p);
+      for (let r = 1; r < m; r++) t[r] = s[r - 1] * p;
+      hit += s[m - 1] * p;
+      s = t;
+    }
+    return hit;
+  }
+
+  // ---------- formatting ----------
+  const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  function sci(x, d = 1) {
+    if (x === 0) return '0';
+    const e = Math.floor(Math.log10(x)); let m = x / Math.pow(10, e);
+    if (+m.toFixed(d) >= 10) return sci(x * 1.0000001, d);
+    return m.toFixed(d) + ' × 10' + String(e).split('').map(c => SUP[c]).join('');
+  }
+  function pct(x) {
+    if (x >= 0.9995) return '> 99.9%';
+    if (x >= 0.001) return (x * 100).toFixed(x < 0.1 ? 2 : 1) + '%';
+    return sci(x);
+  }
+  function oneIn(x) {
+    if (x <= 0) return '–';
+    const v = 1 / x; if (v < 1.05) return 'almost certain';
+    const r = v >= 1e5 ? Number(v.toPrecision(3)) : v >= 10 ? Math.round(v) : +v.toFixed(1);
+    return '1 in ' + r.toLocaleString();
+  }
+  const nice = v => { const r = v >= 100 ? Number(v.toPrecision(2)) : Math.round(v); return Math.max(1, r); };
+
+  // ---------- theory ----------
+  function coinTheory() {
+    const c = S.c, pmf = binom(c.n, c.p);
+    let q = 0;
+    for (let j = 0; j <= c.n; j++) if (inNews(j)) q += pmf[j];
+    const T = { pmf, pk: pmf[c.k] ?? 0, q };
+    T.m = c.teams * c.seasons;
+    T.league = atLeastOne(q, c.teams);
+    T.all = atLeastOne(q, T.m);
+    T.perSeason = c.teams * q;
+    S.T = T;
+  }
+  const inNews = j => j >= S.c.k || (S.c.two && j <= S.c.n - S.c.k);
+
+  function hitTheory() {
+    const h = S.h, p = 1 - Math.pow(1 - h.avg, h.ab);
+    const players = nice(Math.pow(10, h.pexp));
+    const xMax = Math.min(h.games, Math.max(h.L + 4, 32));
+    const G = [1]; for (let m = 1; m <= xMax + 1; m++) G[m] = runAtLeast(h.games, p, m);
+    const pmf = []; let mean = 0;
+    for (let m = 0; m <= xMax; m++) { pmf[m] = G[m] - G[m + 1]; }
+    for (let m = 1; m <= h.games; m++) { const g = m <= xMax + 1 ? G[m] : 0; if (g < 1e-16) break; mean += g; }
+    const season = G[h.L] ?? runAtLeast(h.games, p, h.L);
+    const career = atLeastOne(season, h.seasons);
+    const m = players * h.seasons;
+    S.T = { p, players, xMax, G, pmf, mean, fixed: Math.pow(p, h.L), season, career, m,
+            all: atLeastOne(season, m), g20: runAtLeast(h.games, p, 20) };
+  }
+
+  // ---------- simulation ----------
+  function coinSeason() {
+    const c = S.c; c.season = [];
+    for (let t = 0; t < c.teams; t++) { let w = 0; for (let i = 0; i < c.n; i++) if (Math.random() < c.p) w++; c.season.push(w); }
+  }
+  function coinRuns(R = 1000) {
+    const c = S.c; c.runs = 0; c.anyHits = 0; c.teamHits = 0; c.teamTotal = 0;
+    for (let r = 0; r < R; r++) {
+      let any = false;
+      for (let t = 0; t < c.teams * c.seasons; t++) {
+        let w = 0; for (let i = 0; i < c.n; i++) if (Math.random() < c.p) w++;
+        if (inNews(w)) { any = true; c.teamHits++; }
+        c.teamTotal++;
+      }
+      c.runs++; if (any) c.anyHits++;
+    }
+  }
+  function longestOf(arr) {
+    let best = 0, bestEnd = -1, run = 0;
+    for (let i = 0; i < arr.length; i++) { run = arr[i] ? run + 1 : 0; if (run > best) { best = run; bestEnd = i; } }
+    return { best, start: bestEnd - best + 1, end: bestEnd };
+  }
+  function hitSeason() {
+    const h = S.h, p = S.T.p; h.timeline = [];
+    for (let g = 0; g < h.games; g++) h.timeline.push(Math.random() < p ? 1 : 0);
+    h.long = longestOf(h.timeline);
+  }
+  function hitRuns(R = 1000) {
+    const h = S.h, p = S.T.p; h.hist = new Array(h.games + 1).fill(0);
+    h.runs = 0; h.sumLong = 0; h.n20 = 0; h.nL = 0; h.maxLong = 0;
+    for (let r = 0; r < R; r++) {
+      let best = 0, run = 0;
+      for (let g = 0; g < h.games; g++) { if (Math.random() < p) { run++; if (run > best) best = run; } else run = 0; }
+      h.hist[best]++; h.runs++; h.sumLong += best; if (best >= 20) h.n20++; if (best >= h.L) h.nL++; if (best > h.maxLong) h.maxLong = best;
+    }
+  }
+
+  // ---------- readouts ----------
+  function kpi(k, v, s) { return `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`; }
+  function updateText() {
+    const T = S.T;
+    if (S.mode === 'coin') {
+      const c = S.c, tail = c.two ? `≥ ${c.k} or ≤ ${c.n - c.k}` : `≥ ${c.k}`;
+      $('kpis').innerHTML =
+        kpi(`One team wins ${tail} of ${c.n}`, pct(T.q), oneIn(T.q)) +
+        kpi(`Some team of ${c.teams}, one season`, pct(T.league), oneIn(T.league)) +
+        kpi(`Some team over ${c.seasons} season${c.seasons > 1 ? 's' : ''}`, pct(T.all), `${T.m.toLocaleString()} team-seasons`);
+      $('eqn').innerHTML = `P(X = ${c.k}) = C(${c.n}, ${c.k}) · ${c.p.toFixed(2)}<sup>${c.k}</sup> · ${(1 - c.p).toFixed(2)}<sup>${c.n - c.k}</sup> = <span class="c">${T.pk.toFixed(4)}</span>` +
+        `&nbsp;&nbsp;·&nbsp;&nbsp;1 − (1 − <span class="c">${T.q.toFixed(4)}</span>)<sup>${T.m}</sup> = <span class="c">${T.all.toFixed(3)}</span>`;
+      $('cPk').textContent = T.pk.toFixed(4);
+      $('cQ').textContent = T.q.toFixed(4);
+      $('cE').textContent = T.perSeason.toFixed(3);
+      $('cA').textContent = T.all.toFixed(3);
+      if (c.runs) {
+        $('cQo').textContent = (c.teamHits / c.teamTotal).toFixed(4);
+        $('cEo').textContent = (c.teamHits / c.runs / c.seasons).toFixed(3);
+        $('cAo').textContent = (c.anyHits / c.runs).toFixed(3);
+      } else { $('cQo').textContent = $('cEo').textContent = $('cAo').textContent = '–'; }
+      const nNews = c.season.filter(inNews).length;
+      $('cHint').textContent = `This season: ${nNews} team${nNews === 1 ? '' : 's'} in the news region. "At least one story" is checked over ${c.seasons} season${c.seasons > 1 ? 's' : ''} in each of the ${c.runs.toLocaleString()} simulated runs.`;
+    } else {
+      const h = S.h;
+      $('kpis').innerHTML =
+        kpi(`These ${h.L} games, all hits: p<sup>L</sup>`, sci(T.fixed), oneIn(T.fixed)) +
+        kpi(`Streak ≥ ${h.L} somewhere in one season`, pct(T.season), oneIn(T.season)) +
+        kpi(`Some hitter of ${T.players.toLocaleString()}, ${h.seasons} seasons each`, pct(T.all), `${T.m.toLocaleString()} player-seasons`);
+      $('eqn').innerHTML = `p = 1 − (1 − ${h.avg.toFixed(3)})<sup>${h.ab}</sup> = <span class="a">${T.p.toFixed(3)}</span>&nbsp;&nbsp;·&nbsp;&nbsp;p<sup>${h.L}</sup> = <span class="c">${sci(T.fixed)}</span>&nbsp;&nbsp;·&nbsp;&nbsp;per season (${h.games} games) = <span class="c">${sci(T.season)}</span>`;
+      $('hM').textContent = T.mean.toFixed(2);
+      $('h20').textContent = (1000 * T.g20).toFixed(1);
+      $('hLt').textContent = (1000 * T.season) < 0.01 ? sci(1000 * T.season) : (1000 * T.season).toFixed(2);
+      if (h.runs) {
+        $('hMo').textContent = (h.sumLong / h.runs).toFixed(2);
+        $('h20o').textContent = h.n20.toLocaleString();
+        $('hLo').textContent = h.nL.toLocaleString();
+        $('hMax').textContent = h.maxLong;
+      }
+    }
+  }
+
+  // ---------- drawing ----------
+  function resize() {
+    const w = cv.parentElement.clientWidth - 24;
+    const top = S.mode === 'hit' ? (w < 560 ? 108 : 74) : 0;
+    const mid = Math.round(Math.min(Math.max(w * 0.42, 220), 320));
+    const bot = Math.round(Math.min(Math.max(w * 0.34, 200), 260));
+    const h = top + mid + bot + 50;
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    const ml = 48, mr = 14;
+    L = { W: w, H: h, top: { x: 4, y: w < 560 ? 12 : 4, w: w - 8, h: top - 10 },
+          mid: { x: ml, y: top + 26, w: w - ml - mr, h: mid - 44 },
+          bot: { x: ml, y: top + mid + 44, w: w - ml - mr, h: bot - 50 } };
+    dirty = true;
+  }
+  function niceStep(range, target) {
+    const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+  }
+  const mono = (sz = 11, wt = '') => `${wt} ${sz}px "JetBrains Mono", ui-monospace, monospace`;
+  function title(r, txt) { ctx.fillStyle = C.ink; ctx.font = mono(12, '600'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(txt, 2, r.y - 10, L.W - 4); }
+  function yAxis(r, max, step, fmtY) {
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.fillStyle = C.muted; ctx.font = mono(11); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let v = 0; v <= max + 1e-9; v += step) {
+      const y = Math.round(r.y + r.h - v / max * r.h) + .5;
+      ctx.beginPath(); ctx.moveTo(r.x, y); ctx.lineTo(r.x + r.w, y); ctx.stroke();
+      ctx.fillText(fmtY(v), r.x - 6, y);
+    }
+  }
+
+  // binomial panel with simulated league season
+  function drawCoinMid() {
+    const r = L.mid, c = S.c, T = S.T, n = c.n;
+    const dx = r.w / (n + 1), X = k => r.x + (k + 0.5) * dx;
+    const counts = new Array(n + 1).fill(0); for (const w of c.season) counts[w]++;
+    const expMax = Math.max(...T.pmf) * c.teams;
+    let yMax = Math.max(expMax, ...counts, 1);
+    const step = niceStep(yMax, 4); yMax = Math.ceil(yMax * 1.08 / step) * step;
+    title(r, `One simulated season: wins for each of ${c.teams} teams`);
+    // news region
+    ctx.fillStyle = C.ball; ctx.globalAlpha = 0.13;
+    for (let k = 0; k <= n; k++) if (inNews(k)) ctx.fillRect(r.x + k * dx, r.y, dx, r.h);
+    ctx.globalAlpha = 1;
+    yAxis(r, yMax, step, v => String(+v.toFixed(2)));
+    // x ticks
+    ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = mono(11);
+    const every = dx < 12 ? 5 : dx < 22 ? 2 : 1;
+    for (let k = 0; k <= n; k++) if (k % every === 0) ctx.fillText(String(k), X(k), r.y + r.h + 6);
+    ctx.textAlign = 'right'; ctx.fillText('toss wins out of ' + n, r.x + r.w, r.y + r.h + 20);
+    // expected teams (theory)
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.beginPath();
+    T.pmf.forEach((v, k) => { const y = r.y + r.h - v * c.teams / yMax * r.h; k ? ctx.lineTo(X(k), y) : ctx.moveTo(X(k), y); });
+    ctx.stroke();
+    // dots: one per team, stacked
+    const unit = r.h / yMax, rad = Math.max(2, Math.min(dx * 0.42, unit * 0.45, 9));
+    for (let k = 0; k <= n; k++) for (let i = 0; i < counts[k]; i++) {
+      ctx.fillStyle = inNews(k) ? C.ball : C.accent;
+      ctx.beginPath(); ctx.arc(X(k), r.y + r.h - (i + 0.5) * unit, rad, 0, Math.PI * 2); ctx.fill();
+    }
+    // labels
+    ctx.font = mono(11, '600'); ctx.textBaseline = 'bottom';
+    if (n === 25 && c.k <= 25) {
+      const x = X(19); ctx.strokeStyle = C.ink; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.25;
+      ctx.beginPath(); ctx.moveTo(x, r.y + 14); ctx.lineTo(x, r.y + r.h); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C.ink; ctx.textAlign = x > r.x + r.w * 0.6 ? 'right' : 'left';
+      ctx.fillText('Patriots 2014–15: 19', x + (ctx.textAlign === 'right' ? -4 : 4), r.y + 14);
+    }
+    ctx.fillStyle = C.muted; ctx.textAlign = 'left'; ctx.font = mono(11); ctx.textBaseline = 'top';
+    ctx.fillText('teams', r.x + 4, r.y + 4);
+  }
+
+  // "at least one" vs number of chances, log x
+  function drawChances(r, q, mCur, obs, unitLabel, titleTxt) {
+    const x50 = q > 0 ? Math.log(0.5) / Math.log1p(-q) : Infinity;
+    let eMax = Math.max(3, Math.ceil(Math.log10(Math.max(mCur, isFinite(x50) ? x50 * 20 : 10))));
+    eMax = Math.min(eMax, 10);
+    const X = m => r.x + Math.log10(m) / eMax * r.w, Y = v => r.y + r.h - v * r.h;
+    title(r, titleTxt);
+    yAxis(r, 1, 0.25, v => (v * 100).toFixed(0) + '%');
+    ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = mono(11);
+    const stepE = (eMax > 7 || r.w / eMax < 70) ? 2 : 1;
+    for (let e = 0; e <= eMax; e += stepE) {
+      const x = Math.round(X(Math.pow(10, e))) + .5;
+      ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(x, r.y); ctx.lineTo(x, r.y + r.h); ctx.stroke();
+      const lab = e <= 6 ? Math.pow(10, e).toLocaleString() : '10' + String(e).split('').map(c => SUP[c]).join('');
+      ctx.textAlign = e === eMax ? 'right' : e === 0 ? 'left' : 'center';
+      ctx.fillText(lab, e === eMax ? x + 4 : e === 0 ? x - 4 : x, r.y + r.h + 6);
+    }
+    ctx.textAlign = 'right'; ctx.fillText(unitLabel + ' (log scale)', r.x + r.w, r.y + r.h + 22);
+    // curve
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 2.25; ctx.beginPath();
+    for (let i = 0; i <= 300; i++) { const m = Math.pow(10, eMax * i / 300), x = X(m), y = Y(atLeastOne(q, m)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+    // 50% marker
+    if (isFinite(x50) && x50 >= 1 && Math.log10(x50) <= eMax) {
+      const x = X(x50);
+      ctx.strokeStyle = C.muted; ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, Y(0.5)); ctx.lineTo(x, r.y + r.h); ctx.moveTo(r.x, Y(0.5)); ctx.lineTo(x, Y(0.5)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C.muted; ctx.font = mono(11); ctx.textAlign = x > r.x + r.w * 0.7 ? 'right' : 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`50% at ${nice(x50).toLocaleString()}`, x + (ctx.textAlign === 'left' ? 5 : -5), r.y + r.h - 4);
+    }
+    // current point
+    const pc = atLeastOne(q, mCur), xc = X(Math.max(1, mCur)), yc = Y(pc);
+    ctx.fillStyle = C.ball; ctx.beginPath(); ctx.arc(xc, yc, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = C.board; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = C.ink; ctx.font = mono(12, '600'); ctx.textBaseline = 'middle';
+    const lab = `${mCur.toLocaleString()} → ${pct(pc)}`;
+    const tw = ctx.measureText(lab).width;
+    const left = xc + 10 + tw > r.x + r.w; ctx.textAlign = left ? 'right' : 'left';
+    ctx.fillText(lab, xc + (left ? -10 : 10), Math.min(Math.max(yc + (pc > 0.85 ? 14 : -14), r.y + 8), r.y + r.h - 8));
+    if (obs != null) {
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 2.25; ctx.beginPath(); ctx.arc(xc, Y(obs), 7.5, 0, Math.PI * 2); ctx.stroke();
+    }
+    // one-chance point
+    ctx.fillStyle = C.curve; ctx.beginPath(); ctx.arc(X(1), Y(q), 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawHitTop() {
+    const r = L.top, h = S.h, n = h.games, lg = h.long || { best: 0, start: -1, end: -1 };
+    const rows = r.w < 560 ? 2 : 1, per = Math.ceil(n / rows);
+    const cw = r.w / per, ch = rows === 2 ? 20 : 26, y0 = r.y + (rows === 2 ? 26 : 22);
+    ctx.fillStyle = C.ink; ctx.font = mono(12, '600'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    const hits = h.timeline.reduce((a, b) => a + b, 0);
+    const t1 = `One simulated season: ${hits} of ${n} games with a hit`, t2 = `longest streak ${lg.best} (games ${lg.start + 1}–${lg.end + 1})`;
+    if (rows === 2) { ctx.font = mono(11, '600'); ctx.fillText(t1, r.x, r.y - 8, r.w); ctx.fillText(t2, r.x, r.y + 6, r.w); }
+    else ctx.fillText(t1 + ' · ' + t2, r.x, r.y, r.w);
+    for (let g = 0; g < n; g++) {
+      const row = Math.floor(g / per), col = g % per;
+      const inLong = g >= lg.start && g <= lg.end;
+      ctx.fillStyle = inLong ? C.ball : h.timeline[g] ? C.accent : C.line;
+      ctx.fillRect(r.x + col * cw + (cw > 3 ? 0.5 : 0), y0 + row * (ch + 6), Math.max(1, cw - (cw > 3 ? 1 : 0)), ch);
+    }
+  }
+
+  function drawHitMid() {
+    const r = L.mid, h = S.h, T = S.T, xMax = T.xMax;
+    const dx = r.w / (xMax + 1), X = k => r.x + (k + 0.5) * dx;
+    const R = h.runs || 1;
+    let yMax = 0; for (let k = 0; k <= xMax; k++) yMax = Math.max(yMax, (h.hist[k] || 0) / R, T.pmf[k]);
+    const step = niceStep(yMax, 4); yMax = Math.ceil(yMax * 1.1 / step) * step;
+    title(r, `Longest streak in each of ${h.runs.toLocaleString()} simulated seasons`);
+    yAxis(r, yMax, step, v => (v * 100).toFixed(step < 0.01 ? 1 : 0) + '%');
+    ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = mono(11);
+    const every = dx < 9 ? 10 : dx < 18 ? 5 : 2;
+    for (let k = 0; k <= xMax; k++) if (k % every === 0) ctx.fillText(String(k), X(k), r.y + r.h + 6);
+    ctx.textAlign = 'right'; ctx.fillText('longest streak (games)', r.x + r.w, r.y + r.h + 20);
+    const bw = Math.max(1.5, dx * 0.78);
+    ctx.fillStyle = C.accent;
+    for (let k = 0; k <= xMax; k++) { const f = (h.hist[k] || 0) / R; if (f) ctx.fillRect(X(k) - bw / 2, r.y + r.h - f / yMax * r.h, bw, f / yMax * r.h); }
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 2;
+    for (let k = 0; k <= xMax; k++) { if (T.pmf[k] < 1e-5) continue; const y = r.y + r.h - T.pmf[k] / yMax * r.h; ctx.beginPath(); ctx.moveTo(X(k) - Math.max(2, dx * 0.45), y); ctx.lineTo(X(k) + Math.max(2, dx * 0.45), y); ctx.stroke(); }
+    // target L
+    const xl = r.x + h.L * dx;
+    ctx.fillStyle = C.ball; ctx.globalAlpha = 0.13; ctx.fillRect(xl, r.y, r.x + r.w - xl, r.h); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.ink; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.25; ctx.beginPath(); ctx.moveTo(xl, r.y); ctx.lineTo(xl, r.y + r.h); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = C.ink; ctx.font = mono(11, '600'); ctx.textBaseline = 'top';
+    const lab1 = `streak ≥ ${h.L}`, lab2 = `exact: ${sci(T.season)} per season`;
+    const right = xl > r.x + r.w * 0.55; ctx.textAlign = right ? 'right' : 'left';
+    const tx = xl + (right ? -6 : 6);
+    ctx.fillText(lab1, tx, r.y + 6); ctx.font = mono(11); ctx.fillText(lab2, tx, r.y + 21);
+  }
+
+  let dirty = true;
+  function draw() {
+    const { W, H } = L; ctx.clearRect(0, 0, W, H);
+    if (S.mode === 'coin') {
+      drawCoinMid();
+      const c = S.c;
+      drawChances(L.bot, S.T.q, S.T.m, c.runs ? c.anyHits / c.runs : null, 'team-seasons', 'Chance that at least one team makes the news');
+    } else {
+      drawHitTop(); drawHitMid();
+      drawChances(L.bot, S.T.season, S.T.m, null, 'player-seasons', `Chance that some hitter has a ${S.h.L}-game streak`);
+    }
+  }
+  function frame() { if (dirty) { draw(); dirty = false; } requestAnimationFrame(frame); }
+
+  // ---------- state changes ----------
+  function refreshCoin(resim = true) { coinTheory(); if (resim) { coinSeason(); coinRuns(); } updateText(); dirty = true; }
+  function refreshHit(resim = true) { hitTheory(); if (resim) { hitSeason(); hitRuns(); } updateText(); dirty = true; }
+  const refresh = (r = true) => S.mode === 'coin' ? refreshCoin(r) : refreshHit(r);
+
+  function setMode(m) {
+    S.mode = m;
+    $('mCoin').setAttribute('aria-pressed', m === 'coin'); $('mHit').setAttribute('aria-pressed', m === 'hit');
+    for (const id of ['gCoinRun', 'gCoinPar', 'gCoinStats', 'legCoin']) $(id).hidden = m !== 'coin';
+    for (const id of ['gHitRun', 'gHitPar', 'gHitStats', 'legHit']) $(id).hidden = m !== 'hit';
+    resize(); refresh(true);
+  }
+  $('mCoin').onclick = () => setMode('coin');
+  $('mHit').onclick = () => setMode('hit');
+
+  function setOut(id, v) {
+    const o = $(id + 'Out');
+    if (id === 'cp') o.textContent = (+v).toFixed(2);
+    else if (id === 'ha') o.textContent = (+v).toFixed(3).replace(/^0/, '');
+    else if (id === 'hp') o.textContent = nice(Math.pow(10, +v)).toLocaleString();
+    else o.textContent = (+v).toLocaleString();
+  }
+  function setSlider(id, v) { $(id).value = v; setOut(id, v); }
+  const coinMap = { cn: 'n', ck: 'k', cp: 'p', ct: 'teams', cs: 'seasons' };
+  for (const [id, key] of Object.entries(coinMap)) $(id).oninput = e => {
+    S.c[key] = +e.target.value; setOut(id, e.target.value);
+    if (id === 'cn') { $('ck').max = S.c.n; if (S.c.k > S.c.n) { S.c.k = S.c.n; setSlider('ck', S.c.n); } }
+    refreshCoin(true);
+  };
+  $('cTwo').onchange = e => { S.c.two = e.target.checked; refreshCoin(true); };
+  const hitMap = { ha: 'avg', hab: 'ab', hL: 'L', hg: 'games', hs: 'seasons', hp: 'pexp' };
+  for (const [id, key] of Object.entries(hitMap)) $(id).oninput = e => {
+    S.h[key] = +e.target.value; setOut(id, e.target.value);
+    refreshHit(id === 'ha' || id === 'hab' || id === 'hg' || id === 'hL');
+  };
+  $('cSeason').onclick = () => { coinSeason(); updateText(); dirty = true; };
+  $('cRun').onclick = () => { coinRuns(); updateText(); dirty = true; };
+  $('hSeason').onclick = () => { hitSeason(); updateText(); dirty = true; };
+  $('hRun').onclick = () => { hitRuns(); updateText(); dirty = true; };
+
+  function toBoard() { document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
+  $('dPats').onclick = () => {
+    Object.assign(S.c, { n: 25, k: 19, p: 0.5, teams: 32, seasons: 1, two: false });
+    setSlider('cn', 25); $('ck').max = 25; setSlider('ck', 19); setSlider('cp', 0.5); setSlider('ct', 32); setSlider('cs', 1); $('cTwo').checked = false;
+    setMode('coin'); toBoard();
+  };
+  function hitPreset(avg, Lg, games) {
+    Object.assign(S.h, { avg, ab: 4, L: Lg, games, seasons: 15, pexp: 3 });
+    setSlider('ha', avg); setSlider('hab', 4); setSlider('hL', Lg); setSlider('hg', games); setSlider('hs', 15); setSlider('hp', 3);
+    setMode('hit'); toBoard();
+  }
+  $('dRose').onclick = () => hitPreset(0.3, 44, 162);
+  $('dJoe').onclick = () => hitPreset(0.325, 56, 154);
+
+  // hover: report the value under the pointer on the lower chart
+  function showTip(ev) {
+    const rc = cv.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top, r = L.bot;
+    if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) { tip.hidden = true; return; }
+    const q = S.mode === 'coin' ? S.T.q : S.T.season;
+    const x50 = q > 0 ? Math.log(0.5) / Math.log1p(-q) : Infinity;
+    let eMax = Math.max(3, Math.ceil(Math.log10(Math.max(S.T.m, isFinite(x50) ? x50 * 20 : 10)))); eMax = Math.min(eMax, 10);
+    const m = nice(Math.pow(10, (mx - r.x) / r.w * eMax));
+    tip.innerHTML = `<b>${m.toLocaleString()}</b> ${S.mode === 'coin' ? 'team' : 'player'}-seasons<br>P(at least one) = ${pct(atLeastOne(q, m))}`;
+    tip.hidden = false;
+    tip.style.left = Math.max(12, Math.min(mx + 24, cv.clientWidth - tip.offsetWidth + 12)) + 'px';
+    tip.style.top = Math.max(12, my + cv.offsetTop - tip.offsetHeight - 10) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => resize()).observe(cv.parentElement);
+
+  resize(); refreshCoin(true); requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

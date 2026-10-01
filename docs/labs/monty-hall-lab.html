@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Monty Hall Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the doors (play one game) and the running win-rate plot share the left board; options, simulation and tallies in the right rail; the Bayes table, lesson and class notes below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.board canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.dot { width: 10px; border-radius: 50%; }
+.sw.line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px dashed var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+.tip b { font-family: var(--font-display); }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.7vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button[aria-pressed="true"]:not(.primary) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; box-shadow: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; max-width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.th { color: var(--curve); }
+.stats td.ob { color: var(--accent); }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; max-width: 100%; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula + .formula { margin-top: 6px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+#doors { display: block; width: 100%; height: auto; max-height: 230px; user-select: none; }
+.door { cursor: pointer; }
+.door:focus { outline: none; }
+.door:focus-visible .frame { stroke: var(--accent); stroke-width: 4; }
+.door .frame { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.door .panelR { fill: var(--board); stroke: var(--peg); stroke-width: 1.5; }
+.door.picked .panelR { stroke: var(--accent); stroke-width: 3.5; }
+.door.open .panelR { fill: var(--grid); stroke: var(--line); }
+.door.final .frame { stroke: var(--ball); stroke-width: 4; }
+.door .lab { font-family: var(--font-mono); font-weight: 600; fill: var(--ink); text-anchor: middle; }
+.door .tag { font-family: var(--font-mono); fill: var(--accent); text-anchor: middle; font-size: 13px; }
+.door .knob { fill: var(--peg); }
+.door .goat { font-family: var(--font-body); fill: var(--muted); text-anchor: middle; }
+.door .car { fill: var(--ball); }
+.door.open, .door.dead { cursor: default; }
+.status { font-size: 15px; font-weight: 700; min-height: 1.5em; padding: 0 4px; }
+.status.win { color: var(--fit); } .status.lose { color: var(--curve); } .status.dis { color: var(--muted); }
+.playbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 4px; }
+.sep { border-top: 1px solid var(--line); margin: 4px 0; }
+.sw.stay { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.swt { height: 0; border-top: 2.5px solid var(--fit); border-radius: 0; background: none; }
+table.bt { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.bt th, .bt td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.bt th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.bt th:first-child, .bt td:first-child { text-align: left; font-family: var(--font-body); }
+.bt tr.sum td { border-bottom: 0; color: var(--muted); }
+.bt td.post { color: var(--curve); font-weight: 600; }
+.bt .dec { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Bayes' rule and Monty's information</span>
+    <h1>Monty Hall Simulator</h1>
+    <p class="lead">Pick a door, watch Monty open the others, then stay or switch. Then run 1,000 games at once and watch the two win rates settle at 1/3 and 2/3. Change the number of doors, or let Monty open doors at random, and check the Bayes table.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 2, <a href="https://vsokolov.org/html/_book/02-bayes.html">Bayes' Rule</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Doors for one game and a plot of simulated win rates">
+      <div class="status" id="status" aria-live="polite"></div>
+      <svg id="doors" role="group" aria-label="Doors"></svg>
+      <div class="playbar">
+        <button id="stayBtn" disabled>Stay with my door</button>
+        <button id="switchBtn" disabled>Switch</button>
+        <button id="newGame" class="primary">New game</button>
+      </div>
+      <div class="sep"></div>
+      <canvas id="plot" role="img" aria-label="Running win rate of staying and switching against the number of games"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw stay"></i>Stay: running win rate</span>
+        <span><i class="sw swt"></i>Switch: running win rate</span>
+        <span><i class="sw curve"></i>Theory</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Simulate</span>
+        <div class="btns">
+          <button id="sim1000" class="primary wide">Simulate 1,000 games</button>
+          <button id="sim100">+100 games</button>
+          <button id="simReset">Reset</button>
+        </div>
+        <p class="hint">Each simulated game is played twice from the same start: once by a player who stays and once by a player who switches.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Game rules</span>
+        <div class="slider"><div class="top"><label for="nDoors">Number of doors</label><output id="nDoorsOut">3</output></div>
+          <input type="range" id="nDoors" min="3" max="10" step="1" value="3"></div>
+        <div class="checks"><label><input type="checkbox" id="ignorant"> Monty doesn't know where the car is</label></div>
+        <p class="hint" id="rulesHint"></p>
+      </div>
+
+      <div class="group">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+          <span class="label">Simulated games kept</span><span class="big" id="nKept">0</span>
+        </div>
+        <table class="stats">
+          <thead><tr><th>Win rate</th><th>Simulated</th><th>Theory</th></tr></thead>
+          <tbody>
+            <tr><td>Stay</td><td class="ob" id="oStay">–</td><td class="th" id="tStay">–</td></tr>
+            <tr><td>Switch</td><td class="ob" id="oSwitch">–</td><td class="th" id="tSwitch">–</td></tr>
+            <tr id="disRow" hidden><td>Discarded (car shown)</td><td id="oDis">–</td><td class="th" id="tDis">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="group">
+        <span class="label">Your games</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Played</th><th>Won</th></tr></thead>
+          <tbody>
+            <tr><td>Stayed</td><td id="uStayN">0</td><td id="uStayW">0</td></tr>
+            <tr><td>Switched</td><td id="uSwN">0</td><td id="uSwW">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card" aria-labelledby="btH">
+    <h2 id="btH">Bayes table for the current rules</h2>
+    <p class="hint" style="font-size:14px" id="btCap"></p>
+    <div class="scroll"><table class="bt" id="bt"></table></div>
+    <p class="hint" id="btNote"></p>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">The Bayes table</span>
+      <h2>Monty's action carries information</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Your first pick is right 1/3 of the time, and nothing Monty does can change that. What changes is the other closed door. Monty knows where the car is and is never allowed to show it, so when your pick is wrong he is forced to leave the car behind the door he skips.</p>
+      <div class="demo">
+        <button class="primary" id="demoClassic">three doors, Monty knows</button>
+        <button id="demoIgnorant">Monty opens doors at random</button>
+        <button id="demoTen">Ten doors</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Prior</h3><p>The car is equally likely behind each door: P(A) = P(B) = P(C) = 1/3. You pick door A.</p></div></li>
+      <li><div><h3>Likelihood of "Monty opens B"</h3><p>If the car is at A, Monty can open B or C and picks one at random: 1/2. If it is at B, he cannot open B: 0. If it is at C, he must open B: 1.</p></div></li>
+      <li><div><h3>Posterior</h3><p>Multiply prior by likelihood and rescale. P(A | MB) = (1/6) / (1/2) = 1/3 and P(C | MB) = (1/3) / (1/2) = 2/3. Switching doubles your chance.</p></div></li>
+      <li><div><h3>Remove the knowledge and the edge disappears</h3><p>If Monty opens a door at random, "opens B and shows a goat" is equally likely whether the car is at A or C. The likelihoods match, so the posteriors match: 1/2 and 1/2. Games where he shows the car are thrown out.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">Bayes' rule</div><div class="m">P(A | MB) = (1/2)(1/3) / [(1/2)(1/3) + 0 + (1)(1/3)]</div><div class="m">          = (1/6) / (1/2) = 1/3</div><div class="m">P(C | MB) = (1)(1/3) / (1/2) = 2/3</div></div>
+      <div class="eq"><div class="cap">n doors, Monty opens n − 2 goats</div><div class="m">P(win | stay) = 1/n</div><div class="m">P(win | switch) = (n − 1)/n</div></div>
+      <div class="eq"><div class="cap">Monty opens at random, car not shown</div><div class="m">P(no car shown) = 2/n</div><div class="m">P(win | stay) = P(win | switch) = 1/2</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> When someone with private information takes an action, the action itself is data. Infer from what they chose to do, not only from what was revealed. The same reasoning drives signalling, adverse selection and game theory.</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Have every student play five games with the doors, always switching or always staying by row of the room. Pool the tallies on the board before you run the simulation.</li>
+      <li>Press "Simulate 1,000 games" and point out how far the lines wander in the first 50 games. Ask how many games a skeptic would need to watch before being convinced.</li>
+      <li>Set 10 doors. Monty opens 8 goats and leaves one door closed. Ask whether students would still keep their first pick, then read the 9/10 off the table.</li>
+      <li>Tick "Monty doesn't know". Both lines move to 1/2 and about a third of the games are discarded. Ask which line in the Bayes table changed.</li>
+      <li>With 10 doors and an ignorant Monty, 80% of games are discarded. Ask why the games he gets through without showing the car are so evenly split.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('plot'), ctx = cv.getContext('2d'), tip = $('tip'), svg = $('doors');
+  const LET = 'ABCDEFGHIJ';
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const S = { n: 3, ign: false, G: null, user: { sN: 0, sW: 0, wN: 0, wW: 0 },
+              sim: { kept: 0, stay: 0, sw: 0, dis: 0, tried: 0, rs: [], rw: [] }, queue: 0 };
+  let C = {}, L = {};
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'fit', 'board'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const ri = n => Math.floor(Math.random() * n);
+  const gcd = (a, b) => b ? gcd(b, a % b) : a;
+  const frac = (a, b) => { if (a === 0) return '0'; const g = gcd(a, b); return b / g === 1 ? String(a / g) : `${a / g}/${b / g}`; };
+  const theory = () => S.ign ? { stay: 0.5, sw: 0.5, dis: 1 - 2 / S.n } : { stay: 1 / S.n, sw: (S.n - 1) / S.n, dis: 0 };
+
+  // Monty's move: returns the one other door he leaves closed
+  function montyLeaves(car, pick) {
+    const others = []; for (let d = 0; d < S.n; d++) if (d !== pick) others.push(d);
+    if (!S.ign && car !== pick) return car;
+    return others[ri(others.length)];
+  }
+
+  // ---- one game with the doors
+  function newGame() { S.G = { car: ri(S.n), pick: -1, left: -1, phase: 'pick', final: -1 }; renderDoors(); status(); }
+  function choose(d) {
+    const G = S.G;
+    if (G.phase === 'pick') {
+      G.pick = d; G.left = montyLeaves(G.car, d);
+      const carShown = G.car !== G.pick && G.car !== G.left;
+      G.phase = carShown ? 'discarded' : 'decide';
+    } else if (G.phase === 'decide') {
+      if (d !== G.pick && d !== G.left) return;
+      G.final = d; G.phase = 'done';
+      const win = d === G.car, stayed = d === G.pick;
+      if (stayed) { S.user.sN++; if (win) S.user.sW++; } else { S.user.wN++; if (win) S.user.wW++; }
+      updateUser();
+    } else return;
+    renderDoors(); status();
+  }
+  function status() {
+    const G = S.G, el = $('status'), n = S.n;
+    el.className = 'status';
+    const opened = n - 2;
+    if (G.phase === 'pick') el.textContent = `Pick a door. The car is behind one of ${n}.`;
+    else if (G.phase === 'decide') el.textContent = `You picked ${LET[G.pick]}. Monty opened ${opened === 1 ? 'a door' : opened + ' doors'} and showed ${opened === 1 ? 'a goat' : 'goats'}. Stay with ${LET[G.pick]} or switch to ${LET[G.left]}?`;
+    else if (G.phase === 'discarded') { el.className = 'status dis'; el.textContent = `Monty opened doors at random and showed the car. This game is discarded. Press "New game".`; }
+    else {
+      const win = G.final === G.car, stayed = G.final === G.pick;
+      el.className = 'status ' + (win ? 'win' : 'lose');
+      el.textContent = `You ${stayed ? 'stayed' : 'switched'} and ${win ? 'won the car' : 'got a goat. The car was behind ' + LET[G.car]}.`;
+    }
+    $('stayBtn').disabled = $('switchBtn').disabled = G.phase !== 'decide';
+  }
+  function renderDoors() {
+    const G = S.G, n = S.n, dw = 100, gap = 14, W = n * dw + (n - 1) * gap, H = 190;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const fs = 22;
+    let h = '';
+    for (let d = 0; d < n; d++) {
+      const x = d * (dw + gap);
+      const isOpen = G.phase !== 'pick' && d !== G.pick && d !== G.left;
+      const reveal = isOpen || G.phase === 'done' || G.phase === 'discarded';
+      const cls = ['door'];
+      if (d === G.pick) cls.push('picked');
+      if (isOpen || ((G.phase === 'done' || G.phase === 'discarded') && true)) cls.push('open');
+      if (d === G.final) cls.push('final');
+      if (G.phase === 'decide' && isOpen) cls.push('dead');
+      const clickable = G.phase === 'pick' || (G.phase === 'decide' && !isOpen);
+      h += `<g class="${cls.join(' ')}" data-d="${d}" ${clickable ? 'tabindex="0" role="button"' : 'role="img"'} aria-label="Door ${LET[d]}${d === G.pick ? ', your pick' : ''}${reveal ? (d === G.car ? ', car' : ', goat') : ''}">`;
+      h += `<rect class="frame" x="${x}" y="22" width="${dw}" height="150" rx="6"/>`;
+      h += `<rect class="panelR" x="${x + 8}" y="30" width="${dw - 16}" height="134" rx="3"/>`;
+      if (reveal) {
+        if (d === G.car) {
+          const cx = x + dw / 2, cy = 112;
+          h += `<rect class="car" x="${cx - 32}" y="${cy - 8}" width="64" height="18" rx="5"/><rect class="car" x="${cx - 18}" y="${cy - 22}" width="36" height="16" rx="5"/>`;
+          h += `<circle class="knob" cx="${cx - 18}" cy="${cy + 12}" r="7"/><circle class="knob" cx="${cx + 18}" cy="${cy + 12}" r="7"/>`;
+          h += `<text class="goat" x="${cx}" y="${cy + 42}" font-size="15" style="fill:var(--ball);font-weight:700">car</text>`;
+        } else h += `<text class="goat" x="${x + dw / 2}" y="112" font-size="17">goat</text>`;
+      } else {
+        h += `<circle class="knob" cx="${x + dw - 22}" cy="100" r="4.5"/>`;
+        h += `<text class="lab" x="${x + dw / 2}" y="88" font-size="${fs + 8}">${LET[d]}</text>`;
+      }
+      if (reveal) h += `<text class="lab" x="${x + dw / 2}" y="58" font-size="${fs}">${LET[d]}</text>`;
+      if (d === G.pick) h += `<text class="tag" x="${x + dw / 2}" y="15" font-size="14">your pick</text>`;
+      else if (G.phase === 'decide' && d === G.left) h += `<text class="tag" x="${x + dw / 2}" y="15" font-size="14" style="fill:var(--fit)">switch?</text>`;
+      h += `</g>`;
+    }
+    svg.innerHTML = h;
+    svg.querySelectorAll('.door[tabindex]').forEach(g => {
+      g.addEventListener('click', () => choose(+g.dataset.d));
+      g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(+g.dataset.d); } });
+    });
+  }
+  function updateUser() {
+    const u = S.user;
+    $('uStayN').textContent = u.sN; $('uStayW').textContent = u.sW + (u.sN ? ` (${Math.round(u.sW / u.sN * 100)}%)` : '');
+    $('uSwN').textContent = u.wN; $('uSwW').textContent = u.wW + (u.wN ? ` (${Math.round(u.wW / u.wN * 100)}%)` : '');
+  }
+
+  // ---- simulation
+  function simOne() {
+    const m = S.sim, car = ri(S.n), pick = ri(S.n), left = montyLeaves(car, pick);
+    m.tried++;
+    if (car !== pick && car !== left) { m.dis++; return; }
+    m.kept++; if (car === pick) m.stay++; if (car === left) m.sw++;
+    m.rs.push(m.stay / m.kept); m.rw.push(m.sw / m.kept);
+  }
+  function simReset() { S.sim = { kept: 0, stay: 0, sw: 0, dis: 0, tried: 0, rs: [], rw: [] }; S.queue = 0; simStats(); dirty = true; }
+  function simStats() {
+    const m = S.sim, T = theory();
+    $('nKept').textContent = m.kept.toLocaleString();
+    $('oStay').textContent = m.kept ? (m.stay / m.kept).toFixed(3) : '–';
+    $('oSwitch').textContent = m.kept ? (m.sw / m.kept).toFixed(3) : '–';
+    $('tStay').textContent = `${frac(S.ign ? 1 : 1, S.ign ? 2 : S.n)} = ${T.stay.toFixed(3)}`;
+    $('tSwitch').textContent = `${S.ign ? '1/2' : frac(S.n - 1, S.n)} = ${T.sw.toFixed(3)}`;
+    $('disRow').hidden = !S.ign;
+    $('oDis').textContent = m.tried ? `${m.dis.toLocaleString()} (${(m.dis / m.tried * 100).toFixed(1)}%)` : '–';
+    $('tDis').textContent = (T.dis * 100).toFixed(1) + '%';
+  }
+  function runGames(k) {
+    if (reduced()) { for (let i = 0; i < k; i++) simOne(); simStats(); dirty = true; }
+    else S.queue += k;
+  }
+
+  // ---- Bayes table
+  function bayesTable() {
+    const n = S.n, ign = S.ign, oth = n - 2;
+    const openedNames = n === 3 ? 'B' : `B, ${LET.slice(3, n).split('').join(', ')}`;
+    $('btCap').textContent = `You pick door A. Monty opens ${openedNames} and shows ${oth === 1 ? 'a goat' : oth + ' goats'}, leaving door C closed. ${ign ? 'Monty does not know where the car is, so he picked which door to leave closed at random.' : 'Monty knows where the car is and never opens it.'}`;
+    const N = n * (n - 1);
+    // likelihood numerators over (n-1)
+    const rows = [
+      ['Car behind A (your pick)', 1, 1],                // lik = 1/(n-1)
+      ['Car behind C (the door he skipped)', 1, ign ? 1 : n - 1], // lik = 1/(n-1) or 1
+      [n === 3 ? 'Car behind B (opened)' : `Car behind an opened door (each of ${oth})`, 1, 0]
+    ];
+    const tot = rows.reduce((s, r) => s + r[2] * (r[0].includes('each') ? oth : 1), 0); // sum of products in units of 1/N
+    let h = '<tr><th>Hypothesis</th><th>Prior</th><th>Likelihood of his move</th><th>Prior × likelihood</th><th>Posterior</th></tr>';
+    for (const [name, , num] of rows) {
+      const lik = frac(num, n - 1), prod = frac(num, N), post = frac(num, tot);
+      h += `<tr><td>${name}</td><td>${frac(1, n)}</td><td>${lik}</td><td>${prod}</td><td class="post">${post}<span class="dec">${(num / tot).toFixed(3)}</span></td></tr>`;
+    }
+    h += `<tr class="sum"><td>Sum</td><td>1</td><td></td><td>${frac(tot, N)}</td><td>1</td></tr>`;
+    $('bt').innerHTML = h;
+    $('btNote').textContent = ign
+      ? `The likelihoods for A and C are equal (${frac(1, n - 1)} each), so the posterior splits 1/2 and 1/2. The sum ${frac(tot, N)} is the chance of this exact move. He could have skipped any of ${n - 1} doors, so a random Monty shows no car with probability ${frac(2, n)}.`
+      : `Monty's move is ${n - 1} times more likely when the car is at C than at A, so the posterior is ${frac(1, n)} vs ${frac(n - 1, n)}. Switching wins ${frac(n - 1, n)} of the time.`;
+  }
+
+  function setRules() {
+    $('nDoorsOut').textContent = S.n;
+    $('rulesHint').textContent = S.ign
+      ? `Monty opens ${S.n - 2} of the other ${S.n - 1} doors at random. If he shows the car, the game is discarded.`
+      : `Monty knows where the car is. He opens ${S.n - 2} of the other ${S.n - 1} doors, all goats.`;
+    simReset(); newGame(); bayesTable(); simStats();
+    for (let i = 0; i < 1000; i++) simOne(); simStats();
+  }
+
+  // ---- plot
+  function resize() {
+    const w = Math.max(240, cv.parentElement.clientWidth - 24), h = Math.round(Math.min(Math.max(w * 0.42, 240), 340));
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    L = { W: w, H: h, ml: 42, mr: 82, mt: 12, mb: 34 };
+    dirty = true;
+  }
+  function niceMax(n) { const steps = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]; return steps.find(s => s >= n) || n; }
+  function draw() {
+    const { W, H, ml, mr, mt, mb } = L, m = S.sim, T = theory();
+    ctx.clearRect(0, 0, W, H);
+    const xmax = niceMax(Math.max(m.kept, 100));
+    const PX = x => ml + x / xmax * (W - ml - mr), PY = y => mt + (1 - y) * (H - mt - mb);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = 0; y <= 1.0001; y += 0.25) { const py = Math.round(PY(y)) + .5; ctx.beginPath(); ctx.moveTo(ml, py); ctx.lineTo(W - mr, py); ctx.stroke(); ctx.fillText(y.toFixed(2), ml - 6, py); }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const nt = W < 420 ? 2 : 5;
+    for (let i = 0; i <= nt; i++) { const x = xmax * i / nt, px = Math.round(PX(x)) + .5; ctx.beginPath(); ctx.moveTo(px, mt); ctx.lineTo(px, H - mb); ctx.stroke(); ctx.fillText(x.toLocaleString(), px, H - mb + 7); }
+    ctx.textAlign = 'right'; ctx.fillText('games kept', W - mr, H - 12);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('win rate', ml + 6, mt + 4);
+    // theory
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 1.75; ctx.setLineDash([6, 4]);
+    for (const y of [T.stay, T.sw]) { ctx.beginPath(); ctx.moveTo(ml, PY(y)); ctx.lineTo(W - mr, PY(y)); ctx.stroke(); }
+    ctx.setLineDash([]);
+    // series
+    const n = m.rs.length, stepI = Math.max(1, Math.floor(n / ((W - ml - mr) * 2)));
+    for (const [arr, col] of [[m.rs, C.accent], [m.rw, C.fit]]) {
+      if (!n) break;
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i < n; i += stepI) { const x = PX(i + 1), y = PY(arr[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.lineTo(PX(n), PY(arr[n - 1])); ctx.stroke();
+    }
+    // right-edge labels
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace';
+    const lab = (y, txt, col) => { ctx.fillStyle = col; ctx.fillText(txt, W - mr + 6, y); };
+    if (S.ign) lab(PY(0.5), 'both 1/2', C.curve);
+    else { lab(PY(T.sw), 'switch ' + frac(S.n - 1, S.n), C.fit); lab(PY(T.stay), 'stay ' + frac(1, S.n), C.accent); }
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
+    L.PX = PX; L.xmax = xmax;
+  }
+  function showTip(ev) {
+    const rc = cv.getBoundingClientRect(), x = ev.clientX - rc.left, y = ev.clientY - rc.top, m = S.sim;
+    if (!m.kept || x < L.ml || x > L.W - L.mr) { tip.hidden = true; return; }
+    const g = Math.max(1, Math.min(m.kept, Math.round((x - L.ml) / (L.W - L.ml - L.mr) * L.xmax)));
+    tip.innerHTML = `After <b>${g.toLocaleString()}</b> games<br><span style="color:var(--accent)">Stay: ${m.rs[g - 1].toFixed(3)}</span><br><span style="color:var(--fit)">Switch: ${m.rw[g - 1].toFixed(3)}</span>`;
+    tip.hidden = false;
+    const left = cv.offsetLeft + x + 14, maxX = cv.offsetLeft + cv.clientWidth - tip.offsetWidth;
+    tip.style.left = Math.max(12, Math.min(left, maxX)) + 'px';
+    tip.style.top = Math.max(8, cv.offsetTop + y - tip.offsetHeight - 10) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  // ---- controls
+  $('newGame').onclick = newGame;
+  $('stayBtn').onclick = () => choose(S.G.pick);
+  $('switchBtn').onclick = () => choose(S.G.left);
+  $('sim1000').onclick = () => runGames(1000);
+  $('sim100').onclick = () => runGames(100);
+  $('simReset').onclick = simReset;
+  $('nDoors').oninput = e => { S.n = +e.target.value; setRules(); };
+  $('ignorant').onchange = e => { S.ign = e.target.checked; setRules(); };
+  function demo(n, ign) {
+    S.n = n; S.ign = ign; $('nDoors').value = n; $('ignorant').checked = ign; setRules();
+    document.querySelector('.board').scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+  }
+  $('demoClassic').onclick = () => demo(3, false);
+  $('demoIgnorant').onclick = () => demo(3, true);
+  $('demoTen').onclick = () => demo(10, false);
+
+  let dirty = true;
+  function frame() {
+    if (S.queue > 0) { const k = Math.min(S.queue, 25); for (let i = 0; i < k; i++) simOne(); S.queue -= k; simStats(); dirty = true; }
+    if (dirty) { draw(); dirty = false; }
+    requestAnimationFrame(frame);
+  }
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(resize).observe(cv.parentElement);
+  resize(); setRules(); updateUser();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

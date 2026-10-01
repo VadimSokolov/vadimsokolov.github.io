@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Decision Tree Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the decision tree is the hero on the left with the decision table under it; inputs, Bayes and value-of-information readouts in the right rail; lesson and class exercises below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; margin-top: 2px; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+a:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.treewrap { overflow-x: auto; }
+.scrollhint { display: none; padding: 0 4px; }
+@media (max-width: 780px) { .scrollhint { display: block; } }
+#tree { display: block; width: 100%; min-width: 720px; height: auto; font-family: var(--font-mono); }
+#tree .edge { fill: none; stroke: var(--line); stroke-width: 1.6; }
+#tree .edge.on { stroke: var(--accent); stroke-width: 3; }
+#tree .edge.off { stroke-dasharray: 5 4; }
+#tree .prune { stroke: var(--muted); stroke-width: 2; }
+#tree .elab { font-size: 13px; fill: var(--muted); }
+#tree .elab.on { fill: var(--ink); font-weight: 600; }
+#tree .plab { font-size: 12px; fill: var(--muted); }
+#tree .plab.post { fill: var(--coinA); font-weight: 600; }
+#tree .dec { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+#tree .ch { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+#tree .on > .dec, #tree .on > .ch { stroke: var(--accent); fill: var(--accent); }
+#tree .leaf { fill: var(--muted); }
+#tree .on > .leaf { fill: var(--accent); }
+#tree .pay { font-size: 13px; fill: var(--ink); }
+#tree .pay.lose { fill: var(--curve); font-weight: 600; }
+#tree .evbg { fill: var(--surface); stroke: var(--line); }
+#tree .on > .evbg { stroke: var(--accent); }
+#tree .ev { font-size: 12px; fill: var(--ink); font-weight: 600; }
+#tree .node { cursor: help; }
+#tree .colhead { font-size: 11px; fill: var(--muted); letter-spacing: .08em; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 12px; height: 12px; display: inline-block; border: 2px solid var(--ink); background: var(--surface); }
+.sw.circ { border-radius: 50%; }
+.sw.leafsw { width: 0; height: 0; border: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid var(--muted); background: none; }
+.sw.line { width: 16px; height: 0; border: 0; border-top: 3px solid var(--accent); background: none; }
+.sw.dash { width: 16px; height: 0; border: 0; border-top: 2px dashed var(--muted); background: none; }
+.sw.red { width: 10px; height: 10px; border: 0; border-radius: 2px; background: var(--curve); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); max-width: min(360px, 90%); font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+.tip b { font-family: var(--font-display); }
+
+.dtable-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.dtable-wrap h2 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; }
+table.dt { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 520px; }
+.dt th, .dt td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.dt th:first-child, .dt td:first-child { text-align: left; padding-left: 0; }
+.dt thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.dt td { font-family: var(--font-mono); font-size: 14px; }
+.dt td:first-child { font-family: var(--font-body); }
+.dt tr:last-child td { border-bottom: 0; }
+.dt tr.rec td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.tag { display: inline-block; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; border-radius: 4px; padding: 1px 5px; margin-left: 6px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.tag.best { border-color: var(--accent); color: var(--accent); }
+.tag.safe { border-color: var(--coinA); color: var(--coinA); }
+.sub { display: block; font-size: 12.5px; color: var(--muted); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: span 2; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); white-space: nowrap; }
+.slider.a output { color: var(--coinA); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider.a input { accent-color: var(--coinA); }
+select { font: inherit; font-size: 14px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--board); color: var(--ink); width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-weight: 700; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td + td { white-space: nowrap; padding-left: 8px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.post { color: var(--coinA); }
+.verdict { font-size: 14px; margin: 0; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.verdict b { font-family: var(--font-display); }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.eq p { margin: 0; font-size: 14px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Decision trees and Bayes' rule</span>
+    <h1>Decision Tree Lab</h1>
+    <p class="lead">Your house sits on a hillside prone to mud slides. Should you build a $40,000 retaining wall, and should you pay a geologist $3,000 to test the slope first? Change any probability or cost and the tree rolls back its expected costs live, with the cheapest plan drawn in blue.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 4, <a href="https://vsokolov.org/html/_book/04-dec.html">Utility, Risk and Decisions</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Decision tree for the mud-slide problem">
+      <p class="hint scrollhint">Swipe sideways to see the whole tree.</p>
+      <div class="treewrap">
+        <svg id="tree" viewBox="0 0 1000 640" role="img" aria-label="Decision tree: root decision between not building, building the wall, or hiring a geologist; chance nodes for test result, slide and wall; terminal costs in thousands of dollars"></svg>
+      </div>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw"></i>Decision node (you choose)</span>
+        <span><i class="sw circ"></i>Chance node</span>
+        <span><i class="sw leafsw"></i>Terminal cost, $K</span>
+        <span><i class="sw line"></i>Chosen plan</span>
+        <span><i class="sw dash"></i>Rejected branch</span>
+        <span><i class="sw red"></i>House lost</span>
+      </div>
+      <p class="hint" style="padding:0 4px">Labels above each node are expected costs in thousands of dollars. Green branch probabilities are Bayes posteriors after the test. Hover or tap a node to see its calculation.</p>
+
+      <div class="dtable-wrap">
+        <h2>Final decision table</h2>
+        <table class="dt" id="dtable">
+          <thead><tr><th>Choice</th><th>Expected cost</th><th>Tail risk</th><th>Odds of disaster</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="hint" id="dtNote" style="margin-top:6px"></p>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Cases</span>
+        <div class="btns">
+          <button id="pLecture" class="primary wide">Worked example</button>
+          <button id="pCheap">Test costs $1,000</button>
+          <button id="pSharp">Sharper test (0.99 / 0.95)</button>
+          <button id="pSteep" class="wide">Steeper hillside, P(slide) = 0.05</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">The hillside and the wall</span>
+        <div class="slider"><div class="top"><label for="pS">P(slide) per rainy season</label><output id="pSOut"></output></div>
+          <input type="range" id="pS" min="0.001" max="0.1" step="0.001" value="0.01"></div>
+        <div class="slider"><div class="top"><label for="loss">Cost of a slide</label><output id="lossOut"></output></div>
+          <input type="range" id="loss" min="100" max="3000" step="50" value="1000"></div>
+        <div class="slider"><div class="top"><label for="wall">Cost of the wall</label><output id="wallOut"></output></div>
+          <input type="range" id="wall" min="0" max="200" step="1" value="40"></div>
+        <div class="slider"><div class="top"><label for="hold">P(wall holds | slide)</label><output id="holdOut"></output></div>
+          <input type="range" id="hold" min="0.5" max="1" step="0.01" value="0.95"></div>
+      </div>
+
+      <div class="group">
+        <span class="label">The geologist's test</span>
+        <div class="slider a"><div class="top"><label for="fee">Test fee</label><output id="feeOut"></output></div>
+          <input type="range" id="fee" min="0" max="20" step="0.25" value="3"></div>
+        <div class="slider a"><div class="top"><label for="sens">Sensitivity P(T | slide)</label><output id="sensOut"></output></div>
+          <input type="range" id="sens" min="0.5" max="1" step="0.01" value="0.9"></div>
+        <div class="slider a"><div class="top"><label for="spec">Specificity P(T̄ | no slide)</label><output id="specOut"></output></div>
+          <input type="range" id="spec" min="0.5" max="1" step="0.01" value="0.85"></div>
+        <table class="stats">
+          <tbody>
+            <tr><td>P(T), chance of a positive test</td><td id="rPT">–</td></tr>
+            <tr><td>P(slide | positive)</td><td class="post" id="rPST">–</td></tr>
+            <tr><td>P(slide | negative)</td><td class="post" id="rPSN">–</td></tr>
+            <tr><td>Best action if positive</td><td id="rActT">–</td></tr>
+            <tr><td>Best action if negative</td><td id="rActN">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="group">
+        <span class="label">Value of information</span>
+        <table class="stats">
+          <tbody>
+            <tr><td>Best expected cost, no test</td><td id="vNo">–</td></tr>
+            <tr><td>Expected cost with test result, before fee</td><td id="vInfo">–</td></tr>
+            <tr><td>Value of the test (most you should pay)</td><td id="vEVSI">–</td></tr>
+            <tr><td>Value of perfect information</td><td id="vEVPI">–</td></tr>
+            <tr><td>Test fee</td><td id="vFee">–</td></tr>
+          </tbody>
+        </table>
+        <p class="verdict" id="verdict"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Risk tolerance</span>
+        <div class="field">
+          <label for="risk">Largest acceptable chance of losing everything</label>
+          <select id="risk">
+            <option value="1">No limit: minimize expected cost</option>
+            <option value="0.01">1 in 100</option>
+            <option value="0.002">1 in 500</option>
+            <option value="0.001">1 in 1,000</option>
+            <option value="0.0005">1 in 2,000</option>
+          </select>
+        </div>
+        <p class="hint">With a limit, the tree picks the cheapest plan whose chance of disaster is at or below it.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Catastrophe modelling</span>
+      <h2>Roll back the tree, then let the test update your beliefs</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Money is in thousands of dollars, as in the worked example: the wall is 40, a slide costs 1,000, and the test is 3. The boxes on the right recompute as you move the sliders.</p>
+      <div class="demo">
+        <button class="primary" id="dLecture">Reset to the worked example</button>
+        <button id="dLimit">Worked example with a 1-in-500 risk limit</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>Read the tree left to right</h3>
+        <p>Squares are decisions you make. Circles are chance events, and the probabilities on their branches sum to 1. Each path ends in a total cost. The top two plans skip the test. The bottom plan pays the geologist and then decides after seeing the result.</p>
+      </div></li>
+      <li><div>
+        <h3>Solve it right to left</h3>
+        <p>Start at the leaves. At each circle, replace the branches with their expected cost. At each square, keep the cheaper branch and cut the others. This is backward induction, the same idea as dynamic programming. Without the test, building costs $40.5K in expectation and not building costs $10K, so on expected cost alone you do not build.</p>
+      </div></li>
+      <li><div>
+        <h3>The test result changes the probabilities</h3>
+        <p>The geologist catches 90% of real slides and clears 85% of safe seasons. A positive result raises P(slide) from 1% to 5.7%. A negative result drops it to 0.12%. These posteriors replace the prior on the branches after the test, so the best action can differ by result: build after a positive, skip the wall after a negative.</p>
+      </div></li>
+      <li><div>
+        <h3>Information has a price ceiling</h3>
+        <p>Knowing the test result before you choose lowers the expected cost from $10K to $7.75K. That $2.25K gap is the most the test is worth. The geologist charges $3K, so on expected cost alone the test is not worth buying. Even a perfect forecast is worth only $9.1K.</p>
+      </div></li>
+      <li><div>
+        <h3>Expected cost hides the catastrophe</h3>
+        <p>"Don't build" is cheapest on average but leaves a 1-in-100 chance of losing the house. Testing first costs only $750 more in expectation and cuts that chance by about 7 times. Which plan is right depends on how much you fear the tail.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Expected cost without the test ($K)</div>
+        <div class="m" id="eqNb"></div>
+        <div class="m" id="eqB"></div>
+      </div>
+      <div class="eq">
+        <div class="cap">Bayes' rule for the test</div>
+        <div class="m" id="eqPT"></div>
+        <div class="m" id="eqPST"></div>
+        <div class="m" id="eqPSN"></div>
+      </div>
+      <div class="eq">
+        <div class="cap">The same update in natural frequencies</div>
+        <p id="natfreq"></p>
+      </div>
+      <div class="eq">
+        <div class="cap">Probability of losing everything with the test</div>
+        <div class="m" id="eqL1"></div>
+        <div class="m" id="eqL2"></div>
+        <div class="m" id="eqL3"></div>
+      </div>
+      <div class="eq">
+        <div class="cap">A note on rounding</div>
+        <p>Hand calculations that round intermediate values give $10,760 and 0.00146 for the test plan. Exact arithmetic gives $10,750 and 0.00145 (path 2 is exactly 0.00100), which is what this lab shows. The conclusions do not change.</p>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> A decision tree separates what you control from what you do not, and Bayes' rule tells you how a piece of evidence should move the chance branches. Expected value picks one plan. Adding a constraint on the tail, or a utility that punishes ruin, can pick another. Always report both the expected cost and the chance of disaster.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Before showing the tree, ask students to vote: build, don't build, or test first. Then reveal the expected costs and the table.</li>
+      <li>Drag the test fee down. Find the fee at which the tree switches to "Hire geologist". It should be just under the value of the test, $2,250.</li>
+      <li>Raise P(slide) slowly from 0.01. Find where building the wall becomes cheaper than not building (about 0.042 with the default costs), and watch the test's value rise and then fall as the decision becomes obvious.</li>
+      <li>Set specificity to 0.50. The test now raises many false alarms. Ask what happens to P(slide | positive) and to the value of the test.</li>
+      <li>Choose a 1-in-500 risk limit. "Don't build" is ruled out and the tree switches to testing first. Tighten to 1 in 2,000 and only the wall remains.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const svg = $('tree'), tip = $('tip'), board = document.querySelector('.board');
+  const DEF = { pS: 0.01, loss: 1000, wall: 40, hold: 0.95, fee: 3, sens: 0.9, spec: 0.85 };
+  const P = { ...DEF, risk: 1 };
+
+  // formatting: model values are in $K
+  const nf = (x, d) => x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const usd = k => '$' + nf(Math.round(k * 1000), 0);
+  const kx = (k, d = 2) => '$' + nf(k, d) + 'K';
+  const pr = (p, d = 4) => nf(p, d);
+  const sig = p => p >= 0.1 ? nf(p, 4) : p >= 0.01 ? nf(p, 4) : p >= 0.001 ? nf(p, 5) : nf(p, 6);
+  const odds = p => p <= 0 ? 'never' : '1 in ' + nf(Math.round(1 / p), 0);
+
+  // ---- tree construction ----
+  const COL = { root: 34, test: 262, dec2: 390, slide: 560, wall: 720, leaf: 860 };
+  function leaf(label, prob, cost, lose, tipTxt) { return { type: 'leaf', label, prob, cost, lose, tipTxt, x: COL.leaf }; }
+  function noBuild(pS, extra, post) {
+    return { type: 'ch', x: COL.slide, post, kind: 'slide', children: [
+      leaf('Slide', pS, extra + P.loss, true, 'House lost'),
+      leaf('No slide', 1 - pS, extra, false, 'Nothing happens')
+    ] };
+  }
+  function build(pS, extra, post) {
+    return { type: 'ch', x: COL.slide, post, kind: 'slide', children: [
+      { type: 'ch', label: 'Slide', prob: pS, x: COL.wall, kind: 'wall', children: [
+        leaf('Wall holds', P.hold, extra + P.wall, false, 'Wall cost only'),
+        leaf('Wall fails', 1 - P.hold, extra + P.wall + P.loss, true, 'Wall cost plus house lost')
+      ] },
+      leaf('No slide', 1 - pS, extra + P.wall, false, 'Wall cost only')
+    ] };
+  }
+  function model() {
+    const pT = P.sens * P.pS + (1 - P.spec) * (1 - P.pS);
+    const pST = pT > 0 ? P.sens * P.pS / pT : 0;
+    const pSN = pT < 1 ? (1 - P.sens) * P.pS / (1 - pT) : 0;
+    const decAfter = (label, prob, ps) => ({ type: 'dec', label, prob, x: COL.dec2, ps, children: [
+      Object.assign(noBuild(ps, P.fee, true), { label: "Don't build" }),
+      Object.assign(build(ps, P.fee, true), { label: 'Build wall' })
+    ] });
+    const root = { type: 'dec', x: COL.root, root: true, children: [
+      Object.assign(noBuild(P.pS, 0, false), { label: "Don't build" }),
+      Object.assign(build(P.pS, 0, false), { label: 'Build wall' }),
+      { type: 'ch', label: 'Hire geologist', x: COL.test, kind: 'test', children: [
+        decAfter('Positive', pT, pST), decAfter('Negative', 1 - pT, pSN)
+      ] }
+    ] };
+    return { root, pT, pST, pSN };
+  }
+
+  // roll back: expected cost and P(lose everything) under the chosen sub-policy
+  function rollback(n) {
+    if (n.type === 'leaf') { n.ev = n.cost; n.tail = n.lose ? 1 : 0; return; }
+    n.children.forEach(rollback);
+    if (n.type === 'ch') {
+      n.ev = n.children.reduce((s, c) => s + c.prob * c.ev, 0);
+      n.tail = n.children.reduce((s, c) => s + c.prob * c.tail, 0);
+    } else {
+      let b = 0;
+      n.children.forEach((c, i) => { if (c.ev < n.children[b].ev - 1e-12) b = i; });
+      n.best = b; n.ev = n.children[b].ev; n.tail = n.children[b].tail;
+    }
+  }
+  function chooseRoot(root) {
+    const cs = root.children;
+    let evBest = 0; cs.forEach((c, i) => { if (c.ev < cs[evBest].ev - 1e-12) evBest = i; });
+    let tailBest = 0; cs.forEach((c, i) => { if (c.tail < cs[tailBest].tail - 1e-15) tailBest = i; });
+    let rec = -1;
+    cs.forEach((c, i) => { if (c.tail <= P.risk + 1e-12 && (rec < 0 || c.ev < cs[rec].ev - 1e-12)) rec = i; });
+    const feasible = rec >= 0;
+    if (!feasible) rec = tailBest;
+    root.best = rec; root.ev = cs[rec].ev; root.tail = cs[rec].tail;
+    return { evBest, tailBest, rec, feasible };
+  }
+  function markOn(n, on) {
+    n.on = on;
+    if (!n.children) return;
+    n.children.forEach((c, i) => markOn(c, on && (n.type === 'ch' || i === n.best)));
+  }
+
+  // ---- layout ----
+  const ROW = 46, GAP = 18, TOP = 58;
+  function layout(root) {
+    let y = TOP;
+    function place(n, depth) {
+      if (n.type === 'leaf') { n.y = y; y += ROW; return; }
+      n.children.forEach((c, i) => { if (i > 0 && n.type === 'dec') y += GAP; place(c, depth + 1); });
+      n.y = (n.children[0].y + n.children[n.children.length - 1].y) / 2;
+    }
+    place(root, 0);
+    return y - ROW + 28;
+  }
+
+  // ---- render ----
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  let tips = [];
+  function nodeTip(n) {
+    if (n.type === 'leaf') return `<b>${esc(n.label)}</b><br>${esc(n.tipTxt)}<br>Total cost: ${kx(n.cost, n.cost % 1 ? 2 : 0)}`;
+    if (n.type === 'ch') {
+      const terms = n.children.map(c => `${sig(c.prob)} × ${nf(c.ev, 2)}`).join(' + ');
+      return `<b>Chance node</b><br>E[cost] = ${terms}<br>= ${kx(n.ev)}<br>P(lose everything) = ${sig(n.tail)}`;
+    }
+    const lines = n.children.map((c, i) => `${i === n.best ? '→ ' : '  '}${esc(c.label)}: ${kx(c.ev)}`).join('<br>');
+    return `<b>Decision node</b><br>${lines}<br>${n.root && P.risk < 1 ? 'Cheapest plan within the risk limit' : 'Keep the lowest expected cost'}`;
+  }
+  function render(root, H) {
+    svg.setAttribute('viewBox', `0 0 1000 ${Math.ceil(H)}`);
+    tips = [];
+    const E = [], N = [];
+    E.push(`<text class="colhead" x="${COL.root - 12}" y="22">DECIDE</text><text class="colhead" x="${COL.test - 30}" y="22">TEST RESULT</text><text class="colhead" x="${COL.dec2 - 24}" y="22">DECIDE</text><text class="colhead" x="${COL.slide - 22}" y="22">SLIDE?</text><text class="colhead" x="${COL.wall - 30}" y="22">WALL HOLDS?</text><text class="colhead" x="${COL.leaf - 4}" y="22">COST, $K</text>`);
+    function walk(n, parent) {
+      if (parent) {
+        const px = parent.x, py = parent.y, cx = n.x, cy = n.y, bend = px + 24;
+        const on = n.on, pruned = parent.type === 'dec' && !on && parent.on !== undefined && parent.best !== undefined && parent.children[parent.best] !== n;
+        E.push(`<path class="edge${on ? ' on' : ''}${pruned ? ' off' : ''}" d="M${px},${py} L${bend},${cy} L${cx},${cy}"/>`);
+        E.push(`<text class="elab${on ? ' on' : ''}" x="${bend + 8}" y="${cy - 7}">${esc(n.label)}${n.label === 'Hire geologist' ? ` ($${nf(P.fee, P.fee % 1 ? 2 : 0)}K)` : ''}</text>`);
+        if (n.prob !== undefined) {
+          const post = parent.post && n.label !== 'Wall holds' && n.label !== 'Wall fails';
+          E.push(`<text class="plab${post ? ' post' : ''}" x="${bend + 8}" y="${cy + 15}">p = ${sig(n.prob)}</text>`);
+        }
+        if (pruned) { const mx = (bend + cx) / 2 + 30; E.push(`<path class="prune" d="M${mx - 4},${cy + 6} L${mx + 2},${cy - 6} M${mx + 3},${cy + 6} L${mx + 9},${cy - 6}"/>`); }
+      }
+      const id = tips.length; tips.push(nodeTip(n));
+      let g = `<g class="node${n.on ? ' on' : ''}" data-i="${id}" tabindex="-1">`;
+      if (n.type === 'dec') g += `<rect class="dec" x="${n.x - 10}" y="${n.y - 10}" width="20" height="20" rx="2"/>`;
+      else if (n.type === 'ch') g += `<circle class="ch" cx="${n.x}" cy="${n.y}" r="10"/>`;
+      else {
+        g += `<path class="leaf" d="M${n.x - 8},${n.y - 7} L${n.x + 4},${n.y} L${n.x - 8},${n.y + 7} Z"/>`;
+        g += `<text class="pay${n.lose ? ' lose' : ''}" x="${n.x + 12}" y="${n.y + 5}">${nf(n.cost, n.cost % 1 ? 2 : 0)}</text>`;
+      }
+      if (n.type !== 'leaf') {
+        const t = nf(n.ev, 2), w = t.length * 7.6 + 12, x = n.x - w / 2, y = n.y - 34;
+        g += `<rect class="evbg" x="${x}" y="${y}" width="${w}" height="19" rx="4"/><text class="ev" x="${n.x}" y="${y + 14}" text-anchor="middle">${t}</text>`;
+      }
+      g += `<rect x="${n.x - 14}" y="${n.y - 14}" width="28" height="28" fill="transparent"/></g>`;
+      N.push(g);
+      if (n.children) n.children.forEach(c => walk(c, n));
+    }
+    walk(root, null);
+    svg.innerHTML = E.join('') + N.join('');
+  }
+
+  // ---- readouts ----
+  function update() {
+    const M = model(), root = M.root;
+    rollback(root);
+    const ch = chooseRoot(root);
+    markOn(root, true);
+    const H = layout(root);
+    render(root, H);
+
+    const [nb, b, t] = root.children;
+    const posDec = t.children[0], negDec = t.children[1];
+    const act = d => d.best === 0 ? "Don't build" : 'Build wall';
+    $('rPT').textContent = pr(M.pT);
+    $('rPST').textContent = sig(M.pST);
+    $('rPSN').textContent = sig(M.pSN);
+    $('rActT').textContent = act(posDec);
+    $('rActN').textContent = act(negDec);
+
+    const noTest = Math.min(nb.ev, b.ev);
+    const withInfo = t.ev - P.fee;
+    const evsi = noTest - withInfo;
+    const perfect = P.pS * Math.min(P.loss, P.wall + (1 - P.hold) * P.loss);
+    const evpi = noTest - perfect;
+    $('vNo').textContent = usd(noTest);
+    $('vInfo').textContent = usd(withInfo);
+    $('vEVSI').textContent = usd(evsi);
+    $('vEVPI').textContent = usd(evpi);
+    $('vFee').textContent = usd(P.fee);
+    const diff = P.fee - evsi;
+    $('verdict').innerHTML = Math.abs(diff) < 1e-9
+      ? `<b>Break-even.</b> The fee equals the value of the test.`
+      : diff > 0
+        ? `<b>Skip the test on expected cost.</b> It is worth ${usd(evsi)} and costs ${usd(P.fee)}, so buying it adds ${usd(diff)} to expected cost.`
+        : `<b>Buy the test.</b> It is worth ${usd(evsi)} and costs ${usd(P.fee)}, so it saves ${usd(-diff)} in expected cost.`;
+
+    // decision table
+    const pol = (d0, d1) => `${d0.best === 1 ? 'build' : "don't build"} if positive, ${d1.best === 1 ? 'build' : "don't build"} if negative`;
+    const rows = [
+      ["Don't build", nb, ''],
+      ['Build without testing', b, ''],
+      ['Test + conditional build', t, pol(posDec, negDec)]
+    ];
+    $('dtable').tBodies[0].innerHTML = rows.map(([name, n, sub], i) => {
+      const tags = (i === ch.evBest ? '<span class="tag best">lowest cost</span>' : '') + (i === ch.tailBest ? '<span class="tag safe">safest</span>' : '');
+      return `<tr class="${i === ch.rec ? 'rec' : ''}"><td>${name}${tags}${sub ? `<span class="sub">${sub}</span>` : ''}</td><td>${usd(n.ev)}</td><td>${sig(n.tail)}</td><td>${odds(n.tail)}</td></tr>`;
+    }).join('');
+    const recName = rows[ch.rec][0];
+    $('dtNote').textContent = P.risk >= 1
+      ? `Shaded row: the plan with the lowest expected cost (${recName}). Tail risk is the probability of losing everything. Testing first cuts the tail risk of "don't build" by ${nf(nb.tail / t.tail, 1)} times.`
+      : ch.feasible
+        ? `Shaded row: the cheapest plan with tail risk at or below ${odds(P.risk)} (${recName}).`
+        : `No plan meets ${odds(P.risk)}. Shaded row: the safest plan available (${recName}).`;
+
+    // lesson equations
+    const L = P.loss, W = P.wall, f = 1 - P.hold;
+    $('eqNb').textContent = `E(cost | don't) = ${nf(L, 0)} × ${sig(P.pS)} = ${nf(nb.ev, 2)}`;
+    $('eqB').textContent = `E(cost | build) = ${nf(W, 0)} + ${nf(L, 0)} × ${sig(P.pS)} × ${nf(f, 2)} = ${nf(b.ev, 2)}`;
+    $('eqPT').textContent = `P(T) = ${nf(P.sens, 2)} × ${sig(P.pS)} + ${nf(1 - P.spec, 2)} × ${sig(1 - P.pS)} = ${pr(M.pT)}`;
+    $('eqPST').textContent = `P(S | T) = ${nf(P.sens, 2)} × ${sig(P.pS)} / ${pr(M.pT)} = ${sig(M.pST)}`;
+    $('eqPSN').textContent = `P(S | T̄) = ${nf(1 - P.sens, 2)} × ${sig(P.pS)} / ${pr(1 - M.pT)} = ${sig(M.pSN)}`;
+    const N0 = 10000, slides = N0 * P.pS, tp = slides * P.sens, fp = (N0 - slides) * (1 - P.spec);
+    $('natfreq').textContent = `Picture ${nf(N0, 0)} rainy seasons. About ${nf(slides, 0)} bring a slide, and the geologist flags ${nf(tp, 0)} of them. Of the ${nf(N0 - slides, 0)} safe seasons, ${nf(fp, 0)} are flagged by mistake. So ${nf(tp + fp, 0)} seasons test positive and only ${nf(tp, 0)} of those have a slide: ${nf(tp / (tp + fp) * 100, 1)}%.`;
+    const l1 = M.pT * M.pST * (posDec.best === 1 ? f : 1), l2 = (1 - M.pT) * M.pSN * (negDec.best === 1 ? f : 1);
+    $('eqL1').textContent = `Positive, ${posDec.best === 1 ? 'build, slide, wall fails' : "don't build, slide"}: ${pr(M.pT)} × ${sig(M.pST)}${posDec.best === 1 ? ' × ' + nf(f, 2) : ''} = ${sig(l1)}`;
+    $('eqL2').textContent = `Negative, ${negDec.best === 1 ? 'build, slide, wall fails' : "don't build, slide"}: ${pr(1 - M.pT)} × ${sig(M.pSN)}${negDec.best === 1 ? ' × ' + nf(f, 2) : ''} = ${sig(l2)}`;
+    $('eqL3').textContent = `Total: ${sig(l1 + l2)}, about ${odds(l1 + l2)}`;
+  }
+
+  // ---- controls ----
+  const show = {
+    pS: v => nf(v, 3), loss: v => usd(v), wall: v => usd(v), hold: v => nf(v, 2),
+    fee: v => usd(v), sens: v => nf(v, 2), spec: v => nf(v, 2)
+  };
+  for (const k of Object.keys(show)) {
+    $(k).addEventListener('input', e => { P[k] = +e.target.value; $(k + 'Out').textContent = show[k](P[k]); update(); });
+  }
+  $('risk').addEventListener('change', e => { P.risk = +e.target.value; update(); });
+  function setAll(v, risk = 1) {
+    Object.assign(P, DEF, v); P.risk = risk; $('risk').value = String(risk);
+    for (const k of Object.keys(show)) { $(k).value = P[k]; $(k + 'Out').textContent = show[k](P[k]); }
+    update();
+  }
+  const scrollToBoard = () => board.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  $('pLecture').onclick = () => setAll({});
+  $('pCheap').onclick = () => setAll({ fee: 1 });
+  $('pSharp').onclick = () => setAll({ sens: 0.99, spec: 0.95 });
+  $('pSteep').onclick = () => setAll({ pS: 0.05 });
+  $('dLecture').onclick = () => { setAll({}); scrollToBoard(); };
+  $('dLimit').onclick = () => { setAll({}, 0.002); scrollToBoard(); };
+
+  // ---- tooltips ----
+  function showTip(ev) {
+    const g = ev.target.closest && ev.target.closest('g.node');
+    if (!g) { tip.hidden = true; return; }
+    tip.innerHTML = tips[+g.dataset.i];
+    tip.hidden = false;
+    const br = board.getBoundingClientRect(), r = g.getBoundingClientRect();
+    let x = r.right - br.left + 8, y = r.top - br.top - 6;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    if (x + w > board.clientWidth - 8) x = r.left - br.left - w - 8;
+    x = Math.max(8, Math.min(x, board.clientWidth - w - 8));
+    y = Math.max(8, Math.min(y, board.clientHeight - h - 8));
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  svg.addEventListener('pointermove', showTip);
+  svg.addEventListener('pointerdown', showTip);
+  svg.addEventListener('pointerleave', () => tip.hidden = true);
+
+  setAll({});
+})();
+</script>
+
+</body></html>

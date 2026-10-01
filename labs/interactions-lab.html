@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Dummies and Interactions Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: orange-juice scatter with fitted lines on the left, model picker + coefficient table in the right rail, then line equations and elasticities, a "how to read it" lesson, notes and class exercises. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.8vw, 17px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .f { color: var(--fit); font-weight: 600; }
+.eqn .o { color: var(--ball); font-weight: 600; }
+canvas { display: block; width: 100%; }
+#plot { touch-action: none; cursor: crosshair; }
+#plot.move { cursor: grab; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.own { border-top-color: var(--ball); }
+.sw.ghost { border-top: 2px dashed var(--muted); }
+.sw.sq { width: 12px; height: 12px; border: 1.5px solid var(--fit); background: color-mix(in srgb, var(--fit) 16%, transparent); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); }
+.sw.inf { width: 10px; height: 10px; border: 2px solid var(--ball); border-radius: 50%; }
+.sw.inf2 { width: 10px; height: 10px; border: 2px solid var(--curve); border-radius: 50%; }
+.modehint { font-size: 12.5px; color: var(--muted); margin: 0; padding: 0 4px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+.tip b { font-family: var(--font-display); font-size: 13.5px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ball); }
+input[type=range] { width: 100%; accent-color: var(--ball); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.checks label.off { opacity: .5; cursor: not-allowed; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.est { color: var(--fit); }
+.stats td.own { color: var(--ball); }
+
+#plot { touch-action: pan-y; cursor: default; }
+.sw { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--ink); }
+.sw.dash { border-top-style: dashed; }
+.sw.d { border-color: var(--accent); } .sw.m { border-color: var(--coinA); } .sw.t { border-color: var(--coinB); }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.dot.d { background: var(--accent); } .dot.m { background: var(--coinA); } .dot.t { background: var(--coinB); }
+.dot.ring { background: transparent; border: 2px solid var(--muted); }
+.slider output { color: var(--accent); }
+input[type=range] { accent-color: var(--accent); }
+.seg.models { grid-template-columns: 1fr 1fr; }
+.seg.models button { border-left: 0; border-top: 1px solid var(--line); text-align: left; padding: 8px 10px; }
+.seg.models button:nth-child(-n+2) { border-top: 0; }
+.seg.models button:nth-child(even) { border-left: 1px solid var(--line); }
+.seg.models button:last-child { grid-column: 1 / -1; border-left: 0; }
+.seg.models small { display: block; font-weight: 400; font-size: 11.5px; opacity: .85; font-family: var(--font-mono); }
+.formula-r { font-family: var(--font-mono); font-size: 12.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; overflow-x: auto; white-space: nowrap; }
+table.coef { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 12.5px; }
+.coef th, .coef td { padding: 5px 0 5px 6px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.coef th:first-child, .coef td:first-child { text-align: left; padding-left: 0; white-space: normal; overflow-wrap: anywhere; }
+.coef thead th { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.coef td.sl { color: var(--muted); }
+.coef td.sig { font-weight: 600; }
+.coef tr:last-child td { border-bottom: 0; }
+.fitq { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
+.fitq b { color: var(--ink); font-weight: 600; }
+
+.lines { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.6vw, 24px); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.lines h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.lgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .lgrid { grid-template-columns: minmax(0, 1fr); } }
+.lcard { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; border-left: 4px solid var(--ink); }
+.lcard.d { border-left-color: var(--accent); } .lcard.m { border-left-color: var(--coinA); } .lcard.t { border-left-color: var(--coinB); }
+.lcard h3 { font-family: var(--font-display); font-size: 15.5px; margin: 0 0 4px; }
+.lcard .m { font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; white-space: nowrap; margin-bottom: 6px; }
+.lcard p { margin: 0 0 4px; font-size: 14px; }
+.lcard p.sub { color: var(--muted); font-size: 12.5px; }
+.tablewrap { overflow-x: auto; min-width: 0; }
+table.xm { border-collapse: collapse; font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; min-width: 100%; }
+.xm th, .xm td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.xm th:first-child, .xm td:first-child { text-align: left; font-family: var(--font-body); }
+.xm thead th { font-size: 10.5px; letter-spacing: .04em; color: var(--muted); font-weight: 400; }
+.xm td.one { color: var(--accent); font-weight: 600; }
+.xm td.zero { color: var(--muted); }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.live { color: var(--accent); font-weight: 700; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.eq table { border-collapse: collapse; font-family: var(--font-mono); font-size: 12.5px; width: 100%; }
+.eq th, .eq td { text-align: right; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.eq th:first-child, .eq td:first-child { text-align: left; }
+.eq th { font-weight: 400; color: var(--muted); font-size: 11px; }
+.eq tr:last-child td { border-bottom: 0; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Dummies and interactions</span>
+    <h1>Dummies and Interactions Lab</h1>
+    <p class="lead">Orange juice sales against price for three brands, with and without an in-store feature ad. Add brand dummies, then interactions, and watch one line become three parallel lines, then three slopes, then six. Every coefficient comes from a real least-squares fit to the simulated store-weeks.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 12, <a href="https://vsokolov.org/html/_book/12-regression.html">Linear Regression</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Log sales against log price with fitted lines by brand">
+      <div class="formula-r" id="rcall"></div>
+      <canvas id="plot" role="img" aria-label="Scatter of log sales against log price, colored by brand, with fitted regression lines. Solid lines are weeks without a feature ad, dashed lines are featured weeks."></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="dot d"></i>Dominick's</span>
+        <span><i class="dot m"></i>Minute Maid</span>
+        <span><i class="dot t"></i>Tropicana</span>
+        <span><i class="dot ring"></i>Featured week (hollow)</span>
+        <span><i class="sw"></i>Fitted line, no ad</span>
+        <span><i class="sw dash"></i>Fitted line, featured</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Model</span>
+        <div class="seg models" role="group" aria-label="Regression model">
+          <button id="m1" aria-pressed="false">1. Price only<small>log(price)</small></button>
+          <button id="m2" aria-pressed="true">2. + brand<small>brand dummies</small></button>
+          <button id="m3" aria-pressed="false">3. + brand × price<small>brand slopes</small></button>
+          <button id="m4" aria-pressed="false">4. + feat, feat × price<small>ad changes slope</small></button>
+          <button id="m5" aria-pressed="false">price × feat, no brand<small>log(price) * feat</small></button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Coefficients (OLS on this sample)</span>
+        <table class="coef">
+          <thead><tr><th>Term</th><th>Est.</th><th>SE</th><th>t</th><th>Reference</th></tr></thead>
+          <tbody id="coefBody"></tbody>
+        </table>
+        <div class="fitq" id="fitq"></div>
+        <p class="hint">Bold t means |t| &gt; 2. The Reference column shows estimates from the real Dominick's data, where the source gives them.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Simulated data</span>
+        <div class="slider"><div class="top"><label for="n">Store-weeks, n</label><output id="nOut">1,500</output></div>
+          <input type="range" id="n" min="300" max="6000" step="300" value="1500"></div>
+        <div class="slider"><div class="top"><label for="delta">True feat × price effect</label><output id="deltaOut">−0.90</output></div>
+          <input type="range" id="delta" min="-1.5" max="0.5" step="0.05" value="-0.9"></div>
+        <div class="btns">
+          <button id="resample" class="primary">New sample</button>
+          <button id="reset">Reset truth</button>
+        </div>
+        <div class="checks">
+          <label for="cNo"><input type="checkbox" id="cNo" checked> Show weeks without an ad</label>
+          <label for="cFe"><input type="checkbox" id="cFe" checked> Show featured weeks</label>
+        </div>
+        <p class="hint">Simulated store-weeks. The true model has brand intercepts and slopes plus an ad effect, tuned so that models 2 and 5 land near the reference numbers.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lines" aria-labelledby="linesH">
+    <div>
+      <span class="eyebrow">One model, several lines</span>
+      <h2 id="linesH">The equation and price elasticity of each line</h2>
+    </div>
+    <div class="lgrid" id="lineCards"></div>
+    <p class="hint">In a log–log model the slope is an elasticity: the % change in sales for a 1% change in price.</p>
+    <span class="label">What the regression sees: example rows of the design matrix X</span>
+    <div class="tablewrap"><table class="xm" id="xmat"></table></div>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Reading dummies and interactions</span>
+      <h2>Every coefficient is a difference from the baseline</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The baseline is Dominick's in a week without a feature ad. R picks the first level of a factor as the reference, and Dominick's comes first alphabetically. The intercept and the log(price) slope describe the baseline line. Every other coefficient says how a brand or the ad shifts that line.</p>
+      <div class="demo">
+        <button class="primary" id="demo12">brand dummies</button>
+        <button id="demo13">ad × price</button>
+        <button id="demoFull">Full model: six lines</button>
+        <button id="demoBig">Big n: economic vs statistical</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>A dummy shifts the intercept</h3>
+        <p>A dummy is 1 for its category and 0 otherwise. With brand dummies and one price slope, the three lines are parallel. <span id="liveDummy" class="live"></span></p>
+      </div></li>
+      <li><div>
+        <h3>A dummy × price term shifts the slope</h3>
+        <p>Multiply a dummy by log(price) and that category gets its own slope. The coefficient on log(price):brandtropicana is Tropicana's elasticity minus Dominick's. <span id="liveBrandX" class="live"></span></p>
+      </div></li>
+      <li><div>
+        <h3>An interaction makes one effect depend on another</h3>
+        <p>With feat × log(price), the price elasticity is β₁ without an ad and β₁ + β₃ with one. In the reference fit that is −0.96 and −0.96 − 0.98 = −1.94: featuring doubles price sensitivity. <span id="liveFeat" class="live"></span></p>
+      </div></li>
+      <li><div>
+        <h3>Leaving out a variable moves the others</h3>
+        <p>Model 1 and the price × feature model have no brand dummies, so the price slope also picks up brand differences: Tropicana costs more and sells more. Its elasticity looks small, about −1.5 in model 1 and −0.96 in the reference fit. Add the brand dummies and the within-brand elasticity is near −3.</p>
+      </div></li>
+      <li><div>
+        <h3>Significant is not the same as important</h3>
+        <p>With thousands of store-weeks, small differences get large t-statistics. Ask whether the size of the effect would change a pricing decision. A difference of 0.05 in elasticity rarely does.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cp">Dummy coding with Dominick's as reference</div>
+        <table>
+          <thead><tr><th>Brand</th><th>brandminute.maid</th><th>brandtropicana</th></tr></thead>
+          <tbody>
+            <tr><td>dominicks</td><td>0</td><td>0</td></tr>
+            <tr><td>minute.maid</td><td>1</td><td>0</td></tr>
+            <tr><td>tropicana</td><td>0</td><td>1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="eq">
+        <div class="cp">Interaction with a dummy D</div>
+        <div class="m">Y = β₀ + β₁X + β₂(X·D) + ε</div>
+        <div class="m">slope β₁ if D = 0,  β₁ + β₂ if D = 1</div>
+      </div>
+      <div class="eq">
+        <div class="cp">lm(logmove ~ log(price) + brand)</div>
+        <div class="m">10.829 − 3.139 log(price) + 0.870 MM + 1.530 Trop</div>
+      </div>
+      <div class="eq">
+        <div class="cp">lm(logmove ~ log(price) * feat)</div>
+        <div class="m">9.659 − 0.958 log(price) + 1.714 feat − 0.977 log(price)·feat</div>
+      </div>
+      <div class="eq">
+        <div class="cp">A log-unit difference as a percent</div>
+        <div class="m">Δ log(sales) = 1.53  ⇒  sales × e^1.53 ≈ 4.6</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> Read each coefficient as "compared with the baseline, holding the other predictors fixed". Then turn the model into lines: write out the equation for each brand and ad status, and report the elasticities in plain English. A caveat: features often coincide with price cuts, so the ad effect is partly a price effect.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>The MLR model</h2>
+      <p>βⱼ is the effect of a one-unit increase in Xⱼ holding all other predictors fixed, the marginal effect.</p>
+      <div class="formula">Y = β₀ + β₁X₁ + … + βₚXₚ + ε</div>
+    </div>
+    <div class="note">
+      <h2>Newfood</h2>
+      <p>A dummy in a log model is a percent lift. High advertising (adv = 1) multiplies sales by e^0.15 ≈ 1.16, a 16% lift, but its t = 1.49 is below 2. The price elasticity is −1.74.</p>
+      <div class="formula">log(sales) = 8.407 − 1.743 log(price) + 0.150 adv + …</div>
+    </div>
+    <div class="note">
+      <h2>The simulated truth</h2>
+      <p>Prices center near $1.65, $2.23 and $3.00; about 30%, 25% and 15% of weeks are featured, at prices 10% lower. Noise SD 0.70.</p>
+      <div class="formula" id="truthEq"></div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Start with model 1. Ask what an elasticity of about −1.5 means for the store. Then switch to model 2 and watch the slope fall to about −3. Ask why adding brand changed the price effect.</li>
+      <li>In model 2, read brandtropicana. Turn it into a percent with e^b and say it in a sentence: at the same price Tropicana sells about 4.6 times as much as Dominick's.</li>
+      <li>Switch to model 3. Are the brand slopes really different? Look at the t-statistics, then raise n to 6,000 and look again.</li>
+      <li>Switch to model 4 and read the line cards. Which brand is most price sensitive when featured? Move the "true feat × price effect" slider to 0 and see whether the dashed lines become parallel to the solid ones.</li>
+      <li>Compare the price × feature model with model 4. Both have a feat × price term. Why is the no-ad elasticity about −0.96 in one and about −2.3 for Dominick's in the other?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  /* MATH-BEGIN (pure functions; no DOM) */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function normalFrom(R) { return () => { let u = 0, v = 0; while (!u) u = R(); while (!v) v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }; }
+  // Simulated truth (brands: 0 = Dominick's, 1 = Minute Maid, 2 = Tropicana)
+  const TRUTH = { a: [10.2, 10.85, 11.35], b: [-2.6, -2.35, -2.3], gamma: 1.6, delta: -0.9, sigma: 0.7,
+                  mu: [0.5, 0.8, 1.1], sd: 0.18, disc: 0.1, q: [0.30, 0.25, 0.15] };
+  function genOJ(n, seed, delta) {
+    const R = mulberry32(seed), N = normalFrom(R), rows = [];
+    for (let i = 0; i < n; i++) {
+      const b = i % 3, f = R() < TRUTH.q[b] ? 1 : 0;
+      const lp = TRUTH.mu[b] + TRUTH.sd * N() - TRUTH.disc * f;
+      const y = TRUTH.a[b] + TRUTH.b[b] * lp + f * (TRUTH.gamma + delta * lp) + TRUTH.sigma * N();
+      rows.push({ b, f, lp, y });
+    }
+    return rows;
+  }
+  const MODELS = {
+    m1: { terms: ['(Intercept)', 'log(price)'], row: (lp, b, f) => [1, lp], call: 'lm(logmove ~ log(price), data = oj)' },
+    m2: { terms: ['(Intercept)', 'log(price)', 'brandminute.maid', 'brandtropicana'], row: (lp, b) => [1, lp, +(b === 1), +(b === 2)],
+          call: 'lm(logmove ~ log(price) + brand, data = oj)', slide: [10.829, -3.139, 0.870, 1.530] },
+    m3: { terms: ['(Intercept)', 'log(price)', 'brandminute.maid', 'brandtropicana', 'log(price):brandminute.maid', 'log(price):brandtropicana'],
+          row: (lp, b) => [1, lp, +(b === 1), +(b === 2), lp * (b === 1), lp * (b === 2)], call: 'lm(logmove ~ log(price) * brand, data = oj)' },
+    m4: { terms: ['(Intercept)', 'log(price)', 'brandminute.maid', 'brandtropicana', 'log(price):brandminute.maid', 'log(price):brandtropicana', 'feat', 'log(price):feat'],
+          row: (lp, b, f) => [1, lp, +(b === 1), +(b === 2), lp * (b === 1), lp * (b === 2), f, lp * f], call: 'lm(logmove ~ log(price) * brand + log(price) * feat, data = oj)' },
+    m5: { terms: ['(Intercept)', 'log(price)', 'feat', 'log(price):feat'], row: (lp, b, f) => [1, lp, f, lp * f],
+          call: 'lm(logmove ~ log(price) * feat, data = oj)', slide: [9.659, -0.958, 1.714, -0.977] }
+  };
+  function invert(A) { // Gauss-Jordan with partial pivoting
+    const n = A.length, M = A.map((r, i) => [...r, ...Array.from({ length: n }, (_, j) => +(i === j))]);
+    for (let c = 0; c < n; c++) {
+      let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+      if (Math.abs(M[p][c]) < 1e-12) return null;
+      [M[c], M[p]] = [M[p], M[c]];
+      const d = M[c][c]; for (let j = 0; j < 2 * n; j++) M[c][j] /= d;
+      for (let r = 0; r < n; r++) if (r !== c) { const k = M[r][c]; if (k) for (let j = 0; j < 2 * n; j++) M[r][j] -= k * M[c][j]; }
+    }
+    return M.map(r => r.slice(n));
+  }
+  function olsFit(X, y) {
+    const n = X.length, p = X[0].length, XtX = Array.from({ length: p }, () => new Array(p).fill(0)), Xty = new Array(p).fill(0);
+    for (let i = 0; i < n; i++) { const r = X[i]; for (let a = 0; a < p; a++) { Xty[a] += r[a] * y[i]; for (let b = a; b < p; b++) XtX[a][b] += r[a] * r[b]; } }
+    for (let a = 0; a < p; a++) for (let b = 0; b < a; b++) XtX[a][b] = XtX[b][a];
+    const inv = invert(XtX); if (!inv) return null;
+    const beta = inv.map(r => r.reduce((s, v, j) => s + v * Xty[j], 0));
+    let sse = 0, my = 0; for (const v of y) my += v; my /= n; let sst = 0;
+    for (let i = 0; i < n; i++) { const f = X[i].reduce((s, v, j) => s + v * beta[j], 0); sse += (y[i] - f) ** 2; sst += (y[i] - my) ** 2; }
+    const s2 = sse / (n - p), se = inv.map((r, j) => Math.sqrt(s2 * r[j]));
+    return { beta, se, t: beta.map((b, j) => b / se[j]), s: Math.sqrt(s2), r2: 1 - sse / sst, n, p };
+  }
+  function fitModel(key, rows) { const M = MODELS[key]; return olsFit(rows.map(r => M.row(r.lp, r.b, r.f)), rows.map(r => r.y)); }
+  /* MATH-END */
+
+  const BRANDS = ["Dominick's", 'Minute Maid', 'Tropicana'], BK = ['d', 'm', 't'];
+  const S = { model: 'm2', n: 1500, seed: 13, delta: TRUTH.delta, rows: [], fit: null, showNo: true, showFe: true };
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'coinA', 'coinB', 'curve', 'board', 'surface']) C[k] = cs.getPropertyValue('--' + k).trim();
+    C.br = [C.accent, C.coinA, C.coinB];
+  }
+  const minus = s => s.replace(/-/g, '−');
+  const fmt = (v, d = 2) => isFinite(v) ? minus(v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })) : '–';
+
+  // ---------- lines implied by the current model ----------
+  function groups() { // which (brand, feat) combinations the model distinguishes
+    const k = S.model;
+    if (k === 'm1') return [{ b: null, f: null }];
+    if (k === 'm5') return [{ b: null, f: 0 }, { b: null, f: 1 }];
+    if (k === 'm4') return [0, 1, 2].flatMap(b => [{ b, f: 0 }, { b, f: 1 }]);
+    return [0, 1, 2].map(b => ({ b, f: null }));
+  }
+  function lineOf(g) { // intercept and slope for a group, from the fitted coefficients
+    const M = MODELS[S.model], be = S.fit.beta, b = g.b ?? 0, f = g.f ?? 0;
+    const at = lp => M.row(lp, b, f).reduce((s, v, j) => s + v * be[j], 0);
+    return { a: at(0), s: at(1) - at(0) };
+  }
+  function rangeOf(g) {
+    let lo = Infinity, hi = -Infinity;
+    for (const r of S.rows) if ((g.b === null || r.b === g.b) && (g.f === null || r.f === g.f)) { lo = Math.min(lo, r.lp); hi = Math.max(hi, r.lp); }
+    return [lo, hi];
+  }
+  function gName(g) {
+    const br = g.b === null ? 'All brands' : BRANDS[g.b];
+    return g.f === null ? br : br + (g.f ? ', featured' : ', no ad');
+  }
+  function sentence(g, el) {
+    const who = g.b === null ? 'all brands pooled' : BRANDS[g.b];
+    const when = g.f === null ? '' : g.f ? ' when featured' : ' without a feature ad';
+    const verb = el < 0 ? 'lowers' : 'raises';
+    return `A 1% price rise ${verb} sales by about ${fmt(Math.abs(el), 2)}% for ${who}${when}.`;
+  }
+
+  // ---------- canvas ----------
+  const cv = $('plot'), ctx = cv.getContext('2d'), tip = $('tip');
+  let W = 0, H = 0, G = null;
+  const MG = { l: 46, r: 14, t: 22, b: 40 };
+  function resize() {
+    const w = cv.clientWidth || cv.parentElement.clientWidth, h = Math.round(Math.min(Math.max(w * 0.68, 340), 600)), d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d); ctx.setTransform(d, 0, 0, d, 0, 0); W = w; H = h;
+  }
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function tickTxt(v, step) { const d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9)); return fmt(Math.abs(v) < step * 1e-6 ? 0 : v, d); }
+  let XD = [0, 1.5], YD = [5, 13];
+  function setDomain() {
+    const lp = S.rows.map(r => r.lp), y = S.rows.map(r => r.y);
+    const q = (a, p) => { const s = [...a].sort((u, v) => u - v); return s[Math.floor(p * (s.length - 1))]; };
+    const x0 = Math.min(...lp), x1 = Math.max(...lp), y0 = q(y, 0.002), y1 = q(y, 0.998);
+    XD = [x0 - 0.04 * (x1 - x0), x1 + 0.04 * (x1 - x0)]; YD = [y0 - 0.06 * (y1 - y0), y1 + 0.06 * (y1 - y0)];
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const PX = x => MG.l + (x - XD[0]) / (XD[1] - XD[0]) * (W - MG.l - MG.r), PY = y => MG.t + (YD[1] - y) / (YD[1] - YD[0]) * (H - MG.t - MG.b);
+    G = { PX, PY };
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1;
+    const ys = niceStep(YD[1] - YD[0], 6), xs = niceStep(XD[1] - XD[0], 7);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(YD[0] / ys) * ys; y <= YD[1] + 1e-9; y += ys) { const py = Math.round(PY(y)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(MG.l, py); ctx.lineTo(W - MG.r, py); ctx.stroke(); ctx.fillStyle = C.muted; ctx.fillText(tickTxt(y, ys), MG.l - 6, py); }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; let lastX = -1e9;
+    for (let x = Math.ceil(XD[0] / xs) * xs; x <= XD[1] + 1e-9; x += xs) {
+      const px = Math.round(PX(x)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(px, MG.t); ctx.lineTo(px, H - MG.b); ctx.stroke();
+      const t = tickTxt(x, xs), tw = ctx.measureText(t).width; if (px - tw / 2 > lastX + 6) { ctx.fillStyle = C.muted; ctx.fillText(t, px, H - MG.b + 6); lastX = px + tw / 2; }
+    }
+    ctx.strokeStyle = C.line; ctx.strokeRect(MG.l + .5, MG.t + .5, W - MG.l - MG.r - 1, H - MG.t - MG.b - 1);
+    ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('log(price), price in $', W - MG.r, H - 2);
+    ctx.textAlign = 'left'; ctx.fillText('log(sales) = logmove', MG.l, MG.t - 5);
+    ctx.save(); ctx.beginPath(); ctx.rect(MG.l, MG.t, W - MG.l - MG.r, H - MG.t - MG.b); ctx.clip();
+    const r = S.rows.length > 3000 ? 2 : 2.6;
+    for (const p of S.rows) {
+      if ((p.f && !S.showFe) || (!p.f && !S.showNo)) continue;
+      const x = PX(p.lp), y = PY(p.y);
+      if (p.f) { ctx.strokeStyle = C.br[p.b]; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(x, y, r + 0.6, 0, Math.PI * 2); ctx.stroke(); }
+      else { ctx.fillStyle = C.br[p.b]; ctx.globalAlpha = 0.38; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+    }
+    ctx.globalAlpha = 1;
+    if (S.fit) for (const g of groups()) {
+      const L = lineOf(g), [lo, hi] = rangeOf(g); if (!isFinite(lo)) continue;
+      const col = g.b === null ? C.ink : C.br[g.b];
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = C.surface; ctx.lineWidth = 6; ctx.setLineDash(g.f === 1 ? [10, 6] : []);
+      ctx.beginPath(); ctx.moveTo(PX(lo), PY(L.a + L.s * lo)); ctx.lineTo(PX(hi), PY(L.a + L.s * hi)); ctx.stroke();
+      ctx.strokeStyle = col; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(PX(lo), PY(L.a + L.s * lo)); ctx.lineTo(PX(hi), PY(L.a + L.s * hi)); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+  let dirty = true;
+  function loop() { if (dirty) { draw(); dirty = false; } requestAnimationFrame(loop); }
+
+  // ---------- readouts ----------
+  function updateText() {
+    const M = MODELS[S.model], f = S.fit;
+    $('rcall').textContent = '> ' + M.call;
+    for (const k of Object.keys(MODELS)) $(k).setAttribute('aria-pressed', k === S.model);
+    $('coefBody').innerHTML = M.terms.map((t, j) => `<tr><td>${t.replace(/([.:])/g, '$1<wbr>')}</td><td>${fmt(f.beta[j], 3)}</td><td>${fmt(f.se[j], 3)}</td><td class="${Math.abs(f.t[j]) > 2 ? 'sig' : ''}">${fmt(f.t[j], 1)}</td><td class="sl">${M.slide ? fmt(M.slide[j], 3) : '–'}</td></tr>`).join('');
+    $('fitq').innerHTML = `<span>R² <b>${fmt(f.r2, 3)}</b></span><span>s <b>${fmt(f.s, 3)}</b></span><span>n <b>${f.n.toLocaleString()}</b></span><span>coefficients <b>${f.p}</b></span>`;
+    // line cards
+    $('lineCards').innerHTML = groups().map(g => {
+      const L = lineOf(g), cls = g.b === null ? '' : BK[g.b];
+      const sg = L.s < 0 ? '−' : '+';
+      let sub = '';
+      if (S.model === 'm4' && g.f === 1) { const L0 = lineOf({ b: g.b, f: 0 }); sub = `The ad changes the elasticity by ${fmt(L.s - L0.s, 2)} (from ${fmt(L0.s, 2)}).`; }
+      if (S.model === 'm5' && g.f === 1) { const L0 = lineOf({ b: null, f: 0 }); sub = `The ad changes the elasticity by ${fmt(L.s - L0.s, 2)} (from ${fmt(L0.s, 2)}).`; }
+      if ((S.model === 'm2' || S.model === 'm3') && g.b > 0) { const L0 = lineOf({ b: 0, f: null }); const d = L.a + L.s * TRUTH.mu[g.b] - (L0.a + L0.s * TRUTH.mu[g.b]); sub = `At a price of $${Math.exp(TRUTH.mu[g.b]).toFixed(2)}, sells ${fmt(d, 2)} log-units more than Dominick's (×${fmt(Math.exp(d), 1)}).`; }
+      return `<div class="lcard ${cls}"><h3>${gName(g)}${g.f === 1 ? ' <span style="color:var(--muted);font-weight:400">(dashed)</span>' : ''}</h3><div class="m">log(sales) = ${fmt(L.a, 2)} ${sg} ${fmt(Math.abs(L.s), 2)}·log(price)</div><p>${sentence(g, L.s)}</p>${sub ? `<p class="sub">${sub}</p>` : ''}</div>`;
+    }).join('');
+    // design matrix preview
+    const ex = [[0, 0], [1, 0], [2, 0], [1, 1]].map(([b, fe]) => ({ b, f: fe, lp: TRUTH.mu[b] - TRUTH.disc * fe }));
+    $('xmat').innerHTML = `<thead><tr><th>Store-week</th>${M.terms.map(t => `<th>${t}</th>`).join('')}</tr></thead><tbody>`
+      + ex.map(e => `<tr><td>${BRANDS[e.b]}${e.f ? ', featured' : ''} at $${Math.exp(e.lp).toFixed(2)}</td>${M.row(e.lp, e.b, e.f).map(v => `<td class="${v === 0 ? 'zero' : v === 1 ? 'one' : ''}">${Number.isInteger(v) ? v : fmt(v, 3)}</td>`).join('')}</tr>`).join('') + '</tbody>';
+    // live sentences in the lesson
+    const fm2 = fitModel('m2', S.rows), fm3 = fitModel('m3', S.rows), fm4 = fitModel('m4', S.rows);
+    $('liveDummy').textContent = `Here brandtropicana = ${fmt(fm2.beta[3], 2)}: at the same price, Tropicana sells e^${fmt(fm2.beta[3], 2)} ≈ ${fmt(Math.exp(fm2.beta[3]), 1)} times as much as Dominick's.`;
+    $('liveBrandX').textContent = `Here it is ${fmt(fm3.beta[5], 2)} (t = ${fmt(fm3.t[5], 1)}), so Tropicana's elasticity is ${fmt(fm3.beta[1], 2)} + ${fmt(fm3.beta[5], 2)} = ${fmt(fm3.beta[1] + fm3.beta[5], 2)}.`;
+    $('liveFeat').textContent = `In model 4 on this sample, log(price):feat = ${fmt(fm4.beta[7], 2)}: the ad changes every brand's elasticity by that amount.`;
+    $('truthEq').textContent = `logmove = a_brand + b_brand·log(p) + feat·(1.60 ${S.delta < 0 ? '−' : '+'} ${fmt(Math.abs(S.delta), 2)}·log(p)) + ε, a = (10.20, 10.85, 11.35), b = (−2.60, −2.35, −2.30)`;
+  }
+
+  function regen(keepDomain) {
+    S.rows = genOJ(S.n, S.seed, S.delta);
+    if (!keepDomain) setDomain();
+    refit();
+  }
+  function refit() { S.fit = fitModel(S.model, S.rows); updateText(); dirty = true; }
+  function setModel(k) { S.model = k; refit(); }
+  for (const k of Object.keys(MODELS)) $(k).onclick = () => setModel(k);
+  $('n').oninput = e => { S.n = +e.target.value; $('nOut').textContent = S.n.toLocaleString(); regen(); };
+  $('delta').oninput = e => { S.delta = +e.target.value; $('deltaOut').textContent = fmt(S.delta, 2); regen(true); };
+  $('delta').onchange = () => { setDomain(); dirty = true; };
+  $('resample').onclick = () => { S.seed = (S.seed * 48271 + 11) % 2147483647; regen(); };
+  $('reset').onclick = () => { S.delta = TRUTH.delta; $('delta').value = S.delta; $('deltaOut').textContent = fmt(S.delta, 2); S.n = 1500; $('n').value = 1500; $('nOut').textContent = '1,500'; S.seed = 13; regen(); };
+  $('cNo').onchange = e => { S.showNo = e.target.checked; dirty = true; };
+  $('cFe').onchange = e => { S.showFe = e.target.checked; dirty = true; };
+  const toBoard = () => document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  $('demo12').onclick = () => { setModel('m2'); toBoard(); };
+  $('demo13').onclick = () => { setModel('m5'); toBoard(); };
+  $('demoFull').onclick = () => { setModel('m4'); toBoard(); };
+  $('demoBig').onclick = () => { S.n = 6000; $('n').value = 6000; $('nOut').textContent = '6,000'; S.model = 'm3'; regen(); toBoard(); };
+
+  // hover tooltip
+  function showTip(ev) {
+    if (!G) return;
+    const rc = cv.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    let best = null, bd = 10 * 10;
+    for (const p of S.rows) {
+      if ((p.f && !S.showFe) || (!p.f && !S.showNo)) continue;
+      const dx = G.PX(p.lp) - mx, dy = G.PY(p.y) - my, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = p; }
+    }
+    if (!best) { tip.hidden = true; return; }
+    const g = S.model === 'm1' ? { b: null, f: null } : S.model === 'm5' ? { b: null, f: best.f } : S.model === 'm4' ? { b: best.b, f: best.f } : { b: best.b, f: null };
+    const L = lineOf(g), fit = L.a + L.s * best.lp;
+    tip.innerHTML = `<b>${BRANDS[best.b]}</b>${best.f ? ', featured' : ', no ad'}<br>price $${Math.exp(best.lp).toFixed(2)}, log(price) = ${fmt(best.lp, 3)}<br>log(sales) = ${fmt(best.y, 2)} (${Math.round(Math.exp(best.y)).toLocaleString()} units)<br>fitted = ${fmt(fit, 2)}, residual = ${fmt(best.y - fit, 2)}`;
+    tip.hidden = false;
+    const bw = cv.parentElement.clientWidth;
+    tip.style.left = Math.max(8, Math.min(mx + 30, bw - tip.offsetWidth - 8)) + 'px';
+    tip.style.top = Math.max(8, my + cv.offsetTop - tip.offsetHeight - 10) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => { resize(); dirty = true; }).observe(cv.parentElement);
+  resize(); regen(); requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Least Squares Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: draggable scatter on the left, data/edit/fit controls in a right rail, a diagnostics panel (three plots + influence table) under it, then lesson, notes and class exercises. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.8vw, 17px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .f { color: var(--fit); font-weight: 600; }
+.eqn .o { color: var(--ball); font-weight: 600; }
+canvas { display: block; width: 100%; }
+#plot { touch-action: none; cursor: crosshair; }
+#plot.move { cursor: grab; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.own { border-top-color: var(--ball); }
+.sw.ghost { border-top: 2px dashed var(--muted); }
+.sw.sq { width: 12px; height: 12px; border: 1.5px solid var(--fit); background: color-mix(in srgb, var(--fit) 16%, transparent); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); }
+.sw.inf { width: 10px; height: 10px; border: 2px solid var(--ball); border-radius: 50%; }
+.sw.inf2 { width: 10px; height: 10px; border: 2px solid var(--curve); border-radius: 50%; }
+.modehint { font-size: 12.5px; color: var(--muted); margin: 0; padding: 0 4px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+.tip b { font-family: var(--font-display); font-size: 13.5px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ball); }
+input[type=range] { width: 100%; accent-color: var(--ball); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.checks label.off { opacity: .5; cursor: not-allowed; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.est { color: var(--fit); }
+.stats td.own { color: var(--ball); }
+
+/* diagnostics */
+.diag { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.6vw, 24px); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.diag h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.dplots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 900px) { .dplots { grid-template-columns: minmax(0, 1fr); } }
+.dcard { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.dcard h3 { font-family: var(--font-display); font-size: 15.5px; margin: 0; }
+.dcard p { font-size: 12.5px; color: var(--muted); margin: 0; }
+.tablewrap { overflow-x: auto; min-width: 0; }
+table.infl { border-collapse: collapse; width: 100%; min-width: 620px; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 13px; }
+.infl th, .infl td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.infl th:first-child, .infl td:first-child { text-align: left; font-family: var(--font-body); }
+.infl thead th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.infl tbody tr { cursor: pointer; }
+.infl tbody tr:hover { background: var(--board); }
+.infl tr.sel td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.infl td.warn { color: var(--ball); font-weight: 600; }
+.infl td.bad { color: var(--curve); font-weight: 600; }
+.infl button { font-size: 12.5px; padding: 4px 8px; }
+
+/* lesson */
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note ol { margin: 0; padding-left: 20px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Least squares and diagnostics</span>
+    <h1>Least Squares Lab</h1>
+    <p class="lead">Drag, add or remove points and watch the least-squares line, SSE and R² update. Turn on the squared residuals to see what the line minimizes, try to beat it with your own line, then use the diagnostics to find the points that move the slope.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 12, <a href="https://vsokolov.org/html/_book/12-regression.html">Linear Regression</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Scatter plot with least-squares line">
+      <div class="eqn" id="eqn"></div>
+      <canvas id="plot" class="move" role="img" aria-label="Scatter plot of the current data with the least-squares line. Points can be dragged."></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <p class="modehint" id="modeHint"></p>
+      <div class="legend">
+        <span><i class="sw pt"></i>Data point</span>
+        <span><i class="sw"></i>Least-squares line</span>
+        <span><i class="sw sq"></i>Squared residual</span>
+        <span id="lgOwn" hidden><i class="sw own"></i>Your line</span>
+        <span id="lgGhost" hidden><i class="sw ghost"></i>Fit before the last removal</span>
+        <span><i class="sw inf"></i>Cook's D &gt; 0.5</span>
+        <span><i class="sw inf2"></i>Cook's D &gt; 1</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Data set</span>
+        <div class="seg" role="group" aria-label="Data set">
+          <button id="dsClean" aria-pressed="true">Clean line</button>
+          <button id="dsCig" aria-pressed="false">Cigarettes</button>
+          <button id="dsMam" aria-pressed="false">Mammals</button>
+        </div>
+        <p class="hint" id="dsNote"></p>
+        <div class="checks">
+          <label id="logWrap" for="logScale"><input type="checkbox" id="logScale"> Log–log scale (fit log y on log x)</label>
+        </div>
+        <div class="btns">
+          <button id="fixTypo" hidden>Fix the typo</button>
+          <button id="resetData">Reset data</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Edit points</span>
+        <div class="seg" role="group" aria-label="Edit mode">
+          <button id="mMove" aria-pressed="true">Drag</button>
+          <button id="mAdd" aria-pressed="false">Add</button>
+          <button id="mRemove" aria-pressed="false">Remove</button>
+        </div>
+        <p class="msg" id="moveMsg">Remove a point to see how far the slope moves.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Show</span>
+        <div class="checks">
+          <label for="cResid"><input type="checkbox" id="cResid" checked> Residuals</label>
+          <label for="cSquares"><input type="checkbox" id="cSquares"> Draw squared residuals</label>
+          <label for="cMean"><input type="checkbox" id="cMean" checked> The point (x̄, ȳ)</label>
+          <label for="cLabels"><input type="checkbox" id="cLabels" checked> Point labels</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Least-squares fit</span>
+        <table class="stats">
+          <tbody>
+            <tr><td>Intercept β̂₀</td><td class="est" id="vB0">–</td></tr>
+            <tr><td>Slope β̂₁</td><td class="est" id="vB1">–</td></tr>
+            <tr><td>Correlation r<sub>xy</sub></td><td id="vR">–</td></tr>
+            <tr><td>R²</td><td id="vR2">–</td></tr>
+            <tr><td>SSE = Σ eᵢ²</td><td id="vSSE">–</td></tr>
+            <tr><td>Residual SE, s</td><td id="vS">–</td></tr>
+            <tr><td>Points, n</td><td id="vN">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="group">
+        <span class="label">Try your own line</span>
+        <div class="checks">
+          <label for="cOwn"><input type="checkbox" id="cOwn"> Show my line and its handles</label>
+        </div>
+        <div id="ownBox" class="group" style="gap:10px" hidden>
+          <div class="slider"><div class="top"><label for="ownB1">My slope</label><output id="ownB1Out">0</output></div>
+            <input type="range" id="ownB1" min="-1" max="1" step="0.001" value="0"></div>
+          <div class="slider"><div class="top"><label for="ownB0">My intercept</label><output id="ownB0Out">0</output></div>
+            <input type="range" id="ownB0" min="-1" max="1" step="0.001" value="0"></div>
+          <table class="stats">
+            <thead><tr><th></th><th>My line</th><th>Least squares</th></tr></thead>
+            <tbody>
+              <tr><td>SSE</td><td class="own" id="ownSSE">–</td><td class="est" id="olsSSE">–</td></tr>
+              <tr><td>Ratio to minimum</td><td class="own" id="ownRatio">–</td><td class="est">1.000×</td></tr>
+            </tbody>
+          </table>
+          <div class="btns">
+            <button id="ownFlat">Flat at ȳ</button>
+            <button id="ownSnap">Snap to least squares</button>
+          </div>
+          <p class="hint">Drag the two amber handles on the plot, or use the sliders. With the squares on, the squares belong to your line.</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="diag" aria-labelledby="diagH">
+    <div>
+      <span class="eyebrow">Diagnostics</span>
+      <h2 id="diagH">Which points drive the fit?</h2>
+    </div>
+    <div class="dplots">
+      <div class="dcard">
+        <h3>Residuals vs. fitted</h3>
+        <p>Should look like random scatter around zero. A curve means the line is the wrong shape.</p>
+        <canvas id="dRes" role="img" aria-label="Residuals plotted against fitted values"></canvas>
+      </div>
+      <div class="dcard">
+        <h3>Standardized residuals vs. leverage</h3>
+        <p>Red dashed contours mark Cook's D = 0.5 and 1. Points outside them are influential.</p>
+        <canvas id="dLev" role="img" aria-label="Standardized residuals against leverage with Cook's distance contours"></canvas>
+      </div>
+      <div class="dcard">
+        <h3>Cook's distance by point</h3>
+        <p>Combines residual size and leverage. Investigate D &gt; 0.5; D &gt; 1 is a strong warning.</p>
+        <canvas id="dCook" role="img" aria-label="Bar chart of Cook's distance for each point"></canvas>
+      </div>
+    </div>
+    <p class="hint">The table lists the most influential points first. Click a row to highlight that point everywhere. "Drop" removes it and leaves the old line on the plot for comparison.</p>
+    <div class="tablewrap">
+      <table class="infl">
+        <thead><tr><th>Point</th><th id="thX">x</th><th id="thY">y</th><th>Fitted ŷ</th><th>Residual e</th><th>Leverage h</th><th>Std. resid r</th><th>Cook's D</th><th>β̂₁ without it</th><th></th></tr></thead>
+        <tbody id="inflBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Fit, check, transform</span>
+      <h2>Least squares picks the line with the smallest total square area</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Leavitt's 25 pulsating stars made the point first: least squares minimizes the average squared error, and any other rule on the same data fits visibly worse. The demos below load classic diagnostic cases.</p>
+      <div class="demo">
+        <button class="primary" id="demoCig">Cigarettes: drop country K</button>
+        <button id="demoRaw">Mammals on the raw scale</button>
+        <button id="demoLog">Mammals on the log–log scale</button>
+        <button id="demoOwn">Beat least squares (you can't)</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>The line minimizes the sum of squared residuals</h3>
+        <p>Each residual eᵢ = yᵢ − ŷᵢ is the vertical miss at one point. Turn on the squares: each square's side is a residual, so its area is eᵢ². Least squares moves the line until the total area SSE is as small as possible. Any line you draw has a larger SSE.</p>
+      </div></li>
+      <li><div>
+        <h3>The fitted line always passes through (x̄, ȳ)</h3>
+        <p>Because β̂₀ = ȳ − β̂₁x̄, the line pivots around the point of means. The slope is the correlation rescaled into the right units, β̂₁ = r<sub>xy</sub> · s<sub>y</sub> / s<sub>x</sub>.</p>
+      </div></li>
+      <li><div>
+        <h3>Leverage and residual size combine into influence</h3>
+        <p>A point far from x̄ has high leverage hᵢ. It can pull the line toward itself, so its own residual can look small. Cook's distance multiplies the squared standardized residual by hᵢ/(1 − hᵢ). In the cigarettes data, country K plays the role of the United States in the classic data: removing it changes the slope a lot, but the slope stays positive.</p>
+      </div></li>
+      <li><div>
+        <h3>When the residuals fan out, take logs</h3>
+        <p>On the raw scale a few giant mammals dominate and the residuals are huge and uneven. On the log–log scale the cloud is a straight band and the slope is an elasticity. The reference fit is log(Brain) = 2.18 + 0.74 log(Body): a 1% heavier body goes with a 0.74% heavier brain.</p>
+      </div></li>
+      <li><div>
+        <h3>Always look at the biggest residuals</h3>
+        <p>On the log scale the largest standardized residual belongs to the chinchilla, entered as 64 g instead of 6.4 g. Press "Fix the typo" and the only big outlier left is the human.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Least-squares formulas</div>
+        <div class="m">β̂₁ = Σ(xᵢ − x̄)(yᵢ − ȳ) / Σ(xᵢ − x̄)² = r<sub>xy</sub>·s<sub>y</sub>/s<sub>x</sub></div>
+        <div class="m">β̂₀ = ȳ − β̂₁·x̄</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Fit quality</div>
+        <div class="m">SSE = Σ eᵢ²,   R² = 1 − SSE / Σ(yᵢ − ȳ)²</div>
+        <div class="m">s = √(SSE / (n − 2))</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Leverage and standardized residual</div>
+        <div class="m">hᵢ = 1/n + (xᵢ − x̄)² / Σ(xⱼ − x̄)²</div>
+        <div class="m">rᵢ = eᵢ / (s·√(1 − hᵢ))   rough 95% in (−2, 2)</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Cook's distance with p = 2 coefficients</div>
+        <div class="m">Dᵢ = (1/p) · rᵢ² · hᵢ / (1 − hᵢ)</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Log–log model</div>
+        <div class="m">Y = A·X^b  ⇔  log Y = β₀ + β₁ log X</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> A regression without a look at its residuals is half a regression. Before you report a slope, check which points drive it, refit without them, and see whether the conclusion survives.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>The SLR model</h2>
+      <p>For each X, the Y values are normal, their means lie on the line, σ is the same at every X, and the observations are independent.</p>
+      <div class="formula">Y = β₀ + β₁X + ε,  ε ~ N(0, σ²)</div>
+    </div>
+    <div class="note">
+      <h2>House prices</h2>
+      <p>The Saratoga fit gives β̂₀ = 13.44 and β̂₁ = 0.11, in thousands of dollars per square foot. Each extra square foot adds about $110.</p>
+      <div class="formula">Ŷ at 2,200 sq ft = 13.44 + 0.11 × 2,200 ≈ 262</div>
+    </div>
+    <div class="note">
+      <h2>Five-step strategy</h2>
+      <ol>
+        <li>Plot the data.</li>
+        <li>Fit the model.</li>
+        <li>Run diagnostics: 4-in-1, Cook's D.</li>
+        <li>Interpret coefficients, t, R², s.</li>
+        <li>Predict, and check out of sample.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load "Clean line" and turn on the squared residuals. Drag one point straight up and watch its square grow. Ask why one far point costs more than two near ones.</li>
+      <li>Turn on "Try your own line" and press "Flat at ȳ". Its SSE equals the total sum of squares, so R² = 1 − SSE<sub>LS</sub>/SSE<sub>flat</sub>. Then ask students to beat least squares by dragging the handles.</li>
+      <li>Load "Cigarettes". Read Cook's D for country K, then press "Drop" in its row. The slope roughly doubles and the old line stays on the plot. Is the conclusion still "more smoking, more cancer"?</li>
+      <li>Drag a point to the far right of the cigarette plot, first on the line, then far off it. Leverage stays the same and Cook's D jumps only in the second case.</li>
+      <li>Load "Mammals" on the raw scale and look at the residuals vs. fitted plot. Switch on log–log, find the biggest standardized residual, then fix the typo and compare R² and s.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  /* MATH-BEGIN (pure functions; no DOM) */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function normalFrom(R) { return () => { let u = 0, v = 0; while (!u) u = R(); while (!v) v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }; }
+
+  function ols(xs, ys) {
+    const n = xs.length;
+    if (n < 2) return null;
+    let mx = 0, my = 0;
+    for (let i = 0; i < n; i++) { mx += xs[i]; my += ys[i]; }
+    mx /= n; my /= n;
+    let sxx = 0, sxy = 0, syy = 0;
+    for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+    if (sxx <= 1e-12) return null;
+    const b1 = sxy / sxx, b0 = my - b1 * mx;
+    const fit = [], res = [], h = [], rstd = [], cook = [];
+    let sse = 0;
+    for (let i = 0; i < n; i++) { const f = b0 + b1 * xs[i]; fit.push(f); res.push(ys[i] - f); sse += (ys[i] - f) ** 2; }
+    const s = n > 2 ? Math.sqrt(sse / (n - 2)) : NaN;
+    for (let i = 0; i < n; i++) {
+      const hi = 1 / n + (xs[i] - mx) ** 2 / sxx; h.push(hi);
+      const r = (n > 2 && s > 1e-12 && 1 - hi > 1e-9) ? res[i] / (s * Math.sqrt(1 - hi)) : NaN;
+      rstd.push(r); cook.push(isFinite(r) ? r * r * hi / (2 * (1 - hi)) : NaN);
+    }
+    return { n, mx, my, sxx, sxy, syy, b0, b1, fit, res, sse, s, h, rstd, cook,
+             r2: syy > 0 ? 1 - sse / syy : NaN, r: syy > 0 ? sxy / Math.sqrt(sxx * syy) : NaN };
+  }
+  function sseOf(xs, ys, b0, b1) { let t = 0; for (let i = 0; i < xs.length; i++) t += (ys[i] - b0 - b1 * xs[i]) ** 2; return t; }
+  function slopeWithout(xs, ys, k) {
+    const a = [], b = [];
+    for (let i = 0; i < xs.length; i++) if (i !== k) { a.push(xs[i]); b.push(ys[i]); }
+    const f = ols(a, b); return f ? f.b1 : NaN;
+  }
+
+  // Simulated "11 countries" in the spirit of the classic data (values not available).
+  const CIG = [[220, 58], [250, 95], [310, 118], [380, 165], [455, 170], [470, 245], [505, 150], [530, 265], [760, 310], [1115, 460], [1280, 195]]
+    .map(([x, y], i) => ({ x, y, label: 'ABCDEFGHIJK'[i] }));
+
+  function genClean() {
+    const R = mulberry32(4101), N = normalFrom(R), pts = [];
+    for (let i = 0; i < 20; i++) { const x = 1 + 9 * R(); pts.push({ x: +x.toFixed(2), y: +(3 + 1.2 * x + 1.5 * N()).toFixed(2), label: String(i + 1) }); }
+    return pts;
+  }
+  // 60 simulated mammals from the reference log-log fit, plus the classic chinchilla typo and a human-like point.
+  function genMammals() {
+    const R = mulberry32(2606), N = normalFrom(R), pts = [];
+    for (let i = 0; i < 60; i++) {
+      let lb = i === 0 ? 8.6 : i === 1 ? 7.9 : 1.1 + 2.7 * N();
+      lb = Math.max(-4.4, Math.min(8.6, lb));
+      const lbr = 2.18 + 0.74 * lb + 0.62 * N();
+      pts.push({ x: +Math.exp(lb).toPrecision(3), y: +Math.exp(lbr).toPrecision(3), label: '' });
+    }
+    pts.push({ x: 0.425, y: 64, label: 'Chinchilla', typo: true });
+    pts.push({ x: 62, y: 1320, label: 'Human' });
+    return pts;
+  }
+  /* MATH-END */
+
+  const DS = {
+    clean: { name: 'Clean line', xlab: 'x', ylab: 'y', logOK: false, gen: genClean,
+      note: 'Simulated: 20 points from y = 3 + 1.2x + noise with σ = 1.5.' },
+    cig: { name: 'Cigarettes', xlab: 'Cigarettes per capita, 1930', ylab: 'Lung cancer deaths per million, 1950', logOK: true, gen: () => CIG.map(p => ({ ...p })),
+      note: 'Simulated values for 11 countries. Country K plays the role of the United States.' },
+    mam: { name: 'Mammals', xlab: 'Body weight (kg)', ylab: 'Brain weight (g)', logOK: true, gen: genMammals, logDefault: false,
+      note: 'Simulated: 60 mammals drawn from the reference fit log(Brain) = 2.18 + 0.74 log(Body), plus the chinchilla typo (64 g) and an approximate human (62 kg, 1,320 g).' }
+  };
+
+  const S = { ds: 'clean', pts: [], log: false, mode: 'move', resid: true, squares: false, mean: true, labels: true,
+              own: false, ob0: 0, ob1: 0, sel: -1, ghost: null, fit: null, xd: [0, 1], yd: [0, 1] };
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'point', 'curve', 'fit', 'ball', 'board', 'surface'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+
+  const T = v => S.log ? Math.log(v) : v;          // data -> fit/plot coordinate
+  const U = v => S.log ? Math.exp(v) : v;          // plot coordinate -> data
+  const XS = () => S.pts.map(p => T(p.x));
+  const YS = () => S.pts.map(p => T(p.y));
+
+  // number formatting
+  const minus = s => s.replace(/^-/, '−');
+  function fmt(v, d = 2) { if (!isFinite(v)) return '–'; return minus(v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })); }
+  function sig(v, k = 3) { if (!isFinite(v)) return '–'; const a = Math.abs(v); if (a === 0) return '0'; const d = Math.max(0, Math.min(6, k - 1 - Math.floor(Math.log10(a)))); return fmt(v, d); }
+
+  // ---------- canvases ----------
+  function mkCanvas(id, aspect, minH, maxH) {
+    const cv = $(id), o = { cv, ctx: cv.getContext('2d'), W: 0, H: 0 };
+    o.resize = () => {
+      const w = cv.clientWidth || cv.parentElement.clientWidth, h = Math.round(Math.min(Math.max(w * aspect, minH), maxH)), d = window.devicePixelRatio || 1;
+      cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+      o.ctx.setTransform(d, 0, 0, d, 0, 0); o.W = w; o.H = h;
+    };
+    return o;
+  }
+  const P = mkCanvas('plot', 0.66, 330, 580), DR = mkCanvas('dRes', 0.78, 200, 280), DL = mkCanvas('dLev', 0.78, 200, 280), DC = mkCanvas('dCook', 0.78, 200, 280);
+
+  function niceStep(range, target) {
+    const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+  }
+  function tickTxt(v, step) { const d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9)); return fmt(Math.abs(v) < step * 1e-6 ? 0 : v, d); }
+  function frame(o, m, xd, yd, opt = {}) {
+    const { ctx, W, H } = o;
+    const PX = x => m.l + (x - xd[0]) / (xd[1] - xd[0]) * (W - m.l - m.r);
+    const PY = y => m.t + (yd[1] - y) / (yd[1] - yd[0]) * (H - m.t - m.b);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.lineWidth = 1;
+    const ys = niceStep(yd[1] - yd[0], opt.yt || 5), xs = niceStep(xd[1] - xd[0], opt.xt || 6);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yd[0] / ys) * ys; y <= yd[1] + 1e-9; y += ys) {
+      const py = Math.round(PY(y)) + .5;
+      ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(m.l, py); ctx.lineTo(W - m.r, py); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.fillText(tickTxt(y, ys), m.l - 6, py);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const minGap = opt.minGap || 34; let lastX = -1e9;
+    for (let x = Math.ceil(xd[0] / xs) * xs; x <= xd[1] + 1e-9; x += xs) {
+      const px = Math.round(PX(x)) + .5;
+      ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(px, m.t); ctx.lineTo(px, H - m.b); ctx.stroke();
+      const txt = tickTxt(x, xs), tw = ctx.measureText(txt).width;
+      if (px - tw / 2 > lastX + 6 || lastX < -1e8) { ctx.fillStyle = C.muted; ctx.fillText(txt, px, H - m.b + 6); lastX = px + tw / 2; }
+      void minGap;
+    }
+    ctx.strokeStyle = C.line; ctx.strokeRect(m.l + .5, m.t + .5, W - m.l - m.r - 1, H - m.t - m.b - 1);
+    ctx.fillStyle = C.muted;
+    if (opt.xlab) { ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlab, W - m.r, H - 2); }
+    if (opt.ylab) { ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.ylab, m.l, m.t - 5); }
+    return { PX, PY, IX: px => xd[0] + (px - m.l) / (W - m.l - m.r) * (xd[1] - xd[0]), IY: py => yd[1] - (py - m.t) / (H - m.t - m.b) * (yd[1] - yd[0]) };
+  }
+  function padDomain(vals, frac = 0.08, inc0 = false) {
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    if (inc0) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+    if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+    const p = (hi - lo) * frac; return [lo - p, hi + p];
+  }
+
+  // ---------- state changes ----------
+  function computeDomain() {
+    const xs = XS(), ys = YS();
+    S.xd = padDomain(xs, 0.08); S.yd = padDomain(ys, 0.12);
+  }
+  function refit() {
+    const xs = XS(), ys = YS();
+    S.fit = ols(xs, ys);
+    S.drop = S.fit ? xs.map((_, i) => slopeWithout(xs, ys, i)) : [];
+  }
+  function ownRanges() {
+    const f = S.fit; if (!f) return;
+    const sx = Math.sqrt(f.sxx / f.n), sy = Math.sqrt(f.syy / f.n) || 1;
+    const span = Math.max(Math.abs(f.b1), sy / sx) * 3;
+    const s1 = $('ownB1'); s1.min = f.b1 - span; s1.max = f.b1 + span; s1.step = span / 400;
+    const b0span = span * Math.max(Math.abs(f.mx), sx * 2) + 2 * sy;
+    const s0 = $('ownB0'); s0.min = f.b0 - b0span; s0.max = f.b0 + b0span; s0.step = b0span / 400;
+  }
+  function ownFlat() { if (!S.fit) return; S.ob1 = 0; S.ob0 = S.fit.my; syncOwn(); }
+  function ownSnap() { if (!S.fit) return; S.ob1 = S.fit.b1; S.ob0 = S.fit.b0; syncOwn(); }
+  function syncOwn() { $('ownB1').value = S.ob1; $('ownB0').value = S.ob0; }
+
+  function loadData(key, keepLog) {
+    S.ds = key; const D = DS[key];
+    S.pts = D.gen(); S.sel = -1; S.ghost = null;
+    if (!keepLog) S.log = !!D.logDefault;
+    if (!D.logOK) S.log = false;
+    for (const [id, k] of [['dsClean', 'clean'], ['dsCig', 'cig'], ['dsMam', 'mam']]) $(id).setAttribute('aria-pressed', k === key);
+    $('dsNote').textContent = D.note;
+    $('logScale').disabled = !D.logOK; $('logScale').checked = S.log;
+    $('logWrap').classList.toggle('off', !D.logOK);
+    $('fixTypo').hidden = key !== 'mam';
+    $('fixTypo').disabled = false;
+    $('moveMsg').innerHTML = 'Remove a point to see how far the slope moves.';
+    computeDomain(); refit(); ownRanges(); ownFlat(); update();
+  }
+  function setLog(on) {
+    S.log = on; S.ghost = null; computeDomain(); refit(); ownRanges(); ownFlat(); update();
+  }
+  function removePoint(i) {
+    if (S.pts.length <= 3) { $('moveMsg').textContent = 'Keep at least 3 points so the fit and s exist.'; return; }
+    const before = S.fit, lab = ptName(i);
+    S.pts.splice(i, 1);
+    S.sel = -1; refit();
+    if (before && S.fit) {
+      S.ghost = { b0: before.b0, b1: before.b1 };
+      const d = S.fit.b1 - before.b1, pct = before.b1 !== 0 ? d / Math.abs(before.b1) * 100 : NaN;
+      $('moveMsg').innerHTML = `Removing <b>${lab}</b> moved β̂₁ from ${sig(before.b1)} to ${sig(S.fit.b1)} (${d >= 0 ? '+' : '−'}${sig(Math.abs(d))}${isFinite(pct) ? `, ${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(0)}%` : ''}).`;
+    }
+    update();
+  }
+  const ptName = i => S.pts[i].label ? (S.ds === 'cig' ? 'country ' + S.pts[i].label : S.pts[i].label) : 'point #' + (i + 1);
+
+  // ---------- readouts ----------
+  function updateText() {
+    const f = S.fit;
+    const xl = S.log ? 'log x' : 'x';
+    if (f) {
+      const sg = f.b1 < 0 ? '−' : '+';
+      $('eqn').innerHTML = `${S.log ? 'log ŷ' : 'ŷ'} = <span class="f">${sig(f.b0, 4)}</span> ${sg} <span class="f">${sig(Math.abs(f.b1), 4)}</span>·${xl}&nbsp;&nbsp; SSE = <span class="f">${sig(f.sse, 4)}</span>&nbsp;&nbsp; R² = <span class="f">${fmt(f.r2, 3)}</span>`
+        + (S.own ? `&nbsp;&nbsp;|&nbsp;&nbsp; my SSE = <span class="o">${sig(sseOf(XS(), YS(), S.ob0, S.ob1), 4)}</span>` : '');
+    } else $('eqn').textContent = 'Need at least two points with different x.';
+    $('vB0').textContent = f ? sig(f.b0, 4) : '–'; $('vB1').textContent = f ? sig(f.b1, 4) : '–';
+    $('vR').textContent = f ? fmt(f.r, 3) : '–'; $('vR2').textContent = f ? fmt(f.r2, 3) : '–';
+    $('vSSE').textContent = f ? sig(f.sse, 4) : '–'; $('vS').textContent = f ? sig(f.s, 3) : '–';
+    $('vN').textContent = S.pts.length;
+    if (f) {
+      const own = sseOf(XS(), YS(), S.ob0, S.ob1);
+      $('ownSSE').textContent = sig(own, 4); $('olsSSE').textContent = sig(f.sse, 4);
+      $('ownRatio').textContent = f.sse > 0 ? fmt(own / f.sse, 3) + '×' : '–';
+      $('ownB1Out').textContent = sig(S.ob1, 3); $('ownB0Out').textContent = sig(S.ob0, 3);
+    }
+    $('lgOwn').hidden = !S.own; $('lgGhost').hidden = !S.ghost;
+    const D = DS[S.ds];
+    $('thX').textContent = S.log ? 'log x' : 'x'; $('thY').textContent = S.log ? 'log y' : 'y';
+    $('modeHint').textContent = (S.mode === 'move' ? 'Drag any point. ' : S.mode === 'add' ? 'Tap or click empty space to add a point. ' : 'Tap or click a point to remove it. ')
+      + (S.log ? `Axes: log(${D.xlab}) and log(${D.ylab}).` : '');
+    updateTable();
+  }
+  function updateTable() {
+    const f = S.fit, tb = $('inflBody');
+    if (!f) { tb.innerHTML = ''; return; }
+    const idx = S.pts.map((_, i) => i).sort((a, b) => (f.cook[b] || 0) - (f.cook[a] || 0)).slice(0, 8);
+    if (S.sel >= 0 && !idx.includes(S.sel)) idx.push(S.sel);
+    tb.innerHTML = idx.map(i => {
+      const D = f.cook[i], r = f.rstd[i];
+      const dc = D > 1 ? 'bad' : D > 0.5 ? 'warn' : '', rc = Math.abs(r) >= 3 ? 'bad' : Math.abs(r) >= 2 ? 'warn' : '';
+      const d1 = S.drop[i] - f.b1;
+      return `<tr data-i="${i}" tabindex="0" class="${i === S.sel ? 'sel' : ''}"><td>${ptName(i)}</td><td>${sig(XS()[i], 4)}</td><td>${sig(YS()[i], 4)}</td><td>${sig(f.fit[i], 4)}</td><td>${sig(f.res[i], 3)}</td>`
+        + `<td>${fmt(f.h[i], 3)}</td><td class="${rc}">${fmt(r, 2)}</td><td class="${dc}">${fmt(D, 3)}</td>`
+        + `<td>${sig(S.drop[i], 4)} <span style="color:var(--muted)">(${d1 >= 0 ? '+' : '−'}${sig(Math.abs(d1), 2)})</span></td><td><button data-drop="${i}" aria-label="Drop ${ptName(i)}">Drop</button></td></tr>`;
+    }).join('');
+  }
+
+  // ---------- drawing ----------
+  let G = null; // main plot transforms
+  const MM = { l: 50, r: 14, t: 24, b: 40 };
+  function handleXs() { return [S.xd[0] + 0.15 * (S.xd[1] - S.xd[0]), S.xd[0] + 0.85 * (S.xd[1] - S.xd[0])]; }
+  function drawMain() {
+    const { ctx, W, H } = P; const D = DS[S.ds];
+    ctx.clearRect(0, 0, W, H);
+    G = frame(P, MM, S.xd, S.yd, { xlab: S.log ? `log(${D.xlab})` : D.xlab, ylab: S.log ? `log(${D.ylab})` : D.ylab });
+    const { PX, PY } = G, xs = XS(), ys = YS(), f = S.fit;
+    ctx.save(); ctx.beginPath(); ctx.rect(MM.l, MM.t, W - MM.l - MM.r, H - MM.t - MM.b); ctx.clip();
+    const lineB = S.own ? [S.ob0, S.ob1] : f ? [f.b0, f.b1] : null;
+    const sqCol = S.own ? C.ball : C.fit;
+    // squared residuals: side = |residual| in pixels, so area is proportional to e²
+    if (S.squares && lineB) {
+      for (let i = 0; i < xs.length; i++) {
+        const px = PX(xs[i]), py = PY(ys[i]), pl = PY(lineB[0] + lineB[1] * xs[i]), side = Math.abs(py - pl);
+        const left = px + side > W - MM.r ? px - side : px;
+        ctx.globalAlpha = 0.13; ctx.fillStyle = sqCol; ctx.fillRect(left, Math.min(py, pl), side, side);
+        ctx.globalAlpha = 0.75; ctx.strokeStyle = sqCol; ctx.lineWidth = 1; ctx.strokeRect(left + .5, Math.min(py, pl) + .5, side, side);
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (S.resid && lineB) {
+      ctx.strokeStyle = S.own ? C.ball : C.muted; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.25; ctx.beginPath();
+      for (let i = 0; i < xs.length; i++) { const px = PX(xs[i]) + .5; ctx.moveTo(px, PY(ys[i])); ctx.lineTo(px, PY(lineB[0] + lineB[1] * xs[i])); }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    const seg = (b0, b1) => { ctx.beginPath(); ctx.moveTo(PX(S.xd[0]), PY(b0 + b1 * S.xd[0])); ctx.lineTo(PX(S.xd[1]), PY(b0 + b1 * S.xd[1])); ctx.stroke(); };
+    if (S.ghost) { ctx.strokeStyle = C.muted; ctx.lineWidth = 2; ctx.setLineDash([6, 5]); seg(S.ghost.b0, S.ghost.b1); ctx.setLineDash([]); }
+    if (f) { ctx.strokeStyle = C.fit; ctx.lineWidth = 2.75; seg(f.b0, f.b1); }
+    if (S.own) {
+      ctx.strokeStyle = C.ball; ctx.lineWidth = 2.5; seg(S.ob0, S.ob1);
+      for (const hx of handleXs()) {
+        const px = PX(hx), py = PY(S.ob0 + S.ob1 * hx);
+        ctx.fillStyle = C.surface; ctx.strokeStyle = C.ball; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = C.ball; ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    if (S.mean && f) {
+      const px = PX(f.mx), py = PY(f.my);
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(px - 8, py); ctx.lineTo(px + 8, py); ctx.moveTo(px, py - 8); ctx.lineTo(px, py + 8); ctx.stroke();
+      ctx.fillStyle = C.accent; ctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText('(x̄, ȳ)', px + 6, py - 4);
+    }
+    // points
+    const r = xs.length > 40 ? 3.6 : 4.6;
+    for (let i = 0; i < xs.length; i++) {
+      const px = PX(xs[i]), py = PY(ys[i]), D = f ? f.cook[i] : 0;
+      ctx.fillStyle = C.point; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      if (D > 0.5) { ctx.strokeStyle = D > 1 ? C.curve : C.ball; ctx.lineWidth = 2.25; ctx.beginPath(); ctx.arc(px, py, r + 4, 0, Math.PI * 2); ctx.stroke(); }
+      if (i === S.sel) { ctx.strokeStyle = C.accent; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(px, py, r + 8, 0, Math.PI * 2); ctx.stroke(); }
+    }
+    if (S.labels) {
+      ctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline = 'middle';
+      for (let i = 0; i < xs.length; i++) {
+        const lab = S.pts[i].label; if (!lab || (S.ds === 'clean')) continue;
+        const px = PX(xs[i]), py = PY(ys[i]);
+        const tw = ctx.measureText(lab).width, right = px + 9 + tw < W - MM.r;
+        ctx.textAlign = right ? 'left' : 'right'; ctx.fillStyle = C.ink;
+        ctx.fillText(lab, right ? px + 9 : px - 9, py - 9);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawDiag() {
+    const f = S.fit;
+    for (const o of [DR, DL, DC]) o.ctx.clearRect(0, 0, o.W, o.H);
+    if (!f || !isFinite(f.s)) return;
+    const n = f.n, m = { l: 44, r: 10, t: 18, b: 34 };
+    const dot = (o, x, y, i, D) => {
+      const c = o.ctx; c.fillStyle = D > 1 ? C.curve : D > 0.5 ? C.ball : C.point; c.globalAlpha = 0.9;
+      c.beginPath(); c.arc(x, y, n > 40 ? 2.8 : 3.6, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
+      if (i === S.sel) { c.strokeStyle = C.accent; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 7, 0, Math.PI * 2); c.stroke(); }
+    };
+    // residuals vs fitted
+    {
+      const o = DR, c = o.ctx, ra = Math.max(...f.res.map(Math.abs)) * 1.15 || 1;
+      const g = frame(o, m, padDomain(f.fit, 0.08), [-ra, ra], { xlab: 'fitted ŷ', ylab: 'residual e', yt: 4, xt: 4 });
+      c.save(); c.beginPath(); c.rect(m.l, m.t, o.W - m.l - m.r, o.H - m.t - m.b); c.clip();
+      c.strokeStyle = C.fit; c.lineWidth = 1.5; c.beginPath(); c.moveTo(m.l, g.PY(0)); c.lineTo(o.W - m.r, g.PY(0)); c.stroke();
+      for (let i = 0; i < n; i++) dot(o, g.PX(f.fit[i]), g.PY(f.res[i]), i, f.cook[i]);
+      c.restore();
+    }
+    // standardized residuals vs leverage with Cook's contours
+    {
+      const o = DL, c = o.ctx;
+      const hmax = Math.min(1, Math.max(...f.h) * 1.12 + 0.02), rv = f.rstd.filter(isFinite);
+      const ra = Math.max(3, ...rv.map(Math.abs)) * 1.1;
+      const g = frame(o, m, [0, hmax], [-ra, ra], { xlab: 'leverage h', ylab: 'std. resid r', yt: 4, xt: 4 });
+      c.save(); c.beginPath(); c.rect(m.l, m.t, o.W - m.l - m.r, o.H - m.t - m.b); c.clip();
+      c.strokeStyle = C.muted; c.globalAlpha = 0.5; c.setLineDash([2, 3]);
+      for (const y of [-2, 2]) { c.beginPath(); c.moveTo(m.l, g.PY(y)); c.lineTo(o.W - m.r, g.PY(y)); c.stroke(); }
+      c.globalAlpha = 1; c.setLineDash([]);
+      c.strokeStyle = C.line; c.beginPath(); c.moveTo(m.l, g.PY(0)); c.lineTo(o.W - m.r, g.PY(0)); c.stroke();
+      c.strokeStyle = C.curve; c.lineWidth = 1.5; c.setLineDash([5, 4]);
+      c.font = '600 10.5px "JetBrains Mono", ui-monospace, monospace';
+      for (const D of [0.5, 1]) for (const sgn of [1, -1]) {
+        c.beginPath(); let first = true, lx = 0, ly = 0;
+        for (let k = 0; k <= 120; k++) {
+          const h = Math.max(1 / n, 0.004) + (hmax - Math.max(1 / n, 0.004)) * k / 120;
+          const r = sgn * Math.sqrt(2 * D * (1 - h) / h);
+          const px = g.PX(h), py = g.PY(r);
+          if (first) { c.moveTo(px, py); first = false; } else c.lineTo(px, py); lx = px; ly = py;
+        }
+        c.stroke();
+        if (sgn === 1) { c.fillStyle = C.curve; c.textAlign = 'right'; c.textBaseline = D === 1 ? 'bottom' : 'top'; c.fillText('D=' + D, lx - 3, D === 1 ? Math.max(m.t + 12, ly - 3) : Math.max(m.t + 14, ly + 3)); }
+      }
+      c.setLineDash([]);
+      for (let i = 0; i < n; i++) if (isFinite(f.rstd[i])) dot(o, g.PX(f.h[i]), g.PY(f.rstd[i]), i, f.cook[i]);
+      c.restore();
+    }
+    // Cook's distance bars
+    {
+      const o = DC, c = o.ctx, cv = f.cook.map(v => isFinite(v) ? v : 0);
+      const top = Math.max(1.2, Math.max(...cv) * 1.12);
+      const g = frame(o, m, [0.5, n + 0.5], [0, top], { xlab: 'point', ylab: "Cook's D", yt: 4, xt: Math.min(n, 6) });
+      const bw = Math.max(1.5, (g.PX(1) - g.PX(0)) * 0.7);
+      for (let i = 0; i < n; i++) {
+        const D = cv[i]; c.fillStyle = D > 1 ? C.curve : D > 0.5 ? C.ball : C.accent; c.globalAlpha = i === S.sel ? 1 : 0.85;
+        const x = g.PX(i + 1), y = g.PY(D); c.fillRect(x - bw / 2, y, bw, g.PY(0) - y);
+        if (i === S.sel) { c.strokeStyle = C.ink; c.lineWidth = 1.5; c.strokeRect(x - bw / 2 - 2, y - 2, bw + 4, g.PY(0) - y + 2); }
+      }
+      c.globalAlpha = 1; c.strokeStyle = C.curve; c.setLineDash([5, 4]); c.lineWidth = 1.25;
+      for (const D of [0.5, 1]) { c.beginPath(); c.moveTo(m.l, g.PY(D)); c.lineTo(o.W - m.r, g.PY(D)); c.stroke(); }
+      c.setLineDash([]);
+    }
+  }
+
+  let dirty = true;
+  function update() { updateText(); dirty = true; }
+  function loop() { if (dirty) { drawMain(); drawDiag(); dirty = false; } requestAnimationFrame(loop); }
+
+  // ---------- pointer interaction ----------
+  const tip = $('tip');
+  let drag = null;
+  function rel(ev) { const r = P.cv.getBoundingClientRect(); return { mx: ev.clientX - r.left, my: ev.clientY - r.top }; }
+  function hitPoint(mx, my, tol) {
+    if (!G) return -1; const xs = XS(), ys = YS(); let best = -1, bd = tol * tol;
+    for (let i = 0; i < xs.length; i++) { const dx = G.PX(xs[i]) - mx, dy = G.PY(ys[i]) - my, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = i; } }
+    return best;
+  }
+  function hitHandle(mx, my, tol) {
+    if (!S.own || !G) return -1; const hx = handleXs();
+    for (let k = 0; k < 2; k++) { const dx = G.PX(hx[k]) - mx, dy = G.PY(S.ob0 + S.ob1 * hx[k]) - my; if (dx * dx + dy * dy < tol * tol) return k; }
+    return -1;
+  }
+  const clampX = v => Math.max(S.xd[0], Math.min(S.xd[1], v)), clampY = v => Math.max(S.yd[0], Math.min(S.yd[1], v));
+  P.cv.addEventListener('pointerdown', ev => {
+    const { mx, my } = rel(ev), tol = ev.pointerType === 'touch' ? 24 : 13;
+    tip.hidden = true;
+    const hk = hitHandle(mx, my, tol + 2);
+    if (hk >= 0) { drag = { type: 'handle', k: hk }; P.cv.setPointerCapture(ev.pointerId); ev.preventDefault(); return; }
+    const i = hitPoint(mx, my, tol);
+    if (S.mode === 'move') {
+      if (i >= 0) { drag = { type: 'pt', i }; S.sel = i; P.cv.setPointerCapture(ev.pointerId); }
+      else S.sel = -1;
+      update();
+    } else if (S.mode === 'add') {
+      const x = clampX(G.IX(mx)), y = clampY(G.IY(my));
+      S.pts.push({ x: +U(x).toPrecision(4), y: +U(y).toPrecision(4), label: S.ds === 'clean' ? String(S.pts.length + 1) : 'New' });
+      S.sel = S.pts.length - 1; refit(); update();
+    } else if (S.mode === 'remove') { if (i >= 0) removePoint(i); }
+    ev.preventDefault();
+  });
+  P.cv.addEventListener('pointermove', ev => {
+    const { mx, my } = rel(ev);
+    if (drag) {
+      if (drag.type === 'pt') {
+        const p = S.pts[drag.i]; p.x = +U(clampX(G.IX(mx))).toPrecision(4); p.y = +U(clampY(G.IY(my))).toPrecision(4);
+        refit();
+      } else {
+        const hx = handleXs(), hy = hx.map(x => S.ob0 + S.ob1 * x);
+        hy[drag.k] = clampY(G.IY(my));
+        S.ob1 = (hy[1] - hy[0]) / (hx[1] - hx[0]); S.ob0 = hy[0] - S.ob1 * hx[0]; syncOwn();
+      }
+      update(); return;
+    }
+    if (ev.pointerType === 'touch') return;
+    showTip(mx, my);
+  });
+  const endDrag = () => { drag = null; };
+  P.cv.addEventListener('pointerup', endDrag);
+  P.cv.addEventListener('pointercancel', endDrag);
+  P.cv.addEventListener('pointerleave', () => { tip.hidden = true; });
+  function showTip(mx, my) {
+    const i = hitPoint(mx, my, 14), f = S.fit;
+    if (i < 0 || !f) { tip.hidden = true; return; }
+    const xs = XS(), ys = YS();
+    tip.innerHTML = `<b>${ptName(i)}</b><br>${S.log ? 'log x' : 'x'} = ${sig(xs[i], 4)}, ${S.log ? 'log y' : 'y'} = ${sig(ys[i], 4)}<br>fitted ŷ = ${sig(f.fit[i], 4)}, e = ${sig(f.res[i], 3)}<br>h = ${fmt(f.h[i], 3)}, r = ${fmt(f.rstd[i], 2)}, D = ${fmt(f.cook[i], 3)}<br>β̂₁ without it: ${sig(S.drop[i], 4)}`;
+    tip.hidden = false;
+    const bw = P.cv.parentElement.clientWidth;
+    tip.style.left = Math.max(8, Math.min(mx + 14 + 18, bw - tip.offsetWidth - 8)) + 'px';
+    tip.style.top = Math.max(8, my + P.cv.offsetTop - tip.offsetHeight - 10) + 'px';
+  }
+
+  // ---------- controls ----------
+  $('dsClean').onclick = () => loadData('clean');
+  $('dsCig').onclick = () => loadData('cig');
+  $('dsMam').onclick = () => loadData('mam');
+  $('resetData').onclick = () => loadData(S.ds, true);
+  $('logScale').onchange = e => setLog(e.target.checked);
+  $('fixTypo').onclick = () => {
+    const i = S.pts.findIndex(p => p.typo);
+    if (i < 0) return;
+    const before = S.fit; S.pts[i].y = 6.4; S.pts[i].typo = false; S.pts[i].label = 'Chinchilla (fixed)';
+    refit(); S.ghost = before ? { b0: before.b0, b1: before.b1 } : null;
+    $('fixTypo').disabled = true;
+    $('moveMsg').innerHTML = `Chinchilla brain changed from 64 g to <b>6.4 g</b>. R² ${fmt(before.r2, 3)} → ${fmt(S.fit.r2, 3)}, s ${sig(before.s, 3)} → ${sig(S.fit.s, 3)}.`;
+    update();
+  };
+  function setMode(m) {
+    S.mode = m;
+    for (const [id, k] of [['mMove', 'move'], ['mAdd', 'add'], ['mRemove', 'remove']]) $(id).setAttribute('aria-pressed', k === m);
+    P.cv.classList.toggle('move', m === 'move');
+    update();
+  }
+  $('mMove').onclick = () => setMode('move'); $('mAdd').onclick = () => setMode('add'); $('mRemove').onclick = () => setMode('remove');
+  for (const [id, k] of [['cResid', 'resid'], ['cSquares', 'squares'], ['cMean', 'mean'], ['cLabels', 'labels']]) $(id).onchange = e => { S[k] = e.target.checked; update(); };
+  $('cOwn').onchange = e => { S.own = e.target.checked; $('ownBox').hidden = !S.own; update(); };
+  $('ownB1').oninput = e => { S.ob1 = +e.target.value; update(); };
+  $('ownB0').oninput = e => { S.ob0 = +e.target.value; update(); };
+  $('ownFlat').onclick = () => { ownFlat(); update(); };
+  $('ownSnap').onclick = () => { ownSnap(); update(); };
+  $('inflBody').addEventListener('click', e => {
+    const b = e.target.closest('button[data-drop]');
+    if (b) { removePoint(+b.dataset.drop); return; }
+    const tr = e.target.closest('tr[data-i]'); if (tr) { const i = +tr.dataset.i; S.sel = S.sel === i ? -1 : i; update(); }
+  });
+  $('inflBody').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return; const tr = e.target.closest('tr[data-i]');
+    if (tr && e.target === tr) { e.preventDefault(); const i = +tr.dataset.i; S.sel = S.sel === i ? -1 : i; update(); }
+  });
+
+  const toBoard = () => document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  $('demoCig').onclick = () => {
+    loadData('cig'); const i = S.pts.findIndex(p => p.label === 'K'); if (i >= 0) removePoint(i); toBoard();
+  };
+  $('demoRaw').onclick = () => { loadData('mam'); setLog(false); $('logScale').checked = false; S.squares = false; $('cSquares').checked = false; update(); toBoard(); };
+  $('demoLog').onclick = () => {
+    loadData('mam'); $('logScale').checked = true; setLog(true);
+    const f = S.fit; let bi = 0; f.rstd.forEach((r, i) => { if (Math.abs(r) > Math.abs(f.rstd[bi])) bi = i; }); S.sel = bi; update(); toBoard();
+  };
+  $('demoOwn').onclick = () => {
+    if (S.ds !== 'clean') loadData('clean');
+    S.own = true; $('cOwn').checked = true; $('ownBox').hidden = false;
+    S.squares = true; $('cSquares').checked = true; ownFlat(); update(); toBoard();
+  };
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  for (const o of [P, DR, DL, DC]) new ResizeObserver(() => { o.resize(); dirty = true; }).observe(o.cv.parentElement);
+  for (const o of [P, DR, DL, DC]) o.resize();
+  loadData('cig');
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>

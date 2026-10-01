@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>A/B Test Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: null-distribution plot with the CI strip on the left, data entry + readouts in the right rail, the eight-step workflow and formulas below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: -14px; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.8vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .a { color: var(--accent); font-weight: 600; }
+.eqn .s { color: var(--curve); font-weight: 600; }
+.eqn .h { color: var(--ball); font-weight: 600; }
+#plot { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; background: var(--accent); }
+.sw.curve { height: 0; border-top: 2.5px solid var(--curve); border-radius: 0; background: none; }
+.sw.tail { background: color-mix(in srgb, var(--curve) 30%, transparent); border: 1px solid var(--curve); }
+.sw.obs { width: 0; height: 14px; border-left: 2.5px solid var(--ball); background: none; border-radius: 0; }
+.sw.simt { background: var(--ball); }
+.sw.ci { height: 0; border-top: 3px solid var(--fit); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.verdict { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 8px; padding: 10px 14px; }
+.verdict.yes { border-left-color: var(--fit); }
+.verdict.edge { border-left-color: var(--ball); }
+.verdict.no { border-left-color: var(--curve); }
+.verdict .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.verdict h3 { font-family: var(--font-display); font-size: 18px; margin: 2px 0 4px; }
+.verdict p { margin: 0; max-width: 80ch; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.seg { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.err { font-size: 13px; color: var(--curve); margin: 0; font-weight: 700; }
+
+.data { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; align-items: center; }
+.data .h { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.data .g { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+.data .g.a { color: var(--accent); }
+.data .g.b { color: var(--fit); }
+input[type=number] { font: inherit; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--board); color: var(--ink); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13.5px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats td.st { color: var(--muted); font-size: 11.5px; padding-left: 8px; width: 3.2em; }
+.stats tr:last-child td { border-bottom: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps li.live::before { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.steps .v { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; color: var(--accent); }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.formula + .formula { margin-top: 6px; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · A/B testing</span>
+    <h1>A/B Test Lab</h1>
+    <p class="lead">Enter visitors and conversions for two versions of a page. The plot shows how big a difference chance alone would produce if the two versions were the same, where your observed difference lands, and the confidence interval for the lift. The verdict is written for an executive.</p>
+  </header>
+  <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 5, <a href="https://vsokolov.org/html/_book/05-ab.html">A/B Testing</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+
+  <main class="grid">
+    <section class="board" aria-label="Null sampling distribution with observed difference and confidence interval">
+      <div class="eqn" id="eqn"></div>
+      <canvas id="plot" role="img" aria-label="Normal curve of the difference under the null hypothesis, with the observed difference, shaded p-value area and a confidence interval below"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw curve"></i>Null distribution (theory)</span>
+        <span><i class="sw tail"></i>p-value area</span>
+        <span><i class="sw obs"></i>Observed value</span>
+        <span><i class="sw"></i>Simulated under H0</span>
+        <span><i class="sw simt"></i>Simulated, as extreme as observed</span>
+        <span><i class="sw ci"></i>Confidence interval</span>
+      </div>
+      <div class="verdict" id="verdict" aria-live="polite">
+        <span class="k">Step 8 · For the executive</span>
+        <h3 id="vHead">–</h3>
+        <p id="vText"></p>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Worked cases</span>
+        <div class="btns" id="presets">
+          <button id="pGoogle" aria-pressed="true">Google search</button>
+          <button id="pPink" aria-pressed="false">Pink vs black</button>
+          <button id="pCoke" aria-pressed="false">Coke vs Pepsi</button>
+          <button id="pKaraca" aria-pressed="false">Karaca AIDA</button>
+        </div>
+        <p class="hint" id="caseNote"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Step 6 · Data from the experiment</span>
+        <div class="seg" style="--n:2" role="group" aria-label="Design">
+          <button id="mTwo" aria-pressed="true">Two groups, A vs B</button>
+          <button id="mOne" aria-pressed="false">One group vs p₀</button>
+        </div>
+        <div class="data" id="twoBox">
+          <span></span><span class="h">Visitors</span><span class="h">Conversions</span>
+          <span class="g a" id="nameA">A</span>
+          <span><label class="sr" for="nA">Group A visitors</label><input type="number" id="nA" min="1" step="1"></span>
+          <span><label class="sr" for="xA">Group A conversions</label><input type="number" id="xA" min="0" step="1"></span>
+          <span class="g b" id="nameB">B</span>
+          <span><label class="sr" for="nB">Group B visitors</label><input type="number" id="nB" min="1" step="1"></span>
+          <span><label class="sr" for="xB">Group B conversions</label><input type="number" id="xB" min="0" step="1"></span>
+        </div>
+        <div class="data" id="oneBox" hidden>
+          <span></span><span class="h">Sample size</span><span class="h">Successes</span>
+          <span class="g a" id="name1">Sample</span>
+          <span><label class="sr" for="n1">Sample size</label><input type="number" id="n1" min="1" step="1"></span>
+          <span><label class="sr" for="x1">Successes</label><input type="number" id="x1" min="0" step="1"></span>
+          <span class="g">Null p₀</span>
+          <span><label class="sr" for="p0">Null proportion p0</label><input type="number" id="p0" min="0.01" max="0.99" step="0.01"></span>
+          <span></span>
+        </div>
+        <p class="err" id="err" hidden></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Steps 2–3 · Hypotheses and alpha</span>
+        <div class="seg" role="group" aria-label="Alternative hypothesis">
+          <button id="sTwo" aria-pressed="true">Two-sided</button>
+          <button id="sGt" aria-pressed="false">One-sided, B &gt; A</button>
+          <button id="sLt" aria-pressed="false">One-sided, B &lt; A</button>
+        </div>
+        <div class="slider">
+          <div class="top"><label for="alpha">Significance level, α</label><output id="alphaOut">0.05</output></div>
+          <input type="range" id="alpha" min="0.01" max="0.10" step="0.01" value="0.05">
+        </div>
+        <p class="hint">Choose the side and α before looking at the data. Switching to one-sided after seeing the result is p-hacking.</p>
+      </div>
+
+      <div class="group">
+        <button id="sim" class="primary">Simulate this experiment under H0 (1,000 times)</button>
+        <p class="hint" id="simNote">Each run re-draws both groups from the pooled rate, as if the two versions were identical.</p>
+      </div>
+
+      <div class="group">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+          <span class="label">p-value</span><span class="big" id="pBig">–</span>
+        </div>
+        <table class="stats">
+          <thead><tr><th></th><th>Value</th><th>Step</th></tr></thead>
+          <tbody id="tbl"></tbody>
+        </table>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">The eight-step A/B testing workflow</span>
+      <h2>Every readout belongs to a step</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The numbers below update with the data in the panel. Steps 4 and 5 happen before the experiment runs. This lab checks a finished experiment, so it reports the smallest lift these sample sizes could reliably detect. Plan the sample size itself in the Power and Sample Size Lab.</p>
+      <div class="demo">
+        <button class="primary" id="dGoogle">Google search: borderline</button>
+        <button id="dPink">Pink vs black: decisive</button>
+        <button id="dCoke">Coke vs Pepsi: not enough</button>
+      </div>
+    </div>
+    <ol class="steps" id="wf">
+      <li><div><h3>Define the metric</h3><p>One primary metric, with guardrails. Here: conversion rate = conversions ÷ visitors. <span class="v" id="w1"></span></p></div></li>
+      <li><div><h3>State H0 and H1</h3><p>Direction matters. <span class="v" id="w2"></span></p></div></li>
+      <li><div><h3>Pick α</h3><p>Default 0.05; stricter for medical or financial decisions. <span class="v" id="w3"></span></p></div></li>
+      <li><div><h3>Pick power 1 − β</h3><p>Industry default 0.80: an 80% chance of detecting a real lift of the planned size.</p></div></li>
+      <li><div><h3>Compute the required sample size</h3><p>From the MDE, α, β and baseline. <span class="v" id="w5"></span></p></div></li>
+      <li><div><h3>Randomise; run</h3><p>Random assignment is what makes the difference causal. <span class="v" id="w6"></span></p></div></li>
+      <li><div><h3>Compute CI, p-value</h3><p><span class="v" id="w7"></span></p></div></li>
+      <li><div><h3>Communicate</h3><p>Bottom line first, the lift with its CI, then the decision. See the verdict box under the plot.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Test statistic: pooled SE. Under H0 both groups share one rate.</div>
+        <div class="m">p̄ = (x<sub>A</sub> + x<sub>B</sub>) / (n<sub>A</sub> + n<sub>B</sub>)</div>
+        <div class="m">SE₀ = √( p̄(1 − p̄)(1/n<sub>A</sub> + 1/n<sub>B</sub>) )</div>
+        <div class="m">z = (p̂<sub>B</sub> − p̂<sub>A</sub>) / SE₀</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Confidence interval: unpooled SE. No assumption that the rates are equal.</div>
+        <div class="m">SE = √( p̂<sub>A</sub>(1 − p̂<sub>A</sub>)/n<sub>A</sub> + p̂<sub>B</sub>(1 − p̂<sub>B</sub>)/n<sub>B</sub> )</div>
+        <div class="m">(p̂<sub>B</sub> − p̂<sub>A</sub>) ± 1.96 · SE</div>
+      </div>
+      <div class="eq">
+        <div class="cap">With the current numbers</div>
+        <div class="m" id="eqLive1"></div>
+        <div class="m" id="eqLive2"></div>
+        <div class="m" id="eqLive3"></div>
+      </div>
+    </div>
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> Report the CI on the difference, not separate CIs for each arm. The pooled and unpooled SEs are almost equal in most business tests, which is why the CI and the test nearly always agree. When they disagree, the result is borderline, and the consultant's answer is more traffic, not a different test.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>CI for one proportion</h2>
+      <p>Poll of n = 1,000 with 540 in favour: p̂ = 0.54, SE ≈ 0.0158, CI (0.509, 0.571). Entirely above 50%.</p>
+      <div class="formula">p̂ ± 1.96 · √( p̂(1 − p̂)/n )</div>
+    </div>
+    <div class="note">
+      <h2>Decision rules</h2>
+      <p>Reject H0 when the statistic passes the critical value, or equivalently when p &lt; α. The p-value is P(data at least this extreme | H0), not P(H0 | data).</p>
+      <div class="formula">Two-sided: |z| &gt; 1.96</div>
+      <div class="formula">One-sided: z &gt; 1.645</div>
+    </div>
+    <div class="note">
+      <h2>One group against a benchmark</h2>
+      <p>Coke vs Pepsi tests one proportion against p₀ = 0.5. The SE uses p₀ because the test assumes H0 is true.</p>
+      <div class="formula">z = (p̂ − p₀) / √( p₀(1 − p₀)/n )</div>
+      <div class="formula">(0.56 − 0.5) / 0.05 = 1.2</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load Google search. Ask the room: ship Algo 2 or not? The p-value is just under 0.05 and the CI almost touches 0. Ask for three wrong ways to read this result, then press "Simulate" and count the amber bars.</li>
+      <li>Keep Google search and double both visitor counts and both conversion counts. The rates stay the same, but the CI shrinks by about 1/√2 and the verdict becomes clear.</li>
+      <li>Load Coke vs Pepsi with the one-sided test. z = 1.2 is short of 1.645. Change the drinkers to 430 and successes to 241 (56%). Now the same 6-point lead is significant.</li>
+      <li>Load pink vs black and switch between two-sided and one-sided. The one-sided p-value is exactly half. Then pick "B &lt; A": the p-value is near 1, because the data point the other way.</li>
+      <li>Load Karaca. With 20,000 sessions per arm the lab's CI is wider than the original example's. Ask students how many sessions that narrower interval implies (about 34,000 per arm).</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('plot'), ctx = cv.getContext('2d');
+  const tip = document.getElementById('tip');
+  const $ = id => document.getElementById(id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- normal distribution helpers ----------
+  function erfc(x) { // Numerical Recipes erfcc, fractional error < 1.2e-7
+    const z = Math.abs(x), t = 1 / (1 + 0.5 * z);
+    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? r : 2 - r;
+  }
+  const Phi = x => 0.5 * erfc(-x / Math.SQRT2);
+  const Qn = x => 0.5 * erfc(x / Math.SQRT2);
+  function qnorm(p) { // Acklam
+    const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.383577518672690e2, -3.066479806614716e1, 2.506628277459239];
+    const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1, -1.328068155288572e1];
+    const c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+    const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
+    const pl = 0.02425;
+    if (p < pl) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+    if (p > 1 - pl) return -qnorm(1 - p);
+    const q = p - 0.5, r = q * q;
+    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+  }
+  const dnorm = z => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+  function randn() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  // exact binomial draw by geometric gaps between successes (cost ~ n·min(p, 1−p)); normal approximation only for huge counts
+  function rbinom(n, p) {
+    if (p <= 0) return 0; if (p >= 1) return n;
+    if (p > 0.5) return n - rbinom(n, 1 - p);
+    if (n * p > 40000) return Math.max(0, Math.min(n, Math.round(n * p + Math.sqrt(n * p * (1 - p)) * randn())));
+    const lq = Math.log(1 - p); let x = 0, i = 0;
+    for (;;) { i += Math.floor(Math.log(1 - Math.random()) / lq) + 1; if (i > n) return x; x++; }
+  }
+
+  // ---------- state ----------
+  const PRESETS = {
+    pGoogle: { mode: 'two', nA: 2500, xA: 1755, nB: 2500, xB: 1818, A: 'Algo 1', B: 'Algo 2', side: 'two',
+      note: 'Algo 1 (control) vs Algo 2 (treatment), 2,500 searches each. The original example reports Algo 1 − Algo 2 = −0.025 with CI (−0.050, 0.000). The lab reports B − A, so the signs flip.' },
+    pPink: { mode: 'two', nA: 550, xA: 165, nB: 500, xB: 200, A: 'Black', B: 'Pink', side: 'two',
+      note: 'Black: 30% of 550 visitors. Pink: 40% of 500 visitors. One week. The original example\'s per-arm intervals (37.2–42.8%, 27.5–32.5%) are narrower than 95% intervals; the table shows the 95% versions.' },
+    pCoke: { mode: 'one', n1: 100, x1: 56, p0: 0.5, A: 'Prefer Pepsi', side: 'gt',
+      note: '100 Diet Coke drinkers, 56 preferred Diet Pepsi. H0: p ≤ 0.5, H1: p > 0.5, one-sided. The simulation counts exact binomial outcomes, so its share (about 13.6%, since 56 itself counts) sits above the normal-approximation p-value.' },
+    pKaraca: { mode: 'two', nA: 20000, xA: 610, nB: 20000, xB: 724, A: 'Control', B: 'AIDA', side: 'two',
+      note: 'Illustrative numbers (real ones are proprietary): 3.05% vs 3.62% on 40,000 sessions. With 20,000 per arm the 95% CI is (0.22, 0.92) pp and p ≈ 0.0015; the original example\'s (0.30, 0.84) and p < 0.001 would need about 34,000 per arm.' }
+  };
+  const S = { mode: 'two', nA: 2500, xA: 1755, nB: 2500, xB: 1818, n1: 100, x1: 56, p0: 0.5, A: 'Algo 1', B: 'Algo 2', side: 'two', alpha: 0.05, sim: null, preset: 'pGoogle' };
+  let C = {}, L = {}, R = null, dirty = true;
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'fit', 'board', 'surface'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+
+  // ---------- statistics ----------
+  function compute() {
+    const r = { ok: true, msg: '' }, a = S.alpha;
+    if (S.mode === 'two') {
+      const { nA, xA, nB, xB } = S;
+      if (!(nA >= 1 && nB >= 1 && Number.isInteger(nA) && Number.isInteger(nB))) return { ok: false, msg: 'Visitors must be whole numbers of at least 1.' };
+      if (!(xA >= 0 && xB >= 0 && xA <= nA && xB <= nB && Number.isInteger(xA) && Number.isInteger(xB))) return { ok: false, msg: 'Conversions must be whole numbers between 0 and the visitors.' };
+      r.pA = xA / nA; r.pB = xB / nB; r.center = 0; r.obs = r.pB - r.pA;
+      r.pp = (xA + xB) / (nA + nB);
+      r.se0 = Math.sqrt(r.pp * (1 - r.pp) * (1 / nA + 1 / nB));
+      r.seU = Math.sqrt(r.pA * (1 - r.pA) / nA + r.pB * (1 - r.pB) / nB);
+    } else {
+      const { n1, x1, p0 } = S;
+      if (!(n1 >= 1 && Number.isInteger(n1))) return { ok: false, msg: 'Sample size must be a whole number of at least 1.' };
+      if (!(x1 >= 0 && x1 <= n1 && Number.isInteger(x1))) return { ok: false, msg: 'Successes must be a whole number between 0 and the sample size.' };
+      if (!(p0 > 0 && p0 < 1)) return { ok: false, msg: 'p₀ must be between 0 and 1.' };
+      r.ph = x1 / n1; r.center = p0; r.obs = r.ph;
+      r.se0 = Math.sqrt(p0 * (1 - p0) / n1);
+      r.seU = Math.sqrt(r.ph * (1 - r.ph) / n1);
+    }
+    if (!(r.se0 > 0)) return { ok: false, msg: 'All visitors converted, or none did. The standard error is 0, so there is nothing to test.' };
+    r.z = (r.obs - r.center) / r.se0;
+    r.p = S.side === 'two' ? 2 * Qn(Math.abs(r.z)) : S.side === 'gt' ? Qn(r.z) : Phi(r.z);
+    r.p = Math.min(1, r.p);
+    r.zc = S.side === 'two' ? qnorm(1 - a / 2) : qnorm(1 - a);
+    r.zci = qnorm(1 - a / 2);
+    r.lo = r.obs - r.zci * r.seU; r.hi = r.obs + r.zci * r.seU;
+    r.reject = r.p < a;
+    // smallest true lift detectable with 80% power at these sample sizes (same SE)
+    r.mde = (r.zc + qnorm(0.8)) * r.se0;
+    return r;
+  }
+
+  // ---------- formatting ----------
+  const pp = (v, d = 2) => (v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d);
+  const sg = (v, d = 2) => (v < 0 ? '−' : v > 0 ? '+' : '') + Math.abs(v * 100).toFixed(d);
+  const f = (v, d = 3) => (v < 0 ? '−' : '') + Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fp = p => p < 0.0001 ? '< 0.0001' : p.toFixed(4);
+  const N = v => v.toLocaleString();
+  const ppDec = r => (r.se0 < 0.02 ? 2 : 1);
+
+  function sideText() {
+    if (S.mode === 'two') {
+      const A = S.A, B = S.B;
+      return S.side === 'two' ? `H0: p(${B}) = p(${A}).  H1: p(${B}) ≠ p(${A}).`
+        : S.side === 'gt' ? `H0: p(${B}) ≤ p(${A}).  H1: p(${B}) > p(${A}).` : `H0: p(${B}) ≥ p(${A}).  H1: p(${B}) < p(${A}).`;
+    }
+    const p0 = S.p0.toFixed(2);
+    return S.side === 'two' ? `H0: p = ${p0}.  H1: p ≠ ${p0}.` : S.side === 'gt' ? `H0: p ≤ ${p0}.  H1: p > ${p0}.` : `H0: p ≥ ${p0}.  H1: p < ${p0}.`;
+  }
+
+  function update() {
+    R = compute();
+    $('err').hidden = R.ok; $('err').textContent = R.msg || '';
+    $('sim').disabled = !R.ok;
+    if (!R.ok) { $('tbl').innerHTML = ''; $('pBig').textContent = '–'; $('eqn').textContent = ''; $('vHead').textContent = 'Fix the inputs'; $('vText').textContent = R.msg; dirty = true; return; }
+    const a = S.alpha, d = ppDec(R), two = S.mode === 'two';
+    const lvl = Math.round((1 - a) * 100) + '%';
+    const crit = S.side === 'two' ? `±${R.zc.toFixed(3)}` : S.side === 'gt' ? `+${R.zc.toFixed(3)}` : `−${R.zc.toFixed(3)}`;
+    $('pBig').textContent = fp(R.p);
+    $('eqn').innerHTML = two
+      ? `z = (<span class="a">${pp(R.pB)}%</span> − <span class="a">${pp(R.pA)}%</span>) / ${pp(R.se0, 3)} pp = <span class="h">${f(R.z, 2)}</span>,&nbsp; p = <span class="s">${fp(R.p)}</span>`
+      : `z = (<span class="a">${R.ph.toFixed(3)}</span> − ${S.p0.toFixed(2)}) / ${R.se0.toFixed(4)} = <span class="h">${f(R.z, 2)}</span>,&nbsp; p = <span class="s">${fp(R.p)}</span>`;
+    const rows = two ? [
+      [`p̂ ${S.A}`, pp(R.pA) + '%', '7'],
+      [`p̂ ${S.B}`, pp(R.pB) + '%', '7'],
+      ['Difference B − A', sg(R.obs, d) + ' pp', '7'],
+      ['Pooled rate p̄', pp(R.pp) + '%', '7'],
+      ['SE₀, pooled (for z)', pp(R.se0, 3) + ' pp', '7'],
+      ['SE, unpooled (for CI)', pp(R.seU, 3) + ' pp', '7'],
+      [`${lvl} CI for B − A`, `${sg(R.lo, d)} to ${sg(R.hi, d)}`, '7'],
+      [`${lvl} CI, ${S.A}`, ciArm(R.pA, S.nA), '7'],
+      [`${lvl} CI, ${S.B}`, ciArm(R.pB, S.nB), '7'],
+      ['z score', f(R.z, 3), '7'],
+      ['Critical value', crit, '3'],
+      [`p-value (${S.side === 'two' ? 'two' : 'one'}-sided)`, fp(R.p), '7'],
+      ['Reject H0 at α?', R.reject ? 'Yes' : 'No', '7']
+    ] : [
+      ['p̂', R.ph.toFixed(3), '7'],
+      ['p̂ − p₀', f(R.obs - R.center, 3), '7'],
+      ['SE₀ = √(p₀(1−p₀)/n)', R.se0.toFixed(4), '7'],
+      ['SE = √(p̂(1−p̂)/n), for CI', R.seU.toFixed(4), '7'],
+      [`${lvl} CI for p`, `${R.lo.toFixed(3)} to ${R.hi.toFixed(3)}`, '7'],
+      ['z score', f(R.z, 3), '7'],
+      ['Critical value', crit, '3'],
+      [`p-value (${S.side === 'two' ? 'two' : 'one'}-sided)`, fp(R.p), '7'],
+      ['Reject H0 at α?', R.reject ? 'Yes' : 'No', '7']
+    ];
+    if (S.sim && S.sim.key === simKey()) rows.push(['Simulated share as extreme', (S.sim.share * 100).toFixed(1) + '%', '6']);
+    $('tbl').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="st">${r[2]}</td></tr>`).join('');
+
+    // workflow text
+    $('w1').textContent = two ? `${S.A}: ${pp(R.pA)}%, ${S.B}: ${pp(R.pB)}%.` : `Share preferring: ${(R.ph * 100).toFixed(1)}%.`;
+    $('w2').textContent = sideText();
+    $('w3').textContent = `α = ${a.toFixed(2)}, so the critical value is ${crit}.`;
+    $('w5').textContent = two
+      ? `At ${N(S.nA)} and ${N(S.nB)} visitors, an 80%-power test at this α detects a true lift of about ${pp(R.mde, d)} pp or more.`
+      : `At n = ${N(S.n1)}, an 80%-power test at this α detects a true shift of about ${pp(R.mde, 1)} points from p₀ or more.`;
+    $('w6').textContent = two ? `${N(S.nA + S.nB)} visitors randomised into two groups.` : `${N(S.n1)} participants, double-blind.`;
+    $('w7').textContent = two
+      ? `Lift ${sg(R.obs, d)} pp, ${lvl} CI ${sg(R.lo, d)} to ${sg(R.hi, d)} pp, z = ${f(R.z, 2)}, p = ${fp(R.p)}.`
+      : `p̂ = ${R.ph.toFixed(3)}, ${lvl} CI ${R.lo.toFixed(3)} to ${R.hi.toFixed(3)}, z = ${f(R.z, 2)}, p = ${fp(R.p)}.`;
+    if (two) {
+      $('eqLive1').textContent = `p̄ = (${N(S.xA)} + ${N(S.xB)}) / (${N(S.nA)} + ${N(S.nB)}) = ${R.pp.toFixed(4)}`;
+      $('eqLive2').textContent = `SE₀ = ${R.se0.toFixed(5)},  z = ${f(R.obs, 4)} / ${R.se0.toFixed(5)} = ${f(R.z, 3)}`;
+      $('eqLive3').textContent = `SE = ${R.seU.toFixed(5)},  CI = ${f(R.obs, 4)} ± ${R.zci.toFixed(2)}·${R.seU.toFixed(5)} = (${f(R.lo, 4)}, ${f(R.hi, 4)})`;
+    } else {
+      $('eqLive1').textContent = `p̂ = ${N(S.x1)} / ${N(S.n1)} = ${R.ph.toFixed(4)}`;
+      $('eqLive2').textContent = `SE₀ = √(${S.p0.toFixed(2)}·${(1 - S.p0).toFixed(2)}/${N(S.n1)}) = ${R.se0.toFixed(4)},  z = ${f(R.z, 3)}`;
+      $('eqLive3').textContent = `SE = ${R.seU.toFixed(4)},  CI = ${R.ph.toFixed(3)} ± ${R.zci.toFixed(2)}·${R.seU.toFixed(4)} = (${R.lo.toFixed(3)}, ${R.hi.toFixed(3)})`;
+    }
+    verdict(lvl, d);
+    dirty = true;
+  }
+  function ciArm(p, n) { const s = Math.sqrt(p * (1 - p) / n), z = R.zci; return `${pp(p - z * s, 1)}–${pp(p + z * s, 1)}%`; }
+
+  function verdict(lvl, d) {
+    const a = S.alpha, two = S.mode === 'two', el = $('verdict');
+    const ciTxt = two ? `${sg(R.lo, d)} to ${sg(R.hi, d)} points` : `${(R.lo * 100).toFixed(1)}% to ${(R.hi * 100).toFixed(1)}%`;
+    const eff = two ? `${S.B} converts ${pp(Math.abs(R.obs), d)} points ${R.obs >= 0 ? 'higher' : 'lower'} than ${S.A} (${pp(R.pB)}% vs ${pp(R.pA)}%)`
+      : `${(R.ph * 100).toFixed(0)}% of ${N(S.n1)} participants chose this option, against a benchmark of ${(S.p0 * 100).toFixed(0)}%`;
+    const dirOK = S.side === 'two' || (S.side === 'gt' ? R.z > 0 : R.z < 0);
+    let cls, head, body;
+    if (R.reject && R.p >= a / 5) {
+      cls = 'edge'; head = 'Significant, but only just';
+      body = `${eff}. p = ${fp(R.p)} is under α = ${a.toFixed(2)}, and the ${lvl} interval runs from ${ciTxt}, with one end close to zero. Treat this as borderline: continue the test with more traffic under a pre-committed plan before a full rollout.`;
+    } else if (R.reject) {
+      cls = 'yes'; head = two ? `Ship ${S.B} if the guardrails hold` : 'The evidence supports the claim';
+      body = `${eff}. The ${lvl} interval, ${ciTxt}, ${two ? 'excludes zero' : 'excludes the benchmark'}, and p = ${fp(R.p)}. A gap this large would be very unusual if there were no real difference. Next: put a dollar value on the lift and confirm the guardrail metrics.`;
+    } else if (dirOK && R.p < 2 * a) {
+      cls = 'edge'; head = 'Not significant yet. Borderline.';
+      body = `${eff}, but p = ${fp(R.p)} is above α = ${a.toFixed(2)}. The ${lvl} interval, ${ciTxt}, includes ${two ? 'zero' : 'the benchmark'}. Do not ship and do not kill it: run more traffic, or accept that the effect is too small to matter.`;
+    } else {
+      cls = 'no'; head = 'No evidence of a difference';
+      body = `${eff}. With p = ${fp(R.p)}, a gap this size is common when nothing real is going on. The ${lvl} interval, ${ciTxt}, ${two ? 'includes zero' : 'includes the benchmark'}. ${!dirOK ? 'The data point in the opposite direction to H1. ' : ''}Do not ship on this evidence.${S.mode === 'one' || Math.max(S.nA, S.nB) < 2000 ? ' The sample is small: compute the sample size you would need (step 5).' : ''}`;
+    }
+    el.className = 'verdict ' + cls; $('vHead').textContent = head; $('vText').textContent = body;
+  }
+
+  // ---------- simulation under H0 ----------
+  const simKey = () => [S.mode, S.nA, S.xA, S.nB, S.xB, S.n1, S.x1, S.p0, S.side].join('|');
+  function simulate(M = 1000) {
+    if (!R || !R.ok) return;
+    const vals = new Float64Array(M);
+    if (S.mode === 'two') {
+      for (let i = 0; i < M; i++) vals[i] = rbinom(S.nB, R.pp) / S.nB - rbinom(S.nA, R.pp) / S.nA;
+    } else {
+      for (let i = 0; i < M; i++) vals[i] = rbinom(S.n1, S.p0) / S.n1;
+    }
+    const dev = R.obs - R.center, eps = 1e-12;
+    let k = 0;
+    for (const v of vals) {
+      const e = v - R.center;
+      if (S.side === 'two' ? Math.abs(e) >= Math.abs(dev) - eps : S.side === 'gt' ? e >= dev - eps : e <= dev + eps) k++;
+    }
+    S.sim = { key: simKey(), vals, share: k / M, k, M };
+    $('simNote').textContent = `${N(k)} of ${N(M)} simulated experiments (${(k / M * 100).toFixed(1)}%) were at least as extreme as the observed one. Theory says ${(R.p * 100).toFixed(1)}%.`;
+    anim = reduce ? 1 : 0;
+    update();
+  }
+  let anim = 1;
+
+  // ---------- drawing ----------
+  function resize() {
+    const w = cv.parentElement.clientWidth - 28;
+    const h = Math.round(Math.min(Math.max(w * 0.6, 380), 520));
+    const dpr = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    L = { W: w, H: h, ml: 14, mr: 14, mt: 30, axisY: h - 118, ciY: h - 26 };
+    dirty = true;
+  }
+  function niceStep(range, target) {
+    const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+  }
+  function domain() {
+    const c = R.center, s = R.se0;
+    let lo = c - 4 * s, hi = c + 4 * s;
+    lo = Math.min(lo, R.lo, R.obs - 0.6 * s); hi = Math.max(hi, R.hi, R.obs + 0.6 * s);
+    const pad = (hi - lo) * 0.03; return { lo: lo - pad, hi: hi + pad };
+  }
+
+  function draw() {
+    const { W, H, ml, mr, mt, axisY, ciY } = L;
+    ctx.clearRect(0, 0, W, H);
+    if (!R || !R.ok) {
+      ctx.fillStyle = C.muted; ctx.font = '14px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center';
+      ctx.fillText('Fix the inputs in the panel to see the plot.', W / 2, H / 2); return;
+    }
+    const D = domain(), two = S.mode === 'two';
+    const X = v => ml + (v - D.lo) / (D.hi - D.lo) * (W - ml - mr);
+    const peak = dnorm(0) / R.se0;
+    const ymax = peak * 1.12;
+    const Y = dens => axisY - dens / ymax * (axisY - mt);
+    const mono = '"JetBrains Mono", ui-monospace, monospace';
+    const scale = two ? 100 : 1;
+
+    // grid + ticks (difference units)
+    const step = niceStep((D.hi - D.lo) * scale, W < 520 ? 4 : 7) / scale;
+    ctx.font = '11px ' + mono; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let v = Math.ceil(D.lo / step) * step; v <= D.hi + 1e-12; v += step) {
+      const x = Math.round(X(v)) + .5;
+      ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, mt); ctx.lineTo(x, axisY); ctx.stroke();
+      ctx.fillStyle = C.muted;
+      const lab = two ? (Math.abs(v) < 1e-12 ? '0' : (v < 0 ? '−' : '') + (+Math.abs(v * 100).toFixed(4)).toString()) : (+v.toFixed(4)).toString();
+      ctx.fillText(lab, x, axisY + 6);
+    }
+    // z ticks
+    ctx.fillStyle = C.curve; ctx.globalAlpha = 0.85;
+    const zl = Math.ceil((D.lo - R.center) / R.se0), zh = Math.floor((D.hi - R.center) / R.se0);
+    const zEvery = (zh - zl) > 12 ? 2 : 1;
+    for (let z = zl; z <= zh; z++) if (z % zEvery === 0) {
+      const x = X(R.center + z * R.se0);
+      ctx.fillText((z < 0 ? '−' : '') + Math.abs(z), x, axisY + 24);
+      ctx.fillRect(x - .5, axisY, 1, 4);
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left'; ctx.fillStyle = C.muted;
+    ctx.fillText(two ? 'B − A, percentage points' : 'p̂, share of the sample', ml, axisY + 42);
+    ctx.textAlign = 'right'; ctx.fillStyle = C.curve; ctx.fillText('z under H0', W - mr, axisY + 42);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(ml, axisY + .5); ctx.lineTo(W - mr, axisY + .5); ctx.stroke();
+
+    // simulated histogram (density scale)
+    const sim = S.sim && S.sim.key === simKey() ? S.sim : null;
+    if (sim) {
+      let bw = R.se0 / 4;
+      if (two) { /* discrete support is fine with this width */ } else bw = Math.max(bw, 1 / S.n1);
+      if (!two) { const u = 1 / S.n1; bw = Math.max(1, Math.round(bw / u)) * u; }
+      const off = two ? R.center - bw / 2 : R.center - bw / 2;
+      const bins = new Map();
+      for (const v of sim.vals) { const b = Math.floor((v - off) / bw); bins.set(b, (bins.get(b) || 0) + 1); }
+      const dev = R.obs - R.center;
+      const g = Math.min(1, anim);
+      for (const [b, cnt] of bins) {
+        const x0 = off + b * bw, x1 = x0 + bw, mid = x0 + bw / 2 - R.center;
+        const ext = S.side === 'two' ? Math.abs(mid) >= Math.abs(dev) - bw / 2 : S.side === 'gt' ? mid >= dev - bw / 2 : mid <= dev + bw / 2;
+        const dens = cnt / sim.M / bw * g;
+        const px0 = Math.max(ml, X(x0)), px1 = Math.min(W - mr, X(x1));
+        if (px1 <= px0) continue;
+        ctx.fillStyle = ext ? C.ball : C.accent; ctx.globalAlpha = ext ? 0.9 : 0.5;
+        ctx.fillRect(px0 + 0.5, Y(dens), Math.max(1, px1 - px0 - 1), axisY - Y(dens));
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // tails
+    const zObs = R.z;
+    const tails = S.side === 'two' ? [[-Infinity, -Math.abs(zObs)], [Math.abs(zObs), Infinity]] : S.side === 'gt' ? [[zObs, Infinity]] : [[-Infinity, zObs]];
+    ctx.fillStyle = C.curve; ctx.globalAlpha = 0.28;
+    for (const [za, zb] of tails) {
+      const va = Math.max(D.lo, R.center + za * R.se0), vb = Math.min(D.hi, R.center + zb * R.se0);
+      if (vb <= va) continue;
+      ctx.beginPath(); ctx.moveTo(X(va), axisY);
+      for (let i = 0; i <= 80; i++) { const v = va + (vb - va) * i / 80; ctx.lineTo(X(v), Y(dnorm((v - R.center) / R.se0) / R.se0)); }
+      ctx.lineTo(X(vb), axisY); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // critical values
+    ctx.strokeStyle = C.curve; ctx.setLineDash([3, 4]); ctx.lineWidth = 1.25;
+    const crits = S.side === 'two' ? [-R.zc, R.zc] : S.side === 'gt' ? [R.zc] : [-R.zc];
+    for (const zc of crits) { const x = X(R.center + zc * R.se0); if (x > ml && x < W - mr) { ctx.beginPath(); ctx.moveTo(x, Y(peak * 0.55)); ctx.lineTo(x, axisY); ctx.stroke(); } }
+    ctx.setLineDash([]);
+
+    // null curve
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 2.25; ctx.beginPath();
+    for (let i = 0; i <= 300; i++) { const v = D.lo + (D.hi - D.lo) * i / 300, y = Y(dnorm((v - R.center) / R.se0) / R.se0); i ? ctx.lineTo(X(v), y) : ctx.moveTo(X(v), y); }
+    ctx.stroke();
+    ctx.fillStyle = C.curve; ctx.font = '600 12px ' + mono; ctx.textBaseline = 'bottom';
+    const lx = X(R.center + 0.9 * R.se0);
+    ctx.textAlign = 'right'; ctx.fillText(two ? 'H0: no difference' : 'H0: p = p₀', Math.max(ml + 130, X(R.center - 0.75 * R.se0)), Y(peak * 0.9));
+
+    // zero / null line through the CI strip
+    const x0 = X(R.center);
+    ctx.strokeStyle = C.ink; ctx.globalAlpha = 0.55; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(x0 + .5, axisY + 54); ctx.lineTo(x0 + .5, H - 6); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+    // observed line
+    const xo = X(R.obs);
+    ctx.strokeStyle = C.ball; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(xo, mt - 6); ctx.lineTo(xo, axisY); ctx.stroke();
+    ctx.fillStyle = C.ball; ctx.font = '600 12px ' + mono; ctx.textBaseline = 'bottom';
+    const obsLab = `observed ${two ? sg(R.obs, ppDec(R)) + ' pp' : R.obs.toFixed(2)}, z = ${f(R.z, 2)}`;
+    const tw = ctx.measureText(obsLab).width;
+    let tx = xo + 6, al = 'left';
+    if (tx + tw > W - mr) { tx = xo - 6; al = 'right'; }
+    ctx.textAlign = al; ctx.fillText(obsLab, tx, mt - 8 + 14);
+    // p-value label in tail
+    ctx.fillStyle = C.curve; ctx.font = '600 12px ' + mono; ctx.textAlign = al; ctx.textBaseline = 'top';
+    ctx.fillText(`p = ${fp(R.p)}`, tx, mt + 10);
+
+    // CI strip
+    const cl = X(R.lo), ch = X(R.hi);
+    ctx.strokeStyle = C.fit; ctx.lineWidth = 3; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.moveTo(cl, ciY); ctx.lineTo(ch, ciY); ctx.moveTo(cl, ciY - 7); ctx.lineTo(cl, ciY + 7); ctx.moveTo(ch, ciY - 7); ctx.lineTo(ch, ciY + 7); ctx.stroke();
+    ctx.fillStyle = C.ball; ctx.beginPath(); ctx.arc(xo, ciY, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.fit; ctx.font = '600 12px ' + mono; ctx.textBaseline = 'bottom';
+    const lvl = Math.round((1 - S.alpha) * 100);
+    const ciLab = `${lvl}% CI ${two ? `${sg(R.lo, ppDec(R))} to ${sg(R.hi, ppDec(R))} pp` : `${R.lo.toFixed(3)} to ${R.hi.toFixed(3)}`}`;
+    const cw = ctx.measureText(ciLab).width;
+    ctx.textAlign = 'left'; ctx.fillText(ciLab, Math.max(ml, Math.min((cl + ch) / 2 - cw / 2, W - mr - cw)), ciY - 10);
+    ctx.fillStyle = C.muted; ctx.font = '11px ' + mono; ctx.textBaseline = 'middle';
+    const zl0 = two ? '0 = no lift' : `p₀ = ${S.p0.toFixed(2)}`, zw0 = ctx.measureText(zl0).width;
+    const leftSide = x0 > (cl + ch) / 2;
+    ctx.textAlign = leftSide ? 'left' : 'right';
+    ctx.fillText(zl0, leftSide ? Math.min(Math.max(x0, ch) + 10, W - mr - zw0) : Math.max(Math.min(x0, cl) - 10, ml + zw0), ciY);
+  }
+
+  function frame() {
+    if (anim < 1) { anim = Math.min(1, anim + 0.06); dirty = true; }
+    if (dirty) { draw(); dirty = false; }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- controls ----------
+  function syncInputs() {
+    for (const k of ['nA', 'xA', 'nB', 'xB', 'n1', 'x1', 'p0']) $(k).value = S[k];
+    $('nameA').textContent = S.A; $('nameB').textContent = S.B; $('name1').textContent = S.mode === 'one' ? S.A : 'Sample';
+    $('twoBox').hidden = S.mode !== 'two'; $('oneBox').hidden = S.mode !== 'one';
+    $('mTwo').setAttribute('aria-pressed', S.mode === 'two'); $('mOne').setAttribute('aria-pressed', S.mode === 'one');
+    const one = S.mode === 'one';
+    $('sGt').textContent = one ? 'One-sided, p > p₀' : 'One-sided, B > A';
+    $('sLt').textContent = one ? 'One-sided, p < p₀' : 'One-sided, B < A';
+    for (const [id, v] of [['sTwo', 'two'], ['sGt', 'gt'], ['sLt', 'lt']]) $(id).setAttribute('aria-pressed', S.side === v);
+    for (const id of Object.keys(PRESETS)) $(id).setAttribute('aria-pressed', S.preset === id);
+    $('caseNote').textContent = S.preset ? PRESETS[S.preset].note : 'Your own numbers.';
+  }
+  function loadPreset(id) {
+    const P = PRESETS[id];
+    Object.assign(S, { mode: P.mode, side: P.side, A: P.A, B: P.B || 'B', preset: id });
+    if (P.mode === 'two') Object.assign(S, { nA: P.nA, xA: P.xA, nB: P.nB, xB: P.xB });
+    else Object.assign(S, { n1: P.n1, x1: P.x1, p0: P.p0 });
+    S.alpha = 0.05; $('alpha').value = 0.05; $('alphaOut').textContent = '0.05';
+    syncInputs(); update(); simulate();
+  }
+  for (const id of Object.keys(PRESETS)) $(id).onclick = () => loadPreset(id);
+  const demo = id => { loadPreset(id); document.querySelector('.board').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); };
+  $('dGoogle').onclick = () => demo('pGoogle'); $('dPink').onclick = () => demo('pPink'); $('dCoke').onclick = () => demo('pCoke');
+
+  for (const k of ['nA', 'xA', 'nB', 'xB', 'n1', 'x1', 'p0']) $(k).addEventListener('input', e => {
+    S[k] = e.target.value === '' ? NaN : +e.target.value; S.preset = null; S.sim = null;
+    $('simNote').textContent = 'Each run re-draws the data as if H0 were true.';
+    syncInputs(); update();
+  });
+  $('mTwo').onclick = () => { if (S.mode !== 'two') { S.mode = 'two'; if (S.A === 'Prefer Pepsi') { S.A = 'A'; S.B = 'B'; } S.preset = null; if (S.side !== 'two') S.side = 'two'; syncInputs(); update(); simulate(); } };
+  $('mOne').onclick = () => { if (S.mode !== 'one') { S.mode = 'one'; S.preset = null; syncInputs(); update(); simulate(); } };
+  for (const [id, v] of [['sTwo', 'two'], ['sGt', 'gt'], ['sLt', 'lt']]) $(id).onclick = () => { S.side = v; syncInputs(); update(); if (S.sim) simulate(); };
+  $('alpha').oninput = e => { S.alpha = +e.target.value; $('alphaOut').textContent = S.alpha.toFixed(2); update(); };
+  $('sim').onclick = () => simulate();
+
+  // hover: value, z and tail probability under H0
+  function showTip(ev) {
+    if (!R || !R.ok) { tip.hidden = true; return; }
+    const rc = cv.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    if (my > L.axisY + 4 || mx < L.ml || mx > L.W - L.mr) { tip.hidden = true; return; }
+    const D = domain(), v = D.lo + (mx - L.ml) / (L.W - L.ml - L.mr) * (D.hi - D.lo), z = (v - R.center) / R.se0;
+    const two = S.mode === 'two';
+    tip.innerHTML = `${two ? 'B − A = ' + sg(v, 2) + ' pp' : 'p̂ = ' + v.toFixed(3)}<br>z = ${f(z, 2)}<br>P(beyond, under H0) = ${fp(z >= 0 ? Qn(z) : Phi(z))}`;
+    tip.hidden = false;
+    const left = Math.min(mx + 30, cv.clientWidth - tip.offsetWidth + 14);
+    tip.style.left = Math.max(14, left) + 'px';
+    tip.style.top = Math.max(14, my + cv.offsetTop - tip.offsetHeight - 8) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => resize()).observe(cv.parentElement);
+
+  resize(); loadPreset('pGoogle'); anim = 1;
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

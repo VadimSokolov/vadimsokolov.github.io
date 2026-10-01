@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Joint Table Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the editable joint table and the conditional bars are the hero on the left; presets and the conditioning readout in the right rail; independence and P(A|B) vs P(B|A) cards below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.board canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.dot { width: 10px; border-radius: 50%; }
+.sw.line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px dashed var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+.tip b { font-family: var(--font-display); }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.7vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button[aria-pressed="true"]:not(.primary) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; box-shadow: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; max-width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.th { color: var(--curve); }
+.stats td.ob { color: var(--accent); }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; max-width: 100%; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula + .formula { margin-top: 6px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+table.jt { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; margin: 0 auto; }
+.jt th, .jt td { padding: 4px 5px; text-align: center; vertical-align: middle; }
+.jt thead th { font-weight: 400; }
+.jt .corner { font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-align: left; letter-spacing: .04em; }
+.jt .hd { font-size: 13px; padding: 6px 8px; width: 100%; background: var(--surface); white-space: normal; min-width: 64px; }
+.jt tbody th .hd { text-align: left; min-width: 96px; }
+.jt .hd.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.jt input { width: 88px; font-family: var(--font-mono); font-size: 14px; text-align: right; padding: 6px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; }
+.jt td.on input { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.jt td.ab input { box-shadow: inset 0 0 0 2px var(--ball); }
+.jt .mg { font-family: var(--font-mono); font-size: 14px; color: var(--curve); padding-inline: 10px; text-align: right; }
+.jt .mg.on { font-weight: 600; }
+.jt .mh { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--curve); text-align: right; padding-inline: 10px; }
+.jt tr.mrow td, .jt tr.mrow th { border-top: 1.5px solid var(--line); }
+.jt .tot { color: var(--muted); }
+@media (max-width: 520px) { .jt input { width: 66px; font-size: 13px; } .jt .hd { min-width: 52px; font-size: 12px; } .jt tbody th .hd { min-width: 80px; } }
+.varname { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; }
+.sw.mg { height: 0; border-top: 2.5px dashed var(--curve); border-radius: 0; background: none; }
+.sw.ab { background: transparent; box-shadow: inset 0 0 0 2px var(--ball); }
+.duo { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .tri { grid-template-columns: minmax(0, 1fr); } }
+table.mini { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.mini th, .mini td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+.mini th { white-space: nowrap; font-weight: 400; color: var(--muted); font-size: 11px; }
+.mini th:first-child { text-align: left; }
+.mini tr:last-child td { border-bottom: 0; }
+.mini .cap { font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--ink); text-align: left; padding-bottom: 6px; border: 0; }
+.verdict { font-weight: 700; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--board); }
+.verdict.yes { border-color: var(--fit); color: var(--fit); }
+.verdict.no { border-color: var(--curve); color: var(--curve); }
+.cmp { display: flex; flex-direction: column; gap: 10px; }
+.cmp .row { display: grid; grid-template-columns: 92px minmax(0, 1fr) 62px; gap: 8px; align-items: center; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.cmp .bar { height: 16px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+.cmp .bar i { display: block; height: 100%; background: var(--accent); }
+.cmp .bar.b i { background: var(--fit); }
+.cmp .v { text-align: right; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Joint, marginal and conditional probability</span>
+    <h1>Joint Table Lab</h1>
+    <p class="lead">Edit the joint table and watch the row and column totals (the marginals) update. Click a row or column heading to condition on it: the bars show the conditional distribution next to the marginal. The cards below test independence and compare P(A | B) with P(B | A).</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 1, <a href="https://vsokolov.org/html/_book/01-prob.html">Probability and Uncertainty</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Joint probability table and conditional distribution chart">
+      <div class="varname" id="colVar"></div>
+      <div class="scroll"><table class="jt" id="jt"></table></div>
+      <canvas id="bars" role="img" aria-label="Bar chart of the conditional distribution with the marginal distribution as dashed marks"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw"></i>Conditional distribution (the clicked row or column, rescaled)</span>
+        <span><i class="sw mg"></i>Marginal distribution (no conditioning)</span>
+        <span><i class="sw ab"></i>Cell A and B</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Preset</span>
+        <div class="btns">
+          <button id="pHappy" class="wide" aria-pressed="true">Happiness × Salary</button>
+          <button id="pCoins" aria-pressed="false">Two fair coins</button>
+          <button id="pNba" aria-pressed="false">NBA</button>
+        </div>
+        <p class="hint" id="presetNote"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Table entries</span>
+        <p class="hint">Type probabilities or counts. Every probability is entry ÷ total, so the entries do not need to add to 1.</p>
+        <table class="stats"><tbody><tr><td>Total of all entries</td><td id="total">–</td></tr></tbody></table>
+        <div class="btns">
+          <button id="normalize">Rescale to sum 1</button>
+          <button id="makeInd">Make independent</button>
+          <button id="resetT" class="wide">Reset this preset</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Condition on</span>
+        <div class="field">
+          <label for="condSel">Known outcome</label>
+          <select id="condSel"></select>
+        </div>
+        <table class="stats">
+          <thead><tr><th id="cHead">Outcome</th><th id="cHeadC">Given</th><th>Marginal</th></tr></thead>
+          <tbody id="condBody"></tbody>
+        </table>
+        <p class="hint" id="condHint"></p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="duo">
+    <div class="card" aria-labelledby="indH">
+      <h2 id="indH">Independence check</h2>
+      <p class="hint" style="font-size:14px">If X and Y are independent, every cell equals its row total times its column total. The third table shows how far each actual cell is from that product.</p>
+      <div class="tri">
+        <div class="scroll"><table class="mini" id="tAct"></table></div>
+        <div class="scroll"><table class="mini" id="tProd"></table></div>
+        <div class="scroll"><table class="mini" id="tDiff"></table></div>
+      </div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="card" aria-labelledby="abH">
+      <h2 id="abH">P(A | B) is not P(B | A)</h2>
+      <div class="pair">
+        <div class="field"><label for="aSel">Event A</label><select id="aSel"></select></div>
+        <div class="field"><label for="bSel">Event B</label><select id="bSel"></select></div>
+      </div>
+      <div class="cmp">
+        <div class="row"><span>P(A | B)</span><span class="bar"><i id="barAB"></i></span><span class="v" id="vAB">–</span></div>
+        <div class="row"><span>P(B | A)</span><span class="bar b"><i id="barBA"></i></span><span class="v" id="vBA">–</span></div>
+      </div>
+      <table class="stats">
+        <tbody>
+          <tr><td>P(A and B)</td><td id="pAB">–</td></tr>
+          <tr><td>P(A)</td><td id="pA">–</td></tr>
+          <tr><td>P(B)</td><td id="pB">–</td></tr>
+          <tr><td>Base-rate ratio P(A) / P(B)</td><td id="ratio">–</td></tr>
+        </tbody>
+      </table>
+      <div class="formula" id="bayesLine" style="white-space:normal"></div>
+      <p class="hint" id="abHint"></p>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Reading a joint table</span>
+      <h2>Three tables in one: joint, marginal, conditional</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Every probability in this topic can be read off one joint table. The joint is a cell, a marginal is a row or column total, and a conditional is one row or column rescaled so it adds to 1.</p>
+      <div class="demo">
+        <button class="primary" id="demo27">is P(Y = 2 | X = 3) &gt; P(Y = 2)?</button>
+        <button id="demo31">practice hard vs play in the NBA</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Joint: both happen</h3><p>The cell in row X = 3, column Y = 2 holds P(X = 3, Y = 2) = 0.14. Of all people, 14% are very high earners who also report high happiness.</p></div></li>
+      <li><div><h3>Marginal: add up the joint</h3><p>The row total P(X = 3) = 0.01 + 0.09 + 0.14 = 0.24 ignores happiness. The column total P(Y = 2) = 0.46 ignores salary.</p></div></li>
+      <li><div><h3>Conditional: keep one row, rescale it</h3><p>Knowing X = 3 removes every other row. Dividing the row by its total gives P(Y = 2 | X = 3) = 0.14 / 0.24 = 0.583. That beats 0.46, so very high earners are more likely to report high happiness.</p></div></li>
+      <li><div><h3>Independence: the conditional equals the marginal</h3><p>If every row, once rescaled, looked like the marginal row, X would tell you nothing about Y. Then each cell equals P(x)·P(y). Two fair coin tosses pass this test exactly. Happiness and salary do not.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">Product rule</div><div class="m">P(x, y) = P(x)·P(y | x) = P(y)·P(x | y)</div></div>
+      <div class="eq"><div class="cap">Marginal = sum of joint</div><div class="m">P(x) = Σ<sub>y</sub> P(x, y),   P(y) = Σ<sub>x</sub> P(x, y)</div></div>
+      <div class="eq"><div class="cap">Independence</div><div class="m">P(y | x) = P(y) for all x, y</div><div class="m">⇔ P(x, y) = P(x)·P(y)</div></div>
+      <div class="eq"><div class="cap">Bayes corrects the flip</div><div class="m">P(A | B) = P(B | A) × P(A) / P(B)</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> P(A | B) and P(B | A) share the same numerator, P(A and B). They divide it by different totals. When one event is rare, such as playing in the NBA, the two conditionals can sit at opposite ends of the scale. Mixing them up is the prosecutor's fallacy.</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load Happiness × Salary and click each salary row in turn. Ask students which row makes "high happiness" most likely before you click. Compare every bar with the dashed marginal at 0.46.</li>
+      <li>Click the column Y = 2 (high) instead. The bars now show P(X | Y = 2), the salary mix of happy people. Point out that 0.14 / 0.46 = 0.304 differs from 0.583.</li>
+      <li>Press "Make independent". Every row now has the same shape, the bars sit on the dashed marks, and the difference table turns to zeros. The marginals did not change.</li>
+      <li>Load Two fair coins and change one cell from 0.25 to 0.35. The entries no longer sum to 1, but the lab rescales them. Ask whether the second toss still ignores the first.</li>
+      <li>Load NBA. Read P(practice hard | NBA) and P(NBA | practice hard) and find the base-rate ratio that connects them.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('bars'), ctx = cv.getContext('2d'), tip = $('tip');
+  const PRESETS = {
+    happy: {
+      rowVar: 'Salary X', colVar: 'Happiness Y',
+      rows: ['X = 0 (low)', 'X = 1 (medium)', 'X = 2 (high)', 'X = 3 (very high)'],
+      rs: ['X = 0', 'X = 1', 'X = 2', 'X = 3'],
+      cols: ['Y = 0 (low)', 'Y = 1 (medium)', 'Y = 2 (high)'],
+      cs: ['Y = 0', 'Y = 1', 'Y = 2'],
+      v: [[0.03, 0.12, 0.07], [0.02, 0.13, 0.11], [0.01, 0.13, 0.14], [0.01, 0.09, 0.14]],
+      cond: { t: 'r', i: 3 }, A: 2, B: 3,
+      note: 'Joint probabilities from the happiness and salary example. Rows are salary, columns are happiness.'
+    },
+    coins: {
+      rowVar: 'First toss', colVar: 'Second toss',
+      rows: ['T1 (tails)', 'H1 (heads)'], rs: ['T1', 'H1'],
+      cols: ['H2 (heads)', 'T2 (tails)'], cs: ['H2', 'T2'],
+      v: [[0.25, 0.25], [0.25, 0.25]],
+      cond: { t: 'r', i: 0 }, A: 0, B: 0,
+      note: 'a fair coin tossed twice. P(H2 | T1) = P(H2) = 1/2.'
+    },
+    nba: {
+      rowVar: 'Plays in the NBA', colVar: 'Practice',
+      rows: ['Plays in NBA', 'Does not'], rs: ['NBA', 'Not NBA'],
+      cols: ['Practices hard', 'Does not'], cs: ['Hard', 'Not hard'],
+      v: [[495, 5], [100000, 899500]],
+      cond: { t: 'r', i: 0 }, A: 0, B: 0,
+      note: 'Illustrative counts for 1,000,000 young players, not real data. The original example gives only P(practice | NBA) ≈ 1 and P(NBA | practice) ≈ 0.'
+    }
+  };
+  const S = { key: 'happy', P: null, v: [], cond: null, A: 0, B: 0, inputs: [], m: null };
+  let C = {}, L = {}, hits = [];
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'ball', 'board', 'surface'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const f3 = x => Number.isFinite(x) ? x.toFixed(3) : '–';
+  const sgn = x => (x > 0.00005 ? '+' : x < -0.00005 ? '−' : '') + Math.abs(x).toFixed(3);
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  // marginals and probabilities
+  function compute() {
+    const v = S.v, R = v.length, K = v[0].length;
+    let tot = 0; const rsum = Array(R).fill(0), csum = Array(K).fill(0);
+    for (let i = 0; i < R; i++) for (let j = 0; j < K; j++) { const x = v[i][j]; tot += x; rsum[i] += x; csum[j] += x; }
+    const p = v.map(r => r.map(x => tot > 0 ? x / tot : NaN));
+    S.m = { tot, R, K, p, pr: rsum.map(x => x / tot), pc: csum.map(x => x / tot) };
+  }
+
+  function buildTable() {
+    const P = S.P, R = S.v.length, K = S.v[0].length;
+    $('colVar').textContent = P.colVar + ' →';
+    let h = `<thead><tr><th class="corner">${esc(P.rowVar)} ↓</th>`;
+    for (let j = 0; j < K; j++) h += `<th><button class="hd" id="ch${j}" data-c="${j}" title="Condition on ${esc(P.cols[j])}">${esc(P.cols[j])}</button></th>`;
+    h += `<th class="mh">P(row)</th></tr></thead><tbody>`;
+    for (let i = 0; i < R; i++) {
+      h += `<tr><th><button class="hd" id="rh${i}" data-r="${i}" title="Condition on ${esc(P.rows[i])}">${esc(P.rows[i])}</button></th>`;
+      for (let j = 0; j < K; j++) h += `<td id="cell${i}_${j}"><input type="number" min="0" step="any" id="in${i}_${j}" aria-label="${esc(P.rows[i])} and ${esc(P.cols[j])}" value="${S.v[i][j]}"></td>`;
+      h += `<td class="mg" id="rm${i}"></td></tr>`;
+    }
+    h += `<tr class="mrow"><th class="mh" style="text-align:left">P(column)</th>`;
+    for (let j = 0; j < K; j++) h += `<td class="mg" id="cm${j}"></td>`;
+    h += `<td class="mg tot" id="tm"></td></tr></tbody>`;
+    $('jt').innerHTML = h;
+    for (let i = 0; i < R; i++) for (let j = 0; j < K; j++) {
+      $(`in${i}_${j}`).addEventListener('input', e => {
+        const x = parseFloat(e.target.value); S.v[i][j] = Number.isFinite(x) && x >= 0 ? x : 0; update();
+      });
+    }
+    $('jt').querySelectorAll('.hd').forEach(b => b.onclick = () => {
+      S.cond = b.dataset.r !== undefined ? { t: 'r', i: +b.dataset.r } : { t: 'c', i: +b.dataset.c };
+      update();
+    });
+    // selects
+    let o = '';
+    for (let i = 0; i < R; i++) o += `<option value="r${i}">${esc(P.rows[i])}</option>`;
+    for (let j = 0; j < K; j++) o += `<option value="c${j}">${esc(P.cols[j])}</option>`;
+    $('condSel').innerHTML = o;
+    $('aSel').innerHTML = P.cols.map((c, j) => `<option value="${j}">${esc(c)}</option>`).join('');
+    $('bSel').innerHTML = P.rows.map((r, i) => `<option value="${i}">${esc(r)}</option>`).join('');
+  }
+  function writeInputs() {
+    for (let i = 0; i < S.v.length; i++) for (let j = 0; j < S.v[0].length; j++) $(`in${i}_${j}`).value = +S.v[i][j].toFixed(6);
+  }
+
+  function loadPreset(key) {
+    S.key = key; S.P = PRESETS[key];
+    S.v = S.P.v.map(r => r.slice()); S.cond = { ...S.P.cond }; S.A = S.P.A; S.B = S.P.B;
+    for (const [id, k] of [['pHappy', 'happy'], ['pCoins', 'coins'], ['pNba', 'nba']]) $(id).setAttribute('aria-pressed', k === key);
+    $('presetNote').textContent = S.P.note;
+    buildTable(); update();
+  }
+
+  function miniTable(id, title, f, fmt) {
+    const P = S.P, { R, K } = S.m;
+    let h = `<tr><th class="cap" colspan="${K + 1}">${title}</th></tr><tr><th></th>`;
+    for (let j = 0; j < K; j++) h += `<th>${esc(P.cs[j])}</th>`;
+    h += '</tr>';
+    for (let i = 0; i < R; i++) {
+      h += `<tr><th>${esc(P.rs[i])}</th>`;
+      for (let j = 0; j < K; j++) { const [txt, sty] = fmt(f(i, j)); h += `<td style="${sty || ''}">${txt}</td>`; }
+      h += '</tr>';
+    }
+    $(id).innerHTML = h;
+  }
+
+  function update() {
+    compute();
+    const P = S.P, m = S.m, { R, K } = m;
+    const fmtTot = m.tot.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    $('total').textContent = fmtTot;
+    for (let i = 0; i < R; i++) $('rm' + i).textContent = f3(m.pr[i]);
+    for (let j = 0; j < K; j++) $('cm' + j).textContent = f3(m.pc[j]);
+    $('tm').textContent = '1.000';
+    // highlight
+    const c = S.cond;
+    for (let i = 0; i < R; i++) {
+      $('rh' + i).classList.toggle('on', c.t === 'r' && c.i === i);
+      $('rm' + i).classList.toggle('on', c.t === 'r' && c.i === i);
+      for (let j = 0; j < K; j++) {
+        $(`cell${i}_${j}`).classList.toggle('on', (c.t === 'r' && c.i === i) || (c.t === 'c' && c.i === j));
+        $(`cell${i}_${j}`).classList.toggle('ab', i === S.B && j === S.A);
+      }
+    }
+    for (let j = 0; j < K; j++) { $('ch' + j).classList.toggle('on', c.t === 'c' && c.i === j); $('cm' + j).classList.toggle('on', c.t === 'c' && c.i === j); }
+    $('condSel').value = c.t + c.i; $('aSel').value = S.A; $('bSel').value = S.B;
+
+    // conditional readout
+    const cd = condDist();
+    $('cHead').textContent = cd.over; $('cHeadC').textContent = 'Given';
+    $('condBody').innerHTML = cd.labels.map((l, k) => `<tr><td>${esc(l)}</td><td class="ob">${f3(cd.cond[k])}</td><td class="th">${f3(cd.marg[k])}</td></tr>`).join('');
+    const tg = c.t === 'r' ? P.rows[c.i] : P.cols[c.i];
+    const tot = c.t === 'r' ? m.pr[c.i] : m.pc[c.i];
+    $('condHint').textContent = Number.isFinite(tot) && tot > 0
+      ? `Given ${tg}: divide each cell in that ${c.t === 'r' ? 'row' : 'column'} by its total ${f3(tot)}.`
+      : `${tg} has probability 0, so conditioning on it is undefined.`;
+
+    // independence
+    const fmtP = x => [f3(x)];
+    miniTable('tAct', 'Actual P(x, y)', (i, j) => m.p[i][j], fmtP);
+    miniTable('tProd', 'Product P(x)·P(y)', (i, j) => m.pr[i] * m.pc[j], fmtP);
+    let maxd = 0;
+    for (let i = 0; i < R; i++) for (let j = 0; j < K; j++) maxd = Math.max(maxd, Math.abs(m.p[i][j] - m.pr[i] * m.pc[j]));
+    const scale = Math.max(maxd, 1e-9);
+    miniTable('tDiff', 'Difference (actual − product)', (i, j) => m.p[i][j] - m.pr[i] * m.pc[j], d => {
+      const a = Math.min(1, Math.abs(d) / scale) * 28;
+      const col = d > 0 ? 'var(--accent)' : 'var(--curve)';
+      return [sgn(d), Math.abs(d) < 0.0005 ? 'color:var(--muted)' : `background:color-mix(in srgb, ${col} ${a.toFixed(0)}%, transparent);color:${col}`];
+    });
+    const v = $('verdict');
+    if (!(m.tot > 0)) { v.className = 'verdict'; v.textContent = 'The table is empty.'; }
+    else if (maxd < 0.0005) { v.className = 'verdict yes'; v.textContent = 'Independent: every cell equals P(x)·P(y), so knowing one variable tells you nothing about the other.'; }
+    else { v.className = 'verdict no'; v.textContent = `Not independent: the largest gap is ${maxd.toFixed(3)}. Blue cells happen more often than independence predicts, red cells less often.`; }
+
+    // P(A|B) vs P(B|A)
+    const pab = m.p[S.B][S.A], pa = m.pc[S.A], pb = m.pr[S.B];
+    const ab = pab / pb, ba = pab / pa;
+    $('pAB').textContent = f3(pab); $('pA').textContent = f3(pa); $('pB').textContent = f3(pb);
+    $('ratio').textContent = Number.isFinite(pa / pb) ? (pa / pb).toFixed(3) : '–';
+    $('vAB').textContent = f3(ab); $('vBA').textContent = f3(ba);
+    $('barAB').style.width = (Number.isFinite(ab) ? ab * 100 : 0) + '%';
+    $('barBA').style.width = (Number.isFinite(ba) ? ba * 100 : 0) + '%';
+    const an = P.cols[S.A], bn = P.rows[S.B];
+    $('bayesLine').textContent = `P(A | B) = P(B | A) × P(A) / P(B) = ${f3(ba)} × ${f3(pa)} / ${f3(pb)} = ${f3(ba * pa / pb)}`;
+    $('abHint').textContent = `A = "${an}", B = "${bn}". Both conditionals share the numerator P(A and B) = ${f3(pab)}. P(A | B) divides it by the B row total, P(B | A) by the A column total.`;
+    dirty = true;
+  }
+
+  function condDist() {
+    const P = S.P, m = S.m, c = S.cond;
+    if (c.t === 'r') {
+      const t = m.pr[c.i];
+      return { over: P.colVar, labels: P.cols, short: P.cs, cond: m.p[c.i].map(x => x / t), marg: m.pc,
+               title: `P(${P.colVar.split(' ').pop()} | ${P.rs[c.i]})`, given: P.rows[c.i] };
+    }
+    const t = m.pc[c.i];
+    return { over: P.rowVar, labels: P.rows, short: P.rs, cond: m.p.map(r => r[c.i] / t), marg: m.pr,
+             title: `P(row | ${P.cs[c.i]})`, given: P.cols[c.i] };
+  }
+
+  function resize() {
+    const w = Math.max(240, cv.parentElement.clientWidth - 24);
+    const h = Math.round(Math.min(Math.max(w * 0.42, 230), 320));
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    L = { W: w, H: h, ml: 40, mr: 10, mt: 30, mb: 34 };
+    dirty = true;
+  }
+
+  function draw() {
+    const { W, H, ml, mr, mt, mb } = L;
+    ctx.clearRect(0, 0, W, H);
+    const cd = condDist(), n = cd.cond.length;
+    let ymax = 0;
+    for (let k = 0; k < n; k++) ymax = Math.max(ymax, Number.isFinite(cd.cond[k]) ? cd.cond[k] : 0, cd.marg[k] || 0);
+    ymax = Math.min(1, Math.max(0.1, Math.ceil(ymax * 10 + 0.5) / 10));
+    const PY = y => mt + (1 - y / ymax) * (H - mt - mb);
+    const pw = W - ml - mr, slot = pw / n, bw = Math.min(slot * 0.56, 90);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    const step = ymax > 0.5 ? 0.2 : ymax > 0.25 ? 0.1 : 0.05;
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = 0; y <= ymax + 1e-9; y += step) {
+      const py = Math.round(PY(y)) + .5; ctx.beginPath(); ctx.moveTo(ml, py); ctx.lineTo(W - mr, py); ctx.stroke();
+      ctx.fillText(y.toFixed(2), ml - 6, py);
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = C.ink;
+    ctx.font = '600 13px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText(`${cd.given}: conditional vs marginal`, 4, 4);
+    hits = [];
+    for (let k = 0; k < n; k++) {
+      const cx = ml + slot * (k + 0.5), v = cd.cond[k], mg = cd.marg[k];
+      if (Number.isFinite(v)) {
+        ctx.fillStyle = C.accent; ctx.fillRect(cx - bw / 2, PY(v), bw, PY(0) - PY(v));
+        ctx.fillStyle = C.ink; ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(v.toFixed(3), cx, Math.min(PY(v), PY(mg)) - 4);
+      }
+      ctx.strokeStyle = C.curve; ctx.lineWidth = 2.5; ctx.setLineDash([5, 3]);
+      ctx.beginPath(); ctx.moveTo(cx - bw / 2 - 6, PY(mg)); ctx.lineTo(cx + bw / 2 + 6, PY(mg)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline = 'top';
+      ctx.fillText(slot > 110 ? cd.labels[k] : cd.short[k], cx, H - mb + 8);
+      hits.push({ x0: ml + slot * k, x1: ml + slot * (k + 1), k, cd });
+    }
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ml, PY(0) + .5); ctx.lineTo(W - mr, PY(0) + .5); ctx.stroke();
+  }
+
+  function showTip(ev) {
+    const r = cv.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+    const h = hits.find(h => x >= h.x0 && x < h.x1);
+    if (!h || y < L.mt - 10 || y > L.H) { tip.hidden = true; return; }
+    const { k, cd } = h;
+    tip.innerHTML = `<b>${esc(cd.labels[k])}</b><br>Given ${esc(cd.given)}: ${f3(cd.cond[k])}<br>Marginal: ${f3(cd.marg[k])}<br>Ratio: ${Number.isFinite(cd.cond[k] / cd.marg[k]) ? (cd.cond[k] / cd.marg[k]).toFixed(2) + '×' : '–'}`;
+    tip.hidden = false;
+    const left = cv.offsetLeft + (h.x0 + h.x1) / 2 + 10, maxX = cv.offsetLeft + cv.clientWidth - tip.offsetWidth;
+    tip.style.left = Math.max(12, Math.min(left, maxX)) + 'px';
+    tip.style.top = Math.max(8, cv.offsetTop + y - tip.offsetHeight - 10) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  // controls
+  $('pHappy').onclick = () => loadPreset('happy');
+  $('pCoins').onclick = () => loadPreset('coins');
+  $('pNba').onclick = () => loadPreset('nba');
+  $('resetT').onclick = () => loadPreset(S.key);
+  $('normalize').onclick = () => { const t = S.m.tot; if (t > 0) { S.v = S.v.map(r => r.map(x => +(x / t).toFixed(6))); writeInputs(); update(); } };
+  $('makeInd').onclick = () => { const m = S.m; S.v = S.v.map((r, i) => r.map((_, j) => +(m.pr[i] * m.pc[j] * m.tot).toFixed(6))); writeInputs(); update(); };
+  $('condSel').onchange = e => { const s = e.target.value; S.cond = { t: s[0], i: +s.slice(1) }; update(); };
+  $('aSel').onchange = e => { S.A = +e.target.value; update(); };
+  $('bSel').onchange = e => { S.B = +e.target.value; update(); };
+  const toBoard = () => document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  $('demo27').onclick = () => { loadPreset('happy'); toBoard(); };
+  $('demo31').onclick = () => { loadPreset('nba'); toBoard(); };
+
+  let dirty = true;
+  function frame() { if (dirty) { draw(); dirty = false; } requestAnimationFrame(frame); }
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(resize).observe(cv.parentElement);
+  resize(); loadPreset('happy'); requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

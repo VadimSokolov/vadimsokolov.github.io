@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Poisson Match Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --grid: #e3e7ec;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+#board { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 8px 4px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; }
+.sw.ball { background: var(--ball); border-radius: 50%; width: 10px; }
+.sw.a { background: var(--coinA); border-radius: 50%; width: 10px; }
+.sw.b { background: var(--coinB); border-radius: 50%; width: 10px; }
+.sw.dash { height: 0; border-top: 2px solid var(--ink); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px solid var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tip b { font-family: var(--font-display); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary[aria-pressed="true"] { background: var(--curve); border-color: var(--curve); }
+.btns .wide { grid-column: span 2; }
+
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+.slider.a output { color: var(--coinA); }
+.slider.b output { color: var(--coinB); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider.a input { accent-color: var(--coinA); }
+.slider.b input { accent-color: var(--coinB); }
+.mixbox { display: flex; flex-direction: column; gap: 10px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.path { font-family: var(--font-mono); font-size: 13px; line-height: 1.6; word-break: break-word; min-height: 1.6em; }
+.path .r { color: var(--accent); font-weight: 600; }
+.path .l { color: var(--muted); }
+.path .to { color: var(--ink); font-weight: 600; }
+.path .ca { color: var(--coinA); font-weight: 600; }
+.path .cb { color: var(--coinB); font-weight: 600; }
+
+/* CLT lesson */
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.eq table { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.eq th, .eq td { text-align: right; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.eq th:first-child, .eq td:first-child { text-align: left; }
+.eq th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.eq tr:last-child td { border-bottom: 0; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+canvas.plot { display: block; width: 100%; touch-action: pan-y; }
+.board { display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; line-height: 1.6; }
+.eqn .a { color: var(--accent); font-weight: 600; } .eqn .c { color: var(--curve); font-weight: 600; } .eqn .t { color: var(--coinA); font-weight: 600; } .eqn .p { color: var(--coinB); font-weight: 600; } .eqn .h { color: var(--ball); font-weight: 600; }
+.seg.two { grid-template-columns: repeat(2, 1fr); }
+.btns.two { grid-template-columns: 1fr 1fr; }
+.btns.one { grid-template-columns: 1fr; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.kpi .k { font-size: 12.5px; color: var(--muted); }
+.kpi .v { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi .s { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats td.obs { color: var(--accent); }
+.stats td.th { color: var(--curve); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.field { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.field label { font-weight: 700; }
+.field input[type=number] { width: 96px; font: inherit; font-family: var(--font-mono); font-size: 14px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--board); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.field input[type=number]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tablewrap { overflow-x: auto; }
+.stats td + td, .stats th + th { padding-left: 10px; }
+
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 640px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.cap { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--ink); margin: 2px 0 4px 2px; }
+.sw.cell { background: color-mix(in srgb, var(--accent) 55%, transparent); }
+.sw.mode { background: none; border: 2px solid var(--ball); }
+.sw.diag { background: none; border: 1.5px dashed var(--ink); }
+.odds { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+.odds th, .odds td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.odds th:first-child, .odds td:first-child { text-align: left; padding-left: 0; }
+.odds thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.odds td { font-family: var(--font-mono); }
+.odds td:first-child { font-family: var(--font-body); font-weight: 700; }
+.odds tr:last-child td { border-bottom: 0; }
+.odds .pos { color: var(--coinA); font-weight: 600; } .odds .neg { color: var(--curve); }
+.teamlbl { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.teamlbl.h { color: var(--coinA); } .teamlbl.a { color: var(--coinB); }
+.slider.h output { color: var(--coinA); } .slider.h input { accent-color: var(--coinA); }
+.slider.a output { color: var(--coinB); } .slider.a input { accent-color: var(--coinB); }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Poisson distribution</span>
+    <h1>Poisson Match Predictor</h1>
+    <p class="lead">Each team's goals are a Poisson count. Its rate λ is the league average times its attack strength times the opponent's defence weakness. Multiply the two Poisson distributions to get every scoreline, add them up to get win, draw and loss, and compare with the bookmaker.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 1, <a href="https://vsokolov.org/html/_book/01-prob.html">Probability and Uncertainty</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Score matrix and goal distributions">
+      <div class="kpis" id="kpis"></div>
+      <div class="eqn" id="eqn"></div>
+      <p class="cap" id="capM">Score matrix: P(Hull = i, ManU = j)</p>
+      <canvas id="mat" class="plot" role="img" aria-label="Heatmap of the probability of each scoreline"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw cell"></i>Theory: darker = more likely score</span>
+        <span><i class="sw mode"></i>Most likely score</span>
+        <span><i class="sw diag"></i>Draws</span>
+      </div>
+      <div class="pair">
+        <div><p class="cap" id="capH">Hull goals</p><canvas id="pmfH" class="plot" role="img" aria-label="Poisson distribution of home goals"></canvas></div>
+        <div><p class="cap" id="capA">ManU goals</p><canvas id="pmfA" class="plot" role="img" aria-label="Poisson distribution of away goals"></canvas></div>
+      </div>
+      <div class="legend">
+        <span><i class="sw"></i>Observed in the simulated matches</span>
+        <span><i class="sw curve"></i>Poisson theory</span>
+      </div>
+      <p class="cap">Model vs bookmaker</p>
+      <div class="tablewrap">
+        <table class="odds">
+          <thead><tr><th>Outcome</th><th>Model p</th><th>Fair odds</th><th>Book odds</th><th>Implied</th><th>Book, no vig</th><th>Edge per $1</th></tr></thead>
+          <tbody id="oddsBody"></tbody>
+        </table>
+      </div>
+      <p class="hint" id="oddsHint"></p>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Simulate</span>
+        <div class="btns two">
+          <button id="sim" class="primary">Simulate 1,000 matches</button>
+          <button id="slide">Worked example</button>
+        </div>
+        <table class="stats">
+          <thead><tr><th></th><th>Observed</th><th>Theory</th></tr></thead>
+          <tbody>
+            <tr><td id="lH">Hull win</td><td class="obs" id="oH">–</td><td class="th" id="tH">–</td></tr>
+            <tr><td>Draw</td><td class="obs" id="oD">–</td><td class="th" id="tD">–</td></tr>
+            <tr><td id="lA">ManU win</td><td class="obs" id="oA">–</td><td class="th" id="tA">–</td></tr>
+            <tr><td id="lgH">Mean Hull goals</td><td class="obs" id="omH">–</td><td class="th" id="tmH">–</td></tr>
+            <tr><td id="lgA">Mean ManU goals</td><td class="obs" id="omA">–</td><td class="th" id="tmA">–</td></tr>
+            <tr><td id="lvA">Var of ManU goals</td><td class="obs" id="ovA">–</td><td class="th" id="tvA">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint" id="simHint"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">League average goals</span>
+        <div class="slider"><div class="top"><label for="avgH">For the home team</label><output id="avgHOut">1.47</output></div>
+          <input type="range" id="avgH" min="0.8" max="2.5" step="0.01" value="1.47"></div>
+        <div class="slider"><div class="top"><label for="avgA">For the away team</label><output id="avgAOut">1.47</output></div>
+          <input type="range" id="avgA" min="0.8" max="2.5" step="0.01" value="1.47"></div>
+        <p class="hint">The worked example uses 1.47 for both teams.</p>
+      </div>
+
+      <div class="group">
+        <span class="teamlbl h">Home · Hull City</span>
+        <div class="slider h"><div class="top"><label for="attH">Attack strength</label><output id="attHOut">0.85</output></div>
+          <input type="range" id="attH" min="0.3" max="2.5" step="0.01" value="0.85"></div>
+        <div class="slider h"><div class="top"><label for="defH">Defence weakness</label><output id="defHOut">1.37</output></div>
+          <input type="range" id="defH" min="0.3" max="2.5" step="0.01" value="1.37"></div>
+        <span class="teamlbl a">Away · Manchester United</span>
+        <div class="slider a"><div class="top"><label for="attA">Attack strength</label><output id="attAOut">1.46</output></div>
+          <input type="range" id="attA" min="0.3" max="2.5" step="0.01" value="1.46"></div>
+        <div class="slider a"><div class="top"><label for="defA">Defence weakness</label><output id="defAOut">0.52</output></div>
+          <input type="range" id="defA" min="0.3" max="2.5" step="0.01" value="0.52"></div>
+        <p class="hint">1.00 is league average. Attack above 1 scores more; defence weakness above 1 concedes more.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Bookmaker decimal odds (illustrative)</span>
+        <div class="field"><label for="bH" id="bHL">Hull win</label><input type="number" id="bH" min="1.01" step="0.05" value="11.00"></div>
+        <div class="field"><label for="bD">Draw</label><input type="number" id="bD" min="1.01" step="0.05" value="6.50"></div>
+        <div class="field"><label for="bA" id="bAL">ManU win</label><input type="number" id="bA" min="1.01" step="0.01" value="1.25"></div>
+        <p class="hint">The worked example gives no bookmaker prices; these are made up. A decimal price of 1.25 returns $1.25 for each $1 staked if it wins.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">ManU at Hull, August 27, 2016</span>
+      <h2>From ratings to a score matrix to a bet</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The model multiplies three numbers for each team. ManU: 1.47 × 1.46 × 1.37 = 2.94 (often rounded to 2.95). Hull: 1.47 × 0.85 × 0.52 = 0.65. A run of 100 simulated matches gave ManU 88 wins and put 0–3 on top. The exact calculation gives 83.4% and puts 0–2 just ahead of 0–3. One hundred matches is a small sample: the standard error of a proportion near 0.85 is about 3.6 points.</p>
+      <div class="demo">
+        <button class="primary" id="dSlide">Worked example: λ = 0.65 vs 2.94</button>
+        <button id="dEven">Two average teams</button>
+        <button id="dSim100">Simulate 100 matches</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>Goals are Poisson counts</h3>
+        <p>Goals are rare events in a fixed period, so the count is close to Poisson with rate λ. Mean and variance are both λ, which the stats table lets you check from the simulation.</p>
+      </div></li>
+      <li><div>
+        <h3>Ratings set each λ</h3>
+        <p>λ for a team = league average × its attack strength × the opponent's defence weakness. A strong attack against a leaky defence multiplies up.</p>
+      </div></li>
+      <li><div>
+        <h3>Independence gives the matrix</h3>
+        <p>With independent goal counts, P(Hull = i, ManU = j) = P(Hull = i) · P(ManU = j). Cells below the diagonal are Hull wins, the diagonal is draws, and cells above are ManU wins.</p>
+      </div></li>
+      <li><div>
+        <h3>Compare with the price</h3>
+        <p>A bookmaker's decimal price d implies probability 1/d. The implied probabilities add to more than 1; the extra is the overround, or vig. Bet only where your model's p is above the implied probability, so p·d − 1 &gt; 0.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Poisson PMF</div>
+        <div class="m">P(X = x) = e<sup>−λ</sup> λ<sup>x</sup> / x!,  E(X) = Var(X) = λ</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Outcome probabilities, X = Hull goals, Y = ManU goals</div>
+        <div class="m">P(ManU wins) = P(X &lt; Y) = 0.834</div>
+        <div class="m">P(Draw) = P(X = Y) = 0.112</div>
+        <div class="m">P(Hull wins) = P(X &gt; Y) = 0.054</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Goals in 100 matches: worked example's simulation vs Poisson expectation</div>
+        <table>
+          <thead><tr><th>Team</th><th>0</th><th>1</th><th>2</th><th>3+</th></tr></thead>
+          <tbody>
+            <tr><td>ManU, example</td><td>7</td><td>22</td><td>26</td><td>45</td></tr>
+            <tr><td>ManU, exact</td><td>5.3</td><td>15.5</td><td>22.8</td><td>56.3</td></tr>
+            <tr><td>Hull, example</td><td>49</td><td>41</td><td>10</td><td>0</td></tr>
+            <tr><td>Hull, exact</td><td>52.2</td><td>33.9</td><td>11.0</td><td>2.8</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="eq">
+        <div class="cap">Most likely scores (Hull–ManU), exact</div>
+        <div class="m">0–2: 11.9%   0–3: 11.7%   0–4: 8.6%   0–1: 8.1%</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> You do not need to predict the exact score. The actual result, 0–1, had only an 8% chance in this model. What matters is whether a price is wrong. If the book offers ManU at 1.25, it implies 80%; the model says 83%, so the bet has a small positive edge. A Polymarket price has no house margin, so it is closer to a true probability than any single bookmaker's odds.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Press "Simulate 100 matches" several times. Watch ManU's win count move between about 76 and 91, and the top score switch between 0–2 and 0–3.</li>
+      <li>Press "Simulate 1,000 matches" and check that the mean and variance of ManU goals are both close to 2.94, as a Poisson count should be.</li>
+      <li>Raise Hull's attack strength from 0.85 to 1.50. Ask the class how much the draw probability moves before you show it.</li>
+      <li>Change the ManU price from 1.25 to 1.15. The implied probability rises to 87% and the edge turns negative. The rule: bet only when the price implies less than the model.</li>
+      <li>Load "Two average teams". 1–1 becomes the most likely single score, yet a draw is still the least likely of the three outcomes.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cvM = $('mat'), cM = cvM.getContext('2d'), cvH = $('pmfH'), cH = cvH.getContext('2d'), cvA = $('pmfA'), cA = cvA.getContext('2d'), tip = $('tip');
+  const G = 6, GT = 25;   // matrix shows 0..6; outcome sums use 0..25
+  const DEF = { avgH: 1.47, avgA: 1.47, attH: 0.85, defH: 1.37, attA: 1.46, defA: 0.52 };
+  const S = { ...DEF, names: ['Hull', 'ManU'], sim: null, T: {} };
+  let C = {}, LM = {}, LH = {}, LA = {};
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'board', 'surface', 'coinA', 'coinB', 'on-accent']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const LFT = [0]; for (let i = 1; i <= 60; i++) LFT[i] = LFT[i - 1] + Math.log(i);
+  const pois = (lam, n) => { const o = []; for (let k = 0; k <= n; k++) o.push(Math.exp(-lam + k * Math.log(lam) - LFT[k])); return o; };
+  function rpois(lam) { const L = Math.exp(-lam); let k = 0, p = 1; do { k++; p *= Math.random(); } while (p > L); return k - 1; }
+
+  function theory() {
+    const lh = S.avgH * S.attH * S.defA, la = S.avgA * S.attA * S.defH;
+    const ph = pois(lh, GT), pa = pois(la, GT);
+    let H = 0, D = 0, A = 0, best = { p: 0, i: 0, j: 0 };
+    for (let i = 0; i <= GT; i++) for (let j = 0; j <= GT; j++) {
+      const p = ph[i] * pa[j];
+      if (i > j) H += p; else if (i === j) D += p; else A += p;
+      if (p > best.p) best = { p, i, j };
+    }
+    S.T = { lh, la, ph, pa, H, D, A, best };
+  }
+  function simulate(n = 1000) {
+    const sim = { n, H: 0, D: 0, A: 0, gh: new Array(G + 2).fill(0), ga: new Array(G + 2).fill(0), cells: {}, sh: 0, sa: 0, saa: 0 };
+    for (let r = 0; r < n; r++) {
+      const x = rpois(S.T.lh), y = rpois(S.T.la);
+      if (x > y) sim.H++; else if (x === y) sim.D++; else sim.A++;
+      sim.gh[Math.min(x, G + 1)]++; sim.ga[Math.min(y, G + 1)]++;
+      const key = x + '-' + y; sim.cells[key] = (sim.cells[key] || 0) + 1;
+      sim.sh += x; sim.sa += y; sim.saa += y * y;
+    }
+    S.sim = sim;
+  }
+
+  const pc = (x, d = 1) => (x * 100).toFixed(d) + '%';
+  const f2 = x => x.toFixed(2);
+  function kpi(k, v, s) { return `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`; }
+  function updateText() {
+    const T = S.T, [nh, na] = S.names, sim = S.sim;
+    $('kpis').innerHTML =
+      kpi(`${nh} win (home)`, pc(T.H), `fair odds ${f2(1 / T.H)}`) +
+      kpi('Draw', pc(T.D), `fair odds ${f2(1 / T.D)}`) +
+      kpi(`${na} win (away)`, pc(T.A), `fair odds ${f2(1 / T.A)}`) +
+      kpi('Most likely score', `${T.best.i}–${T.best.j}`, `${pc(T.best.p)} · ${nh}–${na}`);
+    $('eqn').innerHTML =
+      `λ<sub>${nh}</sub> = <span class="c">${f2(S.avgH)}</span> × <span class="t">${f2(S.attH)}</span> × <span class="p">${f2(S.defA)}</span> = <b>${T.lh.toFixed(3)}</b>` +
+      `&nbsp;&nbsp;·&nbsp;&nbsp;λ<sub>${na}</sub> = <span class="c">${f2(S.avgA)}</span> × <span class="p">${f2(S.attA)}</span> × <span class="t">${f2(S.defH)}</span> = <b>${T.la.toFixed(3)}</b>`;
+    $('capM').textContent = `Score matrix: P(${nh} = i, ${na} = j), independent Poissons`;
+    $('capH').textContent = `${nh} goals, λ = ${T.lh.toFixed(2)}`;
+    $('capA').textContent = `${na} goals, λ = ${T.la.toFixed(2)}`;
+    $('tH').textContent = pc(T.H); $('tD').textContent = pc(T.D); $('tA').textContent = pc(T.A);
+    $('tmH').textContent = T.lh.toFixed(2); $('tmA').textContent = T.la.toFixed(2); $('tvA').textContent = T.la.toFixed(2);
+    if (sim) {
+      $('oH').textContent = pc(sim.H / sim.n); $('oD').textContent = pc(sim.D / sim.n); $('oA').textContent = pc(sim.A / sim.n);
+      const m = sim.sa / sim.n;
+      $('omH').textContent = (sim.sh / sim.n).toFixed(2); $('omA').textContent = m.toFixed(2);
+      $('ovA').textContent = ((sim.saa - sim.n * m * m) / (sim.n - 1)).toFixed(2);
+      let top = null; for (const [k, v] of Object.entries(sim.cells)) if (!top || v > top[1]) top = [k, v];
+      $('simHint').textContent = `${sim.n.toLocaleString()} simulated matches. ${na} won ${sim.A.toLocaleString()}. Most common score: ${top[0].replace('-', '–')} (${top[1]} times).`;
+    }
+    // betting table
+    const odds = [+$('bH').value, +$('bD').value, +$('bA').value];
+    const ps = [T.H, T.D, T.A], labs = [`${nh} win`, 'Draw', `${na} win`];
+    const ok = odds.every(o => o > 1);
+    const imp = odds.map(o => ok ? 1 / o : NaN), book = imp.reduce((a, b) => a + b, 0);
+    $('oddsBody').innerHTML = labs.map((l, k) => {
+      const e = ps[k] * odds[k] - 1;
+      return `<tr><td>${l}</td><td>${pc(ps[k])}</td><td>${f2(1 / ps[k])}</td><td>${ok ? f2(odds[k]) : '–'}</td><td>${ok ? pc(imp[k]) : '–'}</td><td>${ok ? pc(imp[k] / book) : '–'}</td><td class="${e > 0 ? 'pos' : 'neg'}">${ok ? (e > 0 ? '+' : '−') + '$' + Math.abs(e).toFixed(3) : '–'}</td></tr>`;
+    }).join('');
+    $('oddsHint').textContent = ok
+      ? `The book's implied probabilities add to ${pc(book)}, an overround of ${pc(book - 1)}. A positive edge means the model thinks the price is too generous.`
+      : 'Enter decimal odds above 1.00 for all three outcomes.';
+    $('lH').textContent = `${nh} win`; $('lA').textContent = `${na} win`;
+    $('lgH').textContent = `Mean ${nh} goals`; $('lgA').textContent = `Mean ${na} goals`; $('lvA').textContent = `Var of ${na} goals`;
+    for (const k of Object.keys(DEF)) $(k + 'Out').textContent = f2(S[k]);
+    dirty = true;
+  }
+
+  function size(cv, ctx, aspect, minH, maxH) {
+    const w = cv.parentElement.clientWidth - (cv === cvM ? 28 : 0);
+    const h = Math.round(Math.min(Math.max(w * aspect, minH), maxH));
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    return { W: w, H: h };
+  }
+  function resize() {
+    LM = size(cvM, cM, 0.72, 330, 560);
+    const pw = cvH.parentElement.clientWidth;
+    LH = size(cvH, cH, 0.62, 170, 240); LA = size(cvA, cA, 0.62, 170, 240);
+    dirty = true;
+  }
+  const mono = (sz = 11, wt = '') => `${wt} ${sz}px "JetBrains Mono", ui-monospace, monospace`;
+
+  let geo = null;
+  function drawMatrix() {
+    const ctx = cM, { W, H } = LM, T = S.T, sim = S.sim;
+    ctx.clearRect(0, 0, W, H);
+    const ml = 58, mt = 34, mr = 8, mb = 10;
+    const cs = Math.floor(Math.min((W - ml - mr) / (G + 1), (H - mt - mb) / (G + 1)));
+    const x0 = ml + Math.floor((W - ml - mr - cs * (G + 1)) / 2), y0 = mt;
+    geo = { x0, y0, cs };
+    let max = 0; for (let i = 0; i <= G; i++) for (let j = 0; j <= G; j++) max = Math.max(max, T.ph[i] * T.pa[j]);
+    const showSim = sim && cs >= 62;
+    for (let i = 0; i <= G; i++) for (let j = 0; j <= G; j++) {
+      const p = T.ph[i] * T.pa[j], x = x0 + j * cs, y = y0 + i * cs, a = p / max;
+      ctx.fillStyle = C.board; ctx.fillRect(x, y, cs, cs);
+      ctx.globalAlpha = 0.06 + 0.86 * a; ctx.fillStyle = C.accent; ctx.fillRect(x + 1, y + 1, cs - 2, cs - 2); ctx.globalAlpha = 1;
+      ctx.fillStyle = a > 0.5 ? C['on-accent'] : C.ink;
+      ctx.font = mono(cs < 44 ? 10 : 12, '600'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const txt = p >= 0.001 ? (p * 100).toFixed(1) + '%' : p > 0.0001 ? '<0.1' : '';
+      ctx.fillText(cs < 46 ? txt.replace('%', '') : txt, x + cs / 2, y + cs / 2 - (showSim ? 7 : 0));
+      if (showSim) {
+        const c = sim.cells[i + '-' + j] || 0;
+        ctx.font = mono(10); ctx.globalAlpha = 0.85;
+        ctx.fillText(`sim ${(c / sim.n * 100).toFixed(1)}`, x + cs / 2, y + cs / 2 + 9); ctx.globalAlpha = 1;
+      }
+    }
+    // draws
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    for (let k = 0; k <= G; k++) ctx.strokeRect(x0 + k * cs + 2.5, y0 + k * cs + 2.5, cs - 5, cs - 5);
+    ctx.setLineDash([]);
+    // most likely
+    if (T.best.i <= G && T.best.j <= G) { ctx.strokeStyle = C.ball; ctx.lineWidth = 3; ctx.strokeRect(x0 + T.best.j * cs + 1.5, y0 + T.best.i * cs + 1.5, cs - 3, cs - 3); }
+    // axes labels
+    ctx.fillStyle = C.muted; ctx.font = mono(11); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    for (let j = 0; j <= G; j++) ctx.fillText(String(j), x0 + j * cs + cs / 2, y0 - 4);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let i = 0; i <= G; i++) ctx.fillText(String(i), x0 - 6, y0 + i * cs + cs / 2);
+    ctx.fillStyle = C.coinB; ctx.font = mono(11, '600'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`${S.names[1]} goals, j →`, x0, 13);
+    ctx.save(); ctx.translate(Math.max(14, x0 - 34), y0 + cs * (G + 1) / 2); ctx.rotate(-Math.PI / 2); ctx.fillStyle = C.coinA; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`← ${S.names[0]} goals, i`, 0, 0); ctx.restore();
+    // region labels
+
+  }
+
+  function drawPmf(ctx, L, lam, counts, n, col) {
+    const { W, H } = L; ctx.clearRect(0, 0, W, H);
+    const ml = 40, mr = 8, mt = 8, mb = 30, K = G + 1;
+    const pm = pois(lam, G), tail = 1 - pm.reduce((a, b) => a + b, 0);
+    const th = [...pm, tail];
+    let ymax = Math.max(...th, ...(counts ? counts.map(c => c / n) : [0]));
+    const step = ymax > 0.4 ? 0.2 : ymax > 0.2 ? 0.1 : 0.05; ymax = Math.ceil(ymax * 1.08 / step) * step;
+    const PY = v => mt + (1 - v / ymax) * (H - mt - mb), dx = (W - ml - mr) / (K + 1), PX = k => ml + (k + 0.5) * dx;
+    ctx.font = mono(11); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.lineWidth = 1;
+    for (let v = 0; v <= ymax + 1e-9; v += step) { const y = Math.round(PY(v)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(W - mr, y); ctx.stroke(); ctx.fillStyle = C.muted; ctx.fillText((v * 100).toFixed(0) + '%', ml - 5, y); }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let k = 0; k <= K; k++) ctx.fillText(k === K ? (G + 1) + '+' : String(k), PX(k), H - mb + 6);
+    if (counts) { ctx.fillStyle = C.accent; const bw = dx * 0.66; for (let k = 0; k <= K; k++) { const v = counts[k] / n; ctx.fillRect(PX(k) - bw / 2, PY(v), bw, PY(0) - PY(v)); } }
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 2.5;
+    for (let k = 0; k <= K; k++) { const y = PY(th[k]); ctx.beginPath(); ctx.moveTo(PX(k) - dx * 0.42, y); ctx.lineTo(PX(k) + dx * 0.42, y); ctx.stroke(); }
+    ctx.fillStyle = col; ctx.fillRect(ml, H - mb, W - ml - mr, 2);
+  }
+
+  let dirty = true;
+  function frame() {
+    if (dirty) {
+      drawMatrix();
+      const sim = S.sim;
+      drawPmf(cH, LH, S.T.lh, sim && sim.gh, sim ? sim.n : 1, C.coinA);
+      drawPmf(cA, LA, S.T.la, sim && sim.ga, sim ? sim.n : 1, C.coinB);
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function refresh(resim = true) { theory(); if (resim) simulate(1000); updateText(); }
+  for (const k of Object.keys(DEF)) $(k).oninput = e => { S[k] = +e.target.value; refresh(true); };
+  for (const id of ['bH', 'bD', 'bA']) $(id).oninput = () => updateText();
+  $('sim').onclick = () => { simulate(1000); updateText(); };
+  function setAll(v) { Object.assign(S, v); for (const k of Object.keys(DEF)) $(k).value = S[k]; refresh(true); }
+  $('slide').onclick = () => setAll(DEF);
+  function toBoard() { document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
+  $('dSlide').onclick = () => { setAll(DEF); toBoard(); };
+  $('dEven').onclick = () => { setAll({ avgH: 1.47, avgA: 1.47, attH: 1, defH: 1, attA: 1, defA: 1 }); toBoard(); };
+  $('dSim100').onclick = () => { setAll(DEF); simulate(100); updateText(); toBoard(); };
+
+  function showTip(ev) {
+    if (!geo) return;
+    const rc = cvM.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    const j = Math.floor((mx - geo.x0) / geo.cs), i = Math.floor((my - geo.y0) / geo.cs);
+    if (i < 0 || j < 0 || i > G || j > G) { tip.hidden = true; return; }
+    const T = S.T, p = T.ph[i] * T.pa[j], sim = S.sim, c = sim ? (sim.cells[i + '-' + j] || 0) : 0;
+    tip.innerHTML = `<b>${S.names[0]} ${i}–${j} ${S.names[1]}</b><br>P = ${T.ph[i].toFixed(3)} × ${T.pa[j].toFixed(3)} = ${(p * 100).toFixed(2)}%<br>Fair odds ${(1 / p).toFixed(1)}${sim ? `<br>Simulated: ${c} of ${sim.n.toLocaleString()}` : ''}`;
+    tip.hidden = false;
+    tip.style.left = Math.max(14, Math.min(mx + 30, cvM.clientWidth - tip.offsetWidth + 14)) + 'px';
+    tip.style.top = Math.max(14, my + cvM.offsetTop - tip.offsetHeight - 8) + 'px';
+  }
+  cvM.addEventListener('pointermove', showTip);
+  cvM.addEventListener('pointerdown', showTip);
+  cvM.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  const ro = new ResizeObserver(() => resize()); ro.observe(cvM.parentElement); ro.observe(cvH.parentElement); ro.observe(cvA.parentElement);
+
+  resize(); refresh(true); requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Portfolio Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --grid: #e3e7ec;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+#board { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 8px 4px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; }
+.sw.ball { background: var(--ball); border-radius: 50%; width: 10px; }
+.sw.a { background: var(--coinA); border-radius: 50%; width: 10px; }
+.sw.b { background: var(--coinB); border-radius: 50%; width: 10px; }
+.sw.dash { height: 0; border-top: 2px solid var(--ink); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px solid var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tip b { font-family: var(--font-display); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary[aria-pressed="true"] { background: var(--curve); border-color: var(--curve); }
+.btns .wide { grid-column: span 2; }
+
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+.slider.a output { color: var(--coinA); }
+.slider.b output { color: var(--coinB); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider.a input { accent-color: var(--coinA); }
+.slider.b input { accent-color: var(--coinB); }
+.mixbox { display: flex; flex-direction: column; gap: 10px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.path { font-family: var(--font-mono); font-size: 13px; line-height: 1.6; word-break: break-word; min-height: 1.6em; }
+.path .r { color: var(--accent); font-weight: 600; }
+.path .l { color: var(--muted); }
+.path .to { color: var(--ink); font-weight: 600; }
+.path .ca { color: var(--coinA); font-weight: 600; }
+.path .cb { color: var(--coinB); font-weight: 600; }
+
+/* CLT lesson */
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.eq table { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.eq th, .eq td { text-align: right; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.eq th:first-child, .eq td:first-child { text-align: left; }
+.eq th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.eq tr:last-child td { border-bottom: 0; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+canvas.plot { display: block; width: 100%; touch-action: pan-y; }
+.board { display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; line-height: 1.6; }
+.eqn .a { color: var(--accent); font-weight: 600; } .eqn .c { color: var(--curve); font-weight: 600; } .eqn .t { color: var(--coinA); font-weight: 600; } .eqn .p { color: var(--coinB); font-weight: 600; } .eqn .h { color: var(--ball); font-weight: 600; }
+.seg.two { grid-template-columns: repeat(2, 1fr); }
+.btns.two { grid-template-columns: 1fr 1fr; }
+.btns.one { grid-template-columns: 1fr; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.kpi .k { font-size: 12.5px; color: var(--muted); }
+.kpi .v { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi .s { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats td.obs { color: var(--accent); }
+.stats td.th { color: var(--curve); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.field { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.field label { font-weight: 700; }
+.field input[type=number] { width: 96px; font: inherit; font-family: var(--font-mono); font-size: 14px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--board); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.field input[type=number]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tablewrap { overflow-x: auto; }
+.stats td + td, .stats th + th { padding-left: 10px; }
+
+.pair { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 1100px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.pane { position: relative; min-width: 0; }
+.pane .cap { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--ink); margin: 0 0 4px 2px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button { font-size: 13px; padding: 7px 9px; }
+.presets button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.sw.fx { background: var(--coinA); border-radius: 50%; width: 10px; }
+.sw.fy { background: var(--coinB); border-radius: 50%; width: 10px; }
+.sw.pt { background: var(--ball); border-radius: 50%; width: 10px; }
+.sw.mv { background: none; border: 2px solid var(--curve); border-radius: 50%; width: 11px; height: 11px; }
+.sw.faint { height: 0; border-top: 2px dashed var(--muted); border-radius: 0; background: none; }
+.slider.x output { color: var(--coinA); } .slider.x input { accent-color: var(--coinA); }
+.slider.y output { color: var(--coinB); } .slider.y input { accent-color: var(--coinB); }
+.slider.r output { color: var(--curve); } .slider.r input { accent-color: var(--curve); }
+.slider.w output { color: var(--ball); } .slider.w input { accent-color: var(--ball); }
+.src { font-size: 12.5px; color: var(--muted); margin: 0; }
+.src b { color: var(--ink); }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Expectation, variance and covariance</span>
+    <h1>Portfolio Lab</h1>
+    <p class="lead">Put a fraction w of your money in X and the rest in Y. Move the weight and the correlation and watch the portfolio's mean and risk update, term by term. The left chart traces every mix from all-Y to all-X; the right chart shows the joint draws behind it.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 1, <a href="https://vsokolov.org/html/_book/01-prob.html">Probability and Uncertainty</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Two-asset portfolio charts">
+      <div class="eqn" id="eqn"></div>
+      <div class="pair">
+        <div class="pane">
+          <p class="cap" id="capF">Risk and return of P = wX + (1 − w)Y</p>
+          <canvas id="front" class="plot" role="img" aria-label="Risk-return curve of all portfolios of X and Y"></canvas>
+          <div id="tip" class="tip" hidden></div>
+        </div>
+        <div class="pane">
+          <p class="cap" id="capS">Simulated joint returns</p>
+          <canvas id="scat" class="plot" role="img" aria-label="Scatter of simulated X and Y outcomes showing their correlation"></canvas>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw fx"></i>All in X</span>
+        <span><i class="sw fy"></i>All in Y</span>
+        <span><i class="sw pt"></i>Your portfolio</span>
+        <span><i class="sw mv"></i>Minimum variance</span>
+        <span><i class="sw"></i>Mixes at the current ρ</span>
+        <span><i class="sw faint"></i>Mixes at ρ = −1, 0, +1</span>
+      </div>
+      <p class="src" id="src"></p>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Case</span>
+        <div class="presets" role="group" aria-label="Preset cases">
+          <button id="pTH" aria-pressed="true">Tortoise &amp; Hare</button>
+          <button id="pST" aria-pressed="false">SPY / TLT</button>
+          <button id="pST22" aria-pressed="false">SPY / TLT, 2022</button>
+          <button id="pVV" aria-pressed="false">VUG / VTV</button>
+          <button id="pEC" aria-pressed="false">VGK / FXI</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Mix</span>
+        <div class="slider w"><div class="top"><label for="w">Weight in X, w</label><output id="wOut">0.50</output></div>
+          <input type="range" id="w" min="0" max="1" step="0.01" value="0.5"></div>
+        <div class="slider r"><div class="top"><label for="rho">Correlation, ρ</label><output id="rhoOut">0.00</output></div>
+          <input type="range" id="rho" min="-1" max="1" step="0.01" value="0"></div>
+        <div class="btns two">
+          <button id="goMin" class="primary">Go to min variance</button>
+          <button id="resample">New sample</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Assets</span>
+        <div class="slider x"><div class="top"><label for="mx" id="mxL">Mean of X</label><output id="mxOut">1.50</output></div>
+          <input type="range" id="mx" min="0" max="3" step="0.05" value="1.5"></div>
+        <div class="slider x"><div class="top"><label for="sx" id="sxL">SD of X</label><output id="sxOut">0.50</output></div>
+          <input type="range" id="sx" min="0.05" max="2" step="0.05" value="0.5"></div>
+        <div class="slider y"><div class="top"><label for="my" id="myL">Mean of Y</label><output id="myOut">1.50</output></div>
+          <input type="range" id="my" min="0" max="3" step="0.05" value="1.5"></div>
+        <div class="slider y"><div class="top"><label for="sy" id="syL">SD of Y</label><output id="syOut">1.50</output></div>
+          <input type="range" id="sy" min="0.05" max="2" step="0.05" value="1.5"></div>
+        <div class="seg two" role="group" aria-label="Return model">
+          <button id="mTwo" aria-pressed="true">Two-point: μ ± σ</button>
+          <button id="mNorm" aria-pressed="false">Normal</button>
+        </div>
+        <p class="hint" id="modelHint"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Portfolio P · 500 simulated draws</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Sample</th><th>Theory</th></tr></thead>
+          <tbody>
+            <tr><td>E(P)</td><td class="obs" id="eO">–</td><td class="th" id="eT">–</td></tr>
+            <tr><td>Var(P)</td><td class="obs" id="vO">–</td><td class="th" id="vT">–</td></tr>
+            <tr><td>sd(P)</td><td class="obs" id="sO">–</td><td class="th" id="sT">–</td></tr>
+            <tr><td>corr(X, Y)</td><td class="obs" id="rO">–</td><td class="th" id="rT">–</td></tr>
+            <tr><td>Min-variance w*</td><td>–</td><td class="th" id="wT">–</td></tr>
+            <tr><td>sd at w*</td><td>–</td><td class="th" id="sMin">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint" id="minHint"></p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Diversification</span>
+      <h2>Variances add, plus a cross term</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Tortoise and Hare both sell 1.5 cars on average. Tortoise sells 1 or 2 (Var 0.25), Hare sells 0 or 3 (Var 2.25). Assume they are independent and splits the business 50/50. The variance falls to 0.625 with the same expected sales.</p>
+      <div class="demo">
+        <button class="primary" id="dTH">Tortoise &amp; Hare 50/50, independent</button>
+        <button id="dTHmin">Tortoise &amp; Hare at w* = 0.9</button>
+        <button id="dHedge">Perfect hedge, ρ = −1</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>The mean is a weighted average</h3>
+        <p>E(wX + (1 − w)Y) = w·E(X) + (1 − w)·E(Y). Mixing never changes the mean in a surprising way. The portfolio dot always sits between the two assets vertically.</p>
+      </div></li>
+      <li><div>
+        <h3>The variance has a cross term</h3>
+        <p>Var(aX + bY) = a²Var(X) + b²Var(Y) + 2ab·Cov(X, Y). The last piece is the diversification term. With Cov &gt; 0 it adds risk; with Cov &lt; 0 it removes risk.</p>
+      </div></li>
+      <li><div>
+        <h3>Correlation bends the curve</h3>
+        <p>At ρ = +1 the mixes lie on a straight line between X and Y, so there is no benefit. At ρ = −1 the curve touches sd = 0. Every ρ below +1 bends the curve to the left of that line.</p>
+      </div></li>
+      <li><div>
+        <h3>The minimum-variance mix</h3>
+        <p>Set the derivative of Var(P) in w to zero. For Tortoise and Hare at ρ = 0 this gives w* = 2.25 / 2.5 = 0.9, with Var 0.225. That is less risky than Tortoise alone, because a little Hare averages away some of Tortoise's own noise.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Linear combinations</div>
+        <div class="m">E(aX + bY) = aE(X) + bE(Y)</div>
+        <div class="m">Var(aX + bY) = a²Var(X) + b²Var(Y) + 2ab Cov(X, Y)</div>
+        <div class="m">Cov(X, Y) = ρ · sd(X) · sd(Y)</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Minimum-variance weight</div>
+        <div class="m">w* = (σ<sub>Y</sub>² − ρσ<sub>X</sub>σ<sub>Y</sub>) / (σ<sub>X</sub>² + σ<sub>Y</sub>² − 2ρσ<sub>X</sub>σ<sub>Y</sub>)</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Tortoise (X) and Hare (Y)</div>
+        <table>
+          <thead><tr><th>Mix</th><th>ρ</th><th>Var(P)</th><th>sd(P)</th></tr></thead>
+          <tbody>
+            <tr><td>All Tortoise</td><td>–</td><td>0.250</td><td>0.500</td></tr>
+            <tr><td>All Hare</td><td>–</td><td>2.250</td><td>1.500</td></tr>
+            <tr><td>50/50</td><td>0</td><td>0.625</td><td>0.791</td></tr>
+            <tr><td>w* = 0.9</td><td>0</td><td>0.225</td><td>0.474</td></tr>
+            <tr><td>w* = 0.75</td><td>−1</td><td>0.000</td><td>0.000</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> The benefit of mixing depends on the correlation, and correlations change with the regime. The 2022 lesson: stocks and bonds fell together when both reacted to the same Fed shock, and the diversification from bonds disappeared. Compare the two SPY / TLT presets. Growth and value move together (ρ ≈ +0.85), so mixing them is not really diversification.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Expectation and variance</h2>
+      <p>The coin that pays $2 or $0 has E(X) = $1 and Var(X) = 1. One play never pays $1, so the mean is not the whole story.</p>
+      <div class="formula">Var(X) = E(X²) − E(X)²</div>
+    </div>
+    <div class="note">
+      <h2>Correlation is unit-free</h2>
+      <p>Covariance has awkward units (cars × cars, or %²). Dividing by both SDs gives a number between −1 and +1.</p>
+      <div class="formula">corr(X, Y) = Cov(X, Y) / (sd(X) sd(Y))</div>
+    </div>
+    <div class="note">
+      <h2>Prediction markets as a portfolio</h2>
+      <p>The Polymarket basket spreads bets over a World Cup, a tech market-cap race and a US primary. With ρ ≈ 0 between them, n equal bets cut the variance roughly by a factor of n.</p>
+      <div class="formula">Var(average of n independent bets) = σ² / n</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load Tortoise &amp; Hare. Read Var(P) = 0.625 off the formula line, then drag w to 0.9. Ask why adding a little of the risky Hare lowers the risk.</li>
+      <li>Keep w = 0.5 and drag ρ from −1 to +1. Watch the cross term in the formula change sign and the right-hand cloud tilt.</li>
+      <li>Switch to SPY / TLT, then to the 2022 preset. The curve straightens and the minimum-variance portfolio becomes riskier. Same assets, different correlation.</li>
+      <li>Load VUG / VTV (ρ = 0.85). Find how much risk a 50/50 blend saves compared with the straight line between the two funds.</li>
+      <li>Set both SDs equal and ρ = 0. Show that w* = 0.5 and that the 50/50 SD is the single-asset SD divided by √2.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cvF = $('front'), cF = cvF.getContext('2d'), cvS = $('scat'), cS = cvS.getContext('2d'), tip = $('tip');
+  let C = {}, LF = {}, LS = {};
+  const N = 500;
+  const PRESETS = {
+    pTH: { nx: 'Tortoise', ny: 'Hare', unit: 'cars', dec: 2, mx: 1.5, sx: 0.5, my: 1.5, sy: 1.5, rho: 0, w: 0.5, model: 'two',
+           range: { m: [0, 3, 0.05], s: [0.05, 2, 0.05] },
+           src: '<b>Source:</b> the Tortoise and Hare example. Tortoise sells 1 or 2 cars, Hare sells 0 or 3, each with probability 0.5; assume independence (ρ = 0).' },
+    pST: { nx: 'SPY', ny: 'TLT', unit: '%', dec: 1, mx: 10, sx: 16, my: 4, sy: 13, rho: -0.2, w: 0.6, model: 'normal',
+           range: { m: [-5, 20, 0.1], s: [1, 40, 0.5] },
+           src: '<b>Illustrative numbers.</b> The worked example gives no means or SDs for SPY and TLT. Annual returns in %, with a mildly negative stock–bond correlation. Assignment 1 asks you to estimate the real ones.' },
+    pST22: { nx: 'SPY', ny: 'TLT', unit: '%', dec: 1, mx: 10, sx: 16, my: 4, sy: 13, rho: 0.6, w: 0.6, model: 'normal',
+           range: { m: [-5, 20, 0.1], s: [1, 40, 0.5] },
+           src: '<b>Illustrative numbers.</b> Same assets as the SPY / TLT preset with a positive correlation, to show the 2022 lesson: stocks and bonds fell together and the diversification benefit disappeared.' },
+    pVV: { nx: 'VUG', ny: 'VTV', unit: '%', dec: 1, mx: 7.2, sx: 18, my: 4.7, sy: 15, rho: 0.85, w: 0.5, model: 'normal',
+           range: { m: [-5, 20, 0.1], s: [1, 40, 0.5] },
+           src: '<b>From the growth vs value example:</b> correlation about +0.85; means 7.2% and 4.7% per year are the annual rates implied by growth of 4× and 2.5× over 20 years. <b>The SDs are illustrative.</b>' },
+    pEC: { nx: 'VGK', ny: 'FXI', unit: '%', dec: 1, mx: 6, sx: 18, my: 3, sy: 26, rho: 0.6, w: 0.7, model: 'normal',
+           range: { m: [-5, 20, 0.1], s: [1, 40, 0.5] },
+           src: '<b>Illustrative numbers.</b> The worked example names the Europe vs China pair but give no figures. Annual returns in %.' }
+  };
+  const S = { key: 'pTH', ...PRESETS.pTH, u: [], z: [] };
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'board', 'coinA', 'coinB']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  function randn() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function sample() { S.u = []; S.z = []; for (let i = 0; i < N; i++) { S.u.push([Math.random(), Math.random(), Math.random(), Math.random()]); S.z.push([randn(), randn()]); } }
+
+  // joint draw i under the current model; jitter only for display in two-point mode
+  function draw(i) {
+    if (S.model === 'two') {
+      const [u1, u2] = S.u[i], xh = u1 < 0.5;
+      const yh = u2 < (xh ? (1 + S.rho) / 2 : (1 - S.rho) / 2);
+      return [S.mx + (xh ? 1 : -1) * S.sx, S.my + (yh ? 1 : -1) * S.sy];
+    }
+    const [z1, z2] = S.z[i];
+    return [S.mx + S.sx * z1, S.my + S.sy * (S.rho * z1 + Math.sqrt(Math.max(0, 1 - S.rho * S.rho)) * z2)];
+  }
+  const varP = (w, rho) => w * w * S.sx * S.sx + (1 - w) * (1 - w) * S.sy * S.sy + 2 * w * (1 - w) * rho * S.sx * S.sy;
+  const meanP = w => w * S.mx + (1 - w) * S.my;
+  function wStar(rho = S.rho) {
+    const den = S.sx * S.sx + S.sy * S.sy - 2 * rho * S.sx * S.sy;
+    if (den < 1e-12) return 0.5;
+    return (S.sy * S.sy - rho * S.sx * S.sy) / den;
+  }
+
+  const f = (x, d = S.dec + 1) => (x < 0 ? '−' : '') + Math.abs(x).toFixed(d);
+  const fu = (x, d) => f(x, d) + (S.unit === '%' ? '%' : '');
+  function updateText() {
+    const w = S.w, b = 1 - w, cov = S.rho * S.sx * S.sy, V = varP(w, S.rho), d = S.dec + 1;
+    const t1 = w * w * S.sx * S.sx, t2 = b * b * S.sy * S.sy, t3 = 2 * w * b * cov;
+    const un = S.unit === '%' ? ' (%²)' : '';
+    $('eqn').innerHTML =
+      `E(P) = <span class="h">${w.toFixed(2)}</span>·<span class="t">${f(S.mx, S.dec)}</span> + ${b.toFixed(2)}·<span class="p">${f(S.my, S.dec)}</span> = <b>${f(meanP(w), d)}</b><br>` +
+      `Var(P) = <span class="h">${w.toFixed(2)}</span>²·<span class="t">${f(S.sx, S.dec)}</span>² + ${b.toFixed(2)}²·<span class="p">${f(S.sy, S.dec)}</span>² + 2·${w.toFixed(2)}·${b.toFixed(2)}·<span class="c">${f(S.rho, 2)}</span>·${f(S.sx, S.dec)}·${f(S.sy, S.dec)}<br>` +
+      `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${f(t1, d + 1)} + ${f(t2, d + 1)} <span class="c">${t3 < 0 ? '−' : '+'} ${Math.abs(t3).toFixed(d + 1)}</span> = <b>${f(V, d)}</b>${un},&nbsp; sd(P) = <b>${f(Math.sqrt(V), d)}</b>`;
+    // sample stats
+    let sx = 0, sy = 0, sp = 0, sxx = 0, syy = 0, sxy = 0, spp = 0;
+    for (let i = 0; i < N; i++) { const [x, y] = draw(i), p = w * x + b * y; sx += x; sy += y; sp += p; sxx += x * x; syy += y * y; sxy += x * y; spp += p * p; }
+    const mxs = sx / N, mys = sy / N, mps = sp / N;
+    const vx = (sxx - N * mxs * mxs) / (N - 1), vy = (syy - N * mys * mys) / (N - 1), cxy = (sxy - N * mxs * mys) / (N - 1), vp = (spp - N * mps * mps) / (N - 1);
+    $('eO').textContent = f(mps, d); $('eT').textContent = f(meanP(w), d);
+    $('vO').textContent = f(vp, d); $('vT').textContent = f(V, d);
+    $('sO').textContent = f(Math.sqrt(vp), d); $('sT').textContent = f(Math.sqrt(V), d);
+    S.rhat = cxy / Math.sqrt(vx * vy);
+    $('rO').textContent = isFinite(S.rhat) ? f(S.rhat, 2) : '–'; $('rT').textContent = f(S.rho, 2);
+    const ws = wStar(), wl = Math.min(1, Math.max(0, ws));
+    $('wT').textContent = f(ws, 2); $('sMin').textContent = f(Math.sqrt(Math.max(0, varP(wl, S.rho))), d);
+    $('minHint').textContent = ws > 1 || ws < 0
+      ? `w* = ${f(ws, 2)} needs short selling. Without shorting, the least risky mix is w = ${wl.toFixed(0)} (all ${wl ? S.nx : S.ny}); the sd row shows that mix.`
+      : `Putting ${(ws * 100).toFixed(0)}% in ${S.nx} and ${(100 - ws * 100).toFixed(0)}% in ${S.ny} gives the lowest risk at ρ = ${f(S.rho, 2)}.`;
+    $('capS').textContent = `Simulated ${S.nx} (x) vs ${S.ny} (y), ${N} draws · sample r = ${isFinite(S.rhat) ? f(S.rhat, 2) : '–'}`;
+    $('capF').textContent = `Risk and return of P = w·${S.nx} + (1 − w)·${S.ny}`;
+    $('src').innerHTML = S.src;
+    $('modelHint').textContent = S.model === 'two'
+      ? 'Each asset takes two values, μ − σ or μ + σ, with probability 0.5 each. Tortoise and Hare are exactly this.'
+      : 'Returns are bivariate normal with the chosen means, SDs and correlation.';
+    for (const k of ['mx', 'sx', 'my', 'sy']) $(k + 'Out').textContent = f(S[k], S.dec) + (S.unit === '%' ? '%' : '');
+    $('mxL').textContent = `Mean of ${S.nx}`; $('sxL').textContent = `SD of ${S.nx}`;
+    $('myL').textContent = `Mean of ${S.ny}`; $('syL').textContent = `SD of ${S.ny}`;
+    $('wOut').textContent = S.w.toFixed(2); $('rhoOut').textContent = f(S.rho, 2);
+    dirty = true;
+  }
+
+  function sizeCanvas(cv, ctx, aspect, minH, maxH) {
+    const w = cv.parentElement.clientWidth;
+    const h = Math.round(Math.min(Math.max(w * aspect, minH), maxH));
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    return { W: w, H: h, ml: 52, mr: 14, mt: 12, mb: 38 };
+  }
+  function resize() { LF = sizeCanvas(cvF, cF, 0.78, 300, 460); LS = sizeCanvas(cvS, cS, 1.0, 280, 460); LS.H = Math.max(LS.H, 0); dirty = true; }
+  function niceStep(range, target) {
+    const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+  }
+  const mono = (sz = 11, wt = '') => `${wt} ${sz}px "JetBrains Mono", ui-monospace, monospace`;
+  function axes(ctx, L, x0, x1, y0, y1, xl, yl) {
+    const PX = x => L.ml + (x - x0) / (x1 - x0) * (L.W - L.ml - L.mr);
+    const PY = y => L.mt + (y1 - y) / (y1 - y0) * (L.H - L.mt - L.mb);
+    ctx.font = mono(11); ctx.lineWidth = 1;
+    const xs = niceStep(x1 - x0, 5), ys = niceStep(y1 - y0, 5);
+    const lab = v => { const s = +v.toFixed(6); return (s < 0 ? '−' : '') + Math.abs(s); };
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(y0 / ys) * ys; y <= y1 + 1e-9; y += ys) {
+      const py = Math.round(PY(y)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(L.ml, py); ctx.lineTo(L.W - L.mr, py); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.fillText(lab(y), L.ml - 7, py);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(x0 / xs) * xs; x <= x1 + 1e-9; x += xs) {
+      const px = Math.round(PX(x)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(px, L.mt); ctx.lineTo(px, L.H - L.mb); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.fillText(lab(x), px, L.H - L.mb + 6);
+    }
+    ctx.strokeStyle = C.line; ctx.strokeRect(L.ml + .5, L.mt + .5, L.W - L.ml - L.mr - 1, L.H - L.mt - L.mb - 1);
+    ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.fillText(xl, L.W - L.mr, L.H - L.mb + 21);
+    ctx.save(); ctx.translate(13, L.mt + (L.H - L.mt - L.mb) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { PX, PY };
+  }
+
+  let dirty = true, FX = null;
+  function drawFront() {
+    const L = LF, ctx = cF; ctx.clearRect(0, 0, L.W, L.H);
+    const smax = Math.max(S.sx, S.sy) * 1.15;
+    const lo = Math.min(S.mx, S.my), hi = Math.max(S.mx, S.my);
+    const pad = Math.max((hi - lo) * 0.25, Math.max(S.sx, S.sy) * 0.15);
+    const u = S.unit === '%' ? ' (%)' : ' (cars)';
+    const { PX, PY } = axes(ctx, L, 0, smax, lo - pad, hi + pad, 'sd(P)' + u, 'E(P)' + u);
+    FX = { PX, PY };
+    ctx.save(); ctx.beginPath(); ctx.rect(L.ml, L.mt, L.W - L.ml - L.mr, L.H - L.mt - L.mb); ctx.clip();
+    const curve = (rho, col, lw, dash) => {
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath();
+      for (let i = 0; i <= 200; i++) { const w = i / 200, x = PX(Math.sqrt(Math.max(0, varP(w, rho)))), y = PY(meanP(w)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke(); ctx.setLineDash([]);
+    };
+    ctx.globalAlpha = 0.55;
+    for (const r of [-1, 0, 1]) curve(r, C.muted, 1.25, [4, 4]);
+    ctx.globalAlpha = 1;
+    curve(S.rho, C.accent, 2.75, []);
+    // faint labels at the left end of the faint curves
+    const flat = Math.abs(PY(S.mx) - PY(S.my)) < 40;
+    ctx.fillStyle = C.muted; ctx.font = mono(10); ctx.textBaseline = 'middle';
+    if (!flat) for (const r of [-1, 0, 1]) {
+      const wm = 0.3, x = PX(Math.sqrt(Math.max(0, varP(wm, r)))), y = PY(meanP(wm));
+      ctx.textAlign = 'left'; ctx.fillText(`ρ=${r > 0 ? '+' : r < 0 ? '−' : ''}${Math.abs(r)}`, x + 5, y + 8);
+    }
+    // min variance
+    const ws = Math.min(1, Math.max(0, wStar()));
+    const xm = PX(Math.sqrt(Math.max(0, varP(ws, S.rho)))), ym = PY(meanP(ws));
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 2.25; ctx.beginPath(); ctx.arc(xm, ym, 8.5, 0, Math.PI * 2); ctx.stroke();
+    // assets
+    const xX = PX(S.sx), yX = PY(S.mx), xY = PX(S.sy), yY = PY(S.my);
+    const sameY = Math.abs(yX - yY) < 14;
+    const dot = (x, y, col, lab, right) => {
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = C.ink; ctx.font = mono(12, '600');
+      if (sameY) { ctx.textBaseline = 'top'; ctx.textAlign = 'center'; ctx.fillText(lab, x, y + 10); return; }
+      ctx.textBaseline = 'middle'; ctx.textAlign = right ? 'right' : 'left';
+      ctx.fillText(lab, x + (right ? -10 : 10), y);
+    };
+    dot(xX, yX, C.coinA, S.nx, xX > L.W - 90);
+    dot(xY, yY, C.coinB, S.ny, xY > L.W - 90);
+    // portfolio
+    const xp = PX(Math.sqrt(Math.max(0, varP(S.w, S.rho)))), yp = PY(meanP(S.w));
+    ctx.fillStyle = C.ball; ctx.beginPath(); ctx.arc(xp, yp, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = C.board; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = C.ink; ctx.font = mono(12, '600'); ctx.textAlign = xp > L.W * 0.6 ? 'right' : 'left'; ctx.textBaseline = 'bottom';
+    if (sameY) { ctx.textAlign = 'center'; ctx.fillText(`w = ${S.w.toFixed(2)}`, xp, yp - 12); }
+    else ctx.fillText(`w = ${S.w.toFixed(2)}`, xp + (ctx.textAlign === 'left' ? 10 : -10), yp - 6);
+    ctx.restore();
+  }
+
+  function drawScat() {
+    const L = LS, ctx = cS; ctx.clearRect(0, 0, L.W, L.H);
+    const k = S.model === 'two' ? 1.7 : 3.2;
+    const u = S.unit === '%' ? ' (%)' : '';
+    const { PX, PY } = axes(ctx, L, S.mx - k * S.sx, S.mx + k * S.sx, S.my - k * S.sy, S.my + k * S.sy, S.nx + u, S.ny + u);
+    ctx.save(); ctx.beginPath(); ctx.rect(L.ml, L.mt, L.W - L.ml - L.mr, L.H - L.mt - L.mb); ctx.clip();
+    const two = S.model === 'two', cnt = {};
+    ctx.fillStyle = C.accent; ctx.globalAlpha = two ? 0.45 : 0.55;
+    for (let i = 0; i < N; i++) {
+      let [x, y] = draw(i);
+      if (two) { const key = (x > S.mx ? 'H' : 'L') + (y > S.my ? 'H' : 'L'); cnt[key] = (cnt[key] || 0) + 1;
+        const a = S.u[i][2] * 2 * Math.PI, r = Math.sqrt(S.u[i][3]) * 0.32; x += r * Math.cos(a) * S.sx; y += r * Math.sin(a) * S.sy; }
+      ctx.beginPath(); ctx.arc(PX(x), PY(y), 2.4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (two) {
+      ctx.fillStyle = C.ink; ctx.font = mono(12, '600'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (const [key, xs, ys] of [['HH', 1, 1], ['HL', 1, -1], ['LH', -1, 1], ['LL', -1, -1]]) {
+        const th = (1 + xs * ys * S.rho) / 4;
+        ctx.fillText(`${cnt[key] || 0} (exp ${(N * th).toFixed(0)})`, PX(S.mx + xs * S.sx), PY(S.my + ys * S.sy) + (ys > 0 ? -1 : 1) * (Math.abs(PY(S.my) - PY(S.my + 0.32 * S.sy)) + 12));
+      }
+    }
+    // mean cross-hair
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 1.25; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(PX(S.mx), L.mt); ctx.lineTo(PX(S.mx), L.H - L.mb); ctx.moveTo(L.ml, PY(S.my)); ctx.lineTo(L.W - L.mr, PY(S.my)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
+  function frame() { if (dirty) { drawFront(); drawScat(); dirty = false; } requestAnimationFrame(frame); }
+
+  // ---------- controls ----------
+  function setRange(id, [mn, mx, st]) { const el = $(id); el.min = mn; el.max = mx; el.step = st; }
+  function applyPreset(key) {
+    Object.assign(S, { key }, PRESETS[key]);
+    for (const k of Object.keys(PRESETS)) $(k).setAttribute('aria-pressed', k === key);
+    setRange('mx', S.range.m); setRange('my', S.range.m); setRange('sx', S.range.s); setRange('sy', S.range.s);
+    for (const k of ['mx', 'sx', 'my', 'sy', 'w', 'rho']) $(k).value = S[k];
+    setModel(S.model);
+  }
+  function setModel(m) {
+    S.model = m; $('mTwo').setAttribute('aria-pressed', m === 'two'); $('mNorm').setAttribute('aria-pressed', m === 'normal');
+    updateText();
+  }
+  for (const k of Object.keys(PRESETS)) $(k).onclick = () => applyPreset(k);
+  for (const k of ['mx', 'sx', 'my', 'sy', 'w', 'rho']) $(k).oninput = e => { S[k] = +e.target.value; updateText(); };
+  $('mTwo').onclick = () => setModel('two');
+  $('mNorm').onclick = () => setModel('normal');
+  $('resample').onclick = () => { sample(); updateText(); };
+  $('goMin').onclick = () => { S.w = Math.round(Math.min(1, Math.max(0, wStar())) * 100) / 100; $('w').value = S.w; updateText(); };
+  function toBoard() { document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
+  $('dTH').onclick = () => { applyPreset('pTH'); toBoard(); };
+  $('dTHmin').onclick = () => { applyPreset('pTH'); S.w = 0.9; $('w').value = 0.9; updateText(); toBoard(); };
+  $('dHedge').onclick = () => { applyPreset('pTH'); S.rho = -1; S.w = 0.75; $('rho').value = -1; $('w').value = 0.75; updateText(); toBoard(); };
+
+  // hover on the frontier: weight under the pointer
+  function showTip(ev) {
+    if (!FX) return;
+    const rc = cvF.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    let best = -1, bd = 18 * 18;
+    for (let i = 0; i <= 100; i++) { const w = i / 100, dx = FX.PX(Math.sqrt(Math.max(0, varP(w, S.rho)))) - mx, dy = FX.PY(meanP(w)) - my, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = w; } }
+    if (best < 0) { tip.hidden = true; return; }
+    const d = S.dec + 1;
+    tip.innerHTML = `<b>w = ${best.toFixed(2)}</b> in ${S.nx}<br>E(P) = ${f(meanP(best), d)}<br>sd(P) = ${f(Math.sqrt(Math.max(0, varP(best, S.rho))), d)}`;
+    tip.hidden = false;
+    tip.style.left = Math.max(4, Math.min(mx + 18, cvF.clientWidth - tip.offsetWidth - 4)) + 'px';
+    tip.style.top = Math.max(4, my + cvF.offsetTop - tip.offsetHeight - 10) + 'px';
+  }
+  cvF.addEventListener('pointermove', showTip);
+  cvF.addEventListener('pointerdown', showTip);
+  cvF.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  const ro = new ResizeObserver(() => resize()); ro.observe(cvF.parentElement); ro.observe(cvS.parentElement);
+
+  sample(); resize(); applyPreset('pTH'); requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

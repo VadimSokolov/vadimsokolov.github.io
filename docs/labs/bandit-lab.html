@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Bandit vs A/B Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: regret curves, traffic shares and Thompson posteriors stacked on the left; arms, strategies and results in a right rail; explore/exploit lesson below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --armA: #0e7f73;
+  --armB: #b8467a;
+  --armC: #6b7d1c;
+  --armD: #8a5a2b;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+    --armA: #3cc7b4; --armB: #ee8cbc; --armC: #b7cc5c; --armD: #d4a373;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+  --armA: #3cc7b4; --armB: #ee8cbc; --armC: #b7cc5c; --armD: #d4a373;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.cell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cap { font-size: 12.5px; color: var(--muted); }
+.cap b { color: var(--ink); font-family: var(--font-display); font-size: 14px; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--ink); }
+.sw.ab { border-top-style: dashed; }
+.sw.eps { border-color: var(--ball); }
+.sw.ts { border-color: var(--accent); }
+.sw.ucb { border-color: var(--coinB); }
+.sw.arm { width: 12px; height: 10px; border: 0; border-radius: 2px; }
+.status { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.status b { color: var(--ink); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary[aria-pressed="true"] { background: var(--curve); border-color: var(--curve); }
+button:disabled { opacity: .6; cursor: progress; }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+.slider.arm output { color: var(--c); }
+.slider.arm input { accent-color: var(--c); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.ship { font-size: 13px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-variant-numeric: tabular-nums; }
+
+.tbl { overflow-x: auto; }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.stats th + th, .stats td + td { padding-left: 10px; }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13px; }
+.stats td:first-child { font-family: var(--font-body); font-weight: 700; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.stats tr.oracle td { color: var(--muted); font-weight: 400; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note ul { margin: 0 0 8px; padding-left: 18px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · A/B testing meets reinforcement learning</span>
+    <h1>Bandit vs A/B Lab</h1>
+    <p class="lead">Visitors arrive one at a time and each sees one page variant. A classical A/B test splits traffic evenly, then ships the winner. A bandit shifts traffic toward the better page while it is still learning. All strategies face the same visitors, so the gap in lost conversions (regret) is a fair comparison.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 9, <a href="https://vsokolov.org/html/_book/09-rl.html">Reinforcement Learning</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Simulation of A/B testing and bandit strategies">
+      <div class="status" id="status"></div>
+      <div class="cell">
+        <div class="cap"><b>Cumulative regret</b> · expected conversions lost compared with always showing the best page</div>
+        <canvas id="regret" role="img" aria-label="Cumulative regret over visitors for each strategy"></canvas>
+      </div>
+      <div class="legend" id="legStrat">
+        <span><i class="sw ab"></i>Fixed A/B test, then ship</span>
+        <span><i class="sw eps"></i>ε-greedy</span>
+        <span><i class="sw ts"></i>Thompson sampling</span>
+        <span id="legUcb"><i class="sw ucb"></i>UCB1</span>
+      </div>
+      <div class="cell">
+        <div class="cap"><b>Share of traffic to each page over time</b> · each column is one slice of visitors</div>
+        <canvas id="share" role="img" aria-label="Stacked share of traffic by page for each strategy"></canvas>
+      </div>
+      <div class="cell">
+        <div class="cap"><b>Thompson sampling's beliefs</b> · Beta posterior for each page's conversion rate; dashed line = true rate</div>
+        <canvas id="beta" role="img" aria-label="Beta posterior densities for each page"></canvas>
+      </div>
+      <div class="legend" id="legArms"></div>
+      <div id="tip" class="tip" hidden></div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <div class="btns">
+          <button id="play" class="primary" aria-pressed="false">Replay visitors</button>
+          <button id="newStream">New visitor stream</button>
+        </div>
+        <div class="slider"><div class="top"><label for="speed">Replay speed</label><output id="speedOut">1,000 visitors/s</output></div>
+          <input type="range" id="speed" min="0" max="4" step="1" value="2"></div>
+      </div>
+
+      <div class="group">
+        <span class="label">Pages (arms) · true conversion rates</span>
+        <div class="slider"><div class="top"><label for="K">Number of pages</label><output id="KOut">2</output></div>
+          <input type="range" id="K" min="2" max="4" step="1" value="2"></div>
+        <div id="armSliders" class="group" style="gap:10px"></div>
+        <p class="hint">The strategies never see these rates. They only see who converted.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Strategies</span>
+        <div class="slider"><div class="top"><label for="abN">A/B test: visitors per page</label><output id="abNOut">500</output></div>
+          <input type="range" id="abN" min="0" max="100" step="1" value="45"></div>
+        <button id="power" title="Detect the gap between the two best pages with 80% power at α = 0.05">Set n by power calculation (80%, α = 0.05)</button>
+        <div class="slider"><div class="top"><label for="eps">ε-greedy: exploration rate ε</label><output id="epsOut">0.10</output></div>
+          <input type="range" id="eps" min="0" max="0.5" step="0.01" value="0.1"></div>
+        <div class="slider"><div class="top"><label for="horizon">Total visitors</label><output id="horizonOut">3,000</output></div>
+          <input type="range" id="horizon" min="0" max="8" step="1" value="3"></div>
+        <div class="checks">
+          <label><input type="checkbox" id="useUcb" checked> Include UCB1</label>
+          <label><input type="checkbox" id="showAvg" checked> Overlay average regret from the 200 runs</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">This visitor stream</span>
+        <div class="ship" id="ship"></div>
+        <div class="tbl"><table class="stats" id="tblRun"></table></div>
+        <p class="hint">Regret = Σ (p* − p of the page shown), using the true rates. Conv. counts actual conversions; Best is the share of visitors shown the best page. The oracle always shows the best page.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Many visitor streams</span>
+        <button id="sims" class="primary">Run 200 simulations</button>
+        <div class="tbl"><table class="stats" id="tblSims"></table></div>
+        <p class="hint" id="simHint">Each run draws new visitors with the same true rates. “Picks best” means the page the strategy shows most in the last 10% of visitors is the best page.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">From A/B tests to bandits</span>
+      <h2>Explore or exploit: every visitor is both a data point and a customer</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The first preset is the pink-vs-black A/B test: pink converts at 40%, black at 30%. The second uses the Karaca-style sample-size exercise (3% baseline, 0.5 point lift), where a properly powered test needs about 19,700 visitors per page. The third has no winner at all.</p>
+      <div class="demo">
+        <button class="primary" id="demoPink">Pink 40% vs black 30%</button>
+        <button id="demoKaraca">Karaca-style: 3.0% vs 3.5%</button>
+        <button id="demoTie">Two equal pages (30% and 30%)</button>
+        <button id="demoFour">Four variants (illustrative)</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>A bandit is the simplest reinforcement-learning problem</h3>
+        <p>Reinforcement learning starts with a state, an action and a reward. Here the action is which page to show, the reward is 1 if the visitor converts, and the state is what you have learned so far: conversions and visitors per page. There is no next state to plan for, so the Bellman equation reduces to “pick the action with the highest expected reward”. The hard part is that you do not know those rewards.</p>
+      </div></li>
+      <li><div>
+        <h3>The fixed A/B test explores first, then exploits</h3>
+        <p>It sends n visitors to every page regardless of what it sees, then ships the page with the higher observed rate. The regret line rises steeply during the test, at a slope equal to the average gap, and goes flat if the right page ships. If the wrong page ships, the line keeps rising forever.</p>
+      </div></li>
+      <li><div>
+        <h3>ε-greedy and UCB mix the two all the time</h3>
+        <p>ε-greedy shows the current leader, except for a fraction ε of visitors who see a random page. Its regret never stops growing, at a rate near ε times the average gap. UCB1 shows the page with the highest optimistic estimate, mean plus an uncertainty bonus, so pages that have seen little traffic get a second look. Its bonus is cautious, so it keeps exploring longer than Thompson sampling.</p>
+      </div></li>
+      <li><div>
+        <h3>Thompson sampling uses Bayes, exactly as in Bayes' rule</h3>
+        <p>Each page has a Beta posterior for its conversion rate. For every visitor, draw one rate from each posterior and show the page with the largest draw. A page gets traffic in proportion to the probability that it is the best. As the posteriors narrow, traffic flows to the winner on its own. This is the “A/B test continuously; update; reallocate” idea.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Regret after T visitors (p* = best true rate)</div>
+        <div class="m">R_T = Σₜ (p* − p_{aₜ}) = Σₖ Δₖ · nₖ(T)</div>
+        <div class="m">Δₖ = p* − pₖ,  nₖ(T) = visitors shown page k</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Beta–Binomial update for page k</div>
+        <div class="m">prior Beta(1, 1) = uniform on [0, 1]</div>
+        <div class="m">posterior Beta(1 + sₖ, 1 + fₖ),  mean (1 + sₖ)/(2 + nₖ)</div>
+      </div>
+      <div class="eq">
+        <div class="cap">The three bandit rules</div>
+        <div class="m">ε-greedy: random page w.p. ε, else argmax p̂ₖ</div>
+        <div class="m">UCB1:     argmax p̂ₖ + √(2 ln t / nₖ)</div>
+        <div class="m">Thompson: θₖ ~ Beta(1+sₖ, 1+fₖ), show argmax θₖ</div>
+      </div>
+      <div class="eq">
+        <div class="cap">A/B sample size per page (A/B workflow, step 5)</div>
+        <div class="m">n = [z_{α/2}√(2p̄q̄) + z_β√(p₁q₁ + p₂q₂)]² / (p₁ − p₂)²</div>
+        <div class="m">40% vs 30%: n = 356.  3.0% vs 3.5%: n = 19,743</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>When the classical A/B test is still the right tool.</b> A bandit earns more while it learns, but its data are collected adaptively: the losing page gets few visitors, so its rate is estimated poorly and naive confidence intervals are biased. Use a fixed, pre-registered A/B test when you need clean inference (an unbiased lift with a CI and a p-value for a decision memo), when the decision is a one-time ship or no-ship, when outcomes arrive late (retention, returns), or when guardrail metrics need equal samples. Use a bandit when the goal is to earn during the test: headlines, thumbnails, promotions with a short shelf life, many variants at once.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Same visitors for everyone</h2>
+      <p>Each visitor carries one random number u. They convert on page k if u &lt; pₖ. Every strategy sees the same u for visitor t, so differences in regret come from the strategy, not from luck in who showed up. This is the simulation version of a paired comparison.</p>
+      <div class="formula">convertₜ(k) = 1{uₜ &lt; pₖ}</div>
+    </div>
+    <div class="note">
+      <h2>Real-world bandits and RL</h2>
+      <ul>
+        <li>Netflix thumbnail tests update posteriors live.</li>
+        <li>Amazon uses contextual bandits for product placement.</li>
+        <li>AlphaGo and data-center cooling are RL with long chains of states.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>The feedback-loop caveat</h2>
+      <p>A bandit only learns about the pages it shows. Practitioners warn that the same loop can entrench bias: a system that sends police where it predicted crime records more crime there. Keep some exploration and audit the data the policy itself generated.</p>
+      <div class="formula">ε &gt; 0 keeps every arm observed</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Press “Pink 40% vs black 30%” and replay. Ask students to predict the regret of the A/B test before it ships. With 500 visitors per page it is 500 × 0.10 = 50 conversions. Compare with Thompson sampling at the same moment.</li>
+      <li>Press “Set n by power calculation”. n drops from 500 to 356, and the A/B regret falls to about 36. Then run 200 simulations and read “Picks best” for the A/B row: at 80% power the test still ships the right page nearly every time when the true gap is this large.</li>
+      <li>Press “Karaca-style: 3.0% vs 3.5%”. The A/B test needs 39,486 visitors before it ships. Run 200 simulations and compare average regret. Then ask what the A/B test gives you that Thompson does not: a CI on the lift.</li>
+      <li>Press “Two equal pages”. Regret is zero for every strategy, since both pages are equally good. Look at the traffic shares: Thompson drifts toward one page anyway, and the A/B test ships a random one. Which strategy lets you say “there is no difference”?</li>
+      <li>Set ε to 0 and run 200 simulations on the four-variant preset. Pure greedy sometimes locks onto a bad page early and never leaves. Raise ε to 0.05 and compare “Picks best”.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- random numbers ----------
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function randn(r) { let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  // Marsaglia–Tsang gamma sampler, shape a >= 1
+  function rgamma(a, r) {
+    const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) {
+      let x, v; do { x = randn(r); v = 1 + c * x; } while (v <= 0);
+      v = v * v * v; const u = r();
+      if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+      if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+    }
+  }
+  // exact Beta draw via two gammas; once both counts are large the Beta is very close to normal, so use that (much faster)
+  const rbeta = (a, b, r) => {
+    if (a > 40 && b > 40) { const n = a + b, m = a / n; return m + Math.sqrt(m * (1 - m) / (n + 1)) * randn(r); }
+    const x = rgamma(a, r), y = rgamma(b, r); return x / (x + y);
+  };
+  function lgamma(z) {   // Lanczos, g = 7
+    const g = 7, c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+    z -= 1; let x = c[0]; for (let i = 1; i < g + 2; i++) x += c[i] / (z + i);
+    const t = z + g + 0.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+  }
+  const betaPdf = (x, a, b) => x <= 0 || x >= 1 ? 0 : Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - (lgamma(a) + lgamma(b) - lgamma(a + b)));
+  function normCdf(x) {   // Abramowitz–Stegun 7.1.26 on erf
+    const z = Math.abs(x) / Math.SQRT2, t = 1 / (1 + 0.3275911 * z);
+    const e = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z);
+    return x >= 0 ? 0.5 * (1 + e) : 0.5 * (1 - e);
+  }
+
+  // ---------- strategies ----------
+  const STRATS = [
+    { key: 'ab', name: 'Fixed A/B', col: 'ink', dash: [6, 4] },
+    { key: 'eps', name: 'ε-greedy', col: 'ball', dash: [] },
+    { key: 'ts', name: 'Thompson', col: 'accent', dash: [] },
+    { key: 'ucb', name: 'UCB1', col: 'coinB', dash: [] }
+  ];
+  const ARMS = ['A', 'B', 'C', 'D'], ARMCOL = ['armA', 'armB', 'armC', 'armD'];
+  // index of the largest value, ties broken at random
+  function argmaxRand(v, r) {
+    let best = -Infinity, bi = 0, ties = 0;
+    for (let i = 0; i < v.length; i++) {
+      if (v[i] > best + 1e-12) { best = v[i]; bi = i; ties = 1; }
+      else if (Math.abs(v[i] - best) <= 1e-12) { ties++; if (r() * ties < 1) bi = i; }
+    }
+    return bi;
+  }
+
+  // run one strategy on a fixed visitor stream u; returns actions, rewards and pseudo-regret path
+  function runStrategy(key, p, u, cfg, seed) {
+    const K = p.length, T = u.length, r = mulberry32(seed), pstar = Math.max(...p);
+    const act = new Uint8Array(T), rew = new Uint8Array(T), reg = new Float64Array(T + 1);
+    const n = new Array(K).fill(0), s = new Array(K).fill(0), sc = new Float64Array(K);
+    let ship = -1, z = NaN, pval = NaN;
+    const testLen = cfg.abN * K;
+    for (let t = 0; t < T; t++) {
+      let a;
+      if (key === 'ab') {
+        if (t < testLen) a = t % K;
+        else {
+          if (ship < 0) {
+            ship = argmaxRand(s.map((v, k) => v / n[k]), r);
+            // two-proportion z test: shipped page vs the runner-up
+            const rates = s.map((v, k) => v / n[k]), order = rates.map((_, k) => k).sort((x, y) => rates[y] - rates[x]);
+            const j = order[0] === ship ? order[1] : order[0], pp = (s[ship] + s[j]) / (n[ship] + n[j]);
+            const se = Math.sqrt(pp * (1 - pp) * (1 / n[ship] + 1 / n[j]));
+            z = se > 0 ? (rates[ship] - rates[j]) / se : 0; pval = 2 * (1 - normCdf(Math.abs(z)));
+          }
+          a = ship;
+        }
+      } else if (key === 'eps') {
+        if (t < K) a = t;
+        else if (r() < cfg.eps) a = Math.floor(r() * K);
+        else { for (let k = 0; k < K; k++) sc[k] = s[k] / n[k]; a = argmaxRand(sc, r); }
+      } else if (key === 'ucb') {
+        if (t < K) a = t;
+        else { const lt = 2 * Math.log(t); for (let k = 0; k < K; k++) sc[k] = s[k] / n[k] + Math.sqrt(lt / n[k]); a = argmaxRand(sc, r); }
+      } else {
+        for (let k = 0; k < K; k++) sc[k] = rbeta(1 + s[k], 1 + n[k] - s[k], r);
+        a = argmaxRand(sc, r);
+      }
+      const y = u[t] < p[a] ? 1 : 0;
+      act[t] = a; rew[t] = y; n[a]++; s[a] += y;
+      reg[t + 1] = reg[t] + (pstar - p[a]);
+    }
+    return { act, rew, reg, ship, z, pval, testLen };
+  }
+  function makeStream(T, seed) { const r = mulberry32(seed), u = new Float64Array(T); for (let t = 0; t < T; t++) u[t] = r(); return u; }
+
+  // ---------- state ----------
+  const HORIZONS = [500, 1000, 2000, 3000, 5000, 10000, 20000, 50000, 100000];
+  const SPEEDS = [100, 300, 1000, 3000, 10000];
+  const S = { K: 2, p: [0.40, 0.30, 0.25, 0.20], T: 3000, abN: 500, eps: 0.1, ucb: true, showAvg: true, seed: 11, speed: 1000,
+              t: 3000, playing: false, run: null, sims: null };
+  let C = {};
+  const strats = () => STRATS.filter(s => s.key !== 'ucb' || S.ucb);
+  const probs = () => S.p.slice(0, S.K);
+
+  function simulate() {
+    const p = probs(), u = makeStream(S.T, S.seed), cfg = { abN: S.abN, eps: S.eps };
+    S.run = {};
+    STRATS.forEach((st, i) => { S.run[st.key] = runStrategy(st.key, p, u, cfg, S.seed * 101 + i * 7919 + 3); });
+    S.u = u;
+  }
+  function rerun(keepSims) { simulate(); if (!keepSims) S.sims = null; S.t = S.T; setPlaying(false); renderSimTable(); dirty = true; }
+
+  // ---------- controls: arms ----------
+  function buildArmSliders() {
+    const box = $('armSliders'); box.innerHTML = '';
+    for (let k = 0; k < S.K; k++) {
+      const d = document.createElement('div'); d.className = 'slider arm'; d.style.setProperty('--c', `var(--${ARMCOL[k]})`);
+      d.innerHTML = `<div class="top"><label for="p${k}">Page ${ARMS[k]}</label><output id="p${k}Out">${(S.p[k] * 100).toFixed(1)}%</output></div><input type="range" id="p${k}" min="0.005" max="0.6" step="0.005" value="${S.p[k]}">`;
+      box.appendChild(d);
+      d.querySelector('input').oninput = e => { S.p[k] = +e.target.value; $(`p${k}Out`).textContent = (S.p[k] * 100).toFixed(1) + '%'; rerun(); };
+    }
+    $('legArms').innerHTML = probs().map((v, k) => `<span><i class="sw arm" style="background:var(--${ARMCOL[k]})"></i>Page ${ARMS[k]} (${(v * 100).toFixed(1)}%)</span>`).join('');
+  }
+  // log scale for n per page: 20 … ~40,000
+  const nFromPos = v => Math.round(20 * Math.pow(10, v / 100 * 3.3));
+  const posFromN = n => Math.round(Math.log10(n / 20) / 3.3 * 100);
+  function setAbN(n) { S.abN = Math.max(1, n); $('abN').value = Math.max(0, Math.min(100, posFromN(S.abN))); $('abNOut').textContent = S.abN.toLocaleString(); }
+  function setHorizon(T) { S.T = T; $('horizon').value = HORIZONS.indexOf(T); $('horizonOut').textContent = T.toLocaleString(); }
+  function powerN() {
+    const p = probs().slice().sort((a, b) => b - a), p1 = p[0], p2 = p[1];
+    if (p1 - p2 < 1e-9) return null;
+    const za = 1.959964, zb = 0.841621, pb = (p1 + p2) / 2;
+    return Math.ceil(Math.pow(za * Math.sqrt(2 * pb * (1 - pb)) + zb * Math.sqrt(p1 * (1 - p1) + p2 * (1 - p2)), 2) / Math.pow(p1 - p2, 2));
+  }
+  $('K').oninput = e => { S.K = +e.target.value; $('KOut').textContent = S.K; buildArmSliders(); rerun(); };
+  $('abN').oninput = e => { setAbN(nFromPos(+e.target.value)); rerun(); };
+  $('power').onclick = () => { const n = powerN(); if (n) { setAbN(n); rerun(); } else $('power').textContent = 'Top two pages are equal: no n detects a zero gap'; };
+  $('eps').oninput = e => { S.eps = +e.target.value; $('epsOut').textContent = S.eps.toFixed(2); rerun(); };
+  $('horizon').oninput = e => { setHorizon(HORIZONS[+e.target.value]); rerun(); };
+  $('speed').oninput = e => { S.speed = SPEEDS[+e.target.value]; $('speedOut').textContent = S.speed.toLocaleString() + ' visitors/s'; };
+  $('useUcb').onchange = e => { S.ucb = e.target.checked; $('legUcb').hidden = !S.ucb; renderSimTable(); resize(); dirty = true; };
+  $('showAvg').onchange = e => { S.showAvg = e.target.checked; dirty = true; };
+  $('newStream').onclick = () => { S.seed++; rerun(true); };
+  function setPlaying(on) {
+    S.playing = on; $('play').setAttribute('aria-pressed', on); $('play').textContent = on ? 'Pause' : 'Replay visitors';
+  }
+  $('play').onclick = () => {
+    if (S.playing) { setPlaying(false); return; }
+    if (reduce) { S.t = S.T; dirty = true; return; }
+    if (S.t >= S.T) S.t = 0;
+    setPlaying(true);
+  };
+
+  // ---------- 200 simulations ----------
+  function runSims() {
+    const NS = 200, p = probs(), pstar = Math.max(...p), best = p.map(v => v >= pstar - 1e-12);
+    const cfg = { abN: S.abN, eps: S.eps }, T = S.T, nPts = 120;
+    const acc = {}; STRATS.forEach(st => acc[st.key] = { reg: [], conv: [], pick: 0, curve: new Float64Array(nPts + 1) });
+    let i = 0; const base = (S.seed + 1) * 100003;
+    $('sims').disabled = true;
+    const chunk = () => {
+      const t0 = performance.now();
+      while (i < NS && performance.now() - t0 < 30) {
+        const u = makeStream(T, base + i * 17);
+        STRATS.forEach((st, j) => {
+          const r = runStrategy(st.key, p, u, cfg, base + i * 31 + j * 7919 + 5), a = acc[st.key];
+          a.reg.push(r.reg[T]); let c = 0; for (let t = 0; t < T; t++) c += r.rew[t]; a.conv.push(c);
+          const cnt = new Array(p.length).fill(0); for (let t = Math.floor(T * 0.9); t < T; t++) cnt[r.act[t]]++;
+          const top = cnt.indexOf(Math.max(...cnt));
+          if (best[top] && (st.key !== 'ab' || r.ship >= 0)) a.pick++;
+          for (let q = 0; q <= nPts; q++) a.curve[q] += r.reg[Math.round(q / nPts * T)];
+        });
+        i++;
+      }
+      $('sims').textContent = `Running… ${i} of ${NS}`;
+      if (i < NS) setTimeout(chunk, 0);
+      else {
+        STRATS.forEach(st => { const a = acc[st.key]; for (let q = 0; q <= nPts; q++) a.curve[q] /= NS; });
+        S.sims = { acc, NS, nPts, T, abDone: S.abN * p.length <= T };
+        $('sims').disabled = false; $('sims').textContent = 'Run 200 simulations';
+        renderSimTable(); dirty = true;
+      }
+    };
+    chunk();
+  }
+  $('sims').onclick = runSims;
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const sdv = a => { const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) * (y - m), 0) / (a.length - 1)); };
+  function renderSimTable() {
+    const el = $('tblSims');
+    if (!S.sims) { el.innerHTML = '<tbody><tr><td style="font-weight:400;color:var(--muted)">Not run yet for these settings.</td></tr></tbody>'; return; }
+    let h = '<thead><tr><th></th><th>Avg regret</th><th>± SE</th><th>Picks best</th></tr></thead><tbody>';
+    for (const st of strats()) {
+      const a = S.sims.acc[st.key];
+      h += `<tr><td><i class="dot" style="background:var(--${st.col})"></i>${st.name}</td><td>${mean(a.reg).toFixed(1)}</td><td>${(sdv(a.reg) / Math.sqrt(a.reg.length)).toFixed(1)}</td><td>${(a.pick / S.sims.NS * 100).toFixed(0)}%</td></tr>`;
+    }
+    el.innerHTML = h + '</tbody>';
+    $('simHint').textContent = (S.sims.abDone ? '' : 'The A/B test needs more visitors than the total, so it never ships. ') + `${S.sims.NS} runs of ${S.sims.T.toLocaleString()} visitors. “Picks best” means the page the strategy shows most in the last 10% of visitors is the best page.`;
+  }
+
+  // ---------- readouts for the current replay position ----------
+  function prefixCounts(r, t, K) {
+    const n = new Array(K).fill(0), s = new Array(K).fill(0);
+    for (let i = 0; i < t; i++) { n[r.act[i]]++; s[r.act[i]] += r.rew[i]; }
+    return { n, s };
+  }
+  function updateText() {
+    const p = probs(), K = p.length, t = Math.floor(S.t), pstar = Math.max(...p), bestK = p.indexOf(pstar);
+    $('status').innerHTML = `Visitor <b>${t.toLocaleString()}</b> of ${S.T.toLocaleString()} · best page: <b>${ARMS[bestK]}</b> at ${(pstar * 100).toFixed(1)}%`;
+    let h = '<thead><tr><th></th><th>Conv.</th><th>Regret</th><th>Best</th></tr></thead><tbody>';
+    for (const st of strats()) {
+      const r = S.run[st.key], c = prefixCounts(r, t, K), conv = c.s.reduce((a, b) => a + b, 0);
+      const toBest = t ? p.reduce((a, v, k) => a + (v >= pstar - 1e-12 ? c.n[k] : 0), 0) / t : 0;
+      h += `<tr><td><i class="dot" style="background:var(--${st.col})"></i>${st.name}</td><td>${conv.toLocaleString()}</td><td>${r.reg[t].toFixed(1)}</td><td>${(toBest * 100).toFixed(0)}%</td></tr>`;
+    }
+    h += `<tr class="oracle"><td>Oracle (expected)</td><td>${Math.round(t * pstar).toLocaleString()}</td><td>0.0</td><td>100%</td></tr>`;
+    $('tblRun').innerHTML = h + '</tbody>';
+    const ab = S.run.ab;
+    if (ab.testLen > S.T) $('ship').innerHTML = `A/B test needs ${ab.testLen.toLocaleString()} visitors, more than the ${S.T.toLocaleString()} available. It never ships.`;
+    else if (t < ab.testLen) $('ship').innerHTML = `A/B test running: ${t.toLocaleString()} of ${ab.testLen.toLocaleString()} visitors (${S.abN.toLocaleString()} per page).`;
+    else {
+      const c = prefixCounts(ab, ab.testLen, K), rates = c.s.map((v, k) => v / c.n[k]);
+      const right = p[ab.ship] >= pstar - 1e-12;
+      $('ship').innerHTML = `A/B test shipped <b>page ${ARMS[ab.ship]}</b> after ${ab.testLen.toLocaleString()} visitors. Observed ${rates.map((v, k) => ARMS[k] + ' ' + (v * 100).toFixed(1) + '%').join(', ')}; z = ${ab.z.toFixed(2)}, ${ab.pval < 0.0001 ? 'p < 0.0001' : 'p = ' + ab.pval.toFixed(4)}. ${right ? 'That is the best page.' : '<b style="color:var(--curve)">That is not the best page.</b>'}`;
+    }
+  }
+
+  // ---------- drawing ----------
+  const cvR = $('regret'), cxR = cvR.getContext('2d'), cvS = $('share'), cxS = cvS.getContext('2d'), cvB = $('beta'), cxB = cvB.getContext('2d'), tip = $('tip');
+  let LR = {}, LS = {}, LB = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'coinA', 'coinB', 'board', 'surface', ...ARMCOL]) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  function fit(cv, cx, w, h) { const d = window.devicePixelRatio || 1; cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d); cx.setTransform(d, 0, 0, d, 0, 0); }
+  let lastW = -1;
+  function resize() {
+    const w = cvR.parentElement.clientWidth; lastW = w;
+    LR = { W: w, H: Math.round(Math.max(240, Math.min(360, w * 0.48))), ml: 46, mr: w < 480 ? 12 : 92, mt: 12, mb: 30 };
+    fit(cvR, cxR, w, LR.H);
+    const n = strats().length, cols = w < 560 ? 2 : n, rows = Math.ceil(n / cols), ph = w < 560 ? 120 : 130;
+    LS = { W: w, H: rows * (ph + 26) + 18, cols, rows, ph };
+    fit(cvS, cxS, w, LS.H);
+    LB = { W: w, H: Math.round(Math.max(180, Math.min(260, w * 0.32))), ml: 14, mr: 14, mt: 12, mb: 30 };
+    fit(cvB, cxB, w, LB.H);
+  }
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  const mono = px => `${px}px "JetBrains Mono", ui-monospace, monospace`;
+  const kfmt = v => v >= 1000 ? (v / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'k' : String(Math.round(v));
+
+  function drawRegret() {
+    const { W, H, ml, mr, mt, mb } = LR, cx = cxR, T = S.T, t = Math.floor(S.t);
+    cx.clearRect(0, 0, W, H);
+    let ymax = 1; for (const st of strats()) ymax = Math.max(ymax, S.run[st.key].reg[T]);
+    const avg = S.showAvg && S.sims && S.sims.T === T ? S.sims : null;
+    if (avg) for (const st of strats()) ymax = Math.max(ymax, avg.acc[st.key].curve[avg.nPts]);
+    ymax *= 1.06; const ys = niceStep(ymax, 5); ymax = Math.ceil(ymax / ys) * ys;
+    const PX = v => ml + v / T * (W - ml - mr), PY = v => mt + (1 - v / ymax) * (H - mt - mb);
+    cx.font = mono(11); cx.strokeStyle = C.grid; cx.lineWidth = 1; cx.fillStyle = C.muted;
+    cx.textAlign = 'right'; cx.textBaseline = 'middle';
+    for (let v = 0; v <= ymax + 1e-9; v += ys) { const y = Math.round(PY(v)) + .5; cx.beginPath(); cx.moveTo(ml, y); cx.lineTo(W - mr, y); cx.stroke(); cx.fillText(+v.toFixed(2) + '', ml - 6, y); }
+    const xs = niceStep(T, W < 480 ? 3 : 6);
+    cx.textAlign = 'center'; cx.textBaseline = 'top';
+    for (let v = 0; v <= T + 1e-9; v += xs) { const x = Math.round(PX(v)) + .5; cx.beginPath(); cx.moveTo(x, mt); cx.lineTo(x, H - mb); cx.stroke(); cx.fillText(kfmt(v), Math.min(W - mr - 10, x), H - mb + 6); }
+    cx.strokeStyle = C.line; cx.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
+    cx.fillStyle = C.muted; cx.textAlign = 'left'; cx.textBaseline = 'top'; cx.fillText('regret (conversions lost)', ml + 6, mt + 4);
+    cx.textAlign = 'right'; cx.textBaseline = 'bottom'; cx.fillText('visitors', W - mr - 6, H - mb - 4);
+    // end of the A/B test
+    const tl = S.run.ab.testLen;
+    if (tl <= T) {
+      const x = Math.round(PX(tl)) + .5;
+      cx.strokeStyle = C.muted; cx.setLineDash([2, 3]); cx.beginPath(); cx.moveTo(x, mt); cx.lineTo(x, H - mb); cx.stroke(); cx.setLineDash([]);
+      cx.fillStyle = C.muted; cx.textAlign = x > W - mr - 120 ? 'right' : 'left'; cx.textBaseline = 'top';
+      cx.fillText('A/B test ends, ship', x + (cx.textAlign === 'left' ? 5 : -5), mt + 20);
+    }
+    // averages over 200 runs
+    if (avg) for (const st of strats()) {
+      const a = avg.acc[st.key].curve; cx.strokeStyle = C[st.col]; cx.globalAlpha = 0.3; cx.lineWidth = 6; cx.beginPath();
+      for (let q = 0; q <= avg.nPts; q++) { const x = PX(q / avg.nPts * T), y = PY(a[q]); q ? cx.lineTo(x, y) : cx.moveTo(x, y); }
+      cx.stroke(); cx.globalAlpha = 1;
+    }
+    // this stream, up to t
+    const step = Math.max(1, Math.floor(T / (W * 1.5)));
+    const ends = [];
+    for (const st of strats()) {
+      const reg = S.run[st.key].reg; cx.strokeStyle = C[st.col]; cx.lineWidth = 2.25; cx.setLineDash(st.dash); cx.beginPath();
+      for (let i = 0; i <= t; i += step) { const x = PX(i), y = PY(reg[i]); i ? cx.lineTo(x, y) : cx.moveTo(x, y); }
+      cx.lineTo(PX(t), PY(reg[t])); cx.stroke(); cx.setLineDash([]);
+      ends.push({ st, y: PY(reg[t]), v: reg[t] });
+    }
+    // direct labels at the right
+    if (mr > 50) {
+      ends.sort((a, b) => a.y - b.y);
+      for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
+      cx.font = mono(11); cx.textAlign = 'left'; cx.textBaseline = 'middle';
+      for (const e of ends) { cx.fillStyle = C[e.st.col]; cx.fillText(e.st.name, PX(t) + 6 > W - mr ? W - mr + 6 : PX(t) + 6, Math.min(H - mb - 4, e.y)); }
+    }
+  }
+
+  function drawShare() {
+    const { W, H, cols, ph } = LS, cx = cxS, K = S.K, T = S.T, t = Math.floor(S.t), list = strats();
+    cx.clearRect(0, 0, W, H);
+    const gap = 12, pw = (W - gap * (cols - 1)) / cols, bins = Math.max(10, Math.min(60, Math.floor(pw / 4)));
+    list.forEach((st, idx) => {
+      const c = idx % cols, r = Math.floor(idx / cols), x0 = c * (pw + gap), y0 = r * (ph + 26) + 16;
+      cx.font = mono(11); cx.fillStyle = C[st.col]; cx.textAlign = 'left'; cx.textBaseline = 'bottom'; cx.fillText(st.name, x0, y0 - 3);
+      cx.fillStyle = C.surface; cx.fillRect(x0, y0, pw, ph);
+      const act = S.run[st.key].act, bw = pw / bins;
+      for (let b = 0; b < bins; b++) {
+        const a0 = Math.floor(b * T / bins), a1 = Math.floor((b + 1) * T / bins);
+        if (a0 >= t) break;
+        const e = Math.min(a1, t), cnt = new Array(K).fill(0);
+        for (let i = a0; i < e; i++) cnt[act[i]]++;
+        const tot = e - a0; let yy = y0 + ph;
+        for (let k = 0; k < K; k++) { const h = cnt[k] / tot * ph; cx.fillStyle = C[ARMCOL[k]]; cx.fillRect(x0 + b * bw, yy - h, bw + 0.5, h); yy -= h; }
+      }
+      cx.strokeStyle = C.line; cx.lineWidth = 1; cx.strokeRect(x0 + .5, y0 + .5, pw - 1, ph - 1);
+      cx.fillStyle = C.muted; cx.textBaseline = 'top'; cx.textAlign = 'left'; cx.fillText('0', x0, y0 + ph + 3);
+      cx.textAlign = 'right'; cx.fillText(kfmt(T), x0 + pw, y0 + ph + 3);
+      // 50% guide
+      cx.strokeStyle = C.surface; cx.globalAlpha = 0.6; cx.setLineDash([2, 3]); cx.beginPath(); cx.moveTo(x0, y0 + ph / 2); cx.lineTo(x0 + pw, y0 + ph / 2); cx.stroke(); cx.setLineDash([]); cx.globalAlpha = 1;
+    });
+  }
+
+  function drawBeta() {
+    const { W, H, ml, mr, mt, mb } = LB, cx = cxB, p = probs(), K = p.length, t = Math.floor(S.t);
+    cx.clearRect(0, 0, W, H);
+    const c = prefixCounts(S.run.ts, t, K);
+    const xmax = Math.min(1, Math.max(...p) * 1.5 + 0.05), xs = niceStep(xmax, W < 480 ? 4 : 8);
+    const PX = v => ml + v / xmax * (W - ml - mr);
+    const npts = Math.round(W - ml - mr), dens = [];
+    let ymax = 0;
+    for (let k = 0; k < K; k++) {
+      const a = 1 + c.s[k], b = 1 + c.n[k] - c.s[k], arr = new Float64Array(npts + 1);
+      for (let i = 0; i <= npts; i++) { const x = i / npts * xmax; arr[i] = betaPdf(Math.min(1 - 1e-9, Math.max(1e-9, x)), a, b); if (arr[i] > ymax) ymax = arr[i]; }
+      dens.push(arr);
+    }
+    ymax = Math.max(ymax, 1) * 1.08;
+    const PY = v => mt + (1 - v / ymax) * (H - mt - mb);
+    cx.font = mono(11); cx.strokeStyle = C.grid; cx.fillStyle = C.muted; cx.lineWidth = 1; cx.textAlign = 'center'; cx.textBaseline = 'top';
+    for (let v = 0; v <= xmax + 1e-9; v += xs) { const x = Math.round(PX(v)) + .5; cx.beginPath(); cx.moveTo(x, mt); cx.lineTo(x, H - mb); cx.stroke(); cx.fillText((v * 100).toFixed(xs < 0.01 ? 1 : 0) + '%', Math.max(ml + 12, Math.min(W - mr - 12, x)), H - mb + 6); }
+    cx.strokeStyle = C.line; cx.beginPath(); cx.moveTo(ml, H - mb + .5); cx.lineTo(W - mr, H - mb + .5); cx.stroke();
+    for (let k = 0; k < K; k++) {
+      const col = C[ARMCOL[k]], arr = dens[k];
+      cx.beginPath(); cx.moveTo(PX(0), PY(0));
+      for (let i = 0; i <= npts; i++) cx.lineTo(PX(i / npts * xmax), PY(arr[i]));
+      cx.lineTo(PX(xmax), PY(0)); cx.closePath();
+      cx.fillStyle = col; cx.globalAlpha = 0.14; cx.fill(); cx.globalAlpha = 1;
+      cx.strokeStyle = col; cx.lineWidth = 2; cx.stroke();
+      const xt = Math.round(PX(p[k])) + .5;
+      cx.setLineDash([4, 3]); cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(xt, mt); cx.lineTo(xt, H - mb); cx.stroke(); cx.setLineDash([]);
+    }
+    cx.textAlign = 'left'; cx.textBaseline = 'top';
+    for (let k = 0; k < K; k++) {
+      cx.fillStyle = C[ARMCOL[k]];
+      cx.fillText(`${ARMS[k]}: Beta(${(1 + c.s[k]).toLocaleString()}, ${(1 + c.n[k] - c.s[k]).toLocaleString()})`, ml + 4, mt + 2 + k * 15);
+    }
+    cx.fillStyle = C.muted; cx.textAlign = 'right'; cx.fillText('conversion rate', W - mr - 4, mt + 2);
+  }
+
+  // tooltip on the regret chart
+  function showTip(ev) {
+    const rc = cvR.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    const v = Math.round((mx - LR.ml) / (LR.W - LR.ml - LR.mr) * S.T);
+    if (v < 0 || v > S.T || my < LR.mt || my > LR.H - LR.mb) { tip.hidden = true; return; }
+    const tt = Math.min(v, Math.floor(S.t));
+    tip.innerHTML = `visitor ${tt.toLocaleString()}<br>` + strats().map(st => `<span style="color:var(--${st.col})">${st.name}</span>: ${S.run[st.key].reg[tt].toFixed(1)}`).join('<br>');
+    tip.hidden = false;
+    const left = Math.min(mx + 30, cvR.clientWidth - tip.offsetWidth + 14);
+    tip.style.left = Math.max(14, left) + 'px';
+    tip.style.top = Math.max(8, my + cvR.offsetTop - tip.offsetHeight - 8) + 'px';
+  }
+  cvR.addEventListener('pointermove', showTip);
+  cvR.addEventListener('pointerdown', showTip);
+  cvR.addEventListener('pointerleave', () => tip.hidden = true);
+
+  // ---------- presets ----------
+  function preset(p, K, T, abN, eps) {
+    S.K = K; $('K').value = K; $('KOut').textContent = K;
+    p.forEach((v, k) => S.p[k] = v);
+    buildArmSliders(); setHorizon(T); setAbN(abN);
+    if (eps != null) { S.eps = eps; $('eps').value = eps; $('epsOut').textContent = eps.toFixed(2); }
+    rerun();
+    if (!reduce) { S.t = 0; setPlaying(true); }
+    document.querySelector('.board').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+  $('demoPink').onclick = () => preset([0.40, 0.30], 2, 3000, 500, 0.1);
+  $('demoKaraca').onclick = () => preset([0.030, 0.035], 2, 50000, 19743, 0.1);
+  $('demoTie').onclick = () => preset([0.30, 0.30], 2, 3000, 500, 0.1);
+  $('demoFour').onclick = () => preset([0.040, 0.050, 0.055, 0.030], 4, 20000, 1000, 0.1);
+
+  // ---------- loop ----------
+  let dirty = true, prev = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
+    if (S.playing) { S.t = Math.min(S.T, S.t + S.speed * dt); if (S.t >= S.T) setPlaying(false); dirty = true; }
+    if (dirty) { drawRegret(); drawShare(); drawBeta(); updateText(); dirty = false; }
+    requestAnimationFrame(frame);
+  }
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => { if (cvR.parentElement.clientWidth !== lastW) { resize(); dirty = true; } }).observe(cvR.parentElement);
+
+  // open with the pink-vs-black case fully run
+  buildArmSliders(); setAbN(500); setHorizon(3000);
+  simulate(); S.t = S.T; renderSimTable(); resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Multiple Testing Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: outcome tiles, p-value plot and FWER curve on the left, study sliders and the error-rate tables in the right rail, lesson and notes below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: -14px; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.8vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .a { color: var(--accent); font-weight: 600; }
+.eqn .s { color: var(--curve); font-weight: 600; }
+.eqn .h { color: var(--ball); font-weight: 600; }
+#plot { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; background: var(--accent); }
+.sw.curve { height: 0; border-top: 2.5px solid var(--curve); border-radius: 0; background: none; }
+.sw.tail { background: color-mix(in srgb, var(--curve) 30%, transparent); border: 1px solid var(--curve); }
+.sw.obs { width: 0; height: 14px; border-left: 2.5px solid var(--ball); background: none; border-radius: 0; }
+.sw.simt { background: var(--ball); }
+.sw.ci { height: 0; border-top: 3px solid var(--fit); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.verdict { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 8px; padding: 10px 14px; }
+.verdict.yes { border-left-color: var(--fit); }
+.verdict.edge { border-left-color: var(--ball); }
+.verdict.no { border-left-color: var(--curve); }
+.verdict .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.verdict h3 { font-family: var(--font-display); font-size: 18px; margin: 2px 0 4px; }
+.verdict p { margin: 0; max-width: 80ch; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.seg { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.err { font-size: 13px; color: var(--curve); margin: 0; font-weight: 700; }
+
+.data { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; align-items: center; }
+.data .h { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.data .g { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+.data .g.a { color: var(--accent); }
+.data .g.b { color: var(--fit); }
+input[type=number] { font: inherit; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--board); color: var(--ink); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13.5px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats td.st { color: var(--muted); font-size: 11.5px; padding-left: 8px; width: 3.2em; }
+.stats tr:last-child td { border-bottom: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps li.live::before { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.steps .v { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; color: var(--accent); }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.formula + .formula { margin-top: 6px; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.sw.tp { background: var(--fit); }
+.sw.fp { background: var(--curve); }
+.sw.miss { background: var(--ball); }
+.sw.cn { background: var(--line); }
+.sw.bh { height: 0; border-top: 2.5px solid var(--coinB); border-radius: 0; background: none; }
+.sw.bon { height: 0; border-top: 2px dashed var(--ink); border-radius: 0; background: none; }
+.sw.raw { height: 0; border-top: 2px dotted var(--curve); border-radius: 0; background: none; }
+.sw.dt { width: 8px; height: 8px; border-radius: 50%; background: var(--fit); }
+.sw.dn { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.sub { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding: 10px 4px 0; border-top: 1px solid var(--line); }
+.sub .seg { min-width: 220px; text-transform: none; letter-spacing: 0; font-family: var(--font-body); }
+#tiles, #pplot, #fwer { display: block; width: 100%; touch-action: pan-y; }
+.stats th { padding-left: 6px; }
+.stats td + td { padding-left: 6px; }
+.stats tr.sep td { border-top: 2px solid var(--line); }
+.stats .c-tp { color: var(--fit); } .stats .c-fp { color: var(--curve); } .stats .c-ms { color: var(--ball); }
+.econ { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.econ th, .econ td { text-align: right; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.econ th:first-child, .econ td:first-child { text-align: left; }
+.econ th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.econ tr:last-child td { border-bottom: 0; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Multiple testing</span>
+    <h1>Multiple Testing Lab</h1>
+    <p class="lead">Each tile is one hypothesis. A few have a real effect; the rest are pure noise. Run all the tests and see which tiles light up as "significant" at raw α, after a Bonferroni correction, and after Benjamini–Hochberg. Then repeat the whole study thousands of times to measure the family-wise error rate and the false discovery rate.</p>
+  </header>
+  <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 5, <a href="https://vsokolov.org/html/_book/05-ab.html">A/B Testing</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+
+  <main class="grid">
+    <section class="board" aria-label="Test outcomes for each hypothesis, p-values and the family-wise error curve">
+      <div class="eqn" id="eqn"></div>
+      <canvas id="tiles" role="img" aria-label="Three grids of tiles, one per correction method, colored by test outcome"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw tp"></i>True positive: real effect, flagged</span>
+        <span><i class="sw fp"></i>False positive: no effect, flagged</span>
+        <span><i class="sw miss"></i>Missed: real effect, not flagged</span>
+        <span><i class="sw cn"></i>Correct null: no effect, not flagged</span>
+      </div>
+
+      <div class="sub"><span id="pTitle">p-values from this draw, sorted</span>
+        <div class="seg" style="--n:2" role="group" aria-label="p-value view">
+          <button id="vSorted" aria-pressed="true">Sorted p-values</button>
+          <button id="vHist" aria-pressed="false">Histogram</button>
+        </div>
+      </div>
+      <canvas id="pplot" role="img" aria-label="Sorted p-values on log scales with the raw alpha, Bonferroni and Benjamini–Hochberg thresholds"></canvas>
+      <div class="legend" id="legSorted">
+        <span><i class="sw dt"></i>p-value, real effect</span>
+        <span><i class="sw dn"></i>p-value, no effect</span>
+        <span><i class="sw raw"></i>Raw α</span>
+        <span><i class="sw bon"></i>Bonferroni α/k</span>
+        <span><i class="sw bh"></i>BH line i·α/k</span>
+      </div>
+      <div class="legend" id="legHist" hidden>
+        <span><i class="sw tp"></i>Real effect</span>
+        <span><i class="sw cn"></i>No effect</span>
+        <span><i class="sw curve"></i>Expected count of null p-values (flat)</span>
+      </div>
+
+      <div class="sub"><span>Chance of at least one false positive, <span style="text-transform:none">1 − (1 − α)<sup>k</sup></span></span></div>
+      <canvas id="fwer" role="img" aria-label="Family-wise error rate rising with the number of tests, with and without Bonferroni"></canvas>
+      <div class="legend">
+        <span><i class="sw curve"></i>Raw α, every test null (theory)</span>
+        <span><i class="sw ci"></i>Bonferroni α/k</span>
+        <span><i class="sw" style="background:var(--muted);width:8px;height:8px;border-radius:50%"></i>Reference table</span>
+        <span><i class="sw" style="background:var(--ball);width:10px;height:10px;border-radius:50%"></i>Current k</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Worked cases</span>
+        <div class="btns">
+          <button id="pQSR" aria-pressed="false">QSR, 100 hypotheses</button>
+          <button id="pEcon" aria-pressed="true">Economist, 1,000</button>
+          <button id="pBlue" aria-pressed="false" class="wide" style="grid-column: span 2">Google's 41 shades of blue</button>
+        </div>
+        <p class="hint" id="caseNote"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">The study</span>
+        <div class="slider">
+          <div class="top"><label for="k">Hypotheses tested, k</label><output id="kOut">1,000</output></div>
+          <input type="range" id="k" min="1" max="1000" step="1" value="1000">
+        </div>
+        <div class="slider">
+          <div class="top"><label for="m">With a real effect, m</label><output id="mOut">100</output></div>
+          <input type="range" id="m" min="0" max="1000" step="1" value="100">
+        </div>
+        <div class="slider">
+          <div class="top"><label for="pow">Power of each test at raw α</label><output id="powOut">0.80</output></div>
+          <input type="range" id="pow" min="0.06" max="0.99" step="0.01" value="0.8">
+        </div>
+        <div class="slider">
+          <div class="top"><label for="alpha">Significance level, α</label><output id="alphaOut">0.05</output></div>
+          <input type="range" id="alpha" min="0" max="5" step="1" value="3">
+        </div>
+        <p class="hint" id="lamNote"></p>
+        <div class="btns">
+          <button id="redraw" class="primary">New draw</button>
+          <button id="more">Run 2,000 more studies</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">This draw</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Raw</th><th>Bonf.</th><th>BH</th></tr></thead>
+          <tbody id="tDraw"></tbody>
+        </table>
+        <p class="hint" id="holm"></p>
+      </div>
+
+      <div class="group">
+        <span class="label" id="repLab">Over repeated studies</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Raw</th><th>Bonf.</th><th>BH</th></tr></thead>
+          <tbody id="tRep"></tbody>
+        </table>
+        <p class="hint">FWER: share of studies with at least one false positive. FDR: average share of flagged results that are false. ≈ marks a ratio-of-averages approximation.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">The curse of many tests</span>
+      <h2>Test enough hypotheses and something will look significant</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">At α = 0.05, each null test has a 1-in-20 chance of a false alarm. That is fine for one test. With 100 tests you expect about 5 false alarms and are 99.4% sure to get at least one. Corrections trade some power for protection against that.</p>
+      <div class="demo">
+        <button class="primary" id="dBlue">41 shades: no real winner</button>
+        <button id="dEcon">Economist: 1,000 hypotheses</button>
+        <button id="dQSR">QSR: 100 hypotheses, 4 real</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Raw α controls each test, not the study</h3><p>Every null test has probability α of a false positive. Across k independent null tests, the chance of at least one is 1 − (1 − α)<sup>k</sup>. For Google's 41 shades that is 88%. <span class="v" id="l1"></span></p></div></li>
+      <li><div><h3>Bonferroni: use α/k</h3><p>Testing each hypothesis at α/k keeps the family-wise error rate at or below α. It is simple and conservative: real effects need much smaller p-values to survive. <span class="v" id="l2"></span></p></div></li>
+      <li><div><h3>Holm–Bonferroni: same guarantee, more power</h3><p>Sort the p-values. Compare the smallest with α/k, the next with α/(k − 1), and so on, stopping at the first failure. It never flags fewer than Bonferroni.</p></div></li>
+      <li><div><h3>Benjamini–Hochberg controls the false discovery rate</h3><p>Sort the p-values and find the largest i with p<sub>(i)</sub> ≤ i·α/k. Flag every hypothesis up to that one. On average at most a share α of the flagged results are false. This is the standard in genomics and medical imaging. <span class="v" id="l4"></span></p></div></li>
+      <li><div><h3>The best defence is pre-registration</h3><p>Declare the primary metric and the hypotheses before seeing the data. The QSR team pre-registered, used Bonferroni-type corrections, and validated the top findings on held-out stores.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Reference cases, α = 0.05</div>
+        <table class="econ">
+          <thead><tr><th>k tests</th><th>P(≥ 1 false positive)</th></tr></thead>
+          <tbody id="fwTbl"></tbody>
+        </table>
+      </div>
+      <div class="eq">
+        <div class="cap">Expected counts for the current sliders (the Economist illustration)</div>
+        <table class="econ">
+          <tbody id="econ"></tbody>
+        </table>
+      </div>
+      <div class="eq">
+        <div class="cap">Thresholds for the i-th smallest p-value</div>
+        <div class="m">Raw:        p<sub>(i)</sub> ≤ α</div>
+        <div class="m">Bonferroni: p<sub>(i)</sub> ≤ α / k</div>
+        <div class="m">Holm:       p<sub>(i)</sub> ≤ α / (k − i + 1)</div>
+        <div class="m">BH:         p<sub>(i)</sub> ≤ i · α / k</div>
+      </div>
+    </div>
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> Statistics is what lets you tell the executive "these four things are real; the other 96 are not". A "significant" result pulled from many tests is weak evidence on its own. Ask how many tests were run, which correction was used, and whether the finding held up on new data.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Other pitfalls of A/B testing</h2>
+      <p>Peeking at results and stopping when they look good is multiple testing in time: each look is another chance for a false positive. Pre-commit the sample size or use sequential methods.</p>
+      <div class="formula">5 interim looks at α = 0.05: about 14% false positives</div>
+    </div>
+    <div class="note">
+      <h2>Selection, interference, units</h2>
+      <p>Self-selection, one user's treatment affecting another (SUTVA), and randomising the wrong unit all bias the estimate itself. No multiple-testing correction fixes them.</p>
+      <div class="formula">Randomise the unit you analyse</div>
+    </div>
+    <div class="note">
+      <h2>What the simulation assumes</h2>
+      <p>Tests are independent. Null p-values are uniform on (0, 1). Real effects shift the z statistic by the amount that gives the chosen power at raw α, two-sided. The QSR split of 4 real effects is illustrative: the case reports 4 shipped insights, not how many were real.</p>
+      <div class="formula">z ~ N(λ, 1), p = 2·(1 − Φ(|z|))</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load 41 shades of blue. Press "New draw" a few times. Most draws have at least one red tile at raw α: a "winning" shade that is pure noise. Bonferroni and BH are almost always all grey.</li>
+      <li>Load the Economist illustration. Count the red tiles at raw α: about 45, next to about 80 green ones. So 36% of the "confirmed" results are wrong. Compare the BH column.</li>
+      <li>Load QSR. Ask the room how many of the 4 real effects survive Bonferroni at 80% power. Then raise the power to 0.99 and watch more of them survive.</li>
+      <li>Set m = 0 and slide k from 1 to 100. Follow the amber dot along the FWER curve, and check the simulated FWER in the table against 1 − 0.95<sup>k</sup>.</li>
+      <li>Switch the p-value plot to "Histogram". Null p-values are flat. Real effects pile up near 0. The height of the spike above the flat floor is the signal BH looks for.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const tc = $('tiles'), tctx = tc.getContext('2d');
+  const pc = $('pplot'), pctx = pc.getContext('2d');
+  const fc = $('fwer'), fctx = fc.getContext('2d');
+  const tip = $('tip');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // ---------- normal distribution helpers ----------
+  function erfc(x) { // Numerical Recipes erfcc, fractional error < 1.2e-7
+    const z = Math.abs(x), t = 1 / (1 + 0.5 * z);
+    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? r : 2 - r;
+  }
+  const Phi = x => 0.5 * erfc(-x / Math.SQRT2);
+  const Qn = x => 0.5 * erfc(x / Math.SQRT2);
+  function qnorm(p) { // Acklam
+    const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.383577518672690e2, -3.066479806614716e1, 2.506628277459239];
+    const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1, -1.328068155288572e1];
+    const c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+    const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
+    const pl = 0.02425;
+    if (p < pl) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+    if (p > 1 - pl) return -qnorm(1 - p);
+    const q = p - 0.5, r = q * q;
+    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+  }
+  const dnorm = z => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+  function randn() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function gauss(rng) { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+  const ALPHAS = [0.001, 0.005, 0.01, 0.05, 0.10, 0.20];
+  const KMAX = 1000;
+  const S = { k: 1000, m: 100, pow: 0.8, ai: 3, seed: 7, view: 'sorted', preset: 'pEcon', rep: null };
+  const NOTES = {
+    pQSR: '100 hypotheses at α = 0.05. The case reports 4 insights that survived; this lab assumes, for illustration, that exactly 4 effects are real, each tested with 80% power.',
+    pEcon: '1,000 hypotheses, 100 of them true, α = 0.05, power 0.8. Expect 80 true positives and 45 false ones: a 36% false-discovery rate.',
+    pBlue: '41 shades tested against the default at α = 0.05, with no real difference. The chance of a spurious "winner" is 1 − 0.95⁴¹ = 88%.'
+  };
+  let C = {}, D = {}, dirty = true;
+  const U = new Float64Array(KMAX), Z = new Float64Array(KMAX);
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'fit', 'board', 'coinB'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const alpha = () => ALPHAS[S.ai];
+  function powerAt(lam, a) { const zc = qnorm(1 - a / 2); return Qn(zc - lam) + Phi(-zc - lam); }
+  function lambdaFor(pw, a) { let lo = 0, hi = 15; for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; powerAt(mid, a) < pw ? lo = mid : hi = mid; } return (lo + hi) / 2; }
+
+  function seedDraws() { const r = mulberry32(S.seed * 2654435761); for (let i = 0; i < KMAX; i++) { U[i] = r(); Z[i] = gauss(r); } }
+
+  // decisions for one vector of p-values; returns arrays of booleans per method
+  function decide(p, k, a, order) {
+    const raw = new Uint8Array(k), bon = new Uint8Array(k), holm = new Uint8Array(k), bh = new Uint8Array(k);
+    for (let i = 0; i < k; i++) { raw[i] = p[i] <= a; bon[i] = p[i] <= a / k; }
+    for (let j = 0; j < k; j++) { const i = order[j]; if (p[i] <= a / (k - j)) holm[i] = 1; else break; }
+    let jmax = -1; for (let j = k - 1; j >= 0; j--) if (p[order[j]] <= (j + 1) * a / k) { jmax = j; break; }
+    for (let j = 0; j <= jmax; j++) bh[order[j]] = 1;
+    return { raw, bon, holm, bh, jmax };
+  }
+  function sortIdx(p, k) { const o = Array.from({ length: k }, (_, i) => i); o.sort((x, y) => p[x] - p[y]); return o; }
+
+  function computeDraw() {
+    const k = S.k, m = Math.min(S.m, k), a = alpha();
+    const lam = lambdaFor(S.pow, a);
+    const p = new Float64Array(k);
+    for (let i = 0; i < k; i++) p[i] = i < m ? 2 * Qn(Math.abs(lam + Z[i])) : U[i];
+    const order = sortIdx(p, k);
+    const dec = decide(p, k, a, order);
+    D = { k, m, a, lam, p, order, dec };
+  }
+
+  // repeated studies (fresh randomness each time)
+  let repTimer = null;
+  function runReps(M, add) {
+    const k = S.k, m = Math.min(S.m, k), a = alpha(), lam = lambdaFor(S.pow, a);
+    const key = [k, m, S.pow, S.ai].join('|');
+    if (!add || !S.rep || S.rep.key !== key) S.rep = { key, M: 0, fw: [0, 0, 0], fdr: [0, 0, 0], disc: [0, 0, 0], tp: [0, 0, 0] };
+    const R = S.rep, rng = mulberry32((Math.random() * 4294967296) >>> 0);
+    const p = new Float64Array(k), idx = new Uint32Array(k);
+    for (let r = 0; r < M; r++) {
+      for (let i = 0; i < k; i++) p[i] = i < m ? 2 * Qn(Math.abs(lam + gauss(rng))) : rng();
+      for (let i = 0; i < k; i++) idx[i] = i;
+      idx.sort((x, y) => p[x] - p[y]);
+      let jmax = -1; for (let j = k - 1; j >= 0; j--) if (p[idx[j]] <= (j + 1) * a / k) { jmax = j; break; }
+      const thr = [a, a / k, jmax >= 0 ? p[idx[jmax]] : -1];
+      for (let t = 0; t < 3; t++) {
+        let V = 0, T = 0;
+        for (let i = 0; i < k; i++) if (p[i] <= thr[t]) { if (i < m) T++; else V++; }
+        if (V > 0) R.fw[t]++;
+        if (V + T > 0) R.fdr[t] += V / (V + T);
+        R.disc[t] += V + T; R.tp[t] += T;
+      }
+    }
+    R.M += M;
+    renderRep();
+  }
+  function scheduleReps() { clearTimeout(repTimer); $('repLab').textContent = 'Over repeated studies: updating…'; repTimer = setTimeout(() => runReps(2000, false), 220); }
+
+  // ---------- text ----------
+  const N = v => Math.round(v).toLocaleString();
+  const pct = v => (v * 100).toFixed(1) + '%';
+  const fa = a => String(+a.toPrecision(3));
+  const fp = p => p < 0.0001 ? p.toExponential(1).replace('e', '×10^') : p.toFixed(4);
+
+  function theory() {
+    const k = S.k, m = Math.min(S.m, k), k0 = k - m, a = alpha(), lam = lambdaFor(S.pow, a);
+    const pB = powerAt(lam, a / k);
+    const fw = [1 - (1 - a) ** k0, 1 - (1 - a / k) ** k0, m === 0 ? a : null];
+    const ratio = (V, T) => (V + T) > 0 ? V / (V + T) : 0;
+    const fdr = [m === 0 ? fw[0] : ratio(a * k0, S.pow * m), m === 0 ? fw[1] : ratio(a / k * k0, pB * m), a * k0 / k];
+    return { fw, fdr, approx: [m > 0, m > 0, false], pB, lam };
+  }
+
+  function renderDraw() {
+    const { k, m, a, dec, lam } = D;
+    const cnt = arr => { let tp = 0, fp = 0; for (let i = 0; i < k; i++) if (arr[i]) { if (i < m) tp++; else fp++; } return { tp, fp, d: tp + fp, ms: m - tp }; };
+    const c = [cnt(dec.raw), cnt(dec.bon), cnt(dec.bh)], h = cnt(dec.holm);
+    D.counts = c;
+    const row = (lab, key, cls = '') => `<tr><td>${lab}</td>${c.map(x => `<td class="${cls}">${N(x[key])}</td>`).join('')}</tr>`;
+    $('tDraw').innerHTML = row('Flagged', 'd') + row('True positives', 'tp', 'c-tp') + row('False positives', 'fp', 'c-fp') + row('Missed effects', 'ms', 'c-ms');
+    $('holm').textContent = `Holm–Bonferroni flags ${N(h.d)} (${N(h.fp)} false). It never flags fewer than Bonferroni.`;
+    $('eqn').innerHTML = `k = <span class="a">${N(k)}</span> tests, m = <span class="a">${N(m)}</span> real,&nbsp; raw α = <span class="s">${fa(a)}</span>,&nbsp; Bonferroni α/k = <span class="s">${fa(a / k)}</span>`;
+    const T = theory();
+    $('lamNote').textContent = `A real effect shifts z by λ = ${lam.toFixed(2)}. Power per test: ${pct(S.pow)} at α, ${pct(T.pB)} at α/k.`;
+    $('l1').textContent = `Now: k = ${N(k)} gives ${pct(1 - (1 - a) ** k)} if every test is null.`;
+    $('l2').textContent = `Now: each test at ${fa(a / k)}; power per real effect falls from ${pct(S.pow)} to ${pct(T.pB)}.`;
+    $('l4').textContent = `Now: BH flags ${N(c[2].d)} of ${N(k)} in this draw, ${N(c[2].fp)} of them false.`;
+    // Economist table
+    const k0 = k - m, eTP = S.pow * m, eFP = a * k0;
+    $('econ').innerHTML = [
+      [`Real effects found, ${S.pow.toFixed(2)} × ${N(m)}`, eTP.toFixed(1)],
+      [`Real effects missed`, (m - eTP).toFixed(1)],
+      [`False positives, ${fa(a)} × ${N(k0)}`, eFP.toFixed(1)],
+      [`Total "confirmed"`, (eTP + eFP).toFixed(1)],
+      [`Share of confirmed that are wrong`, eTP + eFP > 0 ? pct(eFP / (eTP + eFP)) : '–']
+    ].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+    for (const id of ['pQSR', 'pEcon', 'pBlue']) $(id).setAttribute('aria-pressed', S.preset === id);
+    $('caseNote').textContent = S.preset ? NOTES[S.preset] : 'Your own settings.';
+    $('kOut').textContent = N(S.k); $('mOut').textContent = N(Math.min(S.m, S.k)); $('powOut').textContent = S.pow.toFixed(2); $('alphaOut').textContent = fa(a);
+    renderRep();
+    dirty = true;
+  }
+  function renderRep() {
+    const R = S.rep, T = theory();
+    const fmtT = (v, ap) => v == null ? '–' : (ap ? '≈' : '') + pct(v);
+    let rows = '';
+    if (R && R.key === [S.k, Math.min(S.m, S.k), S.pow, S.ai].join('|')) {
+      $('repLab').textContent = `Over ${N(R.M)} simulated studies`;
+      const m = Math.min(S.m, S.k);
+      rows += `<tr><td>FWER, simulated</td>${R.fw.map(v => `<td>${pct(v / R.M)}</td>`).join('')}</tr>`;
+      rows += `<tr><td>FWER, theory</td>${T.fw.map(v => `<td>${fmtT(v, false)}</td>`).join('')}</tr>`;
+      rows += `<tr class="sep"><td>FDR, simulated</td>${R.fdr.map(v => `<td>${pct(v / R.M)}</td>`).join('')}</tr>`;
+      rows += `<tr><td>FDR, theory</td>${T.fdr.map((v, i) => `<td>${fmtT(v, T.approx[i])}</td>`).join('')}</tr>`;
+      rows += `<tr class="sep"><td>Avg flagged</td>${R.disc.map(v => `<td>${(v / R.M).toFixed(1)}</td>`).join('')}</tr>`;
+      rows += `<tr><td>Real effects found</td>${R.tp.map(v => `<td>${m ? pct(v / R.M / m) : '–'}</td>`).join('')}</tr>`;
+    } else {
+      $('repLab').textContent = 'Over repeated studies: updating…';
+      rows += `<tr><td>FWER, theory</td>${T.fw.map(v => `<td>${fmtT(v, false)}</td>`).join('')}</tr>`;
+      rows += `<tr><td>FDR, theory</td>${T.fdr.map((v, i) => `<td>${fmtT(v, T.approx[i])}</td>`).join('')}</tr>`;
+    }
+    $('tRep').innerHTML = rows;
+  }
+
+  // ---------- drawing ----------
+  const mono = '"JetBrains Mono", ui-monospace, monospace';
+  let TL = {}, PL = {}, FL = {};
+  function sizeCanvas(cv, c, w, h) { const d = window.devicePixelRatio || 1; cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d); c.setTransform(d, 0, 0, d, 0, 0); }
+  function tileLayout(W) {
+    const k = S.k, stacked = W < 560, gap = 14;
+    const pw = stacked ? W : (W - 2 * gap) / 3;
+    let cols = Math.max(1, Math.ceil(Math.sqrt(k * 1.25)));
+    let s = Math.min(26, pw / cols);
+    if (stacked && k > 200) { cols = Math.ceil(Math.sqrt(k * 3.2)); s = pw / cols; }
+    cols = Math.min(cols, Math.max(1, Math.floor(pw / s)));
+    const rows = Math.ceil(k / cols), head = 38, ph = head + rows * s;
+    return { stacked, pw, ph, cols, rows, s, head, gap, H: stacked ? 3 * ph + 2 * gap : ph };
+  }
+  function resize() {
+    const w = tc.parentElement.clientWidth - 28;
+    TL = tileLayout(w); TL.W = w; sizeCanvas(tc, tctx, w, Math.ceil(TL.H) + 2);
+    const ph = Math.round(Math.min(Math.max(w * 0.42, 240), 340));
+    PL = { W: w, H: ph, ml: 64, mr: 12, mt: 12, mb: 36 }; sizeCanvas(pc, pctx, w, ph);
+    const fh = Math.round(Math.min(Math.max(w * 0.34, 220), 300));
+    FL = { W: w, H: fh, ml: 44, mr: 12, mt: 14, mb: 36 }; sizeCanvas(fc, fctx, w, fh);
+    dirty = true;
+  }
+  function panelOrigin(t) { return TL.stacked ? { x: 0, y: t * (TL.ph + TL.gap) } : { x: t * (TL.pw + TL.gap), y: 0 }; }
+  const METHODS = [['raw', 'Raw α'], ['bon', 'Bonferroni'], ['bh', 'Benjamini–Hochberg']];
+
+  function drawTiles() {
+    const c = tctx, { s, cols, head, pw } = TL, { k, m, dec, counts, a } = D;
+    c.clearRect(0, 0, TL.W, TL.H + 2);
+    const g = s >= 8 ? 1.5 : s >= 4 ? 0.75 : 0;
+    METHODS.forEach(([key, name], t) => {
+      const o = panelOrigin(t), arr = dec[key], cn = counts[t];
+      c.fillStyle = C.ink; c.font = '700 14px ' + getComputedStyle(document.body).fontFamily; c.textBaseline = 'top'; c.textAlign = 'left';
+      const thr = key === 'raw' ? `p ≤ ${fa(a)}` : key === 'bon' ? `p ≤ ${fa(a / k)}` : 'p₍ᵢ₎ ≤ i·α/k';
+      c.fillText(name, o.x, o.y);
+      c.font = '11px ' + mono; c.fillStyle = C.muted;
+      c.fillText(`${thr} · ${N(cn.d)} flagged, `, o.x, o.y + 19);
+      const w1 = c.measureText(`${thr} · ${N(cn.d)} flagged, `).width;
+      c.fillStyle = C.curve; c.fillText(`${N(cn.fp)} false`, o.x + w1, o.y + 19);
+      for (let i = 0; i < k; i++) {
+        const r = Math.floor(i / cols), q = i % cols, x = o.x + q * s, y = o.y + head + r * s;
+        const real = i < m, flag = arr[i];
+        c.fillStyle = real ? (flag ? C.fit : C.ball) : (flag ? C.curve : C.line);
+        c.fillRect(x + g / 2, y + g / 2, Math.max(0.8, s - g), Math.max(0.8, s - g));
+      }
+    });
+  }
+
+  function drawP() {
+    const c = pctx, { W, H, ml, mr, mt, mb } = PL, { k, m, p, order, a, dec } = D;
+    c.clearRect(0, 0, W, H);
+    c.font = '11px ' + mono; c.lineWidth = 1;
+    if (S.view === 'hist') {
+      const B = 20, cnt0 = new Array(B).fill(0), cnt1 = new Array(B).fill(0);
+      for (let i = 0; i < k; i++) { const b = Math.min(B - 1, Math.floor(p[i] * B)); (i < m ? cnt1 : cnt0)[b]++; }
+      let ymax = 1; for (let b = 0; b < B; b++) ymax = Math.max(ymax, cnt0[b] + cnt1[b]);
+      ymax = Math.max(ymax, (k - m) / B) * 1.1;
+      const X = v => ml + v * (W - ml - mr), Y = v => H - mb - v / ymax * (H - mt - mb);
+      const st = Math.max(1, niceStep(ymax, 5));
+      c.textAlign = 'right'; c.textBaseline = 'middle';
+      for (let v = 0; v <= ymax; v += st) { const y = Math.round(Y(v)) + .5; c.strokeStyle = C.grid; c.beginPath(); c.moveTo(ml, y); c.lineTo(W - mr, y); c.stroke(); c.fillStyle = C.muted; c.fillText(String(v), ml - 6, y); }
+      c.textAlign = 'center'; c.textBaseline = 'top';
+      for (let v = 0; v <= 1.0001; v += 0.2) c.fillText(v.toFixed(1), X(v), H - mb + 6);
+      c.textAlign = 'right'; c.fillText('p-value', W - mr, H - mb + 20);
+      const bw = (W - ml - mr) / B;
+      for (let b = 0; b < B; b++) {
+        const x = X(b / B) + 1;
+        c.fillStyle = C.line; c.fillRect(x, Y(cnt0[b]), bw - 2, H - mb - Y(cnt0[b]));
+        c.fillStyle = C.fit; c.fillRect(x, Y(cnt0[b] + cnt1[b]), bw - 2, Y(cnt0[b]) - Y(cnt0[b] + cnt1[b]));
+      }
+      c.strokeStyle = C.curve; c.lineWidth = 2; const y0 = Y((k - m) / B); c.beginPath(); c.moveTo(ml, y0); c.lineTo(W - mr, y0); c.stroke();
+      c.strokeStyle = C.line; c.lineWidth = 1; c.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
+      return;
+    }
+    // sorted, log-log
+    let pmin = 1; for (let i = 0; i < k; i++) if (p[i] < pmin) pmin = p[i];
+    const ylo = Math.max(-12, Math.min(-3, Math.floor(Math.log10(Math.max(pmin, 1e-12)) - 0.3), Math.floor(Math.log10(a / k) - 0.5)));
+    const xhi = Math.max(1, Math.log10(k));
+    const X = r => ml + (xhi > 0 ? Math.log10(r) / xhi : 0.5) * (W - ml - mr);
+    const Y = lp => mt + (0 - lp) / (0 - ylo) * (H - mt - mb);
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    const yst = -ylo > 8 ? 2 : 1;
+    for (let e = 0; e >= ylo; e -= yst) { const y = Math.round(Y(e)) + .5; c.strokeStyle = C.grid; c.beginPath(); c.moveTo(ml, y); c.lineTo(W - mr, y); c.stroke(); c.fillStyle = C.muted; c.fillText(e === 0 ? '1' : e === -1 ? '0.1' : e === -2 ? '0.01' : `1e${e}`, ml - 6, y); }
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (const r of [1, 10, 100, 1000]) if (r <= 10 ** xhi + 1e-9) { const x = Math.round(X(r)) + .5; c.strokeStyle = C.grid; c.beginPath(); c.moveTo(x, mt); c.lineTo(x, H - mb); c.stroke(); c.fillStyle = C.muted; const tl = N(r), tw = c.measureText(tl).width; c.fillText(tl, Math.min(x, W - mr - tw / 2), H - mb + 6); }
+    c.textAlign = 'right'; c.fillText('rank i of the p-value (log scale)', W - mr, H - mb + 21);
+    c.save(); c.translate(4, mt + (H - mt - mb) / 2); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText('p-value', 0, 0); c.restore();
+    c.save(); c.beginPath(); c.rect(ml, mt, W - ml - mr, H - mt - mb); c.clip();
+    // BH cutoff region
+    if (dec.jmax >= 0) { c.fillStyle = C.coinB; c.globalAlpha = 0.08; c.fillRect(ml, mt, X(dec.jmax + 1) - ml, H - mt - mb); c.globalAlpha = 1; }
+    // lines
+    c.lineWidth = 2;
+    c.strokeStyle = C.curve; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(ml, Y(Math.log10(a))); c.lineTo(W - mr, Y(Math.log10(a))); c.stroke();
+    c.strokeStyle = C.ink; c.setLineDash([6, 4]); c.beginPath(); c.moveTo(ml, Y(Math.log10(a / k))); c.lineTo(W - mr, Y(Math.log10(a / k))); c.stroke();
+    c.setLineDash([]); c.strokeStyle = C.coinB; c.lineWidth = 2.25; c.beginPath(); c.moveTo(X(1), Y(Math.log10(a / k))); c.lineTo(X(k), Y(Math.log10(a))); c.stroke();
+    // points
+    const r = k > 400 ? 2 : k > 100 ? 2.6 : 3.4;
+    for (let j = 0; j < k; j++) {
+      const i = order[j], lp = Math.max(ylo, Math.log10(Math.max(p[i], 1e-300)));
+      c.fillStyle = i < m ? C.fit : C.muted; c.globalAlpha = i < m ? 0.95 : 0.6;
+      c.beginPath(); c.arc(k === 1 ? (ml + W - mr) / 2 : X(j + 1), Y(lp), r, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1; c.restore();
+    c.strokeStyle = C.line; c.lineWidth = 1; c.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
+    c.font = '600 11px ' + mono; c.textBaseline = 'bottom'; c.textAlign = 'left';
+    if (dec.jmax >= 0) { c.fillStyle = C.coinB; halo(c, `BH flags the first ${N(dec.jmax + 1)}`, ml + 6, H - mb - 6); }
+  }
+  function halo(c, t, x, y) { c.save(); c.strokeStyle = C.board; c.lineWidth = 4; c.lineJoin = 'round'; c.strokeText(t, x, y); c.restore(); c.fillText(t, x, y); }
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+
+  function drawF() {
+    const c = fctx, { W, H, ml, mr, mt, mb } = FL, a = alpha();
+    c.clearRect(0, 0, W, H); c.font = '11px ' + mono; c.lineWidth = 1;
+    const X = kk => ml + Math.log10(kk) / 3 * (W - ml - mr), Y = v => mt + (1 - v) * (H - mt - mb);
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (const v of [0, 0.25, 0.5, 0.75, 1]) { const y = Math.round(Y(v)) + .5; c.strokeStyle = C.grid; c.beginPath(); c.moveTo(ml, y); c.lineTo(W - mr, y); c.stroke(); c.fillStyle = C.muted; c.fillText((v * 100) + '%', ml - 6, y); }
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (const kk of [1, 10, 100, 1000]) { const x = Math.round(X(kk)) + .5; c.strokeStyle = C.grid; c.beginPath(); c.moveTo(x, mt); c.lineTo(x, H - mb); c.stroke(); c.fillStyle = C.muted; const tl = N(kk), tw = c.measureText(tl).width; c.fillText(tl, Math.min(x, W - mr - tw / 2), H - mb + 6); }
+    c.textAlign = 'right'; c.fillText('number of tests k (log scale)', W - mr, H - mb + 20);
+    c.strokeStyle = C.line; c.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
+    const line = (fn, col, w) => { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); for (let i = 0; i <= 300; i++) { const kk = 10 ** (3 * i / 300), y = Y(fn(kk)); i ? c.lineTo(X(kk), y) : c.moveTo(X(kk), y); } c.stroke(); };
+    line(kk => 1 - (1 - a / kk) ** kk, C.fit, 2.25);
+    line(kk => 1 - (1 - a) ** kk, C.curve, 2.5);
+    // slide table points (alpha = 0.05 only)
+    if (Math.abs(a - 0.05) < 1e-9) for (const kk of [1, 5, 10, 20, 41, 100]) { c.fillStyle = C.muted; c.beginPath(); c.arc(X(kk), Y(1 - 0.95 ** kk), 3.5, 0, Math.PI * 2); c.fill(); }
+    // current k
+    const kk = S.k, v = 1 - (1 - a) ** kk, cx = X(kk), cy = Y(v);
+    c.fillStyle = C.ball; c.beginPath(); c.arc(cx, cy, 6.5, 0, Math.PI * 2); c.fill(); c.strokeStyle = C.board; c.lineWidth = 2; c.stroke();
+    c.font = '600 12px ' + mono; c.fillStyle = C.ink; c.textBaseline = 'middle';
+    const lab = `k = ${N(kk)}: ${pct(v)}`, tw = c.measureText(lab).width, rgt = cx + 12 + tw < W - mr;
+    c.textAlign = rgt ? 'left' : 'right'; halo(c, lab, rgt ? cx + 12 : cx - 12, Math.min(H - mb - 12, Math.max(mt + 10, cy + (v > 0.85 ? 16 : -14))));
+    c.fillStyle = C.fit; c.textAlign = 'right'; c.textBaseline = 'bottom'; halo(c, `Bonferroni ≤ ${fa(a)}`, W - mr - 6, Y(a) - 6);
+  }
+
+  function frame() { if (dirty) { drawTiles(); drawP(); drawF(); dirty = false; } requestAnimationFrame(frame); }
+
+  // ---------- controls ----------
+  function full() { computeDraw(); renderDraw(); resize(); scheduleReps(); }
+  function syncSliders() { $('k').value = S.k; $('m').max = S.k; $('m').value = Math.min(S.m, S.k); $('pow').value = S.pow; $('alpha').value = S.ai; }
+  function preset(id) {
+    if (id === 'pQSR') Object.assign(S, { k: 100, m: 4, pow: 0.8, ai: 3 });
+    if (id === 'pEcon') Object.assign(S, { k: 1000, m: 100, pow: 0.8, ai: 3 });
+    if (id === 'pBlue') Object.assign(S, { k: 41, m: 0, pow: 0.8, ai: 3 });
+    S.preset = id; syncSliders(); full();
+  }
+  for (const id of ['pQSR', 'pEcon', 'pBlue']) $(id).onclick = () => preset(id);
+  const go = () => document.querySelector('.board').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  $('dBlue').onclick = () => { preset('pBlue'); go(); };
+  $('dEcon').onclick = () => { preset('pEcon'); go(); };
+  $('dQSR').onclick = () => { preset('pQSR'); go(); };
+  $('k').oninput = e => { S.k = +e.target.value; S.preset = null; $('m').max = S.k; if (S.m > S.k) { S.m = S.k; } $('m').value = S.m; full(); };
+  $('m').oninput = e => { S.m = +e.target.value; S.preset = null; full(); };
+  $('pow').oninput = e => { S.pow = +e.target.value; S.preset = null; full(); };
+  $('alpha').oninput = e => { S.ai = +e.target.value; S.preset = null; full(); };
+  $('redraw').onclick = () => { S.seed++; seedDraws(); computeDraw(); renderDraw(); };
+  $('more').onclick = () => runReps(2000, true);
+  for (const [id, v] of [['vSorted', 'sorted'], ['vHist', 'hist']]) $(id).onclick = () => {
+    S.view = v; $('vSorted').setAttribute('aria-pressed', v === 'sorted'); $('vHist').setAttribute('aria-pressed', v === 'hist');
+    $('legSorted').hidden = v !== 'sorted'; $('legHist').hidden = v !== 'hist';
+    $('pTitle').textContent = v === 'sorted' ? 'p-values from this draw, sorted' : 'p-values from this draw, histogram';
+    dirty = true;
+  };
+
+  // slide table
+  $('fwTbl').innerHTML = [1, 5, 10, 20, 41, 100].map(kk => `<tr><td>${kk}</td><td>${pct(1 - 0.95 ** kk)}</td></tr>`).join('');
+
+  // tile hover
+  function showTip(ev) {
+    const rc = tc.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    let hit = null;
+    for (let t = 0; t < 3; t++) {
+      const o = panelOrigin(t), q = Math.floor((mx - o.x) / TL.s), r = Math.floor((my - o.y - TL.head) / TL.s);
+      if (q >= 0 && q < TL.cols && r >= 0 && mx - o.x < TL.cols * TL.s) { const i = r * TL.cols + q; if (i < D.k) { hit = i; break; } }
+    }
+    if (hit == null) { tip.hidden = true; return; }
+    const i = hit, dec = D.dec, who = [['raw', 'raw α'], ['bon', 'Bonferroni'], ['bh', 'BH']].filter(([kk]) => dec[kk][i]).map(x => x[1]);
+    tip.innerHTML = `Hypothesis ${i + 1} · ${i < D.m ? 'real effect' : 'no effect'}<br>p = ${fp(D.p[i])}<br>Flagged by: ${who.length ? who.join(', ') : 'none'}`;
+    tip.hidden = false;
+    tip.style.left = Math.max(14, Math.min(mx + 30, tc.clientWidth - tip.offsetWidth + 14)) + 'px';
+    tip.style.top = Math.max(14, my + tc.offsetTop - tip.offsetHeight - 8) + 'px';
+  }
+  tc.addEventListener('pointermove', showTip);
+  tc.addEventListener('pointerdown', showTip);
+  tc.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => resize()).observe(tc.parentElement);
+  seedDraws(); syncSliders(); computeDraw(); renderDraw(); resize(); runReps(2000, false);
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

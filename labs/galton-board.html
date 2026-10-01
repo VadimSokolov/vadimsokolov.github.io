@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Galton Board Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: instrument on the left (the board is the hero), lab controls + readouts in a right rail; the CLT lesson and class notes below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; }
+#board { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 8px 4px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; }
+.sw.ball { background: var(--ball); border-radius: 50%; width: 10px; }
+.sw.a { background: var(--coinA); border-radius: 50%; width: 10px; }
+.sw.b { background: var(--coinB); border-radius: 50%; width: 10px; }
+.sw.dash { height: 0; border-top: 2px solid var(--ink); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px solid var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tip b { font-family: var(--font-display); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary[aria-pressed="true"] { background: var(--curve); border-color: var(--curve); }
+.btns .wide { grid-column: span 2; }
+
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+.slider.a output { color: var(--coinA); }
+.slider.b output { color: var(--coinB); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider.a input { accent-color: var(--coinA); }
+.slider.b input { accent-color: var(--coinB); }
+.mixbox { display: flex; flex-direction: column; gap: 10px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.path { font-family: var(--font-mono); font-size: 13px; line-height: 1.6; word-break: break-word; min-height: 1.6em; }
+.path .r { color: var(--accent); font-weight: 600; }
+.path .l { color: var(--muted); }
+.path .to { color: var(--ink); font-weight: 600; }
+.path .ca { color: var(--coinA); font-weight: 600; }
+.path .cb { color: var(--coinB); font-weight: 600; }
+
+/* CLT lesson */
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.eq table { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.eq th, .eq td { text-align: right; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.eq th:first-child, .eq td:first-child { text-align: left; }
+.eq th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.eq tr:last-child td { border-bottom: 0; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Francis Galton's quincunx, 1873</span>
+    <h1>Galton Board Lab</h1>
+    <p class="lead">Each ball hits one peg per row and bounces right with probability <i>p</i>. The bin it lands in counts its right bounces, so the pile builds a binomial distribution. Switch to a mixture coin to see when that pile stops looking like a bell curve.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 1, <a href="https://vsokolov.org/html/_book/01-prob.html">Probability and Uncertainty</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Galton board simulation">
+      <canvas id="board" role="img" aria-label="Pegs in a triangle with bins below collecting falling balls"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend" id="legendFixed">
+        <span><i class="sw ball"></i>Ball</span>
+        <span><i class="sw"></i>Observed count</span>
+        <span><i class="sw dash"></i>Expected count (exact)</span>
+        <span><i class="sw curve"></i>Normal with the same mean and SD</span>
+      </div>
+      <div class="legend" id="legendMix" hidden>
+        <span><i class="sw a"></i>Ball using coin A</span>
+        <span><i class="sw b"></i>Ball using coin B</span>
+        <span><i class="sw dash"></i>Expected count (exact mixture)</span>
+        <span><i class="sw curve"></i>Normal with the same mean and SD</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Drop balls</span>
+        <div class="btns">
+          <button id="d1">+1</button>
+          <button id="d10">+10</button>
+          <button id="d100">+100</button>
+          <button id="pour" class="primary wide" aria-pressed="false">Pour continuously</button>
+          <button id="inst" title="Add 1,000 balls instantly, without animation">+1,000 now</button>
+        </div>
+        <button id="reset">Reset counts</button>
+      </div>
+
+      <div class="group">
+        <span class="label">Coin at each peg</span>
+        <div class="seg" role="group" aria-label="Coin model">
+          <button id="mFixed" aria-pressed="true">One coin</button>
+          <button id="mBall" aria-pressed="false">Mixture,<br>per ball</button>
+          <button id="mPin" aria-pressed="false">Mixture,<br>per peg</button>
+        </div>
+        <div class="slider" id="fixedBox">
+          <div class="top"><label for="prob">Chance of bouncing right, p</label><output id="probOut">0.50</output></div>
+          <input type="range" id="prob" min="0.05" max="0.95" step="0.05" value="0.5">
+        </div>
+        <div class="mixbox" id="mixBox" hidden>
+          <p class="hint" id="mixHint">Each ball flips for a coin once at the top, then uses that coin at every peg.</p>
+          <div class="slider"><div class="top"><label for="w">Chance of picking coin A, w</label><output id="wOut">0.30</output></div>
+            <input type="range" id="w" min="0.05" max="0.95" step="0.05" value="0.3"></div>
+          <div class="slider a"><div class="top"><label for="pA">Coin A: P(right)</label><output id="pAOut">0.70</output></div>
+            <input type="range" id="pA" min="0.05" max="0.95" step="0.05" value="0.7"></div>
+          <div class="slider b"><div class="top"><label for="pB">Coin B: P(right)</label><output id="pBOut">0.50</output></div>
+            <input type="range" id="pB" min="0.05" max="0.95" step="0.05" value="0.5"></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Board</span>
+        <div class="slider">
+          <div class="top"><label for="rows">Rows of pegs, n</label><output id="rowsOut">12</output></div>
+          <input type="range" id="rows" min="1" max="100" step="1" value="12">
+        </div>
+        <div class="slider">
+          <div class="top"><label for="speed">Animation speed</label><output id="speedOut">10 rows/s</output></div>
+          <input type="range" id="speed" min="2" max="60" step="1" value="10">
+        </div>
+        <p class="hint">Changing n or any coin setting clears the counts.</p>
+        <div class="checks">
+          <label><input type="checkbox" id="showBinom" checked> Show exact expected counts</label>
+          <label><input type="checkbox" id="showNormal" checked> Show normal curve</label>
+          <label><input type="checkbox" id="showTrace" checked> Trace the last ball's path</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+          <span class="label">Balls landed</span><span class="big" id="nObs">0</span>
+        </div>
+        <table class="stats">
+          <thead><tr><th></th><th>Observed</th><th>Theory</th></tr></thead>
+          <tbody>
+            <tr><td>Mean of K</td><td id="meanObs">–</td><td id="meanTh">–</td></tr>
+            <tr><td>SD of K</td><td id="sdObs">–</td><td id="sdTh">–</td></tr>
+            <tr><td>SD if flips were independent</td><td>–</td><td id="sdInd">–</td></tr>
+            <tr><td>Correlation of two bounces, ρ</td><td id="rhoObs">–</td><td id="rhoTh">–</td></tr>
+            <tr><td>Variance inflation, 1+(n−1)ρ</td><td id="defObs">–</td><td id="defTh">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="group">
+        <span class="label">Last ball (R = right, L = left)</span>
+        <div class="path" id="path"><span class="l">Drop a ball to see its path.</span></div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson" id="clt">
+    <div class="head">
+      <span class="eyebrow">When the Central Limit Theorem fails</span>
+      <h2>A ball that picks one coin for the whole trip</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The first two demos use the same coins: coin A (p = 0.7) with probability 0.3 and coin B (p = 0.5) otherwise. Only the moment of choosing the coin differs. Each sets n = 100 and drops 5,000 balls. The third demo spreads the coins apart so two humps show up with only 20 rows.</p>
+      <div class="demo">
+        <button class="primary" id="demoBall">Coin per ball, n = 100</button>
+        <button id="demoPin">Coin per peg, n = 100</button>
+        <button id="demoWide">Far-apart coins (0.8 vs 0.3), n = 20</button>
+      </div>
+      <div class="eq" style="max-width:80ch">
+        <div class="cap">Why the pile still looks normal at n = 12</div>
+        <p style="margin:0">The CLT is a statement about large n, and its failure is too. At n = 12 the two coins' piles are centered at 8.4 and 6.0 with SDs of about 1.6 and 1.7, so they overlap almost completely. Their mixture is only slightly wider than a binomial (SD 2.02 instead of 1.72) and has almost no skew (0.02). A normal curve fits it well. The difference grows with n: the centers separate like 0.2n, while each pile's width grows only like √n. Around n = 50 a second hump appears, and by n = 100 the pile clearly has two.</p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>The CLT needs many independent pieces</h3>
+        <p>K is a sum of n bounces, K = X<sub>1</sub> + … + X<sub>n</sub>. The classic CLT says this sum looks normal when the X<sub>i</sub> are independent with the same distribution. If the coin is picked fresh at each peg, every bounce is an independent Bernoulli(0.56). The mixture collapses to one coin and the bell curve appears.</p>
+      </div></li>
+      <li><div>
+        <h3>Per ball, the bounces share a hidden coin</h3>
+        <p>Given the coin, bounces are independent. Without knowing it, a right bounce is evidence the ball has coin A, which makes the next right bounce more likely. So any two bounces of the same ball are positively correlated, with Cov(X<sub>i</sub>, X<sub>j</sub>) = Var(p). That correlation never fades, however many pegs there are.</p>
+      </div></li>
+      <li><div>
+        <h3>The correlated part of the variance grows like n²</h3>
+        <p>A sum of n terms has n variances and n(n−1) covariances. With independence the covariances vanish and Var(K) grows like n. Here they add up to n(n−1)·Var(p), which grows like n² and eventually dominates. The inflation factor 1 + (n−1)ρ keeps rising with n.</p>
+      </div></li>
+      <li><div>
+        <h3>The average settles on the coin, not on 0.56</h3>
+        <p>The law of large numbers still works, but inside each ball: K/n converges to that ball's coin, 0.5 or 0.7, never to 0.56. So K/n has a two-point limit, and the standardized K converges to a two-point shape instead of N(0,1). The CLT does hold within each coin, so the pile becomes two bells weighted 70/30. The normal curve with the correct mean and SD still misses both humps.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Law of total variance for K</div>
+        <div class="m">Var(K) = E[Var(K | p)] + Var(E[K | p])</div>
+        <div class="m">       = n·E[p(1−p)] + n²·Var(p)</div>
+      </div>
+      <div class="eq">
+        <div class="cap">For w = 0.3, p<sub>A</sub> = 0.7, p<sub>B</sub> = 0.5</div>
+        <div class="m">p̄ = 0.3·0.7 + 0.7·0.5 = 0.56</div>
+        <div class="m">Var(p) = w(1−w)(p<sub>A</sub>−p<sub>B</sub>)² = 0.0084</div>
+        <div class="m">ρ = Var(p) / (p̄(1−p̄)) ≈ 0.034</div>
+      </div>
+      <div class="eq">
+        <div class="cap">SD of K. The gap from the independent case widens with n.</div>
+        <table>
+          <thead><tr><th>n</th><th>Per peg</th><th>Per ball</th><th>Inflation</th></tr></thead>
+          <tbody>
+            <tr><td>12</td><td>1.72</td><td>2.02</td><td>1.38×</td></tr>
+            <tr><td>50</td><td>3.51</td><td>5.74</td><td>2.67×</td></tr>
+            <tr><td>100</td><td>4.96</td><td>10.4</td><td>4.38×</td></tr>
+            <tr><td>400</td><td>9.93</td><td>37.9</td><td>14.6×</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="eq">
+        <div class="cap">Where K/n ends up as n → ∞</div>
+        <div class="m">Per peg:  K/n → 0.56</div>
+        <div class="m">Per ball: K/n → 0.7 (prob 0.3) or 0.5 (prob 0.7)</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> Sample size helps only when observations are independent. Students in the same classroom, repeated measurements on the same patient, and households in the same survey cluster all share a hidden "coin". Averaging more of them does not wash that out. This is the reason for random-effects models, cluster-robust standard errors, and the Beta-Binomial model, and the variance inflation 1 + (n−1)ρ is the survey statistician's design effect.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>One peg is one coin flip</h2>
+      <p>At every peg the ball goes right with probability <i>p</i> or left with probability 1 − <i>p</i>. Each bounce is a Bernoulli trial, independent of the others.</p>
+      <div class="formula">X<sub>i</sub> ~ Bernoulli(p)</div>
+    </div>
+    <div class="note">
+      <h2>One bin is a count of rights</h2>
+      <p>After <i>n</i> rows, the bin number equals the number of right bounces. Many different paths lead to the middle bins, and only one path leads to each edge.</p>
+      <div class="formula">P(K = k) = C(n,k) · p<sup>k</sup> · (1−p)<sup>n−k</sup></div>
+    </div>
+    <div class="note">
+      <h2>Many rows give a bell curve</h2>
+      <p>K is a sum of n independent trials, so by the Central Limit Theorem its shape approaches a normal curve as n grows.</p>
+      <div class="formula">K ≈ Normal(np, √(np(1−p)))</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Drop 10 balls one at a time and ask students to predict the next bin. Then add 1,000 and compare the pile to the dashed expected marks.</li>
+      <li>Set n = 2 or 3. The normal curve fits poorly. Raise n to 30 and watch the fit improve.</li>
+      <li>Switch to "Mixture, per ball" at n = 12. The pile still looks normal, and only the SD row gives the mixture away. Raise n to 30 and a shoulder appears on the right. At n = 100 there are two clear humps, while the red curve still has one.</li>
+      <li>Keep n = 100 and flip between "per peg" and "per ball". The mean stays near 56, but the SD jumps from about 5 to about 10.</li>
+      <li>Move coin B to 0.7 so both coins match. Var(p) becomes 0, ρ becomes 0, and the bell curve comes back.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('board');
+  const ctx = cv.getContext('2d');
+  const tip = document.getElementById('tip');
+  const $ = id => document.getElementById(id);
+
+  const S = {
+    mode: 'fixed', R: 12, p: 0.5, w: 0.3, pA: 0.7, pB: 0.5, speed: 10,
+    counts: [], countsA: [], countsB: [], N: 0, sum: 0, sumsq: 0,
+    balls: [], queue: 0, running: false, spawnAcc: 1,
+    showBinom: true, showNormal: true, showTrace: true,
+    last: null, flash: [], T: {}
+  };
+  let L = {}, C = {};
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'accent', 'ball', 'curve', 'peg', 'board', 'coinA', 'coinB'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+
+  const LF = [0]; for (let i = 1; i <= 200; i++) LF[i] = LF[i - 1] + Math.log(i);
+  function binom(n, p) {
+    const out = [];
+    for (let k = 0; k <= n; k++) out.push(Math.exp(LF[n] - LF[k] - LF[n - k] + k * Math.log(p) + (n - k) * Math.log(1 - p)));
+    return out;
+  }
+
+  // exact theory for the current model
+  function computeTheory() {
+    const n = S.R, T = {};
+    if (S.mode === 'fixed') {
+      T.pbar = S.p; T.varp = 0; T.pmf = binom(n, S.p);
+    } else {
+      T.pbar = S.w * S.pA + (1 - S.w) * S.pB;
+      if (S.mode === 'mixPin') { T.varp = 0; T.pmf = binom(n, T.pbar); }
+      else {
+        T.varp = S.w * (1 - S.w) * (S.pA - S.pB) ** 2;
+        T.pmfA = binom(n, S.pA); T.pmfB = binom(n, S.pB);
+        T.pmf = T.pmfA.map((a, k) => S.w * a + (1 - S.w) * T.pmfB[k]);
+      }
+    }
+    T.mean = n * T.pbar;
+    T.varInd = n * T.pbar * (1 - T.pbar);
+    T.rho = T.varp / (T.pbar * (1 - T.pbar));
+    T.var = T.varInd * (1 + (n - 1) * T.rho);
+    T.sd = Math.sqrt(T.var);
+    S.T = T;
+  }
+
+  function resize() {
+    const w = cv.parentElement.clientWidth - 24;
+    const h = Math.round(Math.min(Math.max(w * 0.95, 440), 740));
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px';
+    cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    layout(w, h);
+  }
+  function layout(W, H) {
+    const R = S.R;
+    const dx = Math.min(W / (R + 2), 52);
+    const pegTop = 38;
+    const rowGap = Math.min(dx * 0.95, (H * 0.5 - pegTop) / R);
+    const binTop = pegTop + (R - 1) * rowGap + Math.max(18, rowGap * 0.9);
+    const binBottom = H - 26;
+    L = { W, H, dx, cx: W / 2, pegTop, rowGap, binTop, binBottom,
+          ballR: Math.max(1.8, Math.min(dx * 0.27, 7)), pegR: Math.max(1.2, Math.min(dx * 0.09, 3.6)) };
+  }
+  const pegPt = (i, j) => ({ x: L.cx + (j - i / 2) * L.dx, y: L.pegTop + i * L.rowGap });
+  const pegTopPt = (i, j) => { const p = pegPt(i, j); return { x: p.x, y: p.y - L.pegR - L.ballR }; };
+  const binX = k => L.cx + (k - S.R / 2) * L.dx;
+
+  function samplePath() {
+    const d = [], ks = [0];
+    let coin = null, coins = null, p = S.p;
+    if (S.mode === 'mixBall') { coin = Math.random() < S.w ? 'A' : 'B'; p = coin === 'A' ? S.pA : S.pB; }
+    if (S.mode === 'mixPin') coins = [];
+    for (let i = 0; i < S.R; i++) {
+      let pi = p;
+      if (coins) { const c = Math.random() < S.w ? 'A' : 'B'; coins.push(c); pi = c === 'A' ? S.pA : S.pB; }
+      const r = Math.random() < pi ? 1 : 0; d.push(r); ks.push(ks[i] + r);
+    }
+    return { d, ks, coin, coins };
+  }
+  function spawn() { const b = samplePath(); b.t = 0; S.balls.push(b); }
+
+  function scale() {
+    const usable = L.binBottom - L.binTop - 6;
+    let maxC = 1;
+    for (const c of S.counts) if (c > maxC) maxC = c;
+    if (S.N > 0) {
+      if (S.showBinom) maxC = Math.max(maxC, S.N * Math.max(...S.T.pmf));
+      if (S.showNormal) maxC = Math.max(maxC, S.N / (S.T.sd * Math.sqrt(2 * Math.PI)));
+    }
+    const unit = Math.min(2 * L.ballR, usable / maxC);
+    return { unit, stacked: unit >= 2 * L.ballR - 1e-6 };
+  }
+
+  function ballPos(b, sc) {
+    const R = S.R, seg = Math.floor(b.t), s = b.t - seg;
+    if (seg === 0) {
+      const a = { x: L.cx, y: 6 }, e = pegTopPt(0, 0);
+      return { x: a.x, y: a.y + (e.y - a.y) * s * s };
+    }
+    if (seg <= R) {
+      const i = seg - 1, a = pegTopPt(i, b.ks[i]);
+      const e = i < R - 1 ? pegTopPt(i + 1, b.ks[i + 1]) : { x: binX(b.ks[R]), y: L.binTop };
+      const hop = Math.min(L.rowGap * 0.35, 9);
+      return { x: a.x + (e.x - a.x) * s, y: a.y + (e.y - a.y) * s * s - hop * Math.sin(Math.PI * s) };
+    }
+    const k = b.ks[R], ty = L.binBottom - S.counts[k] * sc.unit - L.ballR;
+    return { x: binX(k), y: L.binTop + (Math.max(ty, L.binTop) - L.binTop) * s * s };
+  }
+
+  function land(b) {
+    const k = b.ks[S.R];
+    S.counts[k]++; S.N++; S.sum += k; S.sumsq += k * k;
+    if (b.coin === 'A') S.countsA[k]++; else if (b.coin === 'B') S.countsB[k]++;
+    S.flash[k] = 1; S.last = b;
+  }
+
+  function reset() {
+    const z = () => new Array(S.R + 1).fill(0);
+    S.counts = z(); S.countsA = z(); S.countsB = z(); S.flash = z();
+    S.N = 0; S.sum = 0; S.sumsq = 0; S.balls = []; S.queue = 0; S.last = null;
+    computeTheory(); resize(); updateStats();
+  }
+
+  const fmt = (x, d = 3) => x.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+  function updateStats() {
+    const n = S.R, N = S.N, T = S.T;
+    $('nObs').textContent = N.toLocaleString();
+    $('meanTh').textContent = fmt(T.mean);
+    $('sdTh').textContent = fmt(T.sd);
+    $('sdInd').textContent = fmt(Math.sqrt(T.varInd));
+    $('rhoTh').textContent = n > 1 ? fmt(T.rho) : '–';
+    $('defTh').textContent = n > 1 ? fmt(1 + (n - 1) * T.rho, 2) + '×' : '–';
+    let mean = '–', sd = '–', rho = '–', def = '–';
+    if (N) {
+      const m = S.sum / N; mean = fmt(m);
+      if (N > 1) {
+        const v = Math.max(0, (S.sumsq - N * m * m) / (N - 1)); sd = fmt(Math.sqrt(v));
+        const ph = m / n;
+        if (n > 1 && ph > 0 && ph < 1) {
+          const pairs = (S.sumsq - S.sum) / N / (n * (n - 1));   // estimates E[X_i X_j]
+          const r = (pairs - ph * ph) / (ph * (1 - ph));
+          rho = fmt(r); def = fmt(v / (n * ph * (1 - ph)), 2) + '×';
+        }
+      }
+    }
+    $('meanObs').textContent = mean; $('sdObs').textContent = sd; $('rhoObs').textContent = rho; $('defObs').textContent = def;
+
+    const el = $('path');
+    if (S.last && S.last.d.length === S.R) {
+      const b = S.last, rights = b.ks[S.R];
+      let head = '';
+      if (b.coin) head = `<span class="${b.coin === 'A' ? 'ca' : 'cb'}">Coin ${b.coin} (p = ${(b.coin === 'A' ? S.pA : S.pB).toFixed(2)}) at every peg</span><br>`;
+      if (b.coins) head = 'Coins: ' + b.coins.map(c => `<span class="${c === 'A' ? 'ca' : 'cb'}">${c}</span>`).join('') + '<br>';
+      el.innerHTML = head + b.d.map(r => r ? '<span class="r">R</span>' : '<span class="l">L</span>').join(' ')
+        + ` <span class="to">→ bin ${rights}</span><br><span class="l">${rights} right${rights === 1 ? '' : 's'}, ${S.R - rights} left</span>`;
+    } else el.innerHTML = '<span class="l">Drop a ball to see its path.</span>';
+  }
+
+  function draw(sc) {
+    const { W, H, dx, binTop, binBottom, ballR, pegR } = L, R = S.R, T = S.T;
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.strokeStyle = C.peg; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(L.cx - 26, 2); ctx.lineTo(L.cx - ballR - 2, 18); ctx.moveTo(L.cx + 26, 2); ctx.lineTo(L.cx + ballR + 2, 18); ctx.stroke();
+
+    if (S.showTrace && S.last && S.last.d.length === R) {
+      const b = S.last;
+      ctx.save(); ctx.globalAlpha = 0.6; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = b.coin === 'A' ? C.coinA : b.coin === 'B' ? C.coinB : C.curve;
+      ctx.beginPath(); ctx.moveTo(L.cx, 10);
+      for (let i = 0; i < R; i++) { const p = pegTopPt(i, b.ks[i]); ctx.lineTo(p.x, p.y); }
+      ctx.lineTo(binX(b.ks[R]), binTop + 4);
+      ctx.stroke(); ctx.restore();
+    }
+
+    ctx.fillStyle = C.peg;
+    for (let i = 0; i < R; i++) for (let j = 0; j <= i; j++) {
+      const p = pegPt(i, j); ctx.beginPath(); ctx.arc(p.x, p.y, pegR, 0, Math.PI * 2); ctx.fill();
+    }
+
+    const left = binX(0) - dx / 2, right = binX(R) + dx / 2;
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let k = 0; k <= R + 1; k++) { const x = left + k * dx; ctx.moveTo(x, binTop); ctx.lineTo(x, binBottom); }
+    ctx.stroke();
+    ctx.strokeStyle = C.peg; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(left, binBottom); ctx.lineTo(right, binBottom); ctx.stroke();
+
+    for (let k = 0; k <= R; k++) if (S.flash[k] > 0.01) {
+      ctx.save(); ctx.globalAlpha = S.flash[k] * 0.18; ctx.fillStyle = C.ball;
+      ctx.fillRect(binX(k) - dx / 2 + 1, binTop, dx - 2, binBottom - binTop); ctx.restore();
+    }
+
+    // observed pile; in per-ball mode split by coin (coin A at the bottom)
+    const byCoin = S.mode === 'mixBall';
+    const bw = Math.max(2, dx * 0.76);
+    for (let k = 0; k <= R; k++) {
+      const c = S.counts[k]; if (!c) continue;
+      const x = binX(k);
+      const layers = byCoin ? [[S.countsA[k], C.coinA], [S.countsB[k], C.coinB]] : [[c, sc.stacked ? C.ball : C.accent]];
+      let base = 0;
+      for (const [cnt, col] of layers) {
+        if (!cnt) continue;
+        ctx.fillStyle = col;
+        if (sc.stacked) {
+          for (let i = 0; i < cnt; i++) { ctx.beginPath(); ctx.arc(x, binBottom - ballR - (base + i) * 2 * ballR, ballR * 0.92, 0, Math.PI * 2); ctx.fill(); }
+        } else {
+          ctx.fillRect(x - bw / 2, binBottom - (base + cnt) * sc.unit, bw, cnt * sc.unit);
+        }
+        base += cnt;
+      }
+    }
+
+    if (S.N > 0) {
+      if (S.showBinom) {
+        if (byCoin) {   // weighted component curves
+          for (const [pm, wt, col] of [[T.pmfA, S.w, C.coinA], [T.pmfB, 1 - S.w, C.coinB]]) {
+            ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.beginPath();
+            pm.forEach((v, k) => { const x = binX(k), y = binBottom - S.N * wt * v * sc.unit; k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+            ctx.stroke(); ctx.restore();
+          }
+        }
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.setLineDash([]);
+        for (let k = 0; k <= R; k++) {
+          const y = binBottom - S.N * T.pmf[k] * sc.unit, x = binX(k), w = Math.max(3, dx * 0.4);
+          ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(x + w, y); ctx.stroke();
+        }
+      }
+      if (S.showNormal) {
+        const mu = T.mean, sd = T.sd;
+        ctx.strokeStyle = C.curve; ctx.lineWidth = 2.25; ctx.beginPath();
+        let first = true;
+        for (let k = -0.5; k <= R + 0.5001; k += Math.max(0.04, R / 400)) {
+          const z = (k - mu) / sd, dens = Math.exp(-0.5 * z * z) / (sd * Math.sqrt(2 * Math.PI));
+          const x = L.cx + (k - R / 2) * dx, y = binBottom - S.N * dens * sc.unit;
+          if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const every = dx < 6 ? 10 : dx < 11 ? 5 : dx < 20 ? 2 : 1;
+    for (let k = 0; k <= R; k++) if (k % every === 0) ctx.fillText(String(k), binX(k), binBottom + 7);
+    ctx.textAlign = 'left'; ctx.fillText(sc.stacked ? 'each dot = 1 ball' : 'bar height ∝ count', 4, 4);
+
+    for (const b of S.balls) {
+      ctx.fillStyle = b.coin === 'A' ? C.coinA : b.coin === 'B' ? C.coinB : C.ball;
+      const p = ballPos(b, sc); ctx.beginPath(); ctx.arc(p.x, p.y, ballR, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  let prev = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    if (S.running || S.queue > 0) {
+      S.spawnAcc += dt * S.speed * 1.6;
+      while (S.spawnAcc >= 1 && S.balls.length < 500) {
+        if (!S.running) { if (S.queue <= 0) break; S.queue--; }
+        S.spawnAcc -= 1; spawn();
+      }
+    } else S.spawnAcc = 1;
+
+    const total = S.R + 2;
+    let landed = false;
+    for (let i = S.balls.length - 1; i >= 0; i--) {
+      const b = S.balls[i];
+      b.t += dt * S.speed * (b.t >= S.R + 1 ? 1.4 : 1);
+      if (b.t >= total) { land(b); S.balls.splice(i, 1); landed = true; }
+    }
+    for (let k = 0; k < S.flash.length; k++) S.flash[k] *= Math.pow(0.02, dt);
+    if (landed) updateStats();
+    draw(scale());
+    requestAnimationFrame(frame);
+  }
+
+  function addInstant(m) { for (let i = 0; i < m; i++) land(samplePath()); S.flash.fill(0.6); updateStats(); }
+
+  function setMode(m) {
+    S.mode = m;
+    $('mFixed').setAttribute('aria-pressed', m === 'fixed');
+    $('mBall').setAttribute('aria-pressed', m === 'mixBall');
+    $('mPin').setAttribute('aria-pressed', m === 'mixPin');
+    $('fixedBox').hidden = m !== 'fixed';
+    $('mixBox').hidden = m === 'fixed';
+    $('legendFixed').hidden = m === 'mixBall';
+    $('legendMix').hidden = m !== 'mixBall';
+    $('mixHint').textContent = m === 'mixBall'
+      ? 'Each ball flips for a coin once at the top, then uses that coin at every peg.'
+      : 'At every peg the ball flips for a coin again, then bounces using that coin.';
+    reset();
+  }
+  function setSlider(id, v, txt) { $(id).value = v; $(id + 'Out').textContent = txt ?? (+v).toFixed(2); }
+
+  // controls
+  $('d1').onclick = () => spawn();
+  $('d10').onclick = () => { S.queue += 10; };
+  $('d100').onclick = () => { S.queue += 100; };
+  $('pour').onclick = e => {
+    S.running = !S.running; if (!S.running) S.queue = 0;
+    e.currentTarget.setAttribute('aria-pressed', S.running);
+    e.currentTarget.textContent = S.running ? 'Stop pouring' : 'Pour continuously';
+  };
+  $('inst').onclick = () => addInstant(1000);
+  $('reset').onclick = reset;
+  $('mFixed').onclick = () => setMode('fixed');
+  $('mBall').onclick = () => setMode('mixBall');
+  $('mPin').onclick = () => setMode('mixPin');
+  $('rows').oninput = e => { S.R = +e.target.value; $('rowsOut').textContent = S.R; reset(); };
+  $('prob').oninput = e => { S.p = +e.target.value; $('probOut').textContent = S.p.toFixed(2); reset(); };
+  for (const id of ['w', 'pA', 'pB'])
+    $(id).oninput = e => { S[id] = +e.target.value; $(id + 'Out').textContent = S[id].toFixed(2); reset(); };
+  $('speed').oninput = e => { S.speed = +e.target.value; $('speedOut').textContent = S.speed + ' rows/s'; };
+  $('showBinom').onchange = e => S.showBinom = e.target.checked;
+  $('showNormal').onchange = e => S.showNormal = e.target.checked;
+  $('showTrace').onchange = e => S.showTrace = e.target.checked;
+
+  function demo(mode, n = 100, w = 0.3, a = 0.7, b = 0.5, balls = 5000) {
+    S.w = w; S.pA = a; S.pB = b; S.R = n;
+    setSlider('w', w); setSlider('pA', a); setSlider('pB', b); setSlider('rows', n, String(n));
+    setMode(mode); addInstant(balls);
+    document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  }
+  $('demoBall').onclick = () => demo('mixBall');
+  $('demoPin').onclick = () => demo('mixPin');
+  $('demoWide').onclick = () => demo('mixBall', 20, 0.5, 0.8, 0.3, 3000);
+
+  function showTip(ev) {
+    const r = cv.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+    if (y < L.binTop - 4 || y > L.binBottom + 22) { tip.hidden = true; return; }
+    const k = Math.round((x - L.cx) / L.dx + S.R / 2);
+    if (k < 0 || k > S.R) { tip.hidden = true; return; }
+    const T = S.T, c = S.counts[k], pct = S.N ? (c / S.N * 100).toFixed(1) + '%' : '–';
+    let html = `<b>Bin ${k}</b> · ${k} right, ${S.R - k} left<br>Observed: ${c.toLocaleString()} (${pct})<br>Expected: ${(T.pmf[k] * 100).toFixed(1)}%${S.N ? ` ≈ ${(T.pmf[k] * S.N).toFixed(1)} balls` : ''}`;
+    if (S.mode === 'mixBall') html += `<br><span style="color:var(--coinA)">Coin A: ${S.countsA[k]}</span> · <span style="color:var(--coinB)">Coin B: ${S.countsB[k]}</span>`;
+    tip.innerHTML = html;
+    tip.hidden = false;
+    const bx = binX(k) + 12, pw = tip.offsetWidth, maxX = cv.clientWidth + 12 - pw;
+    tip.style.left = Math.max(12, Math.min(bx + 12, maxX)) + 'px';
+    tip.style.top = Math.max(12, y - tip.offsetHeight - 10 + 12) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+  new ResizeObserver(() => resize()).observe(cv.parentElement);
+
+  if (location.hash === '#mixture') { demo('mixBall'); window.scrollTo(0, 0); }
+  else { reset(); addInstant(40); S.flash.fill(0); }
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

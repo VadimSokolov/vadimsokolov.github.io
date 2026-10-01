@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Confidence Interval Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 100 intervals against the true value on the left with a running-coverage strip under them; method, settings and observed-vs-exact coverage in the right rail; CI vs PI panel, notes and class exercises below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; margin-top: 2px; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 16px; height: 0; border-top: 3px solid var(--accent); display: inline-block; }
+.sw.miss { border-top-color: var(--curve); }
+.sw.truth { width: 0; height: 12px; border-top: 0; border-left: 2px solid var(--ink); }
+.sw.pi { border-top: 3px solid var(--coinB); opacity: .7; }
+.sw.dot { width: 9px; height: 9px; border: 0; border-radius: 50%; background: var(--ball); }
+.sw.th { border-top: 2px dashed var(--curve); }
+.sw.nom { border-top: 2px dotted var(--muted); }
+.sw.alt { border-top: 2px solid var(--coinA); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.boxhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 0 4px; }
+.boxhead .t { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.boxhead .m { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: span 2; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary[aria-pressed="true"] { background: var(--curve); border-color: var(--curve); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg.two { grid-template-columns: 1fr 1fr; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+input[type=number] { font: inherit; font-family: var(--font-mono); font-size: 14px; width: 100%; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--board); color: var(--ink); font-variant-numeric: tabular-nums; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pair label { font-weight: 700; font-size: 14px; display: block; margin-bottom: 3px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td + td { white-space: nowrap; padding-left: 8px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.obs { color: var(--accent); }
+.stats td.th { color: var(--curve); }
+.stats tr.sel td:first-child { font-weight: 700; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.result { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; line-height: 1.6; font-variant-numeric: tabular-nums; overflow-x: auto; }
+
+.pipanel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px 24px; align-items: start; }
+@media (max-width: 900px) { .pipanel { grid-template-columns: minmax(0, 1fr); } }
+.pipanel .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.pipanel h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.pipanel .head p { margin: 0; max-width: 84ch; }
+.pipanel .plot { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pipanel .side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.callout { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.callout b { font-family: var(--font-display); }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note .demo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.formula + .formula { margin-top: 6px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Confidence intervals</span>
+    <h1>Confidence Interval Lab</h1>
+    <p class="lead">Each bar is a confidence interval built from its own random sample. Bars that miss the true value turn red. Draw batch after batch and watch the coverage counter: a correct 95% recipe traps the truth 95% of the time, and a shortcut like z with a small sample does not.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 5, <a href="https://vsokolov.org/html/_book/05-ab.html">A/B Testing</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="One hundred confidence intervals and running coverage">
+      <div class="boxhead"><span class="t" id="plotTitle">100 intervals</span><span class="m" id="plotMeta"></span></div>
+      <canvas id="cv" role="img" aria-label="One hundred horizontal confidence intervals drawn against a vertical line at the true value; misses are red"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw"></i>Interval traps the truth</span>
+        <span><i class="sw miss"></i>Interval misses</span>
+        <span><i class="sw truth"></i>True value</span>
+      </div>
+      <div class="boxhead" style="margin-top:6px"><span class="t">Running coverage</span><span class="m" id="covMeta"></span></div>
+      <canvas id="cov" role="img" aria-label="Running coverage of the intervals as more batches are drawn, against the exact coverage and the nominal level"></canvas>
+      <div class="legend">
+        <span><i class="sw"></i><span id="lgSel">Selected method</span></span>
+        <span><i class="sw alt"></i><span id="lgAlt">Other method</span></span>
+        <span><i class="sw th"></i>Exact coverage</span>
+        <span><i class="sw nom"></i>Nominal level</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Draw intervals</span>
+        <div class="btns">
+          <button id="b1" class="primary">Draw 100</button>
+          <button id="b10">Draw 1,000</button>
+          <button id="auto" class="primary wide" aria-pressed="false">Run continuously</button>
+        </div>
+        <button id="reset">Reset counts</button>
+      </div>
+
+      <div class="group">
+        <span class="label">What we estimate</span>
+        <div class="seg" role="group" aria-label="Interval type">
+          <button id="mZ" aria-pressed="true">Mean,<br>σ known</button>
+          <button id="mT" aria-pressed="false">Mean,<br>σ unknown</button>
+          <button id="mP" aria-pressed="false">Proportion</button>
+        </div>
+        <div class="seg two" role="group" aria-label="Method" id="methT" hidden>
+          <button id="tT" aria-pressed="true">t interval</button>
+          <button id="tZ" aria-pressed="false">z with s (wrong)</button>
+        </div>
+        <div class="seg two" role="group" aria-label="Method" id="methP" hidden>
+          <button id="pW" aria-pressed="true">Wald</button>
+          <button id="pS" aria-pressed="false">Wilson</button>
+        </div>
+        <p class="hint" id="modeHint"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Settings</span>
+        <div class="slider"><div class="top"><label for="lev">Confidence level</label><output id="levOut">95%</output></div>
+          <input type="range" id="lev" min="80" max="99" step="1" value="95"></div>
+        <div class="slider"><div class="top"><label for="n">Sample size, n</label><output id="nOut">25</output></div>
+          <input type="range" id="n" min="0" max="18" step="1" value="10"></div>
+        <div class="slider" id="pBox" hidden><div class="top"><label for="p">True proportion, p</label><output id="pOut">0.50</output></div>
+          <input type="range" id="p" min="0.01" max="0.99" step="0.01" value="0.5"></div>
+        <p class="hint" id="popHint"></p>
+        <p class="hint">Changing a setting starts a fresh run of 1,000 intervals.</p>
+      </div>
+
+      <div class="group">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
+          <span class="label">Intervals drawn</span><span class="big" id="nObs">0</span>
+        </div>
+        <table class="stats">
+          <thead><tr><th>Coverage</th><th>Observed</th><th>Exact</th></tr></thead>
+          <tbody>
+            <tr id="rowA"><td id="nameA">–</td><td class="obs" id="covA">–</td><td class="th" id="thA">–</td></tr>
+            <tr id="rowB"><td id="nameB">–</td><td class="obs" id="covB">–</td><td class="th" id="thB">–</td></tr>
+            <tr><td>Misses so far</td><td class="obs" id="miss">–</td><td class="th" id="missTh">–</td></tr>
+            <tr><td>Average width</td><td class="obs" id="wid">–</td><td class="th" id="widTh">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">"Exact" is the true long-run coverage of the selected recipe, computed from the t distribution or by summing binomial probabilities.</p>
+      </div>
+
+      <div class="group" id="dataBox" hidden>
+        <span class="label">One dataset</span>
+        <div class="pair">
+          <div><label for="dx">Successes, x</label><input type="number" id="dx" min="0" max="5000" step="1" value="19"></div>
+          <div><label for="dn">Trials, n</label><input type="number" id="dn" min="1" max="5000" step="1" value="25"></div>
+        </div>
+        <div class="result" id="dataRes"></div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="pipanel">
+    <div class="head">
+      <span class="eyebrow">Confidence vs prediction intervals</span>
+      <h2>A CI is for the mean. A PI is for the next customer.</h2>
+      <p>The same samples drive both intervals below. For each sample we also draw one new observation X<sub>new</sub> from the population. The confidence interval aims at μ and rarely contains X<sub>new</sub>. The prediction interval adds the spread of a single observation, so it is about √(n + 1) times wider and traps X<sub>new</sub> at the stated rate.</p>
+    </div>
+    <div class="plot">
+      <canvas id="pi" role="img" aria-label="Twenty-five samples, each with a narrow confidence interval and a wider prediction interval, plus a dot for the next observation"></canvas>
+      <div class="legend" style="padding-top:0">
+        <span><i class="sw"></i>CI for μ</span>
+        <span><i class="sw pi"></i><span>PI for X<sub>new</sub></span></span>
+        <span><i class="sw dot"></i><span>X<sub>new</sub></span></span>
+        <span><i class="sw miss"></i><span>X<sub>new</sub> outside the PI (ringed)</span></span>
+      </div>
+    </div>
+    <div class="side">
+      <table class="stats">
+        <thead><tr><th></th><th>Observed</th><th>Exact</th></tr></thead>
+        <tbody>
+          <tr><td>CI contains μ</td><td class="obs" id="piC1">–</td><td class="th" id="piT1">–</td></tr>
+          <tr><td>CI contains X<sub>new</sub></td><td class="obs" id="piC2">–</td><td class="th" id="piT2">–</td></tr>
+          <tr><td>PI contains X<sub>new</sub></td><td class="obs" id="piC3">–</td><td class="th" id="piT3">–</td></tr>
+          <tr><td>Width of PI ÷ width of CI</td><td class="obs" id="piR">–</td><td class="th" id="piRT">–</td></tr>
+        </tbody>
+      </table>
+      <div class="callout" id="piCall"></div>
+      <button id="piGo" hidden>Switch to a mean with σ unknown</button>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>What 95% means</h2>
+      <p>The recipe, not one interval, has the 95%. Repeat the sampling many times and 95% of the intervals built this way contain μ. Any single interval either contains μ or it does not.</p>
+      <div class="formula">x̄ ± z · σ/√n     (σ known)</div>
+      <div class="formula">x̄ ± t<sub>n−1</sub> · s/√n   (σ unknown)</div>
+      <p style="margin-top:8px">With 10,000 replications a regression simulation found coverage 0.948. Run 10,000 here and compare.</p>
+      <div class="demo"><button id="dSmall">z with s at n = 5</button></div>
+    </div>
+    <div class="note">
+      <h2>Proportions: Wald and Wilson</h2>
+      <p>The textbook interval p̂ ± z·√(p̂(1 − p̂)/n) is the Wald interval. It undercovers when n is small or p is near 0 or 1, and at p̂ = 0 it has width zero. The Wilson interval inverts the score test and stays close to the nominal level.</p>
+      <div class="formula">Wald:  p̂ ± z √(p̂(1−p̂)/n)</div>
+      <div class="formula">Wilson: [p̂ + z²/2n ± z √(p̂(1−p̂)/n + z²/4n²)] / (1 + z²/n)</div>
+      <div class="demo"><button id="dPoll">Poll: 540 of 1,000</button><button id="dRare">Rare event: p = 0.03, n = 25</button></div>
+    </div>
+    <div class="note">
+      <h2>Patriots revisited</h2>
+      <p>The Patriots won 19 of 25 coin tosses in 2014–15. p̂ = 0.76 and the 95% Wald interval is 0.76 ± 0.167 = (0.593, 0.927). The lower end is above 0.5, but the interval is enormous. With 25 tosses you cannot tell rigged from lucky.</p>
+      <div class="formula">1.96 √(0.76 · 0.24 / 25) = 0.167</div>
+      <p style="margin-top:8px">The preset sets p = 0.76 and n = 25 to ask: if this really were the Patriots' rate, how often would the Wald recipe trap it?</p>
+      <div class="demo"><button id="dPats" class="primary">Patriots: 19 of 25</button></div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Draw one batch of 100 and count the red bars together. Ask: "Is this interval 95% likely to contain μ?" Then run continuously until 10,000 intervals and read the coverage.</li>
+      <li>Switch to "Mean, σ unknown" with z with s at n = 5. Coverage drops to about 88%. Switch to the t interval: the bars get wider and coverage returns to 95%. Slide n up to 100 and the two methods agree.</li>
+      <li>Move the confidence level from 95% to 80% and to 99%. Ask students to predict how many of the 100 bars will be red before each draw.</li>
+      <li>Load the Patriots preset. The Wald recipe covers about 94% instead of 95%. Then try the rare-event preset (p = 0.03, n = 25): Wald coverage collapses to about 53%, while Wilson stays near 96%.</li>
+      <li>In the CI vs PI panel, ask what fraction of new customers fall inside the CI. At n = 25 it is about 30%, which is why a CI is the wrong tool for forecasting one person.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d'), cov = $('cov'), cctx = cov.getContext('2d'), pic = $('pi'), pctx = pic.getContext('2d'), tip = $('tip');
+  const NS = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100, 200, 500, 1000];
+  const MU = 50, SIG = 10;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'peg', 'board', 'surface', 'coinA', 'coinB'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const nf = (x, d) => x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pc = (x, d = 1) => nf(x * 100, d) + '%';
+  function randn() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+  // ---- distributions ----
+  function Phi(z) {   // Abramowitz–Stegun 7.1.26
+    const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z / 2);
+    return z >= 0 ? 0.5 + 0.5 * y : 0.5 - 0.5 * y;
+  }
+  function qnorm(p) {  // Acklam's rational approximation, refined with one Newton step
+    const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.383577518672690e2, -3.066479806614716e1, 2.506628277459239];
+    const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1, -1.328068155288572e1];
+    const c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+    const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
+    const pl = 0.02425; let q, r, x;
+    if (p < pl) { q = Math.sqrt(-2 * Math.log(p)); x = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    else if (p <= 1 - pl) { q = p - 0.5; r = q * q; x = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1); }
+    else { q = Math.sqrt(-2 * Math.log(1 - p)); x = -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    const e = Phi(x) - p; x -= e * Math.sqrt(2 * Math.PI) * Math.exp(x * x / 2);
+    return x;
+  }
+  function lgamma(x) {
+    const g = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+    let y = x, t = x + 5.5; t -= (x + 0.5) * Math.log(t); let s = 1.000000000190015;
+    for (const gi of g) s += gi / ++y;
+    return -t + Math.log(2.5066282746310005 * s / x);
+  }
+  function betacf(a, b, x) {
+    const MAXIT = 300, EPS = 3e-14, FPMIN = 1e-300;
+    let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < FPMIN) d = FPMIN; d = 1 / d; let h = d;
+    for (let m = 1; m <= MAXIT; m++) {
+      const m2 = 2 * m; let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d;
+      const del = d * c; h *= del; if (Math.abs(del - 1) < EPS) break;
+    }
+    return h;
+  }
+  function ibeta(x, a, b) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+    return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+  }
+  const tcdf = (t, df) => { const x = df / (df + t * t), tail = 0.5 * ibeta(x, df / 2, 0.5); return t >= 0 ? 1 - tail : tail; };
+  function qt(p, df) {   // p > 0.5
+    let lo = 0, hi = 1;
+    while (tcdf(hi, df) < p) hi *= 2;
+    for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (tcdf(m, df) < p) lo = m; else hi = m; }
+    return (lo + hi) / 2;
+  }
+  const LF = [0]; for (let i = 1; i <= 5000; i++) LF[i] = LF[i - 1] + Math.log(i);
+  const dbinom = (k, n, p) => p <= 0 ? (k === 0 ? 1 : 0) : p >= 1 ? (k === n ? 1 : 0) : Math.exp(LF[n] - LF[k] - LF[n - k] + k * Math.log(p) + (n - k) * Math.log(1 - p));
+
+  // ---- intervals ----
+  function wald(k, n, z) { const ph = k / n, h = z * Math.sqrt(ph * (1 - ph) / n); return [ph - h, ph + h]; }
+  function wilson(k, n, z) {
+    const ph = k / n, z2 = z * z, den = 1 + z2 / n, c = (ph + z2 / (2 * n)) / den, h = z / den * Math.sqrt(ph * (1 - ph) / n + z2 / (4 * n * n));
+    return [c - h, c + h];
+  }
+
+  // ---- state ----
+  const S = { mode: 'z', tMeth: 't', pMeth: 'wald', lev: 95, ni: 10, p: 0.5,
+              batch: [], tot: 0, hitA: 0, hitB: 0, widA: 0, widB: 0, series: [],
+              piN: 0, piC1: 0, piC2: 0, piC3: 0, piWR: 0, auto: false };
+  const N = () => S.mode === 'p' ? Math.max(5, NS[S.ni]) : NS[S.ni];
+  const zc = () => qnorm(1 - (1 - S.lev / 100) / 2);
+  const tc = () => qt(1 - (1 - S.lev / 100) / 2, N() - 1);
+  // A = selected method, B = the other one (for the mean-with-σ-known mode B is unused)
+  function methods() {
+    if (S.mode === 'z') return { A: 'z interval, σ known', B: null };
+    if (S.mode === 't') return S.tMeth === 't' ? { A: 't interval', B: 'z with s (wrong)' } : { A: 'z with s (wrong)', B: 't interval' };
+    return S.pMeth === 'wald' ? { A: 'Wald', B: 'Wilson' } : { A: 'Wilson', B: 'Wald' };
+  }
+  function crit(method) { return method === 't interval' ? tc() : zc(); }
+  function interval(row, method) {
+    const n = N();
+    if (S.mode === 'p') return (method === 'Wald' ? wald : wilson)(row.k, n, zc());
+    const sd = S.mode === 'z' ? SIG : row.s, h = crit(method) * sd / Math.sqrt(n);
+    return [row.m - h, row.m + h];
+  }
+  function piInterval(row, method) {
+    const n = N(), sd = S.mode === 'z' ? SIG : row.s, h = crit(method) * sd * Math.sqrt(1 + 1 / n);
+    return [row.m - h, row.m + h];
+  }
+  const truth = () => S.mode === 'p' ? S.p : MU;
+
+  // exact coverage of a method
+  function exactCov(method) {
+    const n = N(), z = zc();
+    if (S.mode === 'z' || method === 't interval') return S.lev / 100;
+    if (S.mode === 't') return 2 * tcdf(z, n - 1) - 1;
+    let c = 0;
+    for (let k = 0; k <= n; k++) { const [lo, hi] = (method === 'Wald' ? wald : wilson)(k, n, z); if (lo <= S.p && S.p <= hi) c += dbinom(k, n, S.p); }
+    return c;
+  }
+  function exactWidth(method) {
+    const n = N();
+    if (S.mode === 'z') return 2 * zc() * SIG / Math.sqrt(n);
+    if (S.mode === 't') {   // E[s] = σ · c4(n)
+      const c4 = Math.exp(Math.log(Math.sqrt(2 / (n - 1))) + lgamma(n / 2) - lgamma((n - 1) / 2));
+      return 2 * crit(method) * SIG * c4 / Math.sqrt(n);
+    }
+    let w = 0;
+    for (let k = 0; k <= n; k++) { const [lo, hi] = (method === 'Wald' ? wald : wilson)(k, n, zc()); w += (hi - lo) * dbinom(k, n, S.p); }
+    return w;
+  }
+
+  // ---- simulation ----
+  function drawRow() {
+    const n = N();
+    if (S.mode === 'p') { let k = 0; for (let i = 0; i < n; i++) if (Math.random() < S.p) k++; return { k }; }
+    let s1 = 0, s2 = 0;
+    for (let i = 0; i < n; i++) { const x = MU + SIG * randn(); s1 += x; s2 += x * x; }
+    const m = s1 / n, s = Math.sqrt(Math.max(0, (s2 - n * m * m) / (n - 1)));
+    return { m, s, xnew: MU + SIG * randn() };
+  }
+  function runBatch() {
+    const M = methods(), mu = truth(), rows = [];
+    for (let i = 0; i < 100; i++) {
+      const r = drawRow();
+      const a = interval(r, M.A); r.lo = a[0]; r.hi = a[1]; r.hit = a[0] <= mu && mu <= a[1];
+      S.tot++; if (r.hit) S.hitA++; S.widA += a[1] - a[0];
+      if (M.B) { const b = interval(r, M.B); if (b[0] <= mu && mu <= b[1]) S.hitB++; S.widB += b[1] - b[0]; }
+      if (S.mode !== 'p') {
+        const pi = piInterval(r, M.A); r.plo = pi[0]; r.phi = pi[1];
+        r.newCI = r.lo <= r.xnew && r.xnew <= r.hi; r.newPI = pi[0] <= r.xnew && r.xnew <= pi[1];
+        S.piN++; if (r.hit) S.piC1++; if (r.newCI) S.piC2++; if (r.newPI) S.piC3++; S.piWR += (pi[1] - pi[0]) / (a[1] - a[0]);
+      }
+      rows.push(r);
+    }
+    S.batch = rows;
+    S.series.push([S.tot, S.hitA / S.tot, M.B ? S.hitB / S.tot : null]);
+    if (S.series.length > 4000) S.series = S.series.filter((_, i) => i % 2 === 0);
+  }
+  function run(k) { for (let i = 0; i < k; i++) runBatch(); refresh(); }
+  function resetCounts() {
+    Object.assign(S, { batch: [], tot: 0, hitA: 0, hitB: 0, widA: 0, widB: 0, series: [], piN: 0, piC1: 0, piC2: 0, piC3: 0, piWR: 0 });
+  }
+  function fresh() { resetCounts(); computeTheory(); run(10); }
+
+  let TH = {};
+  function computeTheory() {
+    const M = methods();
+    TH = { A: exactCov(M.A), B: M.B ? exactCov(M.B) : null, wA: exactWidth(M.A) };
+    if (S.mode !== 'p') {
+      const n = N(), c = crit(M.A);
+      TH.pi1 = TH.A;
+      if (S.mode === 'z') { TH.pi2 = 2 * Phi(c / Math.sqrt(n + 1)) - 1; TH.pi3 = 2 * Phi(c) - 1; TH.ratio = Math.sqrt(n + 1); }
+      else { TH.pi2 = 2 * tcdf(c / Math.sqrt(n + 1), n - 1) - 1; TH.pi3 = 2 * tcdf(c, n - 1) - 1; TH.ratio = Math.sqrt(n + 1); }
+    }
+  }
+
+  // ---- readouts ----
+  function refresh() {
+    const M = methods(), n = N();
+    $('nObs').textContent = S.tot.toLocaleString();
+    $('nameA').textContent = M.A; $('thA').textContent = pc(TH.A);
+    $('covA').textContent = S.tot ? pc(S.hitA / S.tot) : '–';
+    $('rowB').hidden = !M.B;
+    if (M.B) { $('nameB').textContent = M.B; $('thB').textContent = pc(TH.B); $('covB').textContent = S.tot ? pc(S.hitB / S.tot) : '–'; }
+    $('rowA').className = 'sel';
+    $('miss').textContent = (S.tot - S.hitA).toLocaleString();
+    $('missTh').textContent = nf(S.tot * (1 - TH.A), 0);
+    const wd = S.mode === 'p' ? 3 : 2;
+    $('wid').textContent = S.tot ? nf(S.widA / S.tot, wd) : '–';
+    $('widTh').textContent = nf(TH.wA, wd);
+    $('lgSel').textContent = M.A; $('lgAlt').textContent = M.B || 'Other method';
+    $('lgAlt').parentElement.hidden = !M.B;
+
+    const k = S.batch.filter(r => !r.hit).length;
+    $('plotTitle').textContent = `Latest 100 intervals · ${k} miss${k === 1 ? '' : 'es'}`;
+    $('plotMeta').textContent = S.mode === 'p' ? `${M.A}, ${S.lev}%, n = ${n.toLocaleString()}, true p = ${nf(S.p, 2)}` : `${M.A}, ${S.lev}%, n = ${n.toLocaleString()}, true μ = ${MU}`;
+    $('covMeta').textContent = `${pc(S.tot ? S.hitA / S.tot : 0)} of ${S.tot.toLocaleString()} · exact ${pc(TH.A)}`;
+    const z = zc();
+    if (S.mode === 'z') $('modeHint').textContent = `Each sample has n draws from N(${MU}, ${SIG}²). The interval uses the true σ = ${SIG} and z = ${nf(z, 3)}.`;
+    else if (S.mode === 't') $('modeHint').textContent = `σ is unknown, so each interval uses its own s. The t interval uses t = ${nf(tc(), 3)} with ${n - 1} df. The wrong shortcut keeps z = ${nf(z, 3)}.`;
+    else $('modeHint').textContent = `Each sample is n Bernoulli(p) trials. Both intervals use z = ${nf(z, 3)}.`;
+    $('popHint').textContent = S.mode === 'p' ? 'Simulated coin-flip style data with the true p you set.' : `Simulated data: population N(${MU}, ${SIG}²).`;
+    piRefresh(); dataRefresh();
+    dirty = true;
+  }
+  function dataRefresh() {
+    if (S.mode !== 'p') return;
+    let x = Math.round(+$('dx').value), n = Math.round(+$('dn').value);
+    if (!(n >= 1)) n = 1; n = Math.min(n, 5000); if (!(x >= 0)) x = 0; x = Math.min(x, n);
+    const z = zc(), ph = x / n, se = Math.sqrt(ph * (1 - ph) / n), w = wald(x, n, z), s = wilson(x, n, z);
+    const has = iv => iv[0] <= 0.5 && 0.5 <= iv[1] ? 'contains 0.5' : 'excludes 0.5';
+    $('dataRes').innerHTML = `p̂ = ${x}/${n} = ${nf(ph, 3)}, SE = ${nf(se, 4)}<br>${S.lev}% Wald: (${nf(w[0], 3)}, ${nf(w[1], 3)}), ${has(w)}<br>${S.lev}% Wilson: (${nf(s[0], 3)}, ${nf(s[1], 3)}), ${has(s)}`;
+  }
+  function piRefresh() {
+    const isP = S.mode === 'p';
+    $('piGo').hidden = !isP;
+    if (isP) {
+      for (const id of ['piC1', 'piC2', 'piC3', 'piR', 'piT1', 'piT2', 'piT3', 'piRT']) $(id).textContent = '–';
+      $('piCall').innerHTML = '<b>Prediction intervals are for a measured quantity.</b> A single new trial is just 0 or 1, so this panel uses the mean modes.';
+      pdirty = true; return;
+    }
+    const K = S.piN;
+    $('piC1').textContent = K ? pc(S.piC1 / K) : '–'; $('piT1').textContent = pc(TH.pi1);
+    $('piC2').textContent = K ? pc(S.piC2 / K) : '–'; $('piT2').textContent = pc(TH.pi2);
+    $('piC3').textContent = K ? pc(S.piC3 / K) : '–'; $('piT3').textContent = pc(TH.pi3);
+    $('piR').textContent = K ? nf(S.piWR / K, 2) + '×' : '–'; $('piRT').textContent = nf(TH.ratio, 2) + '×';
+    const n = N(), M = methods(), c = crit(M.A), sym = S.mode === 'z' ? 'σ' : 's';
+    $('piCall').innerHTML = `<b>n = ${n.toLocaleString()}.</b> CI: x̄ ± ${nf(c, 3)}·${sym}/√n. PI: x̄ ± ${nf(c, 3)}·${sym}·√(1 + 1/n). The CI catches the next observation only ${pc(TH.pi2)} of the time, and that share keeps falling as n grows. The PI's coverage of X<sub>new</sub> is ${pc(TH.pi3)}.`;
+    pdirty = true;
+  }
+
+  // ---- drawing: main ----
+  let L = {}, dirty = true, pdirty = true;
+  function sizeCanvas(c, g, hFn) {
+    const w = c.parentElement.clientWidth - 24, h = hFn(w), d = window.devicePixelRatio || 1;
+    c.style.height = h + 'px'; c.width = Math.round(w * d); c.height = Math.round(h * d); g.setTransform(d, 0, 0, d, 0, 0);
+    return { W: w, H: h };
+  }
+  function resize() {
+    const a = sizeCanvas(cv, ctx, w => Math.round(Math.min(Math.max(w * 0.78, 460), 640)));
+    const b = sizeCanvas(cov, cctx, w => Math.round(Math.min(Math.max(w * 0.2, 130), 170)));
+    L = { ...a, cW: b.W, cH: b.H, ml: 12, mr: 12, mt: 8, mb: 26 };
+    dirty = true;
+  }
+  function niceStep(range, target) {
+    const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+  }
+  const decs = st => Math.max(0, -Math.floor(Math.log10(st) + 1e-9));
+  function domain() {
+    const n = N();
+    if (S.mode === 'p') {
+      const se = Math.sqrt(S.p * (1 - S.p) / n), half = Math.max(2.1 * zc() * se, 0.05);
+      return { lo: Math.max(-0.08, S.p - half), hi: Math.min(1.08, S.p + half) };
+    }
+    const c = crit(methods().A), half = Math.max(4, 2.3 * c) * SIG / Math.sqrt(n);
+    return { lo: MU - half, hi: MU + half };
+  }
+  function xAxis(g, W, y, lo, hi, X) {
+    const st = niceStep(hi - lo, Math.max(3, Math.floor(W / 85))), dd = decs(st);
+    g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(L.ml, y + .5); g.lineTo(W - L.mr, y + .5); g.stroke();
+    g.fillStyle = C.muted; g.font = '11px "JetBrains Mono", ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'top';
+    for (let v = Math.ceil(lo / st - 1e-9) * st; v <= hi + 1e-9; v += st) {
+      const x = X(v); g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x, L.mt); g.lineTo(x, y); g.stroke();
+      g.strokeStyle = C.line; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 4); g.stroke();
+      g.fillText(nf(Math.abs(v) < st * 1e-6 ? 0 : v, dd), Math.min(Math.max(x, L.ml + 14), W - L.mr - 14), y + 6);
+    }
+  }
+  let geo = null;
+  function draw() {
+    const { W, H, ml, mr, mt, mb } = L, dom = domain(), mu = truth();
+    ctx.clearRect(0, 0, W, H);
+    const X = v => ml + (v - dom.lo) / (dom.hi - dom.lo) * (W - ml - mr);
+    const base = H - mb;
+    xAxis(ctx, W, base, dom.lo, dom.hi, X);
+    const rows = S.batch, rh = (base - mt - 4) / 100;
+    const lw = Math.max(1.5, Math.min(3.5, rh * 0.55));
+    geo = { X, rh, mt, dom };
+    rows.forEach((r, i) => {
+      const y = mt + 2 + (i + 0.5) * rh;
+      const x0 = X(r.lo), x1 = X(r.hi), cx0 = Math.max(ml, x0), cx1 = Math.min(W - mr, x1);
+      ctx.strokeStyle = r.hit ? C.accent : C.curve; ctx.globalAlpha = r.hit ? 0.85 : 1; ctx.lineWidth = r.hit ? lw : lw + 0.6;
+      ctx.beginPath(); ctx.moveTo(cx0, y); ctx.lineTo(Math.max(cx1, cx0 + 1), y); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = r.hit ? C.accent : C.curve;
+      if (x0 < ml) { ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(ml + 5, y - 3); ctx.lineTo(ml + 5, y + 3); ctx.fill(); }
+      if (x1 > W - mr) { ctx.beginPath(); ctx.moveTo(W - mr, y); ctx.lineTo(W - mr - 5, y - 3); ctx.lineTo(W - mr - 5, y + 3); ctx.fill(); }
+      const est = S.mode === 'p' ? r.k / N() : r.m, ex = X(est);
+      if (ex >= ml && ex <= W - mr && rh >= 3) { ctx.fillStyle = C.ink; ctx.globalAlpha = 0.55; ctx.fillRect(ex - 1, y - Math.max(1.5, lw * 0.6), 2, Math.max(3, lw * 1.2)); ctx.globalAlpha = 1; }
+    });
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(mu), mt); ctx.lineTo(X(mu), base); ctx.stroke();
+    ctx.fillStyle = C.ink; ctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = X(mu) > W - 90 ? 'right' : 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(S.mode === 'p' ? `p = ${nf(S.p, 2)}` : `μ = ${MU}`, X(mu) + (X(mu) > W - 90 ? -6 : 6), mt);
+    drawCov();
+  }
+  function drawCov() {
+    const W = L.cW, H = L.cH, ml = 40, mr = 12, mt = 8, mb = 22, g = cctx;
+    g.clearRect(0, 0, W, H);
+    const nom = S.lev / 100, ser = S.series;
+    let lo = Math.min(nom, TH.A, TH.B ?? 1) - 0.04;
+    for (const s of ser) { if (s[0] >= 300) { lo = Math.min(lo, s[1] - 0.01); if (s[2] !== null) lo = Math.min(lo, s[2] - 0.01); } }
+    lo = Math.max(0, Math.floor(lo * 50) / 50); const hi = 1;
+    const maxN = Math.max(1000, ser.length ? ser[ser.length - 1][0] : 1000);
+    const X = n => ml + n / maxN * (W - ml - mr), Y = v => mt + (hi - v) / (hi - lo) * (H - mt - mb);
+    g.font = '11px "JetBrains Mono", ui-monospace, monospace'; g.fillStyle = C.muted; g.textAlign = 'right'; g.textBaseline = 'middle';
+    const st = niceStep(hi - lo, 3);
+    for (let v = Math.ceil(lo / st - 1e-9) * st; v <= hi + 1e-9; v += st) {
+      g.strokeStyle = C.grid; g.lineWidth = 1; g.beginPath(); g.moveTo(ml, Y(v) + .5); g.lineTo(W - mr, Y(v) + .5); g.stroke();
+      g.fillText(nf(v * 100, 0) + '%', ml - 6, Y(v));
+    }
+    g.textAlign = 'right'; g.textBaseline = 'top'; g.fillText(`${maxN.toLocaleString()} intervals`, W - mr, H - mb + 6);
+    g.textAlign = 'left'; g.fillText('0', ml, H - mb + 6);
+    g.setLineDash([2, 3]); g.strokeStyle = C.muted; g.lineWidth = 1.5; g.beginPath(); g.moveTo(ml, Y(nom)); g.lineTo(W - mr, Y(nom)); g.stroke();
+    g.setLineDash([6, 4]); g.strokeStyle = C.curve; g.lineWidth = 2; g.beginPath(); g.moveTo(ml, Y(TH.A)); g.lineTo(W - mr, Y(TH.A)); g.stroke();
+    if (TH.B !== null && TH.B !== undefined) { g.globalAlpha = 0.5; g.beginPath(); g.moveTo(ml, Y(TH.B)); g.lineTo(W - mr, Y(TH.B)); g.stroke(); g.globalAlpha = 1; }
+    g.setLineDash([]);
+    const line = (idx, col, w) => {
+      g.strokeStyle = col; g.lineWidth = w; g.beginPath(); let first = true;
+      for (const s of ser) { if (s[idx] === null) continue; const x = X(s[0]), y = Y(Math.max(lo, s[idx])); first ? g.moveTo(x, y) : g.lineTo(x, y); first = false; }
+      g.stroke();
+    };
+    if (ser.length && ser[0][2] !== null) line(2, C.coinA, 1.75);
+    line(1, C.accent, 2.25);
+  }
+
+  // ---- drawing: CI vs PI ----
+  let PL = {};
+  function presize() { const a = sizeCanvas(pic, pctx, w => Math.round(Math.min(Math.max(w * 0.62, 320), 440))); PL = { ...a, ml: 12, mr: 12, mt: 8, mb: 26 }; pdirty = true; }
+  function drawPI() {
+    const { W, H, ml, mr, mt, mb } = PL, g = pctx;
+    g.clearRect(0, 0, W, H);
+    if (S.mode === 'p' || !S.batch.length || S.batch[0].plo === undefined) {
+      g.fillStyle = C.muted; g.font = '13px "Atkinson Hyperlegible", system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('Switch to a mean mode to compare CIs and PIs.', W / 2, H / 2); return;
+    }
+    const rows = S.batch.slice(0, 25), n = N(), c = crit(methods().A);
+    const half = Math.max(1.25 * c * SIG * Math.sqrt(1 + 1 / n), 3.2 * SIG);
+    const lo = MU - half, hi = MU + half, X = v => ml + (v - lo) / (hi - lo) * (W - ml - mr), base = H - mb;
+    const saved = L; L = { ...L, ml, mr, mt }; xAxis(g, W, base, lo, hi, X); L = saved;
+    const rh = (base - mt - 4) / 25;
+    rows.forEach((r, i) => {
+      const y = mt + 2 + (i + 0.5) * rh;
+      const clip = v => Math.min(Math.max(X(v), ml), W - mr);
+      g.strokeStyle = C.coinB; g.globalAlpha = 0.55; g.lineWidth = Math.min(8, rh * 0.5); g.lineCap = 'butt';
+      g.beginPath(); g.moveTo(clip(r.plo), y); g.lineTo(clip(r.phi), y); g.stroke(); g.globalAlpha = 1;
+      g.strokeStyle = r.hit ? C.accent : C.curve; g.lineWidth = Math.min(3, rh * 0.25);
+      g.beginPath(); g.moveTo(clip(r.lo), y); g.lineTo(Math.max(clip(r.hi), clip(r.lo) + 1), y); g.stroke();
+      const xn = clip(r.xnew);
+      g.fillStyle = C.ball; g.beginPath(); g.arc(xn, y, Math.min(4.5, rh * 0.32), 0, Math.PI * 2); g.fill();
+      if (!r.newPI) { g.strokeStyle = C.curve; g.lineWidth = 2; g.beginPath(); g.arc(xn, y, Math.min(7.5, rh * 0.48), 0, Math.PI * 2); g.stroke(); }
+    });
+    g.strokeStyle = C.ink; g.lineWidth = 2; g.beginPath(); g.moveTo(X(MU), mt); g.lineTo(X(MU), base); g.stroke();
+  }
+
+  function frame(now) {
+    if (S.auto) {
+      if (!frame.last) frame.last = now;
+      if (now - frame.last > (reduce.matches ? 400 : 110)) { frame.last = now; run(1); }
+    }
+    if (dirty) { draw(); dirty = false; }
+    if (pdirty) { drawPI(); pdirty = false; }
+    requestAnimationFrame(frame);
+  }
+
+  // ---- controls ----
+  function setMode(m) {
+    S.mode = m;
+    $('mZ').setAttribute('aria-pressed', m === 'z'); $('mT').setAttribute('aria-pressed', m === 't'); $('mP').setAttribute('aria-pressed', m === 'p');
+    $('methT').hidden = m !== 't'; $('methP').hidden = m !== 'p'; $('pBox').hidden = m !== 'p'; $('dataBox').hidden = m !== 'p';
+    $('n').min = m === 'p' ? 3 : 0; if (S.ni < +$('n').min) S.ni = +$('n').min; $('n').value = S.ni; $('nOut').textContent = N().toLocaleString();
+    fresh();
+  }
+  function setTMeth(v) { S.tMeth = v; $('tT').setAttribute('aria-pressed', v === 't'); $('tZ').setAttribute('aria-pressed', v === 'z'); fresh(); }
+  function setPMeth(v) { S.pMeth = v; $('pW').setAttribute('aria-pressed', v === 'wald'); $('pS').setAttribute('aria-pressed', v === 'wilson'); fresh(); }
+  $('mZ').onclick = () => setMode('z'); $('mT').onclick = () => setMode('t'); $('mP').onclick = () => setMode('p');
+  $('tT').onclick = () => setTMeth('t'); $('tZ').onclick = () => setTMeth('z');
+  $('pW').onclick = () => setPMeth('wald'); $('pS').onclick = () => setPMeth('wilson');
+  $('lev').oninput = e => { S.lev = +e.target.value; $('levOut').textContent = S.lev + '%'; fresh(); };
+  $('n').oninput = e => { S.ni = +e.target.value; $('nOut').textContent = N().toLocaleString(); fresh(); };
+  $('p').oninput = e => { S.p = +e.target.value; $('pOut').textContent = S.p.toFixed(2); fresh(); };
+  $('b1').onclick = () => run(1);
+  $('b10').onclick = () => run(10);
+  $('reset').onclick = () => { resetCounts(); refresh(); };
+  $('auto').onclick = e => {
+    S.auto = !S.auto; e.currentTarget.setAttribute('aria-pressed', S.auto);
+    e.currentTarget.textContent = S.auto ? 'Stop' : 'Run continuously';
+  };
+  $('dx').oninput = dataRefresh; $('dn').oninput = dataRefresh;
+  $('piGo').onclick = () => { setTMeth('t'); setMode('t'); };
+
+  const toBoard = () => document.querySelector('.board').scrollIntoView({ behavior: reduce.matches ? 'auto' : 'smooth', block: 'start' });
+  function preset(o) {
+    if (o.lev) { S.lev = o.lev; $('lev').value = o.lev; $('levOut').textContent = o.lev + '%'; }
+    if (o.p !== undefined) { S.p = o.p; $('p').value = o.p; $('pOut').textContent = o.p.toFixed(2); }
+    S.ni = NS.indexOf(o.n);
+    if (o.tMeth) { S.tMeth = o.tMeth; $('tT').setAttribute('aria-pressed', o.tMeth === 't'); $('tZ').setAttribute('aria-pressed', o.tMeth === 'z'); }
+    if (o.pMeth) { S.pMeth = o.pMeth; $('pW').setAttribute('aria-pressed', o.pMeth === 'wald'); $('pS').setAttribute('aria-pressed', o.pMeth === 'wilson'); }
+    if (o.data) { $('dx').value = o.data[0]; $('dn').value = o.data[1]; }
+    setMode(o.mode); toBoard();
+  }
+  $('dPats').onclick = () => preset({ mode: 'p', p: 0.76, n: 25, lev: 95, pMeth: 'wald', data: [19, 25] });
+  $('dPoll').onclick = () => preset({ mode: 'p', p: 0.54, n: 1000, lev: 95, pMeth: 'wald', data: [540, 1000] });
+  $('dRare').onclick = () => preset({ mode: 'p', p: 0.03, n: 25, lev: 95, pMeth: 'wald', data: [1, 25] });
+  $('dSmall').onclick = () => preset({ mode: 't', n: 5, lev: 95, tMeth: 'z' });
+
+  // tooltip on the main plot
+  function showTip(ev) {
+    const rc = cv.getBoundingClientRect(), x = ev.clientX - rc.left, y = ev.clientY - rc.top;
+    if (!geo || !S.batch.length) return;
+    const i = Math.floor((y - geo.mt - 2) / geo.rh);
+    if (i < 0 || i >= S.batch.length) { tip.hidden = true; return; }
+    const r = S.batch[i], d = S.mode === 'p' ? 3 : 2;
+    const est = S.mode === 'p' ? `p̂ = ${r.k}/${N()} = ${nf(r.k / N(), 3)}` : `x̄ = ${nf(r.m, 2)}${S.mode === 't' ? `, s = ${nf(r.s, 2)}` : ''}`;
+    tip.innerHTML = `Sample ${i + 1}: ${est}<br>${methods().A}: (${nf(r.lo, d)}, ${nf(r.hi, d)})<br>${r.hit ? 'Traps' : '<span style="color:var(--curve)">Misses</span>'} the true value ${S.mode === 'p' ? nf(S.p, 2) : MU}`;
+    tip.hidden = false;
+    const left = Math.min(x + 24, cv.clientWidth - tip.offsetWidth + 12);
+    tip.style.left = Math.max(12, left) + 'px';
+    tip.style.top = Math.max(12, y + cv.offsetTop - tip.offsetHeight - 8) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  readColors();
+  const recolor = () => { readColors(); dirty = true; pdirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  new ResizeObserver(() => resize()).observe(cv.parentElement);
+  new ResizeObserver(() => presize()).observe(pic.parentElement);
+  resize(); presize();
+  $('nOut').textContent = N().toLocaleString();
+  setMode('z');
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

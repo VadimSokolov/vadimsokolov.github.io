@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Logistic Regression Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same lab family as the Galton and Regression labs. NBA plot + ROC/confusion matrix on the left, controls and estimates on the right; tennis decision boundary as a second instrument below; lesson, notes and class exercises at the end. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.7vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .s { color: var(--curve); font-weight: 600; }
+.eqn .f { color: var(--fit); font-weight: 600; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--curve); }
+.sw.fit { border-top: 2px dashed var(--fit); }
+.sw.acc { border-top: 2px dashed var(--accent); }
+.sw.thr { border-top: 1.5px dashed var(--ink); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
+.sw.obs { width: 9px; height: 9px; border: 0; border-radius: 50%; background: var(--accent); }
+.sw.hi { width: 9px; height: 9px; border: 0; border-radius: 50%; background: var(--ball); }
+.sw.a { width: 9px; height: 9px; border: 0; border-radius: 50%; background: var(--coinA); }
+.sw.b { width: 9px; height: 9px; border: 0; border-radius: 50%; background: var(--coinB); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+@media (max-width: 640px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.duo > div { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+table.cm { width: 100%; border-collapse: separate; border-spacing: 4px; font-variant-numeric: tabular-nums; table-layout: fixed; }
+.cm th { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; text-align: center; padding: 2px; }
+.cm th.row { text-align: left; }
+.cm td { text-align: center; border-radius: 8px; padding: 8px 4px; border: 1px solid var(--line); background: var(--surface); }
+.cm td b { display: block; font-family: var(--font-display); font-size: 22px; line-height: 1.1; }
+.cm td span { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); }
+.cm td.ok { border-color: color-mix(in srgb, var(--fit) 55%, var(--line)); background: color-mix(in srgb, var(--fit) 10%, var(--surface)); }
+.cm td.bad { border-color: color-mix(in srgb, var(--curve) 45%, var(--line)); background: color-mix(in srgb, var(--curve) 8%, var(--surface)); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+.slider.h output { color: var(--ball); }
+.slider.a output { color: var(--coinA); }
+.slider.b output { color: var(--coinB); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider.h input { accent-color: var(--ball); }
+.slider.a input { accent-color: var(--coinA); }
+.slider.b input { accent-color: var(--coinB); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.th { color: var(--curve); }
+.stats td.est { color: var(--fit); }
+
+.chain { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; overflow-x: auto; }
+.chain div { white-space: nowrap; }
+.chain .k { color: var(--muted); display: inline-block; min-width: 5.4em; }
+.chain .r { color: var(--curve); font-weight: 600; }
+.chain .f { color: var(--fit); font-weight: 600; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ball); }
+.row2 { display: flex; justify-content: space-between; align-items: end; gap: 8px; }
+
+.sechead { display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.sechead h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.sechead p { margin: 0; color: var(--muted); }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.eq table { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.eq th, .eq td { text-align: right; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.eq th:first-child, .eq td:first-child { text-align: left; padding-right: 8px; }
+.eq th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.eq tr:last-child td { border-bottom: 0; }
+.tw { overflow-x: auto; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Logistic regression</span>
+    <h1>Logistic Regression Lab</h1>
+    <p class="lead">Each dot is a simulated NBA game: the Vegas point spread on the x-axis, and whether the favorite won (1) or lost (0). The red S-curve is the reference model with β = 0.156. Fit the model by maximum likelihood, read off win probabilities, and move the cutoff to see the confusion matrix and the ROC curve change.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 13, <a href="https://vsokolov.org/html/_book/13-logistic.html">Logistic Regression and Generalized Linear Models</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" id="nbaBoard" aria-label="NBA point spread and win probability">
+      <div class="eqn" id="eqnNba"></div>
+      <canvas id="nba" role="img" aria-label="Games plotted at 0 or 1 against the point spread, with logistic curves for the probability the favorite wins"></canvas>
+      <div id="tipNba" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw pt"></i>Simulated game (jittered)</span>
+        <span><i class="sw obs"></i>Observed win rate, 2-point bins</span>
+        <span><i class="sw"></i>Reference model, β = 0.156</span>
+        <span><i class="sw fit"></i>MLE fit to these games</span>
+        <span><i class="sw thr"></i>Cutoff t</span>
+        <span><i class="sw hi"></i>Chosen spread</span>
+      </div>
+      <div class="duo">
+        <div>
+          <span class="sub">ROC curve · fitted p̂ as the score</span>
+          <canvas id="roc" role="img" aria-label="ROC curve of true positive rate against false positive rate, with the current cutoff marked"></canvas>
+        </div>
+        <div>
+          <span class="sub" id="cmTitle">Confusion matrix · predict a win if p̂ &gt; 0.50</span>
+          <table class="cm" aria-label="Confusion matrix">
+            <thead><tr><th class="row"></th><th>Predicted 1</th><th>Predicted 0</th></tr></thead>
+            <tbody>
+              <tr><th class="row">Actual 1<br>(fav. won)</th><td class="ok"><b id="cTP">–</b><span>TP</span></td><td class="bad"><b id="cFN">–</b><span>FN</span></td></tr>
+              <tr><th class="row">Actual 0<br>(fav. lost)</th><td class="bad"><b id="cFP">–</b><span>FP</span></td><td class="ok"><b id="cTN">–</b><span>TN</span></td></tr>
+            </tbody>
+          </table>
+          <table class="stats">
+            <tbody>
+              <tr><td>Accuracy (TP + TN) / n</td><td id="mAcc">–</td></tr>
+              <tr><td>Sensitivity TP / (TP + FN)</td><td id="mSens">–</td></tr>
+              <tr><td>Specificity TN / (TN + FP)</td><td id="mSpec">–</td></tr>
+              <tr><td>Precision TP / (TP + FP)</td><td id="mPrec">–</td></tr>
+              <tr><td>Area under the ROC curve</td><td id="mAuc">–</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Simulated season</span>
+        <div class="slider"><div class="top"><label for="nGames">Games, n</label><output id="nGamesOut">800</output></div>
+          <input type="range" id="nGames" min="50" max="2000" step="50" value="800"></div>
+        <div class="btns">
+          <button id="newSeason" class="primary">New season</button>
+          <button id="resetNba">Reset</button>
+        </div>
+        <div class="checks"><label><input type="checkbox" id="useInt"> Fit an intercept too</label></div>
+        <p class="hint">Games are simulated from the reference model, P(favorite wins) = logit⁻¹(0.156 × spread). The real games are not reproduced here.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Maximum likelihood fit (Newton–Raphson)</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Reference</th><th>This fit</th></tr></thead>
+          <tbody>
+            <tr id="rowB0" hidden><td>Intercept β̂₀</td><td class="th">–</td><td class="est" id="fB0">–</td></tr>
+            <tr id="rowB0se" hidden><td>Std. error of β̂₀</td><td class="th">–</td><td class="est" id="fB0se">–</td></tr>
+            <tr><td>Spread β̂</td><td class="th">0.156</td><td class="est" id="fB1">–</td></tr>
+            <tr><td>Std. error</td><td class="th">0.014</td><td class="est" id="fSe">–</td></tr>
+            <tr><td>z = β̂ / SE</td><td class="th">11.3</td><td class="est" id="fZ">–</td></tr>
+            <tr><td>Favorite win rate</td><td class="th">–</td><td class="est" id="fRate">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint" id="fitNote">–</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Predict at a spread</span>
+        <div class="slider h"><div class="top"><label for="spread">Point spread</label><output id="spreadOut">4.0</output></div>
+          <input type="range" id="spread" min="0" max="20" step="0.5" value="4"></div>
+        <div class="chain" id="chain"></div>
+        <div class="row2"><span class="label">P(favorite wins), reference model</span><span class="big" id="pBig">–</span></div>
+      </div>
+
+      <div class="group">
+        <span class="label">Classify</span>
+        <div class="slider"><div class="top"><label for="thr">Cutoff t: predict a win if p̂ &gt; t</label><output id="thrOut">0.50</output></div>
+          <input type="range" id="thr" min="0" max="1" step="0.01" value="0.5"></div>
+        <p class="hint" id="thrNote">–</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">From log-odds to a decision</span>
+      <h2>One coefficient, three scales: log-odds, odds, probability</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The model is linear on the log-odds scale. Exponentiate to get odds, then divide odds by one plus odds to get a probability. These buttons load the worked cases.</p>
+      <div class="demo">
+        <button class="primary" id="demo4">Spread = 4</button>
+        <button id="demo8">Spread = 8</button>
+        <button id="demoT">Cutoff 0.75</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>Linear regression fails for a yes/no outcome</h3>
+        <p>A straight line through 0/1 data predicts values below 0 and above 1 once the spread is large enough. We want P(Y = 1 | X), which must stay in (0, 1). The logistic curve does that for any value of β₀ + β₁X.</p>
+      </div></li>
+      <li><div>
+        <h3>Read β on the log-odds scale</h3>
+        <p>Each extra point of spread adds 0.156 to the log-odds that the favorite wins. Equivalently, it multiplies the odds by e<sup>0.156</sup> = 1.17. The change in probability per point is not constant: the curve is steepest at 50% and flattens near 100%.</p>
+      </div></li>
+      <li><div>
+        <h3>Maximum likelihood picks β</h3>
+        <p>There is no least-squares formula here. R's glm, and this page, climb the log-likelihood with Newton–Raphson steps (iteratively reweighted least squares). The standard error comes from the curvature of the log-likelihood at the top.</p>
+      </div></li>
+      <li><div>
+        <h3>A cutoff turns probabilities into decisions</h3>
+        <p>With no intercept and a positive spread, every p̂ is above 0.5, so the 0.5 cutoff always picks the favorite. Sensitivity is 100% and specificity is 0%. Raise the cutoff and the model starts calling upsets in close games. The ROC curve shows every cutoff at once, and its area (AUC) is the chance that a random win gets a higher p̂ than a random loss.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">The logistic model</div>
+        <div class="m">log( p / (1 − p) ) = β₀ + β₁X₁ + … + βₚXₚ</div>
+        <div class="m">p = e^(β₀+β₁X₁+…) / (1 + e^(β₀+β₁X₁+…))</div>
+      </div>
+      <div class="eq">
+        <div class="cap">NBA, glm(favwin ~ spread − 1)</div>
+        <div class="m">Spread 4: 0.156 × 4 = 0.62 → e^0.62 / (1 + e^0.62) = 65%</div>
+        <div class="m">Spread 8: 0.156 × 8 = 1.25 → e^1.25 / (1 + e^1.25) = 77%</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Newton–Raphson step, with p = logit⁻¹(Xβ), W = diag(p(1 − p))</div>
+        <div class="m">β ← β + (XᵀWX)⁻¹ Xᵀ(y − p)</div>
+        <div class="m">SE(β̂) = √ diag (XᵀWX)⁻¹</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Confusion-matrix metrics</div>
+        <div class="m">Accuracy    = (TP + TN) / n</div>
+        <div class="m">Sensitivity = TP / (TP + FN)</div>
+        <div class="m">Specificity = TN / (TN + FP)</div>
+        <div class="m">Precision   = TP / (TP + FP)</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> The reference 65% and 77% come straight from plugging the spread into the fitted curve. The market looks calibrated because the curve passes through the observed win rates. Whether to call a game for the underdog is a separate business decision, set by the cutoff and the cost of each kind of mistake.</p>
+    </div>
+  </section>
+
+  <section class="sechead" id="tennis">
+    <span class="eyebrow">Two predictors, a straight-line boundary</span>
+    <h2>Tennis: break points won by each player</h2>
+    <p>Each dot is one simulated Grand Slam match, placed at the break points won by player 1 (x) and player 2 (y). The reference fit glm(Result ~ BPW.1 + BPW.2 − 1) on 943 real matches from 2013. With two predictors, the set of matches where p̂ = 0.5 is a straight line.</p>
+  </section>
+
+  <section class="grid">
+    <div class="board" aria-label="Tennis decision boundary">
+      <div class="eqn" id="eqnTen"></div>
+      <canvas id="ten" role="img" aria-label="Matches plotted by break points won by each player, colored by winner, with the straight decision boundary"></canvas>
+      <div id="tipTen" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw a"></i>Player 1 won (simulated)</span>
+        <span><i class="sw b"></i>Player 2 won (simulated)</span>
+        <span><i class="sw"></i>Reference boundary, p̂ = 0.5</span>
+        <span><i class="sw thr"></i>p̂ = 0.25 and 0.75</span>
+        <span><i class="sw acc"></i>MLE boundary</span>
+        <span><i class="sw hi"></i>Chosen match</span>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">A match (click the plot to pick one)</span>
+        <div class="slider a"><div class="top"><label for="b1">Break points won by player 1</label><output id="b1Out">3</output></div>
+          <input type="range" id="b1" min="0" max="20" step="1" value="3"></div>
+        <div class="slider b"><div class="top"><label for="b2">Break points won by player 2</label><output id="b2Out">0</output></div>
+          <input type="range" id="b2" min="0" max="20" step="1" value="0"></div>
+        <div class="chain" id="chainTen"></div>
+        <div class="row2"><span class="label">P(player 1 wins), reference model</span><span class="big" id="pTen">–</span></div>
+        <div class="btns">
+          <button id="gap3">Three-break gap</button>
+          <button id="parity">Parity, 5 vs 5</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Fit to 943 simulated matches</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Reference</th><th>This fit</th></tr></thead>
+          <tbody>
+            <tr><td>BPW.1 β̂₁</td><td class="th">0.402</td><td class="est" id="tB1">–</td></tr>
+            <tr><td>Std. error</td><td class="th">0.026</td><td class="est" id="tS1">–</td></tr>
+            <tr><td>BPW.2 β̂₂</td><td class="th">−0.418</td><td class="est" id="tB2">–</td></tr>
+            <tr><td>Std. error</td><td class="th">0.028</td><td class="est" id="tS2">–</td></tr>
+            <tr><td>Accuracy at p̂ &gt; 0.5</td><td class="th">87%</td><td class="est" id="tAcc">–</td></tr>
+          </tbody>
+        </table>
+        <button id="newTen" class="primary">New 943 matches</button>
+        <p class="hint">Matches are simulated from the reference coefficients. Players' break points come from a made-up strength gap, tuned so accuracy lands near the reference 87%.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Confusion matrices at p̂ &gt; 0.5</span>
+        <div class="tw"><table class="stats">
+          <thead><tr><th></th><th>Pred. 0</th><th>Pred. 1</th></tr></thead>
+          <tbody>
+            <tr><td>Reference, actual 0</td><td class="th">416</td><td class="th">61</td></tr>
+            <tr><td>Reference, actual 1</td><td class="th">65</td><td class="th">400</td></tr>
+            <tr><td>Simulated, actual 0</td><td class="est" id="t00">–</td><td class="est" id="t01">–</td></tr>
+            <tr><td>Simulated, actual 1</td><td class="est" id="t10">–</td><td class="est" id="t11">–</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Symmetry in the tennis coefficients</h2>
+      <p>β̂₁ = 0.402 and β̂₂ = −0.418 are close to equal and opposite. Winning a break point helps player 1 about as much as losing one hurts. So the boundary is close to the 45° line BPW.2 = BPW.1, tilted slightly by the ratio 0.402 / 0.418 = 0.96.</p>
+      <div class="formula">boundary: BPW.2 = (0.402 / 0.418) × BPW.1</div>
+    </div>
+    <div class="note">
+      <h2>Effect size: a three-break gap</h2>
+      <p>The reference fit approximates both coefficients by 0.40. Then a gap of three break points gives 0.40 × 3 = 1.2 on the log-odds scale, and p̂ = 77%, up from 50% at parity. That is 27 percentage points.</p>
+      <div class="formula">logit⁻¹(1.2) = e^1.2 / (1 + e^1.2) = 0.77</div>
+    </div>
+    <div class="note">
+      <h2>LinkedIn: coefficients as odds multipliers</h2>
+      <p>In the LinkedIn example a top MBA has β̂ = +1.16, so it multiplies the odds of becoming VP, CXO or partner by e<sup>1.16</sup> = 3.19. A year of experience multiplies them by e<sup>0.09</sup> = 1.09. The ratio 1.16 / 0.09 ≈ 13 is the "worth 13 years" result.</p>
+      <div class="tw"><table class="stats" style="font-size:13px">
+        <thead><tr><th>Feature</th><th>β̂</th><th>e<sup>β̂</sup></th></tr></thead>
+        <tbody>
+          <tr><td>Top MBA</td><td>+1.16</td><td>3.19</td></tr>
+          <tr><td>Function count</td><td>+0.26</td><td>1.30</td></tr>
+          <tr><td>Years of experience</td><td>+0.09</td><td>1.09</td></tr>
+          <tr><td>Industry count</td><td>−0.22</td><td>0.80</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load "Spread = 4" and walk the chain in the panel: 0.624 on the log-odds scale, odds of 1.87, probability 65%. Ask students to do spread 8 by hand before pressing the second button.</li>
+      <li>Set n = 100 and press "New season" a few times. Watch β̂ bounce around 0.156 and its SE grow. Set n = 2,000 and the SE shrinks to about √(100/2000) ≈ 0.22 of its n = 100 size.</li>
+      <li>At the 0.5 cutoff the model always picks the favorite. Ask why specificity is 0%. Then slide the cutoff to 0.75 and read the new sensitivity and specificity off the matrix and the ROC point.</li>
+      <li>Tick "Fit an intercept too". β̂₀ lands near 0, which is what a calibrated market implies: a spread of 0 should mean a 50/50 game.</li>
+      <li>In the tennis plot, click a match at 8 vs 5 and another at 3 vs 0. Both have a three-break gap. Compare their probabilities and explain the difference using β̂₁ ≠ −β̂₂.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  // ==MATH==
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function randnFrom(rng) { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function poissonFrom(rng, lam) { const L = Math.exp(-lam); let k = 0, p = 1; do { k++; p *= rng(); } while (p > L); return k - 1; }
+  const sigmoid = z => z >= 0 ? 1 / (1 + Math.exp(-z)) : Math.exp(z) / (1 + Math.exp(z));
+  const logit = p => Math.log(p / (1 - p));
+
+  // invert a small symmetric positive-definite matrix (Gauss–Jordan with partial pivoting)
+  function invert(A) {
+    const n = A.length, M = A.map((r, i) => [...r, ...Array.from({ length: n }, (_, j) => +(i === j))]);
+    for (let c = 0; c < n; c++) {
+      let piv = c;
+      for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+      [M[c], M[piv]] = [M[piv], M[c]];
+      const d = M[c][c];
+      if (Math.abs(d) < 1e-300) return null;
+      for (let j = 0; j < 2 * n; j++) M[c][j] /= d;
+      for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c]; if (f) for (let j = 0; j < 2 * n; j++) M[r][j] -= f * M[c][j]; }
+    }
+    return M.map(r => r.slice(n));
+  }
+
+  // logistic regression by Newton–Raphson (IRLS). X: array of rows, y: 0/1 array.
+  function fitLogit(X, y, maxIter = 50, tol = 1e-10) {
+    const n = X.length, p = X[0].length;
+    let beta = new Array(p).fill(0), iter = 0, conv = false, Hinv = null;
+    for (; iter < maxIter; iter++) {
+      const g = new Array(p).fill(0), H = Array.from({ length: p }, () => new Array(p).fill(0));
+      for (let i = 0; i < n; i++) {
+        const xi = X[i]; let eta = 0;
+        for (let j = 0; j < p; j++) eta += xi[j] * beta[j];
+        const pi = sigmoid(eta), w = pi * (1 - pi), r = y[i] - pi;
+        for (let j = 0; j < p; j++) { g[j] += xi[j] * r; for (let k = 0; k <= j; k++) H[j][k] += w * xi[j] * xi[k]; }
+      }
+      for (let j = 0; j < p; j++) for (let k = j + 1; k < p; k++) H[j][k] = H[k][j];
+      Hinv = invert(H); if (!Hinv) break;
+      let step = 0;
+      for (let j = 0; j < p; j++) { let d = 0; for (let k = 0; k < p; k++) d += Hinv[j][k] * g[k]; beta[j] += d; step = Math.max(step, Math.abs(d)); }
+      if (step < tol) { conv = true; iter++; break; }
+    }
+    // information at the final estimate
+    const H = Array.from({ length: p }, () => new Array(p).fill(0)); let ll = 0;
+    for (let i = 0; i < n; i++) {
+      const xi = X[i]; let eta = 0;
+      for (let j = 0; j < p; j++) eta += xi[j] * beta[j];
+      const pi = sigmoid(eta), w = pi * (1 - pi);
+      ll += y[i] ? Math.log(Math.max(pi, 1e-300)) : Math.log(Math.max(1 - pi, 1e-300));
+      for (let j = 0; j < p; j++) for (let k = 0; k < p; k++) H[j][k] += w * xi[j] * xi[k];
+    }
+    Hinv = invert(H);
+    const se = Hinv ? Hinv.map((r, j) => Math.sqrt(r[j])) : beta.map(() => NaN);
+    return { beta, se, iter, conv, ll };
+  }
+
+  function confusion(score, y, t) {
+    let TP = 0, FP = 0, TN = 0, FN = 0;
+    for (let i = 0; i < y.length; i++) {
+      const pr = score[i] > t;
+      if (y[i]) pr ? TP++ : FN++; else pr ? FP++ : TN++;
+    }
+    return { TP, FP, TN, FN };
+  }
+
+  // ROC points (FPR, TPR) for every cutoff, ties grouped; AUC by the trapezoid rule
+  function rocCurve(score, y) {
+    const idx = score.map((s, i) => i).sort((a, b) => score[b] - score[a]);
+    let P = 0; for (const v of y) P += v; const N = y.length - P;
+    const pts = [[0, 0]]; let tp = 0, fp = 0, auc = 0;
+    for (let i = 0; i < idx.length;) {
+      const s = score[idx[i]];
+      while (i < idx.length && score[idx[i]] === s) { if (y[idx[i]]) tp++; else fp++; i++; }
+      const x = N ? fp / N : 0, yv = P ? tp / P : 0, [px, py] = pts[pts.length - 1];
+      auc += (x - px) * (yv + py) / 2;
+      pts.push([x, yv]);
+    }
+    return { pts, auc };
+  }
+
+  // NBA season simulated from the reference model. Spreads are half-points from a half-normal, capped at 20.
+  function simNba(seed, nMax, beta) {
+    const rng = mulberry32(seed), x = [], y = [], jit = [], jy = [];
+    for (let i = 0; i < nMax; i++) {
+      let s;
+      do { s = Math.round(Math.abs(randnFrom(rng)) * 6.5 * 2) / 2; } while (s > 20);
+      if (s < 0.5) s = 0.5;
+      x.push(s); y.push(rng() < sigmoid(beta * s) ? 1 : 0); jit.push(rng() * 2 - 1); jy.push(rng() * 2 - 1);
+    }
+    return { x, y, jit, jy };
+  }
+
+  // tennis matches: a latent strength gap d drives each player's break points; the result follows the reference model
+  function simTennis(seed, n, b1, b2) {
+    const rng = mulberry32(seed), x1 = [], x2 = [], y = [], j1 = [], j2 = [];
+    for (let i = 0; i < n; i++) {
+      let u, v;
+      do { const d = randnFrom(rng) * 1.6; u = poissonFrom(rng, Math.exp(1.5 + d / 2)); v = poissonFrom(rng, Math.exp(1.5 - d / 2)); } while (u > 20 || v > 20);
+      x1.push(u); x2.push(v); y.push(rng() < sigmoid(b1 * u + b2 * v) ? 1 : 0);
+      j1.push(rng() - 0.5); j2.push(rng() - 0.5);
+    }
+    return { x1, x2, y, j1, j2 };
+  }
+  // ==END MATH==
+
+  const SLIDE = { b: 0.156, se: 0.014, z: 11.3, t1: 0.402, t2: -0.418 };
+  const S = { seed: 41000, n: 800, useInt: false, spread: 4, thr: 0.5, data: null, fit: null, score: [], roc: null,
+              tSeed: 2013, ten: null, tFit: null, b1: 3, b2: 0 };
+  let C = {};
+  const dirty = { nba: true, roc: true, ten: true };
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'point', 'fit', 'coinA', 'coinB', 'board', 'surface'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+    dirty.nba = dirty.roc = dirty.ten = true;
+  }
+
+  const fx = (v, d) => (v < 0 ? '−' : '') + Math.abs(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pct = (v, d = 1) => isFinite(v) ? (v * 100).toFixed(d) + '%' : '–';
+
+  // ---------- generic canvas plot ----------
+  function makePlot(cv, sizeFn, margins) {
+    const P = { cv, ctx: cv.getContext('2d'), L: {} };
+    P.resize = () => {
+      const w = Math.max(200, cv.parentElement.clientWidth - (cv.parentElement.classList.contains('board') ? 28 : 0));
+      const h = sizeFn(w), d = window.devicePixelRatio || 1;
+      cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+      P.ctx.setTransform(d, 0, 0, d, 0, 0);
+      P.L = { W: w, H: h, ...margins };
+    };
+    P.setDomain = (x0, x1, y0, y1) => { P.D = { x0, x1, y0, y1 }; };
+    P.px = x => P.L.ml + (x - P.D.x0) / (P.D.x1 - P.D.x0) * (P.L.W - P.L.ml - P.L.mr);
+    P.py = y => P.L.mt + (P.D.y1 - y) / (P.D.y1 - P.D.y0) * (P.L.H - P.L.mt - P.L.mb);
+    P.ix = px => P.D.x0 + (px - P.L.ml) / (P.L.W - P.L.ml - P.L.mr) * (P.D.x1 - P.D.x0);
+    P.iy = py => P.D.y1 - (py - P.L.mt) / (P.L.H - P.L.mt - P.L.mb) * (P.D.y1 - P.D.y0);
+    P.axes = (xt, yt, fxl, fyl, xl, yl) => {
+      const { ctx, L } = P;
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+      ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.fillStyle = C.muted;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (const y of yt) { const p = Math.round(P.py(y)) + .5; ctx.beginPath(); ctx.moveTo(L.ml, p); ctx.lineTo(L.W - L.mr, p); ctx.stroke(); ctx.fillText(fyl(y), L.ml - 7, p); }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const x of xt) { const p = Math.round(P.px(x)) + .5; ctx.beginPath(); ctx.moveTo(p, L.mt); ctx.lineTo(p, L.H - L.mb); ctx.stroke(); ctx.fillText(fxl(x), p, L.H - L.mb + 7); }
+      ctx.strokeStyle = C.line; ctx.strokeRect(L.ml + .5, L.mt + .5, L.W - L.ml - L.mr - 1, L.H - L.mt - L.mb - 1);
+      ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(xl, (L.ml + L.W - L.mr) / 2, L.H - 1);
+      ctx.save(); ctx.translate(11, (L.mt + L.H - L.mb) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    };
+    P.clip = () => { const { ctx, L } = P; ctx.save(); ctx.beginPath(); ctx.rect(L.ml, L.mt, L.W - L.ml - L.mr, L.H - L.mt - L.mb); ctx.clip(); };
+    return P;
+  }
+  const range = (a, b, s) => { const o = []; for (let v = a; v <= b + 1e-9; v += s) o.push(+v.toFixed(6)); return o; };
+
+  const nba = makePlot($('nba'), w => Math.round(Math.min(Math.max(w * 0.56, 300), 480)), { ml: 52, mr: 14, mt: 14, mb: 44 });
+  const roc = makePlot($('roc'), w => Math.round(Math.min(Math.max(w * 0.86, 220), 340)), { ml: 46, mr: 10, mt: 10, mb: 40 });
+  const ten = makePlot($('ten'), w => Math.round(Math.min(Math.max(w * 0.8, 320), 560)), { ml: 52, mr: 14, mt: 14, mb: 44 });
+
+  // ---------- NBA model state ----------
+  function curP(s) { const b = S.fit.beta; return S.useInt ? sigmoid(b[0] + b[1] * s) : sigmoid(b[0] * s); }
+  function refit() {
+    const { x, y } = S.data, n = S.n;
+    const X = [], Y = y.slice(0, n);
+    for (let i = 0; i < n; i++) X.push(S.useInt ? [1, x[i]] : [x[i]]);
+    S.fit = fitLogit(X, Y);
+    S.score = x.slice(0, n).map(curP);
+    S.roc = rocCurve(S.score, Y);
+    updateNbaText(); updateClassify(); dirty.nba = dirty.roc = true;
+  }
+  function newSeason(seed) { S.seed = seed; S.data = simNba(S.seed, 2000, SLIDE.b); refit(); }
+
+  function updateNbaText() {
+    const f = S.fit, n = S.n, b1 = S.useInt ? f.beta[1] : f.beta[0], s1 = S.useInt ? f.se[1] : f.se[0];
+    $('rowB0').hidden = $('rowB0se').hidden = !S.useInt;
+    if (S.useInt) { $('fB0').textContent = fx(f.beta[0], 3); $('fB0se').textContent = fx(f.se[0], 3); }
+    $('fB1').textContent = fx(b1, 3); $('fSe').textContent = fx(s1, 3); $('fZ').textContent = fx(b1 / s1, 1);
+    let w = 0; for (let i = 0; i < n; i++) w += S.data.y[i];
+    $('fRate').textContent = pct(w / n);
+    $('fitNote').textContent = `Converged in ${f.iter} Newton steps. Log-likelihood ${fx(f.ll, 2)} on ${n.toLocaleString()} games.`;
+    const fitEq = S.useInt ? `${fx(f.beta[0], 3)} ${b1 < 0 ? '−' : '+'} <span class="f">${Math.abs(b1).toFixed(3)}</span>·spread` : `<span class="f">${fx(b1, 3)}</span>·spread`;
+    $('eqnNba').innerHTML = `log-odds(fav. wins) = <span class="s">0.156</span>·spread &nbsp;(reference) &nbsp;·&nbsp; fit: ${fitEq}`;
+    updateChain();
+  }
+  function updateChain() {
+    const s = S.spread, lo = SLIDE.b * s, od = Math.exp(lo), p = od / (1 + od), pf = curP(s);
+    $('chain').innerHTML =
+      `<div><span class="k">log-odds</span>0.156 × ${s.toFixed(1)} = <span class="r">${lo.toFixed(3)}</span></div>` +
+      `<div><span class="k">odds</span>e^${lo.toFixed(3)} = <span class="r">${od.toFixed(3)}</span></div>` +
+      `<div><span class="k">p</span>${od.toFixed(3)} / (1 + ${od.toFixed(3)}) = <span class="r">${p.toFixed(3)}</span></div>` +
+      `<div><span class="k">this fit</span>p̂ = <span class="f">${pf.toFixed(3)}</span> (${pct(pf)})</div>`;
+    $('pBig').textContent = pct(p);
+    dirty.nba = true;
+  }
+  function updateClassify() {
+    const n = S.n, Y = S.data.y.slice(0, n), t = S.thr;
+    const c = confusion(S.score, Y, t);
+    $('cTP').textContent = c.TP.toLocaleString(); $('cFN').textContent = c.FN.toLocaleString();
+    $('cFP').textContent = c.FP.toLocaleString(); $('cTN').textContent = c.TN.toLocaleString();
+    $('mAcc').textContent = pct((c.TP + c.TN) / n);
+    $('mSens').textContent = c.TP + c.FN ? pct(c.TP / (c.TP + c.FN)) : '–';
+    $('mSpec').textContent = c.TN + c.FP ? pct(c.TN / (c.TN + c.FP)) : '–';
+    $('mPrec').textContent = c.TP + c.FP ? pct(c.TP / (c.TP + c.FP)) : '–';
+    $('mAuc').textContent = S.roc.auc.toFixed(3);
+    $('cmTitle').textContent = `Confusion matrix · predict a win if p̂ > ${t.toFixed(2)}`;
+    const cut = spreadCut();
+    let note;
+    if (cut === null) note = 'No spread on the plot reaches this cutoff, so every game is predicted a loss for the favorite.';
+    else if (cut <= 0) note = 'Every spread clears this cutoff, so the model picks the favorite in every game.';
+    else note = `Predict a favorite win when the spread is above ${cut.toFixed(2)} points.`;
+    $('thrNote').textContent = note;
+    S.cm = c; dirty.nba = dirty.roc = true;
+  }
+  // spread where the fitted p̂ equals the cutoff (for display)
+  function spreadCut() {
+    const t = S.thr, b = S.fit.beta;
+    if (t <= 0) return -1; if (t >= 1) return null;
+    const b0 = S.useInt ? b[0] : 0, b1 = S.useInt ? b[1] : b[0];
+    if (b1 <= 0) return null;
+    const s = (logit(t) - b0) / b1;
+    return s > 20 ? null : s;
+  }
+
+  // ---------- drawing ----------
+  function drawNba() {
+    const P = nba, { ctx, L } = P;
+    P.setDomain(0, 20, -0.12, 1.12);
+    ctx.clearRect(0, 0, L.W, L.H);
+    P.axes(range(0, 20, 2), [0, 0.25, 0.5, 0.75, 1], v => String(v), v => v.toFixed(2), 'Point spread (favorite)', 'P(favorite wins)');
+    P.clip();
+    const cut = spreadCut();
+    if (cut !== null) {
+      const a = P.px(Math.max(0, cut));
+      ctx.fillStyle = C.fit; ctx.globalAlpha = 0.07; ctx.fillRect(a, L.mt, L.W - L.mr - a, L.H - L.mt - L.mb); ctx.globalAlpha = 1;
+      if (cut > 0) { ctx.strokeStyle = C.ink; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.25; ctx.beginPath(); ctx.moveTo(a, L.mt); ctx.lineTo(a, L.H - L.mb); ctx.stroke(); ctx.setLineDash([]); }
+    }
+    // threshold line
+    ctx.strokeStyle = C.ink; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.25; ctx.beginPath(); ctx.moveTo(L.ml, P.py(S.thr)); ctx.lineTo(L.W - L.mr, P.py(S.thr)); ctx.stroke(); ctx.setLineDash([]);
+    // games
+    const n = S.n, { x, y, jit } = S.data, r = n > 1000 ? 1.8 : n > 400 ? 2.3 : 2.8;
+    ctx.fillStyle = C.point; ctx.globalAlpha = n > 1000 ? 0.35 : 0.5;
+    for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(P.px(x[i] + jit[i] * 0.18), P.py(y[i] + S.data.jy[i] * 0.07), r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // binned observed rates
+    for (let b = 0; b < 20; b += 2) {
+      let k = 0, w = 0; for (let i = 0; i < n; i++) if (x[i] > b && x[i] <= b + 2) { k++; w += y[i]; }
+      if (k >= 8) {
+        const cx = P.px(b + 1), cy = P.py(w / k);
+        ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(cx, cy, 4.5, 0, Math.PI * 2); ctx.fill();
+        const se = Math.sqrt((w / k) * (1 - w / k) / k);
+        ctx.strokeStyle = C.accent; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx, P.py(Math.min(1, w / k + 2 * se))); ctx.lineTo(cx, P.py(Math.max(0, w / k - 2 * se))); ctx.stroke();
+      }
+    }
+    // curves
+    ctx.lineWidth = 2.5; ctx.strokeStyle = C.curve; ctx.beginPath();
+    for (let s = 0; s <= 20.001; s += 0.1) { const X = P.px(s), Y = P.py(sigmoid(SLIDE.b * s)); s ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = C.fit; ctx.setLineDash([7, 5]); ctx.beginPath();
+    for (let s = 0; s <= 20.001; s += 0.1) { const X = P.px(s), Y = P.py(curP(s)); s ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    ctx.stroke(); ctx.setLineDash([]);
+    // chosen spread
+    const sp = S.spread, pp = sigmoid(SLIDE.b * sp), X = P.px(sp), Yp = P.py(pp);
+    ctx.strokeStyle = C.ball; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.moveTo(X, L.H - L.mb); ctx.lineTo(X, Yp); ctx.lineTo(L.ml, Yp); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = C.ball; ctx.beginPath(); ctx.arc(X, Yp, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline = 'bottom';
+    const lab = `${pct(pp)} at spread ${sp.toFixed(1)}`, tw = ctx.measureText(lab).width;
+    const lx = X + 10 + tw > L.W - L.mr - 4 ? X - 10 - tw : X + 10;
+    ctx.textAlign = 'left'; ctx.fillStyle = C.ball; ctx.fillText(lab, lx, Math.min(Yp + 22, L.H - L.mb - 4));
+    ctx.restore();
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(`cutoff t = ${S.thr.toFixed(2)}`, L.W - L.mr - 6, Math.max(L.mt + 8, Math.min(P.py(S.thr) - 9, L.H - L.mb - 8)));
+  }
+
+  function drawRoc() {
+    const P = roc, { ctx, L } = P;
+    P.setDomain(0, 1, 0, 1);
+    ctx.clearRect(0, 0, L.W, L.H);
+    P.axes([0, 0.25, 0.5, 0.75, 1], [0, 0.25, 0.5, 0.75, 1], v => v.toFixed(2).replace(/0+$/, '').replace(/\.$/, ''), v => v.toFixed(2).replace(/0+$/, '').replace(/\.$/, ''), 'False positive rate (1 − spec.)', 'Sensitivity');
+    P.clip();
+    ctx.strokeStyle = C.muted; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(P.px(0), P.py(0)); ctx.lineTo(P.px(1), P.py(1)); ctx.stroke(); ctx.setLineDash([]);
+    const pts = S.roc.pts;
+    ctx.fillStyle = C.accent; ctx.globalAlpha = 0.1; ctx.beginPath(); ctx.moveTo(P.px(0), P.py(0));
+    for (const [a, b] of pts) ctx.lineTo(P.px(a), P.py(b)); ctx.lineTo(P.px(1), P.py(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 2.25; ctx.beginPath();
+    pts.forEach(([a, b], i) => i ? ctx.lineTo(P.px(a), P.py(b)) : ctx.moveTo(P.px(a), P.py(b))); ctx.stroke();
+    const c = S.cm, fpr = c.FP + c.TN ? c.FP / (c.FP + c.TN) : 0, tpr = c.TP + c.FN ? c.TP / (c.TP + c.FN) : 0;
+    ctx.fillStyle = C.ball; ctx.strokeStyle = C.board; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(P.px(fpr), P.py(tpr), 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.accent; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`AUC = ${S.roc.auc.toFixed(3)}`, L.W - L.mr - 8, L.H - L.mb - 8);
+    ctx.fillStyle = C.ball; ctx.textAlign = fpr > 0.6 ? 'right' : 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(`t = ${S.thr.toFixed(2)}`, P.px(fpr) + (fpr > 0.6 ? -12 : 12), Math.min(P.py(tpr) + 10, L.H - L.mb - 34));
+  }
+
+  function drawTen() {
+    const P = ten, { ctx, L } = P;
+    P.setDomain(-0.7, 20.7, -0.7, 20.7);
+    ctx.clearRect(0, 0, L.W, L.H);
+    P.axes(range(0, 20, 2), range(0, 20, 2), String, String, 'BPW.1 (break points won by player 1)', 'BPW.2 (player 2)');
+    P.clip();
+    const a = SLIDE.t1, b = SLIDE.t2;
+    // regions: player 2 favored above the line (purple tint), player 1 favored below it (teal tint)
+    const yAt0 = x => -a * x / b;
+    ctx.fillStyle = C.coinB; ctx.globalAlpha = 0.07; ctx.fillRect(L.ml, L.mt, L.W - L.ml - L.mr, L.H - L.mt - L.mb);
+    ctx.globalAlpha = 1; ctx.fillStyle = C.board; ctx.beginPath();
+    ctx.moveTo(P.px(-1), P.py(yAt0(-1))); ctx.lineTo(P.px(21), P.py(yAt0(21))); ctx.lineTo(P.px(21), P.py(-1)); ctx.lineTo(P.px(-1), P.py(-1)); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = C.coinA; ctx.globalAlpha = 0.08; ctx.fill(); ctx.globalAlpha = 1;
+    // contours p = 0.25, 0.75
+    const line = (k, col, w, dash) => { const yAt = x => (k - a * x) / b; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(P.px(-1), P.py(yAt(-1))); ctx.lineTo(P.px(21), P.py(yAt(21))); ctx.stroke(); ctx.setLineDash([]); };
+    // matches
+    const T = S.ten, n = T.y.length;
+    for (let i = 0; i < n; i++) {
+      ctx.fillStyle = T.y[i] ? C.coinA : C.coinB; ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.arc(P.px(T.x1[i] + T.j1[i] * 0.7), P.py(T.x2[i] + T.j2[i] * 0.7), 2.6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    line(logit(0.25), C.ink, 1.1, [4, 4]); line(logit(0.75), C.ink, 1.1, [4, 4]);
+    line(0, C.curve, 2.5, []);
+    const fb = S.tFit.beta;
+    { const yAt = x => -fb[0] * x / fb[1]; ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.beginPath(); ctx.moveTo(P.px(-1), P.py(yAt(-1))); ctx.lineTo(P.px(21), P.py(yAt(21))); ctx.stroke(); ctx.setLineDash([]); }
+    // chosen match
+    const X = P.px(S.b1), Y = P.py(S.b2);
+    ctx.strokeStyle = C.board; ctx.lineWidth = 3; ctx.fillStyle = C.ball;
+    ctx.beginPath(); ctx.arc(X, Y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    // region labels
+    ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline = 'top';
+    ctx.fillStyle = C.coinA; ctx.textAlign = 'right'; ctx.fillText('predict player 1 wins', L.W - L.mr - 8, P.py(4) );
+    ctx.fillStyle = C.coinB; ctx.textAlign = 'left'; ctx.fillText('predict player 2 wins', L.ml + 8, L.mt + 8);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    const tag = (txt, xv, k, dx, dy) => {
+      const X0 = P.px(xv) + dx, Y0 = P.py((k - a * xv) / b) + dy, w = ctx.measureText(txt).width;
+      ctx.fillStyle = C.board; ctx.fillRect(X0 - 3, Y0 - 14, w + 6, 17);
+      ctx.fillStyle = C.ink; ctx.fillText(txt, X0, Y0);
+    };
+    tag('p̂ = 0.25', 14.5, logit(0.25), -64, -6);
+    tag('p̂ = 0.75', 18.2, logit(0.75), 8, 14);
+  }
+
+  // ---------- tennis state ----------
+  function newTen(seed) {
+    S.tSeed = seed; S.ten = simTennis(seed, 943, SLIDE.t1, SLIDE.t2);
+    const T = S.ten, X = T.x1.map((v, i) => [v, T.x2[i]]);
+    S.tFit = fitLogit(X, T.y);
+    const sc = X.map(r => sigmoid(S.tFit.beta[0] * r[0] + S.tFit.beta[1] * r[1]));
+    const c = confusion(sc, T.y, 0.5);
+    $('tB1').textContent = fx(S.tFit.beta[0], 3); $('tS1').textContent = fx(S.tFit.se[0], 3);
+    $('tB2').textContent = fx(S.tFit.beta[1], 3); $('tS2').textContent = fx(S.tFit.se[1], 3);
+    $('tAcc').textContent = pct((c.TP + c.TN) / T.y.length, 0);
+    $('t00').textContent = c.TN; $('t01').textContent = c.FP; $('t10').textContent = c.FN; $('t11').textContent = c.TP;
+    const fb = S.tFit.beta;
+    $('eqnTen').innerHTML = `log-odds(P1 wins) = <span class="s">0.402</span>·BPW.1 − <span class="s">0.418</span>·BPW.2 &nbsp;(reference) &nbsp;·&nbsp; fit: <span class="f">${fx(fb[0], 3)}</span>·BPW.1 ${fb[1] < 0 ? '−' : '+'} <span class="f">${Math.abs(fb[1]).toFixed(3)}</span>·BPW.2`;
+    updateTenChain(); dirty.ten = true;
+  }
+  function updateTenChain() {
+    const e = SLIDE.t1 * S.b1 + SLIDE.t2 * S.b2, od = Math.exp(e), p = od / (1 + od), e12 = 0.40 * (S.b1 - S.b2);
+    $('chainTen').innerHTML =
+      `<div><span class="k">log-odds</span>0.402×${S.b1} − 0.418×${S.b2} = <span class="r">${fx(e, 3)}</span></div>` +
+      `<div><span class="k">odds</span>e^${fx(e, 3)} = <span class="r">${od.toFixed(3)}</span></div>` +
+      `<div><span class="k">p</span>${od.toFixed(3)} / (1 + ${od.toFixed(3)}) = <span class="r">${p.toFixed(3)}</span></div>` +
+      `<div><span class="k">shortcut</span>logit⁻¹(0.40 × ${S.b1 - S.b2}) = ${pct(sigmoid(e12))}</div>`;
+    $('pTen').textContent = pct(p);
+    dirty.ten = true;
+  }
+
+  // ---------- controls ----------
+  const setOut = (id, txt) => { $(id + 'Out').textContent = txt; };
+  $('nGames').oninput = e => { S.n = +e.target.value; setOut('nGames', S.n.toLocaleString()); refit(); };
+  $('newSeason').onclick = () => newSeason(S.seed + 1);
+  $('resetNba').onclick = () => {
+    S.n = 800; $('nGames').value = 800; setOut('nGames', '800');
+    S.useInt = false; $('useInt').checked = false;
+    setSpread(4); setThr(0.5); newSeason(41000);
+  };
+  $('useInt').onchange = e => { S.useInt = e.target.checked; refit(); };
+  function setSpread(v) { S.spread = v; $('spread').value = v; setOut('spread', v.toFixed(1)); updateChain(); }
+  function setThr(v) { S.thr = v; $('thr').value = v; setOut('thr', v.toFixed(2)); updateClassify(); }
+  $('spread').oninput = e => setSpread(+e.target.value);
+  $('thr').oninput = e => setThr(+e.target.value);
+  const toBoard = () => $('nbaBoard').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  $('demo4').onclick = () => { setSpread(4); toBoard(); };
+  $('demo8').onclick = () => { setSpread(8); toBoard(); };
+  $('demoT').onclick = () => { setThr(0.75); toBoard(); };
+
+  function setMatch(u, v) { S.b1 = u; S.b2 = v; $('b1').value = u; $('b2').value = v; setOut('b1', u); setOut('b2', v); updateTenChain(); }
+  $('b1').oninput = e => setMatch(+e.target.value, S.b2);
+  $('b2').oninput = e => setMatch(S.b1, +e.target.value);
+  $('gap3').onclick = () => setMatch(3, 0);
+  $('parity').onclick = () => setMatch(5, 5);
+  $('newTen').onclick = () => newTen(S.tSeed + 1);
+
+  // ---------- tooltips ----------
+  function placeTip(tip, cv, mx, my) {
+    tip.hidden = false;
+    const left = Math.min(mx + 28, cv.offsetLeft + cv.clientWidth - tip.offsetWidth);
+    tip.style.left = Math.max(cv.offsetLeft, left) + 'px';
+    tip.style.top = Math.max(8, my + cv.offsetTop - tip.offsetHeight - 10) + 'px';
+  }
+  function nbaTip(ev) {
+    const cv = nba.cv, rc = cv.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top, tip = $('tipNba');
+    if (mx < nba.L.ml || mx > nba.L.W - nba.L.mr || my < nba.L.mt || my > nba.L.H - nba.L.mb) { tip.hidden = true; return; }
+    const s = Math.max(0.5, Math.min(20, Math.round(nba.ix(mx) * 2) / 2));
+    let k = 0, w = 0; for (let i = 0; i < S.n; i++) if (S.data.x[i] === s) { k++; w += S.data.y[i]; }
+    tip.innerHTML = `spread = ${s.toFixed(1)}<br>reference p = ${pct(sigmoid(SLIDE.b * s))}<br>fitted p̂ = ${pct(curP(s))}<br>games here: ${k}${k ? `, favorite won ${w} (${pct(w / k, 0)})` : ''}`;
+    placeTip(tip, cv, mx, my);
+  }
+  nba.cv.addEventListener('pointermove', nbaTip);
+  nba.cv.addEventListener('pointerdown', nbaTip);
+  nba.cv.addEventListener('pointerleave', () => $('tipNba').hidden = true);
+
+  function tenTip(ev, pick) {
+    const cv = ten.cv, rc = cv.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top, tip = $('tipTen');
+    const u = Math.round(ten.ix(mx)), v = Math.round(ten.iy(my));
+    if (u < 0 || u > 20 || v < 0 || v > 20 || mx < ten.L.ml || my > ten.L.H - ten.L.mb) { tip.hidden = true; return; }
+    if (pick) setMatch(u, v);
+    let k = 0, w = 0; const T = S.ten; for (let i = 0; i < T.y.length; i++) if (T.x1[i] === u && T.x2[i] === v) { k++; w += T.y[i]; }
+    tip.innerHTML = `BPW.1 = ${u}, BPW.2 = ${v}<br>reference p = ${pct(sigmoid(SLIDE.t1 * u + SLIDE.t2 * v))}<br>matches here: ${k}${k ? `, P1 won ${w}` : ''}`;
+    placeTip(tip, cv, mx, my);
+  }
+  ten.cv.addEventListener('pointermove', e => tenTip(e, false));
+  ten.cv.addEventListener('pointerdown', e => tenTip(e, true));
+  ten.cv.addEventListener('pointerleave', () => $('tipTen').hidden = true);
+
+  // ---------- loop ----------
+  function frame() {
+    if (dirty.nba) { drawNba(); dirty.nba = false; }
+    if (dirty.roc) { drawRoc(); dirty.roc = false; }
+    if (dirty.ten) { drawTen(); dirty.ten = false; }
+    requestAnimationFrame(frame);
+  }
+  readColors();
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+  new ResizeObserver(() => { nba.resize(); dirty.nba = true; }).observe(nba.cv.parentElement);
+  new ResizeObserver(() => { roc.resize(); dirty.roc = true; }).observe(roc.cv.parentElement);
+  new ResizeObserver(() => { ten.resize(); dirty.ten = true; }).observe(ten.cv.parentElement);
+  nba.resize(); roc.resize(); ten.resize();
+  newSeason(41000); newTen(2013); setSpread(4); setMatch(3, 0);
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

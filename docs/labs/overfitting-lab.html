@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Overfitting Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same lab family as the Galton and Regression labs. Scatter + fitted function and the complexity curve on the left, method and knobs on the right; the benchmark table, notes and class exercises below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13.5px; color: var(--accent); text-decoration: none; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.7vw, 15.5px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .f { color: var(--fit); font-weight: 600; }
+.eqn .tr { color: var(--accent); font-weight: 600; }
+.eqn .te { color: var(--coinB); font-weight: 600; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+.sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.truth { border-top: 2px solid var(--curve); }
+.sw.ghost { border-top: 2px solid var(--fit); opacity: .35; }
+.sw.trl { border-top: 2.5px solid var(--accent); }
+.sw.tel { border-top: 2.5px solid var(--coinB); }
+.sw.floor { border-top: 1.5px dashed var(--curve); }
+.sw.tr { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--accent); }
+.sw.te { width: 9px; height: 9px; border: 1.5px solid var(--coinB); border-radius: 50%; background: transparent; }
+.sw.hi { width: 9px; height: 9px; border: 0; border-radius: 50%; background: var(--ball); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button:nth-child(3n+2), .seg button:nth-child(3n+3) { border-left: 1px solid var(--line); }
+.seg button:nth-child(n+4) { border-top: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.knobs { display: flex; flex-direction: column; gap: 10px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.tr { color: var(--accent); }
+.stats td.te { color: var(--coinB); }
+.stats td.th { color: var(--curve); }
+.big2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.big2 > div { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.big2 .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.big2 .v { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.big2 .v.tr { color: var(--accent); }
+.big2 .v.te { color: var(--coinB); }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.eq table { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; width: 100%; }
+.eq th, .eq td { text-align: right; padding: 4px 0 4px 8px; border-bottom: 1px solid var(--line); }
+.eq th:first-child, .eq td:first-child { text-align: left; padding-left: 0; font-family: var(--font-body); }
+.eq th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; font-family: var(--font-mono) !important; }
+.eq tr:last-child td { border-bottom: 0; }
+.eq td.th { color: var(--curve); }
+.eq td.te { color: var(--coinB); }
+.eq tr.best td { font-weight: 700; }
+.tw { overflow-x: auto; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Predictive analytics and overfitting</span>
+    <h1>Overfitting Lab</h1>
+    <p class="lead">Simulated census tracts in the spirit of the Boston housing benchmark: median home value against the share of lower-status residents. Fit six methods to the blue training tracts and judge them on the purple test tracts. Turn each method's complexity knob and watch training error fall while test error traces a U.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 14, <a href="https://vsokolov.org/html/_book/14-tree.html">Tree Models</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" id="board" aria-label="Fitted function and complexity curve">
+      <div class="eqn" id="eqn"></div>
+      <canvas id="fitPlot" role="img" aria-label="Scatter of simulated tracts with the fitted prediction function"></canvas>
+      <div class="legend">
+        <span><i class="sw tr"></i>Training tract</span>
+        <span><i class="sw te"></i>Test tract</span>
+        <span><i class="sw"></i>Fitted function</span>
+        <span id="lgGhost"><i class="sw ghost"></i>Fits to earlier training samples</span>
+        <span><i class="sw truth"></i>True mean (simulation)</span>
+      </div>
+      <span class="sub" id="cxTitle">Complexity curve</span>
+      <canvas id="cxPlot" role="img" aria-label="Training and test RMSE as the complexity knob changes"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw trl"></i>Training RMSE</span>
+        <span><i class="sw tel"></i>Test RMSE</span>
+        <span><i class="sw floor"></i><span id="lgFloor">True mean's test RMSE (the floor)</span></span>
+        <span><i class="sw hi"></i>Current setting (click the curve to move it)</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Method</span>
+        <div class="seg" role="group" aria-label="Prediction method">
+          <button id="mLin" aria-pressed="false">Linear</button>
+          <button id="mPoly" aria-pressed="false">Polynomial</button>
+          <button id="mKnn" aria-pressed="true">k-NN</button>
+          <button id="mTree" aria-pressed="false">Tree</button>
+          <button id="mRf" aria-pressed="false">Forest</button>
+          <button id="mBoost" aria-pressed="false">Boosting</button>
+        </div>
+        <div class="knobs">
+          <p class="hint" id="mHint">–</p>
+          <div class="slider" id="kDeg"><div class="top"><label for="deg">Polynomial degree</label><output id="degOut">5</output></div>
+            <input type="range" id="deg" min="1" max="15" step="1" value="5"></div>
+          <div class="slider" id="kK"><div class="top"><label for="k">Neighbours, k</label><output id="kOut">15</output></div>
+            <input type="range" id="k" min="1" max="150" step="1" value="15"></div>
+          <div class="slider" id="kDepth"><div class="top"><label for="depth">Max tree depth</label><output id="depthOut">4</output></div>
+            <input type="range" id="depth" min="1" max="12" step="1" value="4"></div>
+          <div class="slider" id="kTrees"><div class="top"><label for="trees">Number of trees, B</label><output id="treesOut">50</output></div>
+            <input type="range" id="trees" min="1" max="300" step="1" value="50"></div>
+          <div class="slider" id="kRfDepth"><div class="top"><label for="rfDepth">Depth of each tree</label><output id="rfDepthOut">10</output></div>
+            <input type="range" id="rfDepth" min="1" max="12" step="1" value="10"></div>
+          <div class="slider" id="kRounds"><div class="top"><label for="rounds">Boosting rounds, M</label><output id="roundsOut">200</output></div>
+            <input type="range" id="rounds" min="1" max="1000" step="1" value="200"></div>
+          <div class="slider" id="kLr"><div class="top"><label for="lr">Learning rate, ν</label><output id="lrOut">0.10</output></div>
+            <input type="range" id="lr" min="0.01" max="1" step="0.01" value="0.1"></div>
+          <div class="slider" id="kBDepth"><div class="top"><label for="bDepth">Depth of each small tree</label><output id="bDepthOut">1 (stumps)</output></div>
+            <input type="range" id="bDepth" min="1" max="4" step="1" value="1"></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Out-of-sample check</span>
+        <div class="big2">
+          <div><span class="k">Train RMSE</span><div class="v tr" id="rTr">–</div></div>
+          <div><span class="k">Test RMSE</span><div class="v te" id="rTe">–</div></div>
+        </div>
+        <table class="stats">
+          <tbody>
+            <tr><td>Test − train gap</td><td id="rGap">–</td></tr>
+            <tr><td>Best on test curve</td><td class="te" id="rBest">–</td></tr>
+            <tr><td>True mean, test RMSE</td><td class="th" id="rTruth">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">RMSE = √(average squared prediction error). Even the true mean misses each tract by its noise (SD 4.5), so its test RMSE is the floor. On a finite test set a fit can land slightly below it by luck.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Data (simulated)</span>
+        <div class="slider"><div class="top"><label for="nTrain">Training tracts</label><output id="nTrainOut">206</output></div>
+          <input type="range" id="nTrain" min="30" max="400" step="1" value="206"></div>
+        <div class="btns">
+          <button id="resample" class="primary">New training sample</button>
+          <button id="reset">Reset</button>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="cGhost" checked> Keep earlier fits on the plot</label>
+          <label><input type="checkbox" id="cTest" checked> Show test tracts</label>
+          <label><input type="checkbox" id="cTruth" checked> Show the true mean</label>
+        </div>
+        <p class="hint">300 test tracts stay fixed. "New training sample" draws fresh training tracts from the same population, so you can see how much each fit moves.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">One dataset, many methods, one yardstick</span>
+      <h2>The winner is decided by out-of-sample error</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Every method has a knob that trades bias for variance. Training error always improves as the knob moves toward flexibility. Test error improves, bottoms out, then gets worse. The buttons load contrasting settings.</p>
+      <div class="demo">
+        <button class="primary" id="dK2">k-NN, k = 2 (overfits)</button>
+        <button id="dK46">k-NN, k = 46</button>
+        <button id="dDeep">Tree, depth 12</button>
+        <button id="dRf">Forest, 200 trees</button>
+        <button id="dBoost">Boosting, 1,000 stumps</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>k-nearest neighbours: local averaging</h3>
+        <p>To predict at a new x, average y over the k closest training tracts. Small k gives a wiggly fit with low bias and high variance. Large k gives a smooth fit that misses the curve. On the real Boston data, test RMSE is lowest around k = 46. With k = 1 the training RMSE is exactly 0, because each point is its own nearest neighbour.</p>
+      </div></li>
+      <li><div>
+        <h3>Trees: piecewise constant</h3>
+        <p>A regression tree splits x on simple rules such as "lstat &lt; 9.7?" and predicts the training mean in each leaf. Each extra level of depth can double the number of steps. A deep tree chases individual tracts, so a new training sample gives a very different staircase.</p>
+      </div></li>
+      <li><div>
+        <h3>Bagging and random forests: average many trees</h3>
+        <p>Fit a deep tree to each of B bootstrap samples and average their predictions. Averaging cuts the variance and leaves the bias alone. Adding trees does not overfit: the test curve flattens instead of turning up. A random forest also samples predictors at each split. With one predictor, as here, a forest is the same as bagging.</p>
+      </div></li>
+      <li><div>
+        <h3>Boosting: add small trees that fix mistakes</h3>
+        <p>Start from the mean. Fit a stump to the residuals, add a shrunken copy (rate ν) to the running prediction, and repeat. The final prediction is a sum of many weak trees. Many rounds with a high rate will overfit, so M and ν are tuned together.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Boston housing, out-of-sample RMSE</div>
+        <div class="tw"><table>
+          <thead><tr><th>Method</th><th>Reference</th><th>This sample</th></tr></thead>
+          <tbody>
+            <tr><td>Linear regression (log–log)</td><td class="th">4.18</td><td class="te" id="cLin">–</td></tr>
+            <tr><td>k-NN (k = 46)</td><td class="th">5.5</td><td class="te" id="cKnn">–</td></tr>
+            <tr><td>Bagging</td><td class="th">3.66</td><td class="te" id="cBag">–</td></tr>
+            <tr class="best"><td>Random forest</td><td class="th">3.35</td><td class="te" id="cRf">–</td></tr>
+            <tr><td>Boosting (5000 trees, depth 4)</td><td class="th">3.44</td><td class="te" id="cBoost">–</td></tr>
+            <tr><td>Deep neural net (dense)</td><td class="th">11.5</td><td class="te">not fit</td></tr>
+          </tbody>
+        </table></div>
+        <p class="hint" style="margin-top:6px">Source: Polson–Sokolov Boston housing benchmark. Real data: 506 tracts, 13 predictors. The kitchen-sink linear model scored 4.18 log–log and 4.38 untransformed.</p>
+        <p class="hint" style="margin-top:4px" id="cNote">This-sample column: simulated data with one predictor, scored on the 300 test tracts. Settings: straight line; k = 46; 100 bagged trees of depth 10; forest = bagging with one predictor; 500 rounds of depth-2 trees at ν = 0.05.</p>
+      </div>
+      <div class="eq">
+        <div class="cap">The yardstick</div>
+        <div class="m">RMSE = √( (1/n) Σ (yᵢ − ŷᵢ)² ) on held-out tracts</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Bias–variance split of test error at x</div>
+        <div class="m">E(y − f̂(x))² = σ² + bias² + variance</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Boosting update, residuals rᵢ = yᵢ − F(xᵢ)</div>
+        <div class="m">F₀ = ȳ,  Fₘ = Fₘ₋₁ + ν · treeₘ(x; r)</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> A low training error is not evidence of a good model. The benchmark table ranks methods only by error on tracts the model never saw. Tree ensembles win on tabular data of this size, and the random forest is the safe default because more trees never hurt.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Why the test curve is a U</h2>
+      <p>On the left, the model is too rigid and misses the curve (bias). On the right, it bends to fit noise in this particular training sample (variance). The bottom of the U is the best trade-off. It cannot go below the noise σ.</p>
+      <div class="formula">test MSE ≈ σ² + bias² + variance</div>
+    </div>
+    <div class="note">
+      <h2>What "new training sample" shows</h2>
+      <p>Each press is a new draw of training tracts from the same population. Rigid fits barely move between draws. Flexible fits jump around. The spread of the faint curves is the variance term you cannot see from one sample.</p>
+      <div class="formula">variance = E( f̂(x) − E f̂(x) )²</div>
+    </div>
+    <div class="note">
+      <h2>About this data</h2>
+      <p>The tracts are simulated. The true mean is 5 + 45·e<sup>−0.075·lstat</sup>, noise SD is 4.5, and lstat is skewed like the real variable. Numbers in this lab will not match the benchmark table, which used 13 real predictors.</p>
+      <div class="formula">medv = 5 + 45·exp(−0.075·lstat) + ε, ε ~ N(0, 4.5²)</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load "k-NN, k = 2". Training RMSE is far below test RMSE. Press "New training sample" five times and watch the faint curves scatter. Then load k = 46 and repeat.</li>
+      <li>Pick Polynomial and drag the degree from 1 to 15. Ask students to predict where the test curve bottoms out. Look at the edges of the plot at degree 15.</li>
+      <li>Pick Tree and set depth 1, 2, 3. Read off the first split value and compare it to the benchmark's "lstat &lt; 9.7?" rule.</li>
+      <li>Pick Forest and slide B from 1 to 300. The test curve drops and flattens without turning up. Compare with a single deep tree at the same depth.</li>
+      <li>Pick Boosting, set ν = 1 and M = 1,000. Then set ν = 0.05. Same number of rounds, very different test error.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  // ==MATH==
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function randnFrom(rng) { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function gammaFrom(rng, k) { // Marsaglia–Tsang, k >= 1
+    const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) { let x, v; do { x = randnFrom(rng); v = 1 + c * x; } while (v <= 0); v = v * v * v; const u = rng();
+      if (u < 1 - 0.0331 * x ** 4 || Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v; }
+  }
+  const SIGMA = 4.5;
+  const trueMean = x => 5 + 45 * Math.exp(-0.075 * x);
+  function simTracts(seed, n) {
+    const rng = mulberry32(seed), x = [], y = [];
+    for (let i = 0; i < n; i++) {
+      let l; do { l = gammaFrom(rng, 3.2) * 3.9; } while (l < 1.5 || l > 38);
+      x.push(l); y.push(trueMean(l) + SIGMA * randnFrom(rng));
+    }
+    return { x, y };
+  }
+  const rmse = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += (a[i] - b[i]) ** 2; return Math.sqrt(s / a.length); };
+
+  // least squares via Householder QR. A: n x p (array of rows), returns coefficients
+  function lstsq(A, y) {
+    const n = A.length, p = A[0].length, R = A.map(r => r.slice()), b = y.slice();
+    for (let j = 0; j < p; j++) {
+      let nrm = 0; for (let i = j; i < n; i++) nrm += R[i][j] * R[i][j]; nrm = Math.sqrt(nrm);
+      if (nrm === 0) continue;
+      const alpha = R[j][j] > 0 ? -nrm : nrm, v = new Array(n).fill(0);
+      v[j] = R[j][j] - alpha; for (let i = j + 1; i < n; i++) v[i] = R[i][j];
+      let vv = 0; for (let i = j; i < n; i++) vv += v[i] * v[i];
+      if (vv === 0) continue;
+      for (let c = j; c < p; c++) { let s = 0; for (let i = j; i < n; i++) s += v[i] * R[i][c]; s = 2 * s / vv; for (let i = j; i < n; i++) R[i][c] -= s * v[i]; }
+      let s = 0; for (let i = j; i < n; i++) s += v[i] * b[i]; s = 2 * s / vv; for (let i = j; i < n; i++) b[i] -= s * v[i];
+    }
+    const beta = new Array(p).fill(0);
+    for (let j = p - 1; j >= 0; j--) { let s = b[j]; for (let c = j + 1; c < p; c++) s -= R[j][c] * beta[c]; beta[j] = Math.abs(R[j][j]) > 1e-12 ? s / R[j][j] : 0; }
+    return beta;
+  }
+  // Legendre basis on u = x/20 − 1 (x in [0, 40] maps to [−1, 1]) keeps high degrees well conditioned
+  function legendreRow(x, deg) { const u = x / 20 - 1, P = [1, u]; for (let k = 1; k < deg; k++) P.push(((2 * k + 1) * u * P[k] - k * P[k - 1]) / (k + 1)); return P.slice(0, deg + 1); }
+  function polyFit(x, y, deg) { const beta = lstsq(x.map(v => legendreRow(v, deg)), y); return xq => { const r = legendreRow(xq, deg); let s = 0; for (let j = 0; j <= deg; j++) s += beta[j] * r[j]; return s; }; }
+
+  // k-NN predictions for every k = 1..kMax at each query (ties in distance keep training order)
+  function knnAllK(xtr, ytr, xq, kMax) {
+    const out = Array.from({ length: kMax }, () => new Array(xq.length));
+    const idx = xtr.map((_, i) => i);
+    for (let q = 0; q < xq.length; q++) {
+      const d = xtr.map(v => Math.abs(v - xq[q]));
+      const ord = idx.slice().sort((a, b) => d[a] - d[b] || a - b);
+      let s = 0;
+      for (let k = 1; k <= kMax; k++) { s += ytr[ord[k - 1]]; out[k - 1][q] = s / k; }
+    }
+    return out;
+  }
+
+  // CART regression tree on one predictor: best SSE split at midpoints between distinct sorted x, x <= threshold goes left
+  function buildTree(x, y, ids, maxDepth) {
+    // ids must be sorted by x
+    function node(ids, depth) {
+      const n = ids.length; let sum = 0, sq = 0;
+      for (const i of ids) { sum += y[i]; sq += y[i] * y[i]; }
+      const mean = sum / n, imp = sq / n - mean * mean;
+      if (depth >= maxDepth || n < 2 || imp <= 1e-12) return { v: mean, n };
+      let best = -1, bestGain = 0, ls = 0;
+      for (let j = 0; j < n - 1; j++) {
+        ls += y[ids[j]];
+        if (!(x[ids[j + 1]] > x[ids[j]] + 1e-7)) continue;
+        const nl = j + 1, nr = n - nl, rs = sum - ls;
+        const gain = ls * ls / nl + rs * rs / nr;            // SSE reduction up to a constant
+        if (best < 0 || gain > bestGain) { best = j; bestGain = gain; }
+      }
+      if (best < 0) return { v: mean, n };
+      let thr = (x[ids[best]] + x[ids[best + 1]]) / 2;
+      if (thr === x[ids[best + 1]]) thr = x[ids[best]];
+      return { t: thr, l: node(ids.slice(0, best + 1), depth + 1), r: node(ids.slice(best + 1), depth + 1), n };
+    }
+    return node(ids, 0);
+  }
+  function treePredict(t, xq) { while (t.t !== undefined) t = xq <= t.t ? t.l : t.r; return t.v; }
+  const sortedIds = (x, ids) => ids.slice().sort((a, b) => x[a] - x[b] || a - b);
+
+  // gradient boosting with squared error: F0 = mean, each round a depth-d tree on residuals, shrunk by lr
+  function boost(x, y, rounds, lr, depth, evalSets) {
+    const n = x.length, ids = sortedIds(x, x.map((_, i) => i));
+    let m = 0; for (const v of y) m += v; m /= n;
+    const F = new Array(n).fill(m), r = new Array(n), trees = [];
+    const preds = evalSets.map(xs => new Array(xs.length).fill(m)), curves = evalSets.map(() => []);
+    for (let k = 0; k < rounds; k++) {
+      for (let i = 0; i < n; i++) r[i] = y[i] - F[i];
+      const t = buildTree(x, r, ids, depth); trees.push(t);
+      for (let i = 0; i < n; i++) F[i] += lr * treePredict(t, x[i]);
+      evalSets.forEach((xs, s) => { const P = preds[s]; for (let i = 0; i < xs.length; i++) P[i] += lr * treePredict(t, xs[i]); curves[s].push(P.slice()); });
+    }
+    return { init: m, trees, lr, curves };
+  }
+  // ==END MATH==
+
+  const X0 = 0, X1 = 40, Y0 = 0, Y1 = 56, NTEST = 300, GRID = 241;
+  const gridX = Array.from({ length: GRID }, (_, i) => X0 + (X1 - X0) * i / (GRID - 1));
+  const S = { method: 'knn', nTrain: 206, trainSeed: 506, deg: 5, k: 15, depth: 4, trees: 50, rfDepth: 10, rounds: 200, lr: 0.1, bDepth: 1,
+              ghost: true, showTest: true, truth: true, ghosts: [], ghostKey: '' };
+  const TEST = simTracts(999, NTEST);
+  let TR = null, cache = {}, C = {};
+  let dirty = true;
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'point', 'fit', 'coinB', 'board'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+    dirty = true;
+  }
+
+  // ---------- models with caching (all predictions on train, test, grid) ----------
+  function sets() { return [TR.x, TEST.x, gridX]; }
+  function polyAll() {
+    if (cache.poly) return cache.poly;
+    const out = [];
+    for (let d = 1; d <= 15; d++) { const f = polyFit(TR.x, TR.y, d); out.push(sets().map(xs => xs.map(f))); }
+    return cache.poly = out;
+  }
+  function knnAll() {
+    if (cache.knn) return cache.knn;
+    const kMax = Math.min(150, TR.x.length);
+    const [a, b, c] = sets().map(xs => knnAllK(TR.x, TR.y, xs, kMax));
+    return cache.knn = Array.from({ length: kMax }, (_, k) => [a[k], b[k], c[k]]);
+  }
+  function treeAll() {
+    if (cache.tree) return cache.tree;
+    const ids = sortedIds(TR.x, TR.x.map((_, i) => i)), out = [];
+    for (let d = 1; d <= 12; d++) { const t = buildTree(TR.x, TR.y, ids, d); out.push(sets().map(xs => xs.map(v => treePredict(t, v)))); }
+    return cache.tree = out;
+  }
+  function forestAll(depth) {
+    const key = 'rf' + depth; if (cache[key]) return cache[key];
+    const rng = mulberry32(S.trainSeed * 7 + depth), n = TR.x.length, out = [];
+    const sum = sets().map(xs => new Array(xs.length).fill(0));
+    for (let b = 1; b <= 300; b++) {
+      const ids = []; for (let i = 0; i < n; i++) ids.push(Math.floor(rng() * n));
+      const t = buildTree(TR.x, TR.y, sortedIds(TR.x, ids), depth);
+      sets().forEach((xs, s) => { for (let i = 0; i < xs.length; i++) sum[s][i] += treePredict(t, xs[i]); });
+      out.push(sum.map(a => a.map(v => v / b)));
+    }
+    return cache[key] = out;
+  }
+  function boostAll(lr, depth) {
+    const key = 'gb' + lr + '_' + depth; if (cache[key]) return cache[key];
+    const g = boost(TR.x, TR.y, 1000, lr, depth, sets());
+    return cache[key] = g.curves[0].map((_, m) => [g.curves[0][m], g.curves[1][m], g.curves[2][m]]);
+  }
+
+  // current family: list of settings, prediction triples, current index, labels
+  function family() {
+    switch (S.method) {
+      case 'lin': return { vals: range(1, 15), preds: polyAll(), cur: 0, name: 'Polynomial degree (1 = linear)', log: false, fmt: v => 'degree ' + v };
+      case 'poly': return { vals: range(1, 15), preds: polyAll(), cur: S.deg - 1, name: 'Polynomial degree', log: false, fmt: v => 'degree ' + v };
+      case 'knn': { const P = knnAll(); return { vals: range(1, P.length), preds: P, cur: Math.min(S.k, P.length) - 1, name: 'Neighbours k (log scale, more flexible →)', log: true, rev: true, fmt: v => 'k = ' + v }; }
+      case 'tree': return { vals: range(1, 12), preds: treeAll(), cur: S.depth - 1, name: 'Max tree depth', log: false, fmt: v => 'depth ' + v };
+      case 'rf': return { vals: range(1, 300), preds: forestAll(S.rfDepth), cur: S.trees - 1, name: 'Number of trees B (log scale)', log: true, fmt: v => 'B = ' + v };
+      case 'boost': return { vals: range(1, 1000), preds: boostAll(S.lr, S.bDepth), cur: S.rounds - 1, name: 'Boosting rounds M (log scale)', log: true, fmt: v => 'M = ' + v };
+    }
+  }
+  function range(a, b) { const o = []; for (let v = a; v <= b; v++) o.push(v); return o; }
+
+  function curveStats(F) {
+    if (F._st) return F._st;
+    const tr = F.preds.map(p => rmse(p[0], TR.y)), te = F.preds.map(p => rmse(p[1], TEST.y));
+    let bi = 0; te.forEach((v, i) => { if (v < te[bi]) bi = i; });
+    return F._st = { tr, te, bi };
+  }
+  let FAM = null;
+  function update() {
+    FAM = family(); const st = curveStats(FAM), i = FAM.cur;
+    const tr = st.tr[i], te = st.te[i];
+    $('rTr').textContent = tr.toFixed(2); $('rTe').textContent = te.toFixed(2);
+    $('rGap').textContent = (te - tr).toFixed(2);
+    $('rBest').textContent = S.method === 'lin' ? `${FAM.fmt(FAM.vals[st.bi])} · ${st.te[st.bi].toFixed(2)}` : `${FAM.fmt(FAM.vals[st.bi])} · ${st.te[st.bi].toFixed(2)}`;
+    $('cxTitle').textContent = 'Complexity curve · ' + FAM.name;
+    const names = { lin: 'Linear regression, ŷ = b₀ + b₁·lstat', poly: `Polynomial, degree ${S.deg}`, knn: `k-nearest neighbours, k = ${Math.min(S.k, FAM.preds.length)}`,
+      tree: `Regression tree, max depth ${S.depth}`, rf: `Bagged trees (forest), B = ${S.trees}, depth ${S.rfDepth}`, boost: `Boosting, M = ${S.rounds}, ν = ${S.lr.toFixed(2)}, depth ${S.bDepth}` };
+    $('eqn').innerHTML = `<span class="f">${names[S.method]}</span> &nbsp;·&nbsp; train <span class="tr">${tr.toFixed(2)}</span> &nbsp;·&nbsp; test <span class="te">${te.toFixed(2)}</span> &nbsp;·&nbsp; n = ${TR.x.length} train / ${NTEST} test`;
+    // ghosts: same method and settings, earlier samples
+    const gk = S.method + '|' + i + '|' + S.rfDepth + '|' + S.lr + '|' + S.bDepth + '|' + S.nTrain;
+    if (gk !== S.ghostKey) { S.ghosts = []; S.ghostKey = gk; }
+    S.curGrid = FAM.preds[i][2];
+    dirty = true;
+  }
+  function benchmark() {
+    const r = p => rmse(p, TEST.y);
+    const lin = polyAll()[0][1];
+    const kn = knnAll(), k46 = kn[Math.min(46, kn.length) - 1][1];
+    const bag = forestAll(10)[99][1];
+    const gb = boostAll(0.05, 2)[499][1];
+    $('cLin').textContent = r(lin).toFixed(2); $('cKnn').textContent = r(k46).toFixed(2) + (kn.length < 46 ? '*' : '');
+    $('cBag').textContent = r(bag).toFixed(2); $('cRf').textContent = r(bag).toFixed(2); $('cBoost').textContent = r(gb).toFixed(2);
+  }
+  function newTrain(seed, keepGhost) {
+    if (keepGhost && S.curGrid) { S.ghosts.push(S.curGrid); if (S.ghosts.length > 12) S.ghosts.shift(); }
+    const keepKey = S.ghostKey;
+    S.trainSeed = seed; TR = simTracts(seed, S.nTrain); cache = {};
+    update(); if (keepGhost) { S.ghostKey = keepKey; }
+    benchmark();
+    S.floor = rmse(TEST.x.map(trueMean), TEST.y);
+    $('rTruth').textContent = S.floor.toFixed(2);
+    $('lgFloor').textContent = `True mean's test RMSE, ${S.floor.toFixed(2)} (the floor)`;
+  }
+
+  // ---------- plots ----------
+  function makePlot(cv, sizeFn, margins) {
+    const P = { cv, ctx: cv.getContext('2d'), L: {} };
+    P.resize = () => {
+      const w = Math.max(200, cv.parentElement.clientWidth - 28), h = sizeFn(w), d = window.devicePixelRatio || 1;
+      cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+      P.ctx.setTransform(d, 0, 0, d, 0, 0); P.L = { W: w, H: h, ...margins };
+    };
+    P.setDomain = (x0, x1, y0, y1, logx, rev) => { P.D = { x0, x1, y0, y1, logx, rev }; };
+    const tx = v => P.D.logx ? Math.log(v) : v;
+    P.px = x => { let f = (tx(x) - tx(P.D.x0)) / (tx(P.D.x1) - tx(P.D.x0)); if (P.D.rev) f = 1 - f; return P.L.ml + f * (P.L.W - P.L.ml - P.L.mr); };
+    P.py = y => P.L.mt + (P.D.y1 - y) / (P.D.y1 - P.D.y0) * (P.L.H - P.L.mt - P.L.mb);
+    P.ix = px => { let f = (px - P.L.ml) / (P.L.W - P.L.ml - P.L.mr); if (P.D.rev) f = 1 - f; const t = tx(P.D.x0) + f * (tx(P.D.x1) - tx(P.D.x0)); return P.D.logx ? Math.exp(t) : t; };
+    P.axes = (xt, yt, fxl, fyl, xl, yl) => {
+      const { ctx, L } = P;
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.fillStyle = C.muted;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (const y of yt) { const p = Math.round(P.py(y)) + .5; ctx.beginPath(); ctx.moveTo(L.ml, p); ctx.lineTo(L.W - L.mr, p); ctx.stroke(); ctx.fillText(fyl(y), L.ml - 7, p); }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const x of xt) { const p = Math.round(P.px(x)) + .5; ctx.beginPath(); ctx.moveTo(p, L.mt); ctx.lineTo(p, L.H - L.mb); ctx.stroke(); ctx.fillText(fxl(x), p, L.H - L.mb + 7); }
+      ctx.strokeStyle = C.line; ctx.strokeRect(L.ml + .5, L.mt + .5, L.W - L.ml - L.mr - 1, L.H - L.mt - L.mb - 1);
+      ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(xl, (L.ml + L.W - L.mr) / 2, L.H - 1);
+      ctx.save(); ctx.translate(11, (L.mt + L.H - L.mb) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    };
+    P.clip = () => { const { ctx, L } = P; ctx.save(); ctx.beginPath(); ctx.rect(L.ml, L.mt, L.W - L.ml - L.mr, L.H - L.mt - L.mb); ctx.clip(); };
+    return P;
+  }
+  const fp = makePlot($('fitPlot'), w => Math.round(Math.min(Math.max(w * 0.55, 300), 470)), { ml: 50, mr: 14, mt: 12, mb: 44 });
+  const cx = makePlot($('cxPlot'), w => Math.round(Math.min(Math.max(w * 0.34, 210), 290)), { ml: 50, mr: 14, mt: 12, mb: 44 });
+
+  function line(P, xs, ys, col, w, alpha = 1, dash = []) {
+    const { ctx } = P; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.globalAlpha = alpha; ctx.setLineDash(dash); ctx.beginPath();
+    xs.forEach((x, i) => { const X = P.px(x), Y = P.py(Math.max(-200, Math.min(300, ys[i]))); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+    ctx.stroke(); ctx.globalAlpha = 1; ctx.setLineDash([]);
+  }
+  function drawFit() {
+    const P = fp, { ctx, L } = P; P.setDomain(X0, X1, Y0, Y1);
+    ctx.clearRect(0, 0, L.W, L.H);
+    P.axes([0, 5, 10, 15, 20, 25, 30, 35, 40], [0, 10, 20, 30, 40, 50], String, String, '% lower-status population (lstat)', 'Median value, $1,000s (medv)');
+    P.clip();
+    if (S.showTest) { ctx.strokeStyle = C.coinB; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.6;
+      for (let i = 0; i < NTEST; i++) { ctx.beginPath(); ctx.arc(P.px(TEST.x[i]), P.py(TEST.y[i]), 3, 0, Math.PI * 2); ctx.stroke(); } ctx.globalAlpha = 1; }
+    ctx.fillStyle = C.accent; ctx.globalAlpha = 0.85;
+    for (let i = 0; i < TR.x.length; i++) { ctx.beginPath(); ctx.arc(P.px(TR.x[i]), P.py(TR.y[i]), 3, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    if (S.truth) line(P, gridX, gridX.map(trueMean), C.curve, 2);
+    if (S.ghost) for (const g of S.ghosts) line(P, gridX, g, C.fit, 1.5, 0.3);
+    const step = S.method === 'tree' || S.method === 'knn';
+    if (step) { // draw stepwise so the staircase is visible
+      const { ctx: c } = P; c.strokeStyle = C.fit; c.lineWidth = 2.75; c.beginPath();
+      const g = S.curGrid; gridX.forEach((x, i) => { const X = P.px(x), Y = P.py(g[i]); if (!i) c.moveTo(X, Y); else { c.lineTo(X, P.py(g[i - 1])); c.lineTo(X, Y); } }); c.stroke();
+    } else line(P, gridX, S.curGrid, C.fit, 2.75);
+    ctx.restore();
+  }
+  function drawCx() {
+    const P = cx, { ctx, L } = P, F = FAM, st = curveStats(F);
+    const n = F.vals.length, x0 = F.vals[0], x1 = F.vals[n - 1];
+    const all = st.tr.concat(st.te).filter(isFinite);
+    const top = Math.min(16, Math.max(8, Math.ceil(Math.max(...st.te.slice(0, n)) + 0.5))), yMax = Math.max(top, Math.ceil(Math.max(...all.filter(v => v < 16)) + 0.5));
+    P.setDomain(x0, x1, 0, Math.min(16, yMax), F.log, F.rev);
+    ctx.clearRect(0, 0, L.W, L.H);
+    let xt; if (F.log) xt = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].filter(v => v >= x0 && v <= x1); else xt = F.vals.filter(v => n <= 15 || v % 2 === 0);
+    const yt = []; for (let v = 0; v <= P.D.y1; v += P.D.y1 > 10 ? 4 : 2) yt.push(v);
+    P.axes(xt, yt, String, String, F.name, 'RMSE');
+    P.clip();
+    line(P, [x0, x1], [S.floor, S.floor], C.curve, 1.5, 1, [5, 4]);
+    line(P, F.vals, st.tr, C.accent, 2.25);
+    line(P, F.vals, st.te, C.coinB, 2.5);
+    // best and current
+    const bx = P.px(F.vals[st.bi]), by = P.py(st.te[st.bi]);
+    ctx.strokeStyle = C.coinB; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(bx, by, 5, 0, Math.PI * 2); ctx.stroke();
+    const i = F.cur, X = P.px(F.vals[i]);
+    ctx.strokeStyle = C.ball; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.25; ctx.beginPath(); ctx.moveTo(X, L.mt); ctx.lineTo(X, L.H - L.mb); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = C.ball; for (const v of [st.tr[i], st.te[i]]) { ctx.beginPath(); ctx.arc(X, P.py(Math.min(v, P.D.y1)), 5, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+    ctx.font = '600 11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.coinB; ctx.textBaseline = 'bottom';
+    const lab = 'lowest test error', w = ctx.measureText(lab).width;
+    ctx.textAlign = 'left'; ctx.fillText(lab, Math.max(L.ml + 4, Math.min(bx - w / 2, L.W - L.mr - w - 4)), Math.max(L.mt + 12, by - 8));
+  }
+
+  // ---------- controls ----------
+  const KN = { lin: [], poly: ['kDeg'], knn: ['kK'], tree: ['kDepth'], rf: ['kTrees', 'kRfDepth'], boost: ['kRounds', 'kLr', 'kBDepth'] };
+  const HINTS = {
+    lin: 'One straight line. No knob: this is the degree-1 point on the polynomial curve below.',
+    poly: 'Least squares on powers of lstat. Higher degree bends more and swings wildly at the edges.',
+    knn: 'Average y over the k closest training tracts. Small k is flexible; large k is smooth.',
+    tree: 'Split lstat at the best cut, then split each side again, down to the max depth.',
+    rf: 'Average deep trees grown on bootstrap samples. With one predictor this is bagging.',
+    boost: 'Start at the mean and add many small trees fit to the residuals, each shrunk by ν.'
+  };
+  const MB = { lin: 'mLin', poly: 'mPoly', knn: 'mKnn', tree: 'mTree', rf: 'mRf', boost: 'mBoost' };
+  function setMethod(m) {
+    S.method = m;
+    for (const [k, id] of Object.entries(MB)) $(id).setAttribute('aria-pressed', k === m);
+    for (const id of ['kDeg', 'kK', 'kDepth', 'kTrees', 'kRfDepth', 'kRounds', 'kLr', 'kBDepth']) $(id).hidden = !KN[m].includes(id);
+    $('mHint').textContent = HINTS[m];
+    update();
+  }
+  for (const [k, id] of Object.entries(MB)) $(id).onclick = () => setMethod(k);
+  function setVal(id, v) {
+    S[id] = v; $(id).value = v;
+    $(id + 'Out').textContent = id === 'lr' ? v.toFixed(2) : id === 'bDepth' ? (v === 1 ? '1 (stumps)' : String(v)) : v.toLocaleString();
+  }
+  for (const id of ['deg', 'k', 'depth', 'trees', 'rfDepth', 'rounds', 'lr', 'bDepth'])
+    $(id).oninput = e => { setVal(id, id === 'lr' ? +e.target.value : parseInt(e.target.value, 10)); update(); };
+  $('nTrain').oninput = e => { S.nTrain = +e.target.value; $('nTrainOut').textContent = S.nTrain; S.ghosts = []; newTrain(S.trainSeed, false); };
+  $('resample').onclick = () => newTrain(S.trainSeed + 1, true);
+  $('reset').onclick = () => {
+    S.nTrain = 206; $('nTrain').value = 206; $('nTrainOut').textContent = '206';
+    const D = { deg: 5, k: 15, depth: 4, trees: 50, rfDepth: 10, rounds: 200, lr: 0.1, bDepth: 1 };
+    for (const [k, v] of Object.entries(D)) setVal(k, v);
+    S.ghosts = []; S.ghostKey = ''; newTrain(506, false); setMethod('knn');
+  };
+  $('cGhost').onchange = e => { S.ghost = e.target.checked; $('lgGhost').hidden = !S.ghost; dirty = true; };
+  $('cTest').onchange = e => { S.showTest = e.target.checked; dirty = true; };
+  $('cTruth').onchange = e => { S.truth = e.target.checked; dirty = true; };
+  const toBoard = () => $('board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  const demo = (m, vals) => () => { for (const [k, v] of Object.entries(vals)) setVal(k, v); setMethod(m); toBoard(); };
+  $('dK2').onclick = demo('knn', { k: 2 });
+  $('dK46').onclick = demo('knn', { k: 46 });
+  $('dDeep').onclick = demo('tree', { depth: 12 });
+  $('dRf').onclick = demo('rf', { trees: 200, rfDepth: 10 });
+  $('dBoost').onclick = demo('boost', { rounds: 1000, lr: 0.1, bDepth: 1 });
+
+  // complexity-curve hover and click
+  const KEY = { lin: null, poly: 'deg', knn: 'k', tree: 'depth', rf: 'trees', boost: 'rounds' };
+  function cxIndex(ev) {
+    const rc = cx.cv.getBoundingClientRect(), mx = ev.clientX - rc.left, my = ev.clientY - rc.top;
+    if (mx < cx.L.ml || mx > cx.L.W - cx.L.mr || my < cx.L.mt || my > cx.L.H - cx.L.mb) return null;
+    const v = Math.round(cx.ix(mx)), n = FAM.vals.length;
+    return { i: Math.max(0, Math.min(n - 1, v - FAM.vals[0])), mx, my };
+  }
+  function cxTip(ev, pick) {
+    const tip = $('tip'), h = cxIndex(ev);
+    if (!h) { tip.hidden = true; return; }
+    const st = curveStats(FAM), v = FAM.vals[h.i];
+    if (pick) { if (S.method === 'lin') { setVal('deg', v); setMethod('poly'); } else { setVal(KEY[S.method], v); update(); } }
+    tip.innerHTML = `${FAM.fmt(v)}<br>train RMSE ${st.tr[h.i].toFixed(2)}<br>test RMSE ${st.te[h.i].toFixed(2)}`;
+    tip.hidden = false;
+    const cv = cx.cv, left = Math.min(h.mx + 28, cv.offsetLeft + cv.clientWidth - tip.offsetWidth);
+    tip.style.left = Math.max(cv.offsetLeft, left) + 'px';
+    tip.style.top = Math.max(8, h.my + cv.offsetTop - tip.offsetHeight - 10) + 'px';
+  }
+  cx.cv.addEventListener('pointermove', e => cxTip(e, false));
+  cx.cv.addEventListener('pointerdown', e => cxTip(e, true));
+  cx.cv.addEventListener('pointerleave', () => $('tip').hidden = true);
+
+  function frame() { if (dirty && FAM) { drawFit(); drawCx(); dirty = false; } requestAnimationFrame(frame); }
+  readColors();
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+  new ResizeObserver(() => { fp.resize(); cx.resize(); dirty = true; }).observe($('board'));
+  fp.resize(); cx.resize();
+  newTrain(506, false); setMethod('knn');
+  // pre-seed a few earlier samples so the variance of the fit is visible on load
+  for (let s = 0; s < 4; s++) newTrain(S.trainSeed + 1, true);
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

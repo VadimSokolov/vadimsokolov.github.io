@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Next-Token Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: two modes share one board. Mode 1 reshapes a next-token distribution and samples from it; mode 2 estimates a bigram or trigram table from editable text and generates from it. Controls and readouts in the right rail; lesson below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --coinA: #3cc7b4; --coinB: #b596f2; --grid: #1f2831;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.modes { display: grid; grid-template-columns: 1fr 1fr; max-width: 520px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.modes button { border: 0; border-radius: 0; background: transparent; padding: 10px 8px; font-size: 14px; line-height: 1.25; }
+.modes button + button { border-left: 1px solid var(--line); }
+.modes button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.prompt { font-family: var(--font-mono); font-size: clamp(15px, 2.2vw, 20px); line-height: 1.4; padding: 4px 4px 2px; word-break: break-word; }
+.prompt .tok { color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--accent); }
+.prompt .cursor { color: var(--muted); }
+.cap { font-size: 12.5px; color: var(--muted); }
+.cap b { color: var(--ink); font-family: var(--font-display); font-size: 14px; }
+#bars { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; background: var(--accent); }
+.sw.th { background: color-mix(in srgb, var(--curve) 18%, transparent); border-right: 2.5px solid var(--curve); }
+.sw.base { background: none; height: 12px; width: 0; border-left: 2px dashed var(--muted); border-radius: 0; }
+.history { font-family: var(--font-mono); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 6px; min-height: 1.6em; }
+.history span { background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; color: var(--ink); }
+.history span.rare { border-color: var(--ball); color: var(--ball); font-weight: 600; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+
+textarea { width: 100%; font: 14px/1.5 var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 120px; }
+textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cpt { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.cpt h3 { font-family: var(--font-mono); font-size: 14px; font-weight: 600; margin: 0 0 8px; word-break: break-word; }
+.cpt h3 .w { color: var(--accent); }
+.cpt-wrap { overflow-x: auto; }
+table.cp { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.cp th, .cp td { padding: 4px 6px 4px 0; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.cp th:first-child, .cp td:first-child { text-align: left; }
+.cp th { font-weight: 400; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.cp td.bar { width: 45%; min-width: 90px; }
+.cp .b { height: 10px; border-radius: 2px; background: var(--accent); }
+.cp .bT { height: 4px; margin-top: 2px; border-radius: 2px; background: var(--curve); }
+.cp tr:last-child td { border-bottom: 0; }
+.gen { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 16px; line-height: 1.75; min-height: 4em; }
+.gen .s { border-radius: 4px; padding: 1px 2px; }
+.gen .s.new { background: color-mix(in srgb, var(--ball) 16%, transparent); box-shadow: inset 0 -2px 0 var(--ball); }
+.gen .w { cursor: pointer; }
+.gen .w:hover { color: var(--accent); text-decoration: underline; }
+.gen .w.lo { color: var(--curve); font-weight: 700; }
+.gen .badge { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--ball); margin-left: 3px; vertical-align: 2px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.btns.c2 { grid-template-columns: repeat(2, 1fr); }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.seg { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-weight: 700; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.chk { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.row { display: flex; justify-content: space-between; align-items: end; gap: 8px; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats th + th, .stats td + td { padding-left: 10px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.th { color: var(--curve); }
+.stats td.obs { color: var(--accent); }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.src a { color: var(--accent); }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Language models</span>
+    <h1>Next-Token Lab</h1>
+    <p class="lead">A language model outputs P(next token | all previous tokens). In the first mode you reshape that distribution with temperature, top-k and top-p, then sample from it and compare the frequencies with the probabilities. In the second you build the table of conditional probabilities yourself from a paragraph of text.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 24, <a href="https://vsokolov.org/html/_book/24-llm.html">Large Language Models</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+  </header>
+
+  <div class="modes" role="group" aria-label="Mode">
+    <button id="m1" aria-pressed="true">1 · Sample the next token</button>
+    <button id="m2" aria-pressed="false">2 · Train a word model on text</button>
+  </div>
+
+  <main class="grid">
+    <section class="board" id="board1" aria-label="Next-token probability bar chart">
+      <div class="prompt" id="promptLine"></div>
+      <div class="cap" id="srcCap"></div>
+      <canvas id="bars" role="img" aria-label="Horizontal bars of next-token probabilities and sampled frequencies"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <div class="legend">
+        <span><i class="sw base"></i>Model probability at T = 1</span>
+        <span><i class="sw th"></i>Sampling probability after T, top-k, top-p</span>
+        <span><i class="sw"></i>Share of your samples</span>
+      </div>
+      <div class="cap"><b>Last 30 samples</b> · tokens with sampling probability under 5% are outlined in amber</div>
+      <div class="history" id="hist"></div>
+    </section>
+
+    <section class="board" id="board2" aria-label="Word model trained on text" hidden>
+      <div class="field">
+        <label for="corpus">Training text (edit it; the model retrains as you type)</label>
+        <textarea id="corpus" rows="6" spellcheck="false"></textarea>
+      </div>
+      <div class="cpt">
+        <h3 id="cptHead"></h3>
+        <div class="cpt-wrap"><table class="cp" id="cpt"></table></div>
+        <p class="hint" style="margin-top:6px">Blue bar: P from the counts. Thin red bar: the probability used for sampling at the current temperature.</p>
+      </div>
+      <div class="cap"><b>Generated text</b> · click any word to see its row of the table. Red words had under 20% chance. Shaded sentences do not appear anywhere in the training text.</div>
+      <div class="gen" id="gen" aria-live="polite"></div>
+    </section>
+
+    <aside class="panel" id="panel1">
+      <div class="group">
+        <div class="field">
+          <label for="prompt">Prompt</label>
+          <select id="prompt"></select>
+        </div>
+      </div>
+      <div class="group">
+        <span class="label">Reshape the distribution</span>
+        <div class="slider"><div class="top"><label for="temp">Temperature, T</label><output id="tempOut">1.00</output></div>
+          <input type="range" id="temp" min="0" max="2.5" step="0.05" value="1"></div>
+        <div class="slider"><div class="top"><label for="topk">Top-k</label><output id="topkOut">off</output></div>
+          <input type="range" id="topk" min="1" max="9" step="1" value="9"></div>
+        <div class="slider"><div class="top"><label for="topp">Top-p (nucleus)</label><output id="toppOut">off</output></div>
+          <input type="range" id="topp" min="0.05" max="1" step="0.01" value="1"></div>
+        <label class="chk"><input type="checkbox" id="zoom"> Zoom the axis to 0–0.10 to see the tail</label>
+        <button id="resetShape">Reset to T = 1, no cut-off</button>
+      </div>
+      <div class="group">
+        <div class="row"><span class="label">Samples drawn</span><span class="big" id="nOut">0</span></div>
+        <div class="btns">
+          <button id="s1" class="primary">Sample 1</button>
+          <button id="s100">+100</button>
+          <button id="s1000">+1,000</button>
+        </div>
+        <button id="clear">Clear samples</button>
+        <p class="hint">Moving a slider clears the samples, because it changes the distribution being sampled.</p>
+      </div>
+      <div class="group">
+        <table class="stats">
+          <thead><tr><th></th><th>T = 1</th><th>Sampler</th></tr></thead>
+          <tbody>
+            <tr><td>Entropy (bits)</td><td id="h1">–</td><td class="th" id="hS">–</td></tr>
+            <tr><td>Perplexity, 2<sup>H</sup></td><td id="pp1">–</td><td class="th" id="ppS">–</td></tr>
+            <tr><td>P(top token)</td><td id="top1">–</td><td class="th" id="topS">–</td></tr>
+            <tr><td>Tokens that can appear</td><td id="k1">–</td><td class="th" id="kS">–</td></tr>
+            <tr><td>Samples: share of top token</td><td></td><td class="obs" id="topObs">–</td></tr>
+            <tr><td>Largest |share − P|</td><td></td><td class="obs" id="gap">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">Entropy H = −Σ p log₂ p. A sure thing has H = 0. A fair coin has H = 1 bit.</p>
+      </div>
+    </aside>
+
+    <aside class="panel" id="panel2" hidden>
+      <div class="group">
+        <span class="label">Model</span>
+        <div class="seg" role="group" aria-label="Context length">
+          <button id="o1" aria-pressed="true">Bigram<br>(1 word)</button>
+          <button id="o2" aria-pressed="false">Trigram<br>(2 words)</button>
+        </div>
+        <div class="field">
+          <label for="ctx">Show the row for context</label>
+          <select id="ctx"></select>
+        </div>
+        <button id="resetText">Restore the original paragraph</button>
+      </div>
+      <div class="group">
+        <span class="label">Generate</span>
+        <div class="slider"><div class="top"><label for="temp2">Temperature, T</label><output id="temp2Out">1.00</output></div>
+          <input type="range" id="temp2" min="0" max="2.5" step="0.05" value="1"></div>
+        <div class="slider"><div class="top"><label for="nSent">Sentences</label><output id="nSentOut">4</output></div>
+          <input type="range" id="nSent" min="1" max="8" step="1" value="4"></div>
+        <button id="genBtn" class="primary">Generate new text</button>
+      </div>
+      <div class="group">
+        <table class="stats">
+          <tbody>
+            <tr><td>Words in the text (with “.”)</td><td id="nTok">–</td></tr>
+            <tr><td>Vocabulary</td><td id="nVoc">–</td></tr>
+            <tr><td>Contexts seen</td><td id="nCtx">–</td></tr>
+            <tr><td>Entropy of this row (bits)</td><td class="obs" id="hRow">–</td></tr>
+            <tr><td>Generated sentences not in the text</td><td class="obs" id="novel">–</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">The estimate is the maximum-likelihood one: P(w | c) = count(c, w) / count(c).</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">A language model is a conditional probability</span>
+      <h2>A language model is a table of conditional probabilities</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">The first demo is the capital-of-France example. The second shows the most common way an LLM goes wrong: a flat distribution where every candidate sounds plausible. The third trains the word model and generates at high temperature.</p>
+      <div class="demo">
+        <button class="primary" id="demoFr">“The capital of France is” at T = 0, 1 and 2</button>
+        <button id="demoCase">A citation the model does not know</button>
+        <button id="demoHot">Word model at T = 2</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>The output is a distribution, not an answer</h3>
+        <p>For “The capital of France is”, the worked example lists P(“ Paris”) = 0.93, P(“ the”) = 0.03, P(“ a”) = 0.01, and 0.03 for everything else. The network produces a score (logit) for every token in its vocabulary, and the softmax turns the scores into these probabilities.</p>
+      </div></li>
+      <li><div>
+        <h3>Temperature divides the logits</h3>
+        <p>Dividing every logit by T before the softmax changes the shape and keeps the ranking. T below 1 sharpens the distribution, and T = 0 always picks the top token. T above 1 flattens it, so rare tokens get sampled more often. At T = 1 you sample from the model as trained.</p>
+      </div></li>
+      <li><div>
+        <h3>Top-k and top-p cut the tail</h3>
+        <p>Top-k keeps the k most likely tokens. Top-p keeps the smallest set of top tokens whose probabilities add up to at least p, so it keeps few tokens when the model is confident and many when it is not. Either way the survivors are renormalized to sum to 1.</p>
+      </div></li>
+      <li><div>
+        <h3>High temperature is fluent but can be wrong</h3>
+        <p>Every token on the list is grammatical, so a sample always reads well. At T = 1 the France prompt names the wrong city “Lyon” or “Marseille” about once in 100 samples. At T = 2 it does so about once in 12. When the model has no sharp answer, as with a court citation it has never seen, even T = 1 produces a confident-sounding name. That is a hallucination: plausible, fluent and false.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cap">Softmax with temperature</div>
+        <div class="m">P_T(w) = exp(s_w / T) / Σ_v exp(s_v / T)</div>
+        <div class="m">s_w = ln P(w)  ⇒  P_T(w) ∝ P(w)^{1/T}</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Order used here (the common default)</div>
+        <div class="m">1. divide logits by T   2. keep top k</div>
+        <div class="m">3. keep top tokens until Σ P ≥ p   4. renormalize</div>
+      </div>
+      <div class="eq">
+        <div class="cap">Entropy and perplexity</div>
+        <div class="m">H = −Σ_w P(w) log₂ P(w),   perplexity = 2^H</div>
+        <div class="m">perplexity ≈ “number of equally likely choices”</div>
+      </div>
+      <div class="eq">
+        <div class="cap">A bigram model, estimated from counts</div>
+        <div class="m">P(wₜ | wₜ₋₁) = count(wₜ₋₁, wₜ) / count(wₜ₋₁)</div>
+        <div class="m">P(sentence) = Πₜ P(wₜ | wₜ₋₁)</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> Every LLM answer is a draw from a conditional distribution. The probabilities come from maximum likelihood on training text, the same estimator as counting in the word model, applied by a transformer that conditions on thousands of earlier tokens instead of one. Confidence in the wording says nothing about whether the content is true, so check outputs the way you would check any model: against held-out facts.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>More context, sharper rows</h2>
+      <p>The bigram model sees only “is” and happily writes “the capital of Italy is Madrid.” The trigram model sees “italy is” and gets it right. Transformers push this to the whole prompt: attention lets each word look at every other word.</p>
+      <div class="formula">P(w | “is”) vs P(w | “italy is”)</div>
+    </div>
+    <div class="note">
+      <h2>Tokens become vectors</h2>
+      <p>A real model does not keep a row per context. It maps words to vectors (word2vec), so “Italy” and “Spain” share what the model learns about countries. That is how it generalizes to sentences it never saw, and also how it blends facts that should stay apart.</p>
+      <div class="formula">king − man + woman ≈ queen</div>
+    </div>
+    <div class="note">
+      <h2>Where the numbers come from</h2>
+      <p>The France probabilities for “ Paris”, “ the” and “ a” are from the worked example. It lumps the remaining 0.03 as “...”, and this lab splits it into six illustrative tokens. All other prompts use illustrative logits, not output from a real model.</p>
+      <div class="formula">0.93 + 0.03 + 0.01 + 0.03 = 1</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>On the France prompt, press “+1,000” at T = 1. Compare the blue bars with the red marks, and ask how many samples it takes for “ Lyon” to show up once. The answer is about 1/0.006 ≈ 170.</li>
+      <li>Drag T from 0 to 2.5 and read the entropy row. At T = 0 it is 0 bits. At T = 1 it is about 0.54 bits. At T = 2.5 it is about 2.6 bits, and “ Paris” drops below half.</li>
+      <li>Switch to “Flip a fair coin” and set top-p to 0.40. Only “ heads” survives, so the sampler is no longer fair. Raise top-p to 0.95 and both sides come back, with two filler tokens. Top-p cuts more when the model is sure and less when it is not.</li>
+      <li>In mode 2, generate four sentences with the bigram model at T = 1 and count the shaded ones. Switch to trigram and generate again. Then add a sentence to the paragraph, such as “The capital of Japan is Tokyo.”, and look at the row for “is”.</li>
+      <li>Set the word model to T = 0. Every generation is the same sentence, because the model always takes the top row entry. Ask students why chatbots do not run at T = 0 by default, and when you would want them to.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- prompts: probabilities at T = 1 (logit = ln p) ----------
+  const PROMPTS = [
+    { text: 'The capital of France is', src: 'The worked example gives “ Paris” 0.93, “ the” 0.03, “ a” 0.01 and “...” 0.03. The 0.03 is split here into six illustrative tokens.',
+      toks: [[' Paris', 0.93], [' the', 0.03], [' a', 0.01], [' located', 0.006], [' Lyon', 0.006], [' also', 0.005], [' famous', 0.005], [' Marseille', 0.004], [' one', 0.004]] },
+    { text: 'Flip a fair coin. It landed on', src: 'Illustrative logits, not output from a real model.',
+      toks: [[' heads', 0.46], [' tails', 0.44], [' its', 0.03], [' the', 0.03], [' edge', 0.02], [' my', 0.02]] },
+    { text: 'The first person to walk on the Moon was', src: 'Illustrative logits, not output from a real model. “ Buzz” and “ Yuri” are fluent and wrong.',
+      toks: [[' Neil', 0.88], [' Buzz', 0.04], [' an', 0.03], [' the', 0.02], [' Yuri', 0.015], [' John', 0.015]] },
+    { text: 'The best way to start the day is', src: 'Illustrative logits, not output from a real model. An open question has many good answers.',
+      toks: [[' with', 0.38], [' to', 0.22], [' by', 0.15], [' a', 0.08], [' coffee', 0.06], [' early', 0.05], [' breakfast', 0.04], [' exercise', 0.02]] },
+    { text: 'The court case that established this rule is', src: 'Illustrative logits, not output from a real model. The model has no sharp answer, so every pick sounds like a citation.',
+      toks: [[' Smith', 0.14], [' Brown', 0.12], [' the', 0.11], [' Johnson', 0.10], [' Davis', 0.10], [' Miller', 0.08], [' a', 0.08], [' Roe', 0.07], [' Marbury', 0.06], [' State', 0.06], [' not', 0.04], [' unknown', 0.04]] }
+  ];
+
+  // ---------- sampler math ----------
+  // returns sampling probabilities after temperature, top-k, top-p (in that order), in the prompt's token order
+  function sampler(p, T, k, topP) {
+    const n = p.length, order = p.map((_, i) => i).sort((a, b) => p[b] - p[a]);
+    let q = new Array(n).fill(0);
+    if (T <= 1e-9) { q[order[0]] = 1; }
+    else {
+      const s = p.map(v => Math.log(v) / T), m = Math.max(...s);
+      let z = 0; for (let i = 0; i < n; i++) { q[i] = Math.exp(s[i] - m); z += q[i]; }
+      for (let i = 0; i < n; i++) q[i] /= z;
+    }
+    // top-k
+    const keep = new Array(n).fill(false);
+    for (let r = 0; r < Math.min(k, n); r++) keep[order[r]] = true;
+    let z = 0; for (let i = 0; i < n; i++) { if (!keep[i]) q[i] = 0; z += q[i]; }
+    for (let i = 0; i < n; i++) q[i] /= z;
+    // top-p: keep a token while the mass of the tokens above it is still below p
+    if (topP < 1) {
+      let cum = 0;
+      for (const i of order) { if (!keep[i] || q[i] === 0) continue; if (cum >= topP - 1e-12) { keep[i] = false; q[i] = 0; } else cum += q[i]; }
+      z = 0; for (let i = 0; i < n; i++) z += q[i];
+      for (let i = 0; i < n; i++) q[i] /= z;
+    }
+    return q;
+  }
+  const entropy = q => { let h = 0; for (const v of q) if (v > 0) h -= v * Math.log2(v); return h; };
+  function draw(q) { let u = Math.random(), c = 0; for (let i = 0; i < q.length; i++) { c += q[i]; if (u < c) return i; } let j = q.length - 1; while (q[j] === 0) j--; return j; }
+
+  // ---------- mode 1 state ----------
+  const S = { zoom: false, pi: 0, T: 1, k: 99, p: 1, counts: [], n: 0, hist: [] };
+  let P = [], Q = [], C = {};
+  const cv = $('bars'), ctx = cv.getContext('2d'), tip = $('tip');
+  let L = {};
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'ball', 'curve', 'board', 'surface']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const fmtP = v => v === 0 ? '0' : v < 0.001 ? v.toExponential(1) : v < 0.1 ? v.toFixed(3) : v.toFixed(2);
+
+  function recompute(clear) {
+    const pr = PROMPTS[S.pi];
+    P = pr.toks.map(t => t[1]);
+    Q = sampler(P, S.T, S.k, S.p);
+    if (clear) { S.counts = new Array(P.length).fill(0); S.n = 0; S.hist = []; }
+    updateText(); dirty = true;
+  }
+  function sample(m) {
+    for (let i = 0; i < m; i++) { const j = draw(Q); S.counts[j]++; S.n++; S.hist.push(j); }
+    if (S.hist.length > 30) S.hist = S.hist.slice(-30);
+    updateText(); dirty = true;
+  }
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const show = t => '“' + esc(t).replace(/^ /, '␣') + '”';
+  function updateText() {
+    const pr = PROMPTS[S.pi], last = S.hist.length ? pr.toks[S.hist[S.hist.length - 1]][0] : null;
+    $('promptLine').innerHTML = esc(pr.text) + (last ? `<span class="tok">${esc(last)}</span>` : '<span class="cursor"> ▁</span>');
+    $('srcCap').textContent = pr.src;
+    $('hist').innerHTML = S.hist.length ? S.hist.map(j => `<span class="${Q[j] < 0.05 ? 'rare' : ''}">${esc(pr.toks[j][0].trim())}</span>`).join('') : '<em>No samples yet.</em>';
+    $('nOut').textContent = S.n.toLocaleString();
+    const H1 = entropy(P), HS = entropy(Q), i1 = P.indexOf(Math.max(...P));
+    $('h1').textContent = H1.toFixed(3); $('hS').textContent = HS.toFixed(3);
+    $('pp1').textContent = Math.pow(2, H1).toFixed(2); $('ppS').textContent = Math.pow(2, HS).toFixed(2);
+    $('top1').textContent = P[i1].toFixed(3); $('topS').textContent = Q[i1].toFixed(3);
+    $('k1').textContent = P.length; $('kS').textContent = Q.filter(v => v > 0).length;
+    if (S.n) {
+      $('topObs').textContent = (S.counts[i1] / S.n).toFixed(3);
+      let g = 0; for (let i = 0; i < P.length; i++) g = Math.max(g, Math.abs(S.counts[i] / S.n - Q[i]));
+      $('gap').textContent = g.toFixed(3);
+    } else { $('topObs').textContent = '–'; $('gap').textContent = '–'; }
+  }
+
+  function resize() {
+    const w = cv.parentElement.clientWidth - 28, n = P.length;
+    const row = w < 420 ? 30 : 34, h = 26 + n * row + 26;
+    const d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    const labW = w < 420 ? 84 : 108;
+    L = { W: w, H: h, row, ml: labW, mr: w < 420 ? 46 : 58, mt: 22, mb: 24 };
+  }
+  function drawBars() {
+    if (!L.W || L.H !== 26 + P.length * L.row + 26) resize();
+    const { W, H, row, ml, mr, mt } = L, pr = PROMPTS[S.pi], n = P.length;
+    ctx.clearRect(0, 0, W, H);
+    const xmax = S.zoom ? 0.1 : 1, PX = v => ml + Math.min(v, xmax) / xmax * (W - ml - mr);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.strokeStyle = C.grid; ctx.fillStyle = C.muted; ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    for (const v of S.zoom ? [0, 0.025, 0.05, 0.075, 0.1] : [0, 0.25, 0.5, 0.75, 1]) {
+      const x = Math.round(PX(v)) + .5; ctx.beginPath(); ctx.moveTo(x, mt); ctx.lineTo(x, mt + n * row); ctx.stroke();
+      ctx.fillText(v === 0 ? '0' : String(+v.toFixed(3)), x, mt - 6);
+    }
+    for (let i = 0; i < n; i++) {
+      const y = mt + i * row, cy = y + row / 2, cut = Q[i] === 0;
+      // label
+      ctx.font = '13px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = cut ? C.muted : C.ink; ctx.globalAlpha = cut ? 0.6 : 1;
+      let lab = '␣' + pr.toks[i][0].trim(); if (W < 420 && lab.length > 9) lab = lab.slice(0, 8) + '…';
+      ctx.fillText(lab, ml - 8, cy); ctx.globalAlpha = 1;
+      // sampling probability (theory): tinted bar with red end mark
+      const xq = PX(Q[i]);
+      if (Q[i] > 0) {
+        ctx.fillStyle = C.curve; ctx.globalAlpha = 0.16; ctx.fillRect(ml, y + 4, xq - ml, row - 8); ctx.globalAlpha = 1;
+        ctx.strokeStyle = C.curve; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(xq, y + 3); ctx.lineTo(xq, y + row - 3); ctx.stroke();
+      }
+      // observed share
+      if (S.n) {
+        const f = S.counts[i] / S.n;
+        ctx.fillStyle = C.accent; ctx.fillRect(ml, cy - 4, PX(f) - ml, 8);
+      }
+      // model probability at T = 1
+      const x1 = Math.round(PX(P[i])) + .5;
+      ctx.strokeStyle = C.muted; ctx.lineWidth = 1.5; ctx.setLineDash([3, 2]);
+      ctx.beginPath(); ctx.moveTo(x1, y + 2); ctx.lineTo(x1, y + row - 2); ctx.stroke(); ctx.setLineDash([]);
+      // value
+      ctx.font = '12px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.fillStyle = cut ? C.muted : C.curve;
+      const txt = cut ? 'cut' : fmtP(Q[i]);
+      const tx = Math.max(xq, x1, S.n ? PX(S.counts[i] / S.n) : 0) + 6;
+      if (tx + ctx.measureText(txt).width < W - 2) ctx.fillText(txt, tx, cy);
+      else { ctx.textAlign = 'right'; ctx.fillStyle = C.ink; ctx.fillText(txt, W - 4, y + 9); }
+    }
+    ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(S.zoom ? 'probability (bars past 0.1 are clipped)' : 'probability', W - mr, mt + n * row + 8);
+  }
+
+  function showTip(ev) {
+    const r = cv.getBoundingClientRect(), y = ev.clientY - r.top, i = Math.floor((y - L.mt) / L.row);
+    if (i < 0 || i >= P.length) { tip.hidden = true; return; }
+    const t = PROMPTS[S.pi].toks[i][0];
+    tip.innerHTML = `${show(t)}<br>logit ln p = ${Math.log(P[i]).toFixed(2)}<br>P at T = 1: ${P[i].toFixed(3)}<br>sampling P: ${Q[i].toFixed(4)}<br>samples: ${S.counts[i].toLocaleString()}${S.n ? ` (${(S.counts[i] / S.n * 100).toFixed(1)}%)` : ''}`;
+    tip.hidden = false;
+    const left = Math.min(ev.clientX - r.left + 30, cv.clientWidth - tip.offsetWidth + 14);
+    tip.style.left = Math.max(14, left) + 'px';
+    tip.style.top = Math.max(8, y + cv.offsetTop - tip.offsetHeight - 8) + 'px';
+  }
+  cv.addEventListener('pointermove', showTip);
+  cv.addEventListener('pointerdown', showTip);
+  cv.addEventListener('pointerleave', () => tip.hidden = true);
+
+  // ---------- mode 1 controls ----------
+  PROMPTS.forEach((p, i) => { const o = document.createElement('option'); o.value = i; o.textContent = p.text + ' …'; $('prompt').appendChild(o); });
+  function syncSliders() {
+    const n = PROMPTS[S.pi].toks.length;
+    $('topk').max = n; if (S.k > n) S.k = n;
+    $('topk').value = S.k; $('topkOut').textContent = S.k >= n ? `off (all ${n})` : String(S.k);
+    $('temp').value = S.T; $('tempOut').textContent = S.T.toFixed(2) + (S.T === 0 ? ' (greedy)' : '');
+    $('topp').value = S.p; $('toppOut').textContent = S.p >= 1 ? 'off' : S.p.toFixed(2);
+  }
+  $('prompt').onchange = e => { S.pi = +e.target.value; S.k = 99; syncSliders(); recompute(true); resize(); sample(200); };
+  $('temp').oninput = e => { S.T = +e.target.value; syncSliders(); recompute(true); };
+  $('topk').oninput = e => { S.k = +e.target.value; syncSliders(); recompute(true); };
+  $('topp').oninput = e => { S.p = +e.target.value; syncSliders(); recompute(true); };
+  $('resetShape').onclick = () => { S.T = 1; S.k = 99; S.p = 1; syncSliders(); recompute(true); };
+  $('zoom').onchange = e => { S.zoom = e.target.checked; dirty = true; };
+  $('s1').onclick = () => sample(1);
+  $('s100').onclick = () => sample(100);
+  $('s1000').onclick = () => sample(1000);
+  $('clear').onclick = () => recompute(true);
+
+  // ---------- mode 2: n-gram word model ----------
+  const DEFAULT_TEXT = 'The capital of France is Paris. The capital of Italy is Rome. The capital of Spain is Madrid. Paris is a city in France. Rome is a city in Italy. Madrid is a big city in Spain. The model reads the text and counts each pair of words. The model then predicts the next word from those counts. The next word depends only on the current word. A model with more context makes fewer mistakes.';
+  const W = { order: 1, T: 1, nSent: 4, model: null, ctx: null, gen: [] };
+  const tokenize = s => (s.toLowerCase().replace(/[!?]/g, '.').match(/[a-z0-9]+(?:['’-][a-z0-9]+)*|\./g) || []);
+  function build() {
+    const toks = tokenize($('corpus').value), ord = W.order;
+    const seq = new Array(ord).fill('.').concat(toks);
+    if (seq[seq.length - 1] !== '.') seq.push('.');
+    const table = new Map();
+    for (let i = ord; i < seq.length; i++) {
+      const c = seq.slice(i - ord, i).join(' '), w = seq[i];
+      if (!table.has(c)) table.set(c, new Map());
+      const row = table.get(c); row.set(w, (row.get(w) || 0) + 1);
+    }
+    const sents = new Set(); let cur = [];
+    for (const t of toks.concat(toks[toks.length - 1] === '.' ? [] : ['.'])) { if (t === '.') { if (cur.length) sents.add(cur.join(' ')); cur = []; } else cur.push(t); }
+    W.model = { table, toks, vocab: new Set(toks), sents };
+    // context list, most frequent first
+    const sel = $('ctx'), keep = W.ctx; sel.innerHTML = '';
+    const entries = [...table.entries()].map(([c, r]) => [c, [...r.values()].reduce((a, b) => a + b, 0)]).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    for (const [c, n] of entries) { const o = document.createElement('option'); o.value = c; o.textContent = `${ctxName(c)}  (${n})`; sel.appendChild(o); }
+    const pref = ord === 1 ? 'is' : 'italy is';
+    W.ctx = table.has(keep) ? keep : table.has(pref) ? pref : (entries[0] ? entries[0][0] : null);
+    if (W.ctx) sel.value = W.ctx;
+    $('nTok').textContent = toks.length.toLocaleString();
+    $('nVoc').textContent = W.model.vocab.size.toLocaleString();
+    $('nCtx').textContent = table.size.toLocaleString();
+  }
+  const ctxName = c => c.split(' ').map(w => w === '.' ? '(start)' : w).join(' ');
+  function rowProbs(c, T) {
+    const row = W.model.table.get(c); if (!row) return [];
+    const ws = [...row.keys()], cn = [...row.values()], tot = cn.reduce((a, b) => a + b, 0);
+    const p = cn.map(v => v / tot);
+    let q;
+    if (T <= 1e-9) { const m = Math.max(...cn); const i = cn.indexOf(m); q = cn.map((_, j) => j === i ? 1 : 0); }
+    else { const s = cn.map(v => Math.pow(v, 1 / T)), z = s.reduce((a, b) => a + b, 0); q = s.map(v => v / z); }
+    return ws.map((w, i) => ({ w, n: cn[i], p: p[i], q: q[i] })).sort((a, b) => b.n - a.n || a.w.localeCompare(b.w));
+  }
+  function showRow() {
+    const c = W.ctx;
+    if (!c) { $('cptHead').textContent = 'Type some text to train the model.'; $('cpt').innerHTML = ''; $('hRow').textContent = '–'; return; }
+    const rows = rowProbs(c, W.T), tot = rows.reduce((a, r) => a + r.n, 0);
+    $('cptHead').innerHTML = `P(next word | <span class="w">${esc(ctxName(c))}</span>) · ${tot} occurrence${tot === 1 ? '' : 's'}`;
+    let html = '<thead><tr><th>Next word</th><th>Count</th><th>P</th><th>P at T</th><th class="bar"></th></tr></thead><tbody>';
+    for (const r of rows) html += `<tr><td>${r.w === '.' ? '. (end)' : esc(r.w)}</td><td>${r.n}</td><td>${r.p.toFixed(3)}</td><td style="color:var(--curve)">${r.q.toFixed(3)}</td><td class="bar"><div class="b" style="width:${(r.p * 100).toFixed(1)}%"></div><div class="bT" style="width:${(r.q * 100).toFixed(1)}%"></div></td></tr>`;
+    $('cpt').innerHTML = html + '</tbody>';
+    $('hRow').textContent = entropy(rows.map(r => r.p)).toFixed(3);
+  }
+  function generate() {
+    const ord = W.order, out = [];
+    if (!W.model || !W.model.table.size) { W.gen = []; showGen(); return; }
+    let ctxArr = new Array(ord).fill('.'), sent = [], guard = 0;
+    while (out.length < W.nSent && guard++ < 400) {
+      const rows = rowProbs(ctxArr.join(' '), W.T);
+      if (!rows.length) { ctxArr = new Array(ord).fill('.'); if (sent.length) { out.push(sent); sent = []; } continue; }
+      const j = draw(rows.map(r => r.q)), r = rows[j];
+      sent.push({ w: r.w, ctx: ctxArr.join(' '), q: r.q });
+      ctxArr = ctxArr.slice(1).concat(r.w);
+      if (r.w === '.' || sent.length > 40) { out.push(sent); sent = []; ctxArr = new Array(ord).fill('.'); }
+    }
+    W.gen = out; showGen();
+  }
+  function showGen() {
+    let html = '', nNew = 0;
+    for (const s of W.gen) {
+      const words = s.filter(t => t.w !== '.').map(t => t.w).join(' ');
+      const isNew = !W.model.sents.has(words); if (isNew) nNew++;
+      const parts = s.map((t, i) => {
+        if (t.w === '.') return '.';
+        let w = esc(t.w); if (i === 0) w = w.charAt(0).toUpperCase() + w.slice(1);
+        return (i ? ' ' : '') + `<span class="w${t.q < 0.2 ? ' lo' : ''}" data-ctx="${esc(t.ctx)}" title="P = ${t.q.toFixed(2)} given “${esc(ctxName(t.ctx))}”">${w}</span>`;
+      }).join('');
+      html += `<span class="s${isNew ? ' new' : ''}">${parts}</span>${isNew ? '<span class="badge">new</span>' : ''} `;
+    }
+    $('gen').innerHTML = html || '<em>Type some text to train the model.</em>';
+    $('novel').textContent = W.gen.length ? `${nNew} of ${W.gen.length}` : '–';
+  }
+  $('gen').addEventListener('click', e => {
+    const el = e.target.closest('.w'); if (!el) return;
+    W.ctx = el.dataset.ctx; $('ctx').value = W.ctx; showRow();
+  });
+  let tmr = 0;
+  $('corpus').addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(() => { build(); showRow(); generate(); }, 250); });
+  $('ctx').onchange = e => { W.ctx = e.target.value; showRow(); };
+  function setOrder(o) {
+    W.order = o; $('o1').setAttribute('aria-pressed', o === 1); $('o2').setAttribute('aria-pressed', o === 2);
+    W.ctx = null; build(); showRow(); generate();
+  }
+  $('o1').onclick = () => setOrder(1);
+  $('o2').onclick = () => setOrder(2);
+  function setT2(v) { W.T = v; $('temp2').value = v; $('temp2Out').textContent = v.toFixed(2) + (v === 0 ? ' (greedy)' : ''); }
+  $('temp2').oninput = e => { setT2(+e.target.value); showRow(); };
+  $('temp2').onchange = () => generate();
+  $('nSent').oninput = e => { W.nSent = +e.target.value; $('nSentOut').textContent = W.nSent; };
+  $('genBtn').onclick = generate;
+  $('resetText').onclick = () => { $('corpus').value = DEFAULT_TEXT; W.ctx = null; build(); showRow(); generate(); };
+
+  // ---------- modes ----------
+  function setMode(m) {
+    $('m1').setAttribute('aria-pressed', m === 1); $('m2').setAttribute('aria-pressed', m === 2);
+    $('board1').hidden = m !== 1; $('panel1').hidden = m !== 1;
+    $('board2').hidden = m !== 2; $('panel2').hidden = m !== 2;
+    if (m === 1) { resize(); dirty = true; }
+  }
+  $('m1').onclick = () => setMode(1);
+  $('m2').onclick = () => setMode(2);
+  const toBoard = () => document.querySelector('.grid').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+
+  let demoT = 0;
+  $('demoFr').onclick = () => {
+    setMode(1); S.pi = 0; $('prompt').value = 0; S.k = 99; S.p = 1; S.zoom = false; $('zoom').checked = false;
+    const seq = [0, 1, 2]; let i = 0; clearInterval(demoT);
+    const stepT = () => { S.T = seq[i]; syncSliders(); recompute(true); resize(); sample(1000); i++; if (i >= seq.length) clearInterval(demoT); };
+    stepT(); if (!reduce) demoT = setInterval(stepT, 1600); else { while (i < seq.length) stepT(); }
+    toBoard();
+  };
+  $('demoCase').onclick = () => {
+    clearInterval(demoT); setMode(1); S.zoom = false; $('zoom').checked = false; S.pi = 4; $('prompt').value = 4; S.T = 1; S.k = 99; S.p = 1;
+    syncSliders(); recompute(true); resize(); sample(30); toBoard();
+  };
+  $('demoHot').onclick = () => {
+    setMode(2); setOrder(1); setT2(2); W.nSent = 6; $('nSent').value = 6; $('nSentOut').textContent = 6;
+    W.ctx = 'is'; $('ctx').value = 'is'; showRow(); generate(); toBoard();
+  };
+
+  // ---------- loop and theme ----------
+  let dirty = true;
+  function frame() { if (dirty && !$('board1').hidden) { drawBars(); dirty = false; } requestAnimationFrame(frame); }
+  readColors();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  let lastW = -1;
+  new ResizeObserver(() => { const w = $('board1').clientWidth; if (w && w !== lastW) { lastW = w; resize(); dirty = true; } }).observe($('board1'));
+
+  // open with 200 samples on the capital-of-France prompt, and a trained word model
+  syncSliders(); recompute(true); resize(); sample(200);
+  $('corpus').value = DEFAULT_TEXT; build(); showRow(); generate();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
