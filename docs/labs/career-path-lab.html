@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Career Path Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: probability readout, 100-person icon array and log-odds waterfall on the left, career controls, anchor and published-vs-model table in the right rail; best-move list, S-curve lesson, simulation fit, lesson, caveats and class exercises below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.board canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.dot { width: 10px; border-radius: 50%; }
+.sw.line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.curve { height: 0; border-top: 2px dashed var(--curve); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+.tip b { font-family: var(--font-display); }
+.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.7vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button[aria-pressed="true"]:not(.primary) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; box-shadow: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; max-width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.th { color: var(--curve); }
+.stats td.ob { color: var(--accent); }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; max-width: 100%; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula + .formula { margin-top: 6px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 80ch; }
+.src a { color: var(--accent); }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: center; }
+@media (max-width: 640px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+.readout { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.readout .k { font-size: 13px; color: var(--muted); }
+.readout .huge { font-family: var(--font-display); font-weight: 700; font-size: clamp(48px, 8vw, 72px); line-height: .95; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.readout .sub { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink); line-height: 1.6; }
+.readout .sub b { color: var(--accent); }
+.icons { width: 100%; max-width: 360px; justify-self: center; display: block; }
+.icons .on { fill: var(--accent); } .icons .off { fill: var(--line); }
+.sw.on { background: var(--accent); } .sw.off { background: var(--line); }
+.sw.up { background: var(--fit); } .sw.down { background: var(--ball); }
+.sw.anc { background: var(--peg); border-radius: 50%; width: 10px; }
+
+.wfHead { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.wfHead h3 { font-family: var(--font-display); font-size: 17px; margin: 0; }
+.wf { --wl: 200px; --wv: 120px; display: grid; grid-template-columns: var(--wl) minmax(0, 1fr) var(--wv); row-gap: 0; font-size: 13.5px; }
+@media (max-width: 640px) { .wf { --wl: 104px; --wv: 70px; font-size: 12px; } }
+.wf .lab { padding: 5px 8px 5px 0; min-width: 0; overflow-wrap: anywhere; line-height: 1.25; align-self: center; }
+.wf .lab small { color: var(--muted); font-family: var(--font-mono); font-size: 11.5px; display: block; }
+.wf .val { padding: 5px 0 5px 8px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; line-height: 1.25; align-self: center; font-size: 12.5px; }
+.wf .val small { display: block; color: var(--muted); font-size: 11px; }
+.wf .trk { position: relative; height: 30px; z-index: 1; }
+.wf .bar { position: absolute; top: 8px; height: 14px; border-radius: 3px; min-width: 2px; }
+.wf .bar.up { background: var(--fit); } .wf .bar.down { background: var(--ball); } .wf .bar.tot { background: var(--accent); opacity: .85; }
+.wf .bar.zero { background: var(--muted); opacity: .5; }
+.wf .mk { position: absolute; top: 7px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; border: 2px solid var(--surface); }
+.wf .mk.a { background: var(--peg); } .wf .mk.f { background: var(--accent); }
+.wf .row-sep { grid-column: 1 / -1; border-top: 1px solid var(--line); }
+.wf .ov { grid-column: 2; position: relative; pointer-events: none; }
+.wf .ov i { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--grid); }
+.wf .ov i.mid { border-left: 1px dashed var(--muted); opacity: .6; }
+.wf .ax { position: relative; height: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wf .ax span { position: absolute; transform: translateX(-50%); white-space: nowrap; top: 2px; }
+.wf .axl { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; align-self: center; }
+
+.toggles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.tg { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 8px; align-items: center; }
+.tg > span { font-weight: 700; font-size: 14px; }
+.tg .seg button { font-size: 12.5px; padding: 6px 4px; }
+.mini { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+.mini th, .mini td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.mini th:first-child, .mini td:first-child { text-align: left; white-space: normal; padding-left: 0; }
+.mini thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.mini td { font-family: var(--font-mono); }
+.mini td:first-child { font-family: var(--font-body); }
+.mini tr:last-child td { border-bottom: 0; }
+.mini .pub { color: var(--curve); } .mini .mod { color: var(--accent); }
+.mini tr.cur td { background: var(--board); }
+
+.split { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.plotbox { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.plotbox canvas { display: block; width: 100%; }
+.moves td.dbar { width: 40%; min-width: 90px; }
+.dtrack { position: relative; height: 14px; }
+.dtrack .z { position: absolute; top: -2px; bottom: -2px; border-left: 1px solid var(--muted); }
+.dtrack .b { position: absolute; top: 2px; height: 10px; border-radius: 2px; }
+.dtrack .b.up { background: var(--fit); } .dtrack .b.down { background: var(--ball); }
+td.gain { color: var(--fit); font-weight: 600; } td.loss { color: var(--ball); font-weight: 600; }
+.chip { display: inline-block; font-family: var(--font-mono); font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; margin-left: 4px; white-space: nowrap; }
+.callout { background: var(--board); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.callout b { font-variant-numeric: tabular-nums; }
+.row2 { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
+.row2 .field { flex: 1 1 200px; }
+.note ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Logistic regression</span>
+    <h1>Career Path Lab</h1>
+    <p class="lead">Build a consulting career one factor at a time and watch a logistic regression turn it into a chance of reaching VP, CXO or partner. The waterfall shows how each choice moves the log-odds, the move list ranks your next step, and a simulated population lets you fit the model yourself.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Coefficients from the LinkedIn study of 459,000 alumni of top-10 consulting firms, as summarised in the Polson–Sokolov notes. The idea for this page comes from The Upshot’s interactive “How to Become a C.E.O.? The Quickest Path Is a Winding One” (<a href="https://www.nytimes.com/2016/09/11/upshot/how-to-become-a-ceo-the-quickest-path-is-a-winding-one.html">New York Times, 2016</a>). See also Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/13-logistic.html">Chapter 13</a>.</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Predicted probability, icon array and log-odds waterfall for the current profile">
+      <div class="hero">
+        <div class="readout" aria-live="polite">
+          <span class="k">Chance of reaching VP, CXO or partner</span>
+          <span class="huge" id="pBig">15.0%</span>
+          <div class="sub" id="pSub"></div>
+        </div>
+        <svg class="icons" id="icons" viewBox="0 0 200 128" role="img" aria-label="100 people like this profile"></svg>
+      </div>
+      <div class="legend">
+        <span><i class="sw on"></i><span id="lgOn">15</span> of 100 people like this profile reach the top</span>
+        <span><i class="sw off"></i><span id="lgOff">85</span> do not</span>
+      </div>
+      <div class="wfHead">
+        <h3>From the anchor to your profile, in log-odds</h3>
+        <span class="hint" id="wfCap"></span>
+      </div>
+      <div class="wf" id="wf" role="img" aria-label="Waterfall of log-odds contributions by factor"></div>
+      <div class="legend">
+        <span><i class="sw anc"></i>Anchor</span>
+        <span><i class="sw up"></i>Raises the odds</span>
+        <span><i class="sw down"></i>Lowers the odds</span>
+        <span><i class="sw on"></i>Your profile</span>
+        <span>Years: β·Δx / 0.09, the experience that would move the log-odds as much</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Profiles from the study</span>
+        <div class="btns" style="grid-template-columns:1fr 1fr 1fr">
+          <button id="preA" aria-pressed="false">Person A</button>
+          <button id="preB" aria-pressed="false">Person B</button>
+          <button id="preC" aria-pressed="false">Person C</button>
+        </div>
+        <p class="hint" id="preNote"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Your career</span>
+        <div class="toggles">
+          <div class="tg"><span id="gL">Gender, as recorded</span><div class="seg" role="group" aria-labelledby="gL"><button id="g0" aria-pressed="false">Woman</button><button id="g1" aria-pressed="true">Man</button></div></div>
+          <div class="tg"><span id="mL">Top-10 metro region</span><div class="seg" role="group" aria-labelledby="mL"><button id="m0" aria-pressed="true">No</button><button id="m1" aria-pressed="false">Yes</button></div></div>
+          <div class="tg"><span id="uL">Top undergraduate program</span><div class="seg" role="group" aria-labelledby="uL"><button id="u0" aria-pressed="true">No</button><button id="u1" aria-pressed="false">Yes</button></div></div>
+          <div class="tg"><span id="bL">Top MBA</span><div class="seg" role="group" aria-labelledby="bL"><button id="b0" aria-pressed="true">No</button><button id="b1" aria-pressed="false">Yes</button></div></div>
+        </div>
+        <div class="slider"><div class="top"><label for="func">Job functions</label><output id="funcOut" for="func">2</output></div>
+          <input type="range" id="func" min="1" max="6" step="1" value="2"></div>
+        <div class="slider"><div class="top"><label for="comp">Employers (companies)</label><output id="compOut" for="comp">2</output></div>
+          <input type="range" id="comp" min="1" max="8" step="1" value="2"></div>
+        <div class="slider"><div class="top"><label for="ind">Industry sectors</label><output id="indOut" for="ind">2</output></div>
+          <input type="range" id="ind" min="1" max="6" step="1" value="2"></div>
+        <div class="slider"><div class="top"><label for="years">Years of experience</label><output id="yearsOut" for="years">15</output></div>
+          <input type="range" id="years" min="5" max="30" step="1" value="15"></div>
+        <p class="hint">London and Tulsa count as outside the top-10 metro regions. A top international undergraduate program counts as "no" on the top undergraduate variable.</p>
+      </div>
+
+      <div class="group">
+        <span class="label">Anchor for the intercept</span>
+        <div class="field">
+          <label for="anchor">The model's starting point</label>
+          <select id="anchor">
+            <option value="B" selected>Person B at the published 15%</option>
+            <option value="base">Base rate 13.9% at an average profile (assumption)</option>
+          </select>
+        </div>
+        <p class="hint" id="anchorNote"></p>
+      </div>
+
+      <div class="group">
+        <span class="label">Published vs this 8-coefficient model</span>
+        <div class="scroll"><table class="mini" id="abc">
+          <thead><tr><th>Profile</th><th>Published</th><th>Model</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="hint" id="abcNote"></p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card" aria-labelledby="movesH">
+    <span class="eyebrow">One change at a time</span>
+    <h2 id="movesH">Your best next move</h2>
+    <p class="hint" style="font-size:14px;max-width:90ch" id="movesLead"></p>
+    <div class="scroll"><table class="mini moves" id="moves">
+      <thead><tr><th>Change</th><th>New chance</th><th>Change in points</th><th class="dbarh"></th><th id="pubH" hidden>Published</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="hint">Gender is left out of this list on purpose. It is a recorded characteristic, not a career move. The list holds the other factors fixed and changes one thing, which is what the model can describe. Real moves change several things at once.</p>
+  </section>
+
+  <section class="card" aria-labelledby="curveH">
+    <span class="eyebrow">Same odds ratio, different points</span>
+    <h2 id="curveH">Why the same change helps some people more</h2>
+    <div class="split">
+      <div class="plotbox">
+        <canvas id="scurve" role="img" aria-label="Probability against log-odds with the current profile before and after the selected change"></canvas>
+        <div class="legend">
+          <span><i class="sw line"></i>p = 1 / (1 + e<sup>−η</sup>)</span>
+          <span><i class="sw dot" style="background:var(--ball)"></i>Before</span>
+          <span><i class="sw dot" style="background:var(--fit)"></i>After</span>
+        </div>
+      </div>
+      <div class="group">
+        <div class="field">
+          <label for="chg">Change to apply</label>
+          <select id="chg"></select>
+        </div>
+        <div class="callout" id="chgOut"></div>
+        <div class="scroll"><table class="mini" id="startTab">
+          <thead><tr><th>Start at</th><th>Odds</th><th>After</th><th>Points</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="hint">Every row multiplies the odds by the same factor. The points added are largest near 50% and small near 0% or 100%, because the curve is steepest in the middle: dp/dη = p(1 − p).</p>
+      </div>
+    </div>
+    <div class="scroll"><table class="mini" id="orTab">
+      <thead><tr><th>Factor</th><th>β (log-odds)</th><th>Odds ratio e<sup>β</sup></th><th>Years of experience equivalent</th><th>Unit</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" aria-labelledby="fitH">
+    <span class="eyebrow">Simulated data · fit by Newton's method</span>
+    <h2 id="fitH">Fit it yourself</h2>
+    <p class="hint" style="font-size:14px;max-width:92ch">These careers are <b>simulated</b>. Each one gets characteristics drawn from distributions we chose (listed below), then a yes/no outcome drawn from the 8-coefficient model. The intercept is tuned so about 13.9% of the simulated population reaches the top. The page then forgets the true coefficients and estimates them by iteratively reweighted least squares (IRLS), the Newton–Raphson method for logistic regression.</p>
+    <div class="row2">
+      <div class="slider field"><div class="top"><label for="nSim">Careers used in the fit</label><output id="nOut" for="nSim">20,000</output></div>
+        <input type="range" id="nSim" min="0" max="10" step="1" value="10"></div>
+      <button id="redraw" class="primary">Draw a new population</button>
+    </div>
+    <div class="callout" id="simInfo"></div>
+    <div class="split">
+      <div class="plotbox">
+        <canvas id="coefPlot" role="img" aria-label="Estimated coefficients with 95% intervals and true values"></canvas>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--accent);height:4px"></i>Estimate ± 1.96 SE</span>
+          <span><i class="sw" style="background:var(--curve);width:3px;height:14px"></i>True coefficient</span>
+        </div>
+      </div>
+      <div class="plotbox">
+        <canvas id="sePlot" role="img" aria-label="Standard error of the industry coefficient against sample size"></canvas>
+        <div class="legend">
+          <span><i class="sw dot"></i>SE of the industry coefficient, refit at each n</span>
+          <span><i class="sw curve"></i>c / √n through the n = 20,000 fit</span>
+        </div>
+      </div>
+    </div>
+    <div class="scroll"><table class="mini" id="fitTab">
+      <thead><tr><th>Coefficient</th><th>True</th><th>Estimate</th><th>SE</th><th>z</th><th>95% CI covers true</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="hint">Simulation assumptions: male with probability 0.6, top-10 metro 0.5, top undergraduate 0.4, top MBA 0.25, all independent; functions and industries = 1 + Binomial(5, 0.2), mean 2; companies = 1 + Poisson(2) capped at 8, mean about 3; years uniform on 5 to 25, mean 15. These are teaching choices, not facts about the real sample.</p>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Logistic regression in three lines</span>
+      <h2>Coefficients add in log-odds, multiply in odds, and bend in probability</h2>
+      <p class="hint" style="font-size:14px;max-width:84ch">The model adds up one number per factor on the log-odds scale. That makes comparisons easy: a top MBA (1.16) is worth about as much as 13 years of experience (1.16 / 0.09), and each extra job function (0.26) about 3 years. The S-curve then turns the sum into a probability.</p>
+      <div class="demo">
+        <button class="primary" id="demoB">Person B: one change at a time</button>
+        <button id="demoMBA">Person A with a top MBA</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Add up the evidence</h3><p>Start from the anchor's log-odds and add β times the change in each factor. For Person B, logit(0.15) = −1.73. Going from 2 to 4 functions adds 2 × 0.26 = 0.52, so η = −1.21.</p></div></li>
+      <li><div><h3>Read it as odds</h3><p>e<sup>η</sup> is the odds. Each coefficient multiplies the odds by e<sup>β</sup>. A top MBA multiplies them by e<sup>1.16</sup> ≈ 3.19. One more industry sector multiplies them by e<sup>−0.22</sup> ≈ 0.80, a 20% cut.</p></div></li>
+      <li><div><h3>Turn it into a probability</h3><p>p = 1 / (1 + e<sup>−η</sup>). For η = −1.21 this gives 22.9%, eight points above B's 15%. Breadth across functions helps; hopping across industries hurts.</p></div></li>
+      <li><div><h3>Choose the anchor honestly</h3><p>Rounded coefficients only fix differences. Some person has to be pinned to a known probability. Pinning B at 15% reproduces all six of B's published one-change results. It puts C at 65% (published 63%) and A at 11% (published 6%), because the published model has more variables than these eight.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">Linear predictor, anchored at a reference profile</div><div class="m">η(x) = logit(p<sub>ref</sub>) + Σ β<sub>j</sub>(x<sub>j</sub> − x<sub>ref,j</sub>)</div></div>
+      <div class="eq"><div class="cap">Odds and probability</div><div class="m">odds = e<sup>η</sup>,  p = 1 / (1 + e<sup>−η</sup>)</div></div>
+      <div class="eq"><div class="cap">Years-of-experience equivalent</div><div class="m">β<sub>MBA</sub> / β<sub>years</sub> = 1.16 / 0.09 ≈ 12.9 years</div><div class="m">β<sub>func</sub> / β<sub>years</sub> = 0.26 / 0.09 ≈ 2.9 years</div></div>
+      <div class="eq"><div class="cap">Newton step (IRLS) used in the simulation</div><div class="m">β ← β + (XᵀWX)<sup>−1</sup> Xᵀ(y − p),  W = diag(p(1 − p))</div><div class="m">SE(β̂<sub>j</sub>) = √[(XᵀWX)<sup>−1</sup>]<sub>jj</sub> ∝ 1/√n</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> A logistic coefficient is a statement about odds. Its effect in percentage points depends on where you start, so under the B anchor the same top MBA adds about 17 points to Person A (11% to 29%), 21 points to Person B (15% to 36%), and only about 3 points to someone already at 95%.</p></div>
+  </section>
+
+  <section class="notes" aria-label="Interpretation and caveats">
+    <div class="note">
+      <h2>Association, not causation</h2>
+      <p>The coefficients compare people who differ in one recorded factor while the others are held fixed. They do not say what would happen if you changed that factor. People who get a top MBA or switch functions were selected, by admissions offices, employers and themselves, and may differ in ambition, networks or ability that the model never sees.</p>
+      <p>The "best next move" list reads the model as if it were causal. Treat it as a description of patterns in the data.</p>
+    </div>
+    <div class="note">
+      <h2>Who is in the data</h2>
+      <ul>
+        <li>Only alumni of top-10 consulting firms who worked there between 1990 and 2010. The results may not carry over to other starting points or later years.</li>
+        <li>LinkedIn profiles are self-reported. People who did well may be more likely to keep a complete, public profile, a form of survivorship.</li>
+        <li>"Top" job titles depend on how companies of 200 or more employees name roles.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>Gender and the A/C gap</h2>
+      <p>The male coefficient (+0.31) describes a gap in recorded outcomes between men and women in this sample after the other seven factors are accounted for. It summarises the past. It is not a statement about any individual and not advice.</p>
+      <p>The eight coefficients shown are rounded, and the published model includes more variables, such as a non-MBA master's degree and finer detail on region and education. That is why no single anchor reproduces the published 6%, 15% and 63% for A, B and C at once.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load Person A. Before showing the move list, ask students which single change helps A the most and by how many points. Then scroll to "Your best next move" and check. (A top MBA, about +17 points under the B anchor.)</li>
+      <li>Find a profile where adding a top MBA adds fewer than 5 points. Use the S-curve panel to explain why: the profile must already sit far out on a flat part of the curve, near 0% or near 100%.</li>
+      <li>Compute the years-of-experience equivalent of one more industry sector by hand (−0.22 / 0.09 ≈ −2.4 years), then confirm it in the odds-ratio table. Ask: is "two companies is worth three years" a sensible way to talk, and when does it break?</li>
+      <li>In the simulation, slide the number of careers down until the 95% interval for the industry coefficient includes zero. Students should find that somewhere around 1,000 to 2,000 careers the sign is no longer reliably detected. Then predict the SE at n = 5,000 from the 1/√n rule and check.</li>
+      <li>Switch the anchor to the base rate. Every prediction moves, but every waterfall step stays the same size. Ask what extra information a study must publish so readers can compute probabilities and not only odds ratios.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  /*CORE*/
+  const BETA = [0.31, 0.28, 0.22, 1.16, 0.26, 0.14, -0.22, 0.09];
+  const KEYS = ['male', 'metro', 'ugrad', 'mba', 'func', 'comp', 'ind', 'years'];
+  const LAB = ['Male', 'Top-10 metro region', 'Top undergraduate', 'Top MBA', 'Job functions', 'Companies', 'Industry sectors', 'Years of experience'];
+  const UNIT = ['man vs woman', 'yes vs no', 'yes vs no', 'yes vs no', 'per function', 'per company', 'per sector', 'per year'];
+  const PROF = {
+    A: { x: [1, 0, 0, 0, 1, 3, 3, 15], pub: 0.06, note: 'Person A: man in Tulsa, undergraduate degree only, 1 function, 3 companies, 3 industries, 15 years. Published: 6%.' },
+    B: { x: [1, 0, 0, 0, 2, 2, 2, 15], pub: 0.15, note: "Person B: man in London, top international undergraduate, non-MBA master's, 2 functions, 2 companies, 2 industries, 15 years. Published: 15%." },
+    C: { x: [0, 1, 1, 1, 4, 4, 1, 15], pub: 0.63, note: 'Person C: woman in New York, top undergraduate, top MBA, 4 functions, 4 companies, 1 industry, 15 years. Published: 63%.' }
+  };
+  const AVG = [0.6, 0.5, 0.4, 0.25, 2, 3, 2, 15];
+  const ANCH = { B: { x: PROF.B.x, p: 0.15, name: 'Person B' }, base: { x: AVG, p: 0.139, name: 'Average profile' } };
+  const logit = p => Math.log(p / (1 - p)), sig = e => 1 / (1 + Math.exp(-e));
+  function etaOf(x, a) { let e = logit(a.p); for (let j = 0; j < 8; j++) e += BETA[j] * (x[j] - a.x[j]); return e; }
+  const B_PUB = { ind1: 3, ugrad: 3, metro: 4, comp2: 4, func2: 8, yrs10: 15 };
+
+  function mulberry32(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function simulate(N, seed) {
+    const r = mulberry32(seed), X = new Float64Array(N * 8), lin = new Float64Array(N), y = new Uint8Array(N);
+    const binom = (m, q) => { let k = 0; for (let i = 0; i < m; i++) if (r() < q) k++; return k; };
+    const pois = lam => { const L = Math.exp(-lam); let k = 0, p = 1; do { k++; p *= r(); } while (p > L); return k - 1; };
+    for (let i = 0; i < N; i++) {
+      const row = [r() < 0.6 ? 1 : 0, r() < 0.5 ? 1 : 0, r() < 0.4 ? 1 : 0, r() < 0.25 ? 1 : 0,
+        1 + binom(5, 0.2), Math.min(8, 1 + pois(2)), 1 + binom(5, 0.2), 5 + Math.floor(r() * 21)];
+      let s = 0; for (let j = 0; j < 8; j++) { X[i * 8 + j] = row[j]; s += BETA[j] * row[j]; } lin[i] = s;
+    }
+    let lo = -15, hi = 5;
+    for (let it = 0; it < 80; it++) { const a = (lo + hi) / 2; let m = 0; for (let i = 0; i < N; i++) m += sig(a + lin[i]); if (m / N > 0.139) hi = a; else lo = a; }
+    const a0 = (lo + hi) / 2;
+    let ev = 0; for (let i = 0; i < N; i++) { y[i] = r() < sig(a0 + lin[i]) ? 1 : 0; ev += y[i]; }
+    return { N, X, y, a0, rate: ev / N };
+  }
+  function solve(A, b, K) { // Gaussian elimination with partial pivoting; A is K*K row-major (copied)
+    const M = A.slice(), v = b.slice();
+    for (let c = 0; c < K; c++) {
+      let p = c; for (let r = c + 1; r < K; r++) if (Math.abs(M[r * K + c]) > Math.abs(M[p * K + c])) p = r;
+      if (p !== c) { for (let k = 0; k < K; k++) { const t = M[c * K + k]; M[c * K + k] = M[p * K + k]; M[p * K + k] = t; } const t = v[c]; v[c] = v[p]; v[p] = t; }
+      for (let r = c + 1; r < K; r++) { const f = M[r * K + c] / M[c * K + c]; if (!f) continue; for (let k = c; k < K; k++) M[r * K + k] -= f * M[c * K + k]; v[r] -= f * v[c]; }
+    }
+    const x = new Array(K).fill(0);
+    for (let r = K - 1; r >= 0; r--) { let s = v[r]; for (let k = r + 1; k < K; k++) s -= M[r * K + k] * x[k]; x[r] = s / M[r * K + r]; }
+    return x;
+  }
+  function fitLogit(sim, n) {
+    const K = 9, X = sim.X, y = sim.y; let w = new Array(K).fill(0), H, iter = 0;
+    const z = new Float64Array(K);
+    for (iter = 1; iter <= 50; iter++) {
+      H = new Array(K * K).fill(0); const g = new Array(K).fill(0);
+      for (let i = 0; i < n; i++) {
+        z[0] = 1; for (let j = 0; j < 8; j++) z[j + 1] = X[i * 8 + j];
+        let e = 0; for (let j = 0; j < K; j++) e += w[j] * z[j];
+        const mu = sig(e), wt = mu * (1 - mu), res = y[i] - mu;
+        for (let j = 0; j < K; j++) { g[j] += z[j] * res; const zj = z[j] * wt; for (let k = j; k < K; k++) H[j * K + k] += zj * z[k]; }
+      }
+      for (let j = 0; j < K; j++) for (let k = 0; k < j; k++) H[j * K + k] = H[k * K + j];
+      const step = solve(H, g, K); let mx = 0;
+      for (let j = 0; j < K; j++) { w[j] += step[j]; mx = Math.max(mx, Math.abs(step[j])); }
+      if (!isFinite(mx)) break;
+      if (mx < 1e-9) break;
+    }
+    const se = [];
+    for (let j = 0; j < K; j++) { const e = new Array(K).fill(0); e[j] = 1; se.push(Math.sqrt(solve(H, e, K)[j])); }
+    return { w, se, iter };
+  }
+  /*ENDCORE*/
+
+  // ---------- state ----------
+  const S = { x: PROF.C.x.slice(), anchor: 'B', chg: 'mba', seed: 1, nIdx: 10 };
+  const NS = [500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 20000];
+  const BOUNDS = [[0, 1], [0, 1], [0, 1], [0, 1], [1, 6], [1, 8], [1, 6], [5, 30]];
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'ball', 'fit', 'board', 'peg', 'surface']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const pct = (p, d = 1) => (p * 100).toFixed(d) + '%';
+  const sgn = (v, d = 2) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
+  const num = v => Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/0$/, '');
+  const pts = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(1);
+  const same = (a, b) => a.every((v, i) => v === b[i]);
+  const anc = () => ANCH[S.anchor];
+  const P = x => sig(etaOf(x, anc()));
+  function oddsText(p) {
+    const o = p / (1 - p);
+    return o >= 1 ? `${o.toFixed(2)} : 1` : `1 : ${(1 / o).toFixed(2)}`;
+  }
+
+  // ---------- icon array ----------
+  function drawIcons(p) {
+    const k = Math.round(p * 100), svg = $('icons');
+    let h = '';
+    for (let i = 0; i < 100; i++) {
+      const c = i % 20, r = Math.floor(i / 20), x = c * 10 + 5, y = r * 25.6 + 4;
+      const cls = i < k ? 'on' : 'off';
+      h += `<g class="${cls}"><circle cx="${x}" cy="${y + 3.2}" r="2.9"/><path d="M${x - 4} ${y + 18.5} v-6.2 a4 4 0 0 1 4 -4 a4 4 0 0 1 4 4 v6.2 z"/></g>`;
+    }
+    svg.innerHTML = h;
+    $('lgOn').textContent = k; $('lgOff').textContent = 100 - k;
+  }
+
+  // ---------- waterfall ----------
+  function factorLabel(j, a, b) {
+    if (j === 0) return a === b ? 'Gender' : `Gender ${a === 1 ? 'man' : a === 0 ? 'woman' : num(a)} → ${b === 1 ? 'man' : 'woman'}`;
+    if (j < 4) { const f = v => v === 1 ? 'yes' : v === 0 ? 'no' : num(v); return `${LAB[j]} ${f(a)} → ${f(b)}`; }
+    return `${LAB[j]} ${num(a)} → ${num(b)}`;
+  }
+  function drawWaterfall() {
+    const A = anc(), e0 = logit(A.p);
+    const steps = []; let cum = e0;
+    for (let j = 0; j < 8; j++) { const d = BETA[j] * (S.x[j] - A.x[j]); steps.push({ j, from: cum, to: cum + d, d }); cum += d; }
+    const eF = cum, all = [e0, eF, ...steps.map(s => s.to)];
+    let lo = Math.min(...all, -2.5) - 0.3, hi = Math.max(...all, 0.5) + 0.3;
+    lo = Math.floor(lo * 2) / 2; hi = Math.ceil(hi * 2) / 2;
+    const X = v => ((v - lo) / (hi - lo) * 100).toFixed(3) + '%';
+    const nRows = 8 + 4;
+    let h = '';
+    // top probability axis
+    const span = hi - lo, cand = [0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99];
+    const minGap = span / (window.innerWidth < 640 ? 4 : 7);
+    let last = -1e9; const pt = [];
+    for (const q of cand) { const l = logit(q); if (l < lo + 0.05 || l > hi - 0.05) continue; if (l - last >= minGap || q === 0.5) { if (q === 0.5 && pt.length && l - last < minGap) pt.pop(); pt.push(q); last = l; } }
+    h += `<div class="axl">Probability</div><div class="ax">${pt.map(q => `<span style="left:${X(logit(q))}">${Math.round(q * 100)}%</span>`).join('')}</div><div></div>`;
+    // overlay with grid lines (one per integer log-odds)
+    let ov = '';
+    for (let t = Math.ceil(lo); t <= Math.floor(hi); t++) ov += `<i class="${t === 0 ? 'mid' : ''}" style="left:${X(t)}"></i>`;
+    h += `<div class="ov" style="grid-row: 2 / span ${nRows - 2}">${ov}</div>`;
+    // anchor row
+    h += `<div class="lab" style="grid-row:2;grid-column:1"><b>Start: ${A.name}</b><small>${S.anchor === 'B' ? 'published 15%' : 'base rate 13.9%'}</small></div>`;
+    h += `<div class="trk" style="grid-row:2;grid-column:2"><span class="mk a" style="left:${X(e0)}"></span></div>`;
+    h += `<div class="val" style="grid-row:2;grid-column:3">η ${sgn(e0)}<small>${pct(A.p)}</small></div>`;
+    h += `<div class="row-sep" style="grid-row:3"></div>`;
+    steps.forEach((s, i) => {
+      const r = 4 + i, a = Math.min(s.from, s.to), w = Math.abs(s.d);
+      const cls = Math.abs(s.d) < 1e-12 ? 'zero' : s.d > 0 ? 'up' : 'down';
+      const yrs = s.d / 0.09;
+      h += `<div class="lab" style="grid-row:${r};grid-column:1">${cls === 'zero' ? `${LAB[s.j]}<small>same as anchor</small>` : factorLabel(s.j, A.x[s.j], S.x[s.j])}</div>`;
+      h += `<div class="trk" style="grid-row:${r};grid-column:2"><span class="bar ${cls}" style="left:${X(a)};width:${(w / (hi - lo) * 100).toFixed(3)}%"></span></div>`;
+      h += `<div class="val" style="grid-row:${r};grid-column:3">${cls === 'zero' ? '0' : sgn(s.d)}<small>${cls === 'zero' ? '–' : (yrs > 0 ? '+' : '−') + Math.abs(yrs).toFixed(1) + ' yrs'}</small></div>`;
+    });
+    const rf = 12;
+    h += `<div class="row-sep" style="grid-row:${rf}"></div>`;
+    const a2 = Math.min(e0, eF), w2 = Math.abs(eF - e0);
+    h += `<div class="lab" style="grid-row:${rf + 1};grid-column:1"><b>Your profile</b><small>${sgn((eF - e0) / 0.09, 1)} yrs in total</small></div>`;
+    h += `<div class="trk" style="grid-row:${rf + 1};grid-column:2"><span class="bar tot" style="left:${X(a2)};width:${(w2 / (hi - lo) * 100).toFixed(3)}%;opacity:.35"></span><span class="mk f" style="left:${X(eF)}"></span></div>`;
+    h += `<div class="val" style="grid-row:${rf + 1};grid-column:3"><b>η ${sgn(eF)}</b><small>${pct(sig(eF))}</small></div>`;
+    // bottom log-odds axis
+    const ticks = []; const stepT = span > 7 ? 2 : 1;
+    for (let t = Math.ceil(lo / stepT) * stepT; t <= hi; t += stepT) ticks.push(t);
+    h += `<div class="axl" style="grid-row:${rf + 2}">Log-odds <span style="text-transform:none">η</span></div><div class="ax" style="grid-row:${rf + 2};grid-column:2">${ticks.map(t => `<span style="left:${X(t)}">${t < 0 ? '−' + (-t) : t}</span>`).join('')}</div>`;
+    $('wf').innerHTML = h;
+    $('wf').querySelector('.ov').style.gridRow = `2 / ${rf + 2}`;
+    $('wfCap').textContent = `Bars are β × (your value − anchor value). They add up to ${sgn(eF - e0)} in log-odds.`;
+  }
+
+  // ---------- moves ----------
+  function moveList(x) {
+    const out = [], add = (key, label, j, v) => {
+      if (v < BOUNDS[j][0] || v > BOUNDS[j][1] || v === x[j]) return;
+      const y = x.slice(); y[j] = v; out.push({ key, label, j, y });
+    };
+    add('metro', x[1] ? 'Leave the top-10 metro regions' : 'Move to a top-10 metro region', 1, 1 - x[1]);
+    add('ugrad', x[2] ? 'Without the top undergraduate program' : 'Top undergraduate program instead', 2, 1 - x[2]);
+    add('mba', x[3] ? 'Without the top MBA' : 'Get a top MBA', 3, 1 - x[3]);
+    add('func1', `One more job function (${x[4]} → ${x[4] + 1})`, 4, x[4] + 1);
+    add('func2', `Two more job functions (${x[4]} → ${x[4] + 2})`, 4, x[4] + 2);
+    add('funcm', `One fewer job function (${x[4]} → ${x[4] - 1})`, 4, x[4] - 1);
+    add('comp1', `One more company (${x[5]} → ${x[5] + 1})`, 5, x[5] + 1);
+    add('comp2', `Two more companies (${x[5]} → ${x[5] + 2})`, 5, x[5] + 2);
+    add('compm', `One fewer company (${x[5]} → ${x[5] - 1})`, 5, x[5] - 1);
+    add('ind1', `One fewer industry (${x[6]} → ${x[6] - 1})`, 6, x[6] - 1);
+    add('indp', `One more industry (${x[6]} → ${x[6] + 1})`, 6, x[6] + 1);
+    add('yrs5', `5 more years (${x[7]} → ${x[7] + 5})`, 7, x[7] + 5);
+    add('yrs10', `10 more years (${x[7]} → ${x[7] + 10})`, 7, x[7] + 10);
+    return out;
+  }
+  function drawMoves() {
+    const p0 = P(S.x), isB = same(S.x, PROF.B.x) && S.anchor === 'B';
+    const L = moveList(S.x).map(m => ({ ...m, p: P(m.y) })).map(m => ({ ...m, d: m.p - p0 })).sort((a, b) => b.d - a.d);
+    const mx = Math.max(...L.map(m => Math.abs(m.d)), 0.01);
+    const anyNeg = L.some(m => m.d < 0);
+    $('pubH').hidden = !isB;
+    $('moves').querySelector('.dbarh').textContent = '';
+    $('moves').querySelector('tbody').innerHTML = L.map(m => {
+      const w = Math.abs(m.d) / mx * (anyNeg ? 50 : 100), left = anyNeg ? (m.d >= 0 ? 50 : 50 - w) : 0;
+      const pub = isB && B_PUB[m.key] !== undefined ? `<td class="pub">+${B_PUB[m.key]}</td>` : (isB ? '<td class="pub">–</td>' : '');
+      return `<tr><td>${m.label}</td><td>${pct(m.p)}</td><td class="${m.d > 0 ? 'gain' : 'loss'}">${pts(m.d)}</td>` +
+        `<td class="dbar"><div class="dtrack">${anyNeg ? '<span class="z" style="left:50%"></span>' : ''}<span class="b ${m.d >= 0 ? 'up' : 'down'}" style="left:${left}%;width:${w}%"></span></div></td>${pub}</tr>`;
+    }).join('');
+    const best = L[0];
+    $('movesLead').innerHTML = `Starting from <b>${pct(p0)}</b>, each row changes one factor and keeps the rest. ` +
+      (best ? `The biggest single gain is <b>${best.label[0].toLowerCase() + best.label.slice(1)}</b>, ${pts(best.d)} points. ` : '') +
+      (isB ? 'With Person B and the B anchor, the red column shows the published one-change results. The model reproduces all six to the point.' : 'Load Person B to compare with the published one-change table.');
+  }
+
+  // ---------- A/B/C table ----------
+  function drawABC() {
+    const rows = ['A', 'B', 'C'].map(k => {
+      const cur = same(S.x, PROF[k].x);
+      return `<tr class="${cur ? 'cur' : ''}"><td>Person ${k}</td><td class="pub">${pct(PROF[k].pub, 0)}</td><td class="mod">${pct(P(PROF[k].x))}</td></tr>`;
+    }).join('');
+    $('abc').querySelector('tbody').innerHTML = rows;
+    $('abcNote').textContent = S.anchor === 'B'
+      ? 'B matches by construction. C comes out close (65% vs 63%). A comes out too high (11% vs 6%): the published model has more variables, such as B\'s non-MBA master\'s degree and finer region and education detail, and these coefficients are rounded.'
+      : 'With the base-rate anchor A lands near its published 6%, but B drops to about 9% and C to about 50%. No single anchor fits all three with only these eight rounded coefficients.';
+    $('anchorNote').textContent = S.anchor === 'B'
+      ? 'Default. Pins Person B at the published 15% and builds every other profile from B by adding β × change. This reproduces the published one-change table for B.'
+      : 'Assumption: an "average" alumnus with gender 0.6 male, 0.5 top metro, 0.4 top undergraduate, 0.25 top MBA, 2 functions, 3 companies, 2 industries and 15 years sits at the 13.9% base rate. The fractions are population shares, not a real person.';
+  }
+
+  // ---------- S-curve ----------
+  const CHG = [
+    { k: 'mba', lab: 'Add a top MBA', j: 3 }, { k: 'metro', lab: 'Move to a top-10 metro', j: 1 }, { k: 'ugrad', lab: 'Top undergraduate instead', j: 2 },
+    { k: 'func', lab: 'One more job function', j: 4 }, { k: 'comp', lab: 'One more company', j: 5 }, { k: 'ind', lab: 'One more industry sector', j: 6 },
+    { k: 'yrs', lab: '5 more years', j: 7, by: 5 }, { k: 'yrs10', lab: '10 more years', j: 7, by: 10 }
+  ];
+  $('chg').innerHTML = CHG.map(c => `<option value="${c.k}">${c.lab}</option>`).join('');
+  function chgEtas() {
+    const c = CHG.find(c => c.k === S.chg), j = c.j;
+    let before = S.x.slice(), after = S.x.slice(), note = '';
+    if (j < 4) { before[j] = 0; after[j] = 1; if (S.x[j] === 1) note = ' Your profile already has it, so "before" removes it.'; }
+    else { after[j] = S.x[j] + (c.by || 1); }
+    const d = BETA[j] * (after[j] - before[j]);
+    return { c, eB: etaOf(before, anc()), eA: etaOf(after, anc()), d, note };
+  }
+  const cvS = $('scurve'), ctxS = cvS.getContext('2d');
+  let LS = {};
+  function sizeCanvas(cv, ratio, minH, maxH) {
+    const w = Math.max(220, cv.clientWidth || cv.parentElement.clientWidth - 20);
+    const h = Math.round(Math.min(maxH, Math.max(minH, w * ratio))), d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    const ctx = cv.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0);
+    return { W: w, H: h };
+  }
+  function drawS() {
+    const { c, eB, eA, d, note } = chgEtas(), ctx = ctxS;
+    const { W, H } = LS; ctx.clearRect(0, 0, W, H);
+    const m = { l: 44, r: 14, t: 14, b: 36 };
+    const x0 = -5, x1 = 5;
+    const px = e => m.l + (e - x0) / (x1 - x0) * (W - m.l - m.r), py = p => m.t + (1 - p) * (H - m.t - m.b);
+    ctx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--font-mono');
+    ctx.lineWidth = 1; ctx.strokeStyle = C.grid; ctx.fillStyle = C.muted;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const p of [0, 0.25, 0.5, 0.75, 1]) { ctx.beginPath(); ctx.moveTo(m.l, py(p)); ctx.lineTo(W - m.r, py(p)); ctx.stroke(); ctx.fillText(Math.round(p * 100) + '%', m.l - 6, py(p)); }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let e = x0; e <= x1; e++) { ctx.beginPath(); ctx.moveTo(px(e), m.t); ctx.lineTo(px(e), H - m.b); ctx.stroke(); if (W > 380 || e % 2 === 0) ctx.fillText(e < 0 ? '−' + (-e) : String(e), px(e), H - m.b + 5); }
+    ctx.fillText('log-odds η', (m.l + W - m.r) / 2, H - 15);
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const e = x0 + (x1 - x0) * i / 200; const X = px(e), Y = py(sig(e)); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+    ctx.stroke();
+    const cl = e => Math.max(x0, Math.min(x1, e));
+    const pB = sig(eB), pA = sig(eA);
+    // guides
+    ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
+    for (const [e, p, col] of [[eB, pB, C.ball], [eA, pA, C.fit]]) {
+      ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(px(cl(e)), py(p)); ctx.lineTo(m.l, py(p)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px(cl(e)), py(p)); ctx.lineTo(px(cl(e)), H - m.b); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    // arrow along curve
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath();
+    const yArrow = H - m.b - 10; ctx.moveTo(px(cl(eB)), yArrow); ctx.lineTo(px(cl(eA)), yArrow); ctx.stroke();
+    const dir = Math.sign(eA - eB) || 1, xa = px(cl(eA));
+    ctx.beginPath(); ctx.moveTo(xa, yArrow); ctx.lineTo(xa - dir * 7, yArrow - 4); ctx.lineTo(xa - dir * 7, yArrow + 4); ctx.closePath(); ctx.fillStyle = C.ink; ctx.fill();
+    for (const [e, p, col] of [[eB, pB, C.ball], [eA, pA, C.fit]]) {
+      ctx.fillStyle = col; ctx.strokeStyle = C.board; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px(cl(e)), py(p), 6.5, 0, 7); ctx.fill(); ctx.stroke();
+    }
+    ctx.fillStyle = C.ink; ctx.textBaseline = 'bottom'; ctx.textAlign = 'left';
+    ctx.font = '12px ' + getComputedStyle(document.body).getPropertyValue('--font-mono');
+    const lx = Math.min(px(cl(eA)) + 10, W - m.r - 50);
+    ctx.fillText(pct(pA), lx, py(pA) - 4);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.textAlign = 'right'; ctx.fillText(pct(pB), Math.max(px(cl(eB)) - 9, m.l + 44), py(pB) + 6);
+    const OR = Math.exp(d);
+    $('chgOut').innerHTML = `<b>${c.lab}</b> adds ${sgn(d)} to the log-odds, so it multiplies the odds by e<sup>${sgn(d)}</sup> = <b>${OR.toFixed(2)}</b>.<br>` +
+      `For your profile: ${pct(pB)} → <b>${pct(pA)}</b>, a change of <b>${pts(pA - pB)} points</b>.${note}`;
+    const starts = [0.02, 0.05, 0.15, 0.30, 0.50, 0.70, 0.90, 0.95];
+    $('startTab').querySelector('tbody').innerHTML = starts.map(p => {
+      const q = sig(logit(p) + d);
+      return `<tr${p === 0.15 ? ' class="cur"' : ''}><td>${pct(p, 0)}</td><td>× ${OR.toFixed(2)}</td><td>${pct(q)}</td><td class="${q > p ? 'gain' : 'loss'}">${pts(q - p)}</td></tr>`;
+    }).join('');
+  }
+  function drawOR() {
+    $('orTab').querySelector('tbody').innerHTML = BETA.map((b, j) =>
+      `<tr><td>${LAB[j]}</td><td>${sgn(b)}</td><td>${Math.exp(b).toFixed(3)}</td><td>${j === 7 ? '1 (by definition)' : sgn(b / 0.09, 1) + ' years'}</td><td>${UNIT[j]}</td></tr>`).join('');
+  }
+
+  // ---------- simulation ----------
+  let SIM = null, FIT = null, SECURVE = [];
+  const cvC = $('coefPlot'), cvE = $('sePlot');
+  let LC = {}, LE = {};
+  function runSim() {
+    SIM = simulate(20000, S.seed);
+    SECURVE = NS.filter((n, i) => i % 2 === 0 || n === 20000 || n === 1000).map(n => ({ n, se: fitLogit(SIM, n).se[7] }));
+    refit();
+  }
+  function refit() {
+    const n = NS[S.nIdx]; FIT = fitLogit(SIM, n);
+    $('nOut').textContent = n.toLocaleString();
+    let ev = 0; for (let i = 0; i < n; i++) ev += SIM.y[i];
+    const avgP = sig(SIM.a0 + AVG.reduce((s, v, j) => s + v * BETA[j], 0));
+    $('simInfo').innerHTML = `Population: 20,000 simulated careers (draw ${S.seed}), true intercept ${sgn(SIM.a0, 3)}, ${pct(SIM.rate)} reach the top. ` +
+      `This fit uses the first <b>${n.toLocaleString()}</b> careers, ${ev.toLocaleString()} of them successes, and converged in ${FIT.iter} Newton steps. ` +
+      `A person with exactly average characteristics has p = ${pct(avgP)} in this simulation, below the 13.9% population rate, because the S-curve bends.`;
+    const names = ['Intercept', ...LAB], truth = [SIM.a0, ...BETA];
+    $('fitTab').querySelector('tbody').innerHTML = names.map((nm, j) => {
+      const est = FIT.w[j], se = FIT.se[j], cov = Math.abs(est - truth[j]) <= 1.96 * se;
+      return `<tr><td>${nm}</td><td class="pub">${sgn(truth[j], 3)}</td><td class="mod">${sgn(est, 3)}</td><td>${se.toFixed(3)}</td><td>${sgn(est / se, 1)}</td><td>${cov ? 'yes' : 'no'}</td></tr>`;
+    }).join('');
+    drawCoef(); drawSE();
+  }
+  function axisSetup(ctx) { ctx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--font-mono'); }
+  function drawCoef() {
+    const ctx = cvC.getContext('2d'), { W, H } = LC; ctx.clearRect(0, 0, W, H); axisSetup(ctx);
+    const narrow = W < 420, m = { l: narrow ? 96 : 140, r: 14, t: 10, b: 30 };
+    const lo = [], hi = [];
+    for (let j = 1; j < 9; j++) { lo.push(FIT.w[j] - 1.96 * FIT.se[j], BETA[j - 1]); hi.push(FIT.w[j] + 1.96 * FIT.se[j], BETA[j - 1]); }
+    let x0 = Math.min(-0.5, ...lo), x1 = Math.max(1.5, ...hi);
+    const st = (x1 - x0) > 3 ? 1 : 0.5; x0 = Math.floor(x0 / st) * st; x1 = Math.ceil(x1 / st) * st;
+    const px = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r), rowH = (H - m.t - m.b) / 8;
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let v = x0; v <= x1 + 1e-9; v += st) { ctx.beginPath(); ctx.moveTo(px(v), m.t); ctx.lineTo(px(v), H - m.b); ctx.stroke(); ctx.fillText(v < 0 ? '−' + Math.abs(v) : String(v), px(v), H - m.b + 5); }
+    ctx.strokeStyle = C.muted; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(px(0), m.t); ctx.lineTo(px(0), H - m.b); ctx.stroke(); ctx.setLineDash([]);
+    const short = ['Male', 'Top metro', 'Top undergrad', 'Top MBA', 'Functions', 'Companies', 'Industries', 'Years'];
+    for (let j = 0; j < 8; j++) {
+      const y = m.t + rowH * (j + 0.5), est = FIT.w[j + 1], se = FIT.se[j + 1];
+      ctx.fillStyle = C.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.font = (narrow ? '12px ' : '13px ') + getComputedStyle(document.body).getPropertyValue('--font-body');
+      ctx.fillText(narrow ? short[j] : LAB[j], m.l - 8, y); axisSetup(ctx);
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px(est - 1.96 * se), y); ctx.lineTo(px(est + 1.96 * se), y); ctx.stroke();
+      ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(px(est), y, 4.5, 0, 7); ctx.fill();
+      ctx.strokeStyle = C.curve; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(px(BETA[j]), y - 9); ctx.lineTo(px(BETA[j]), y + 9); ctx.stroke();
+    }
+  }
+  function drawSE() {
+    const ctx = cvE.getContext('2d'), { W, H } = LE; ctx.clearRect(0, 0, W, H); axisSetup(ctx);
+    const m = { l: 48, r: 14, t: 12, b: 34 };
+    const lx0 = Math.log(400), lx1 = Math.log(25000);
+    const top = SECURVE.length ? Math.max(...SECURVE.map(s => s.se)) : 0.2, y1 = Math.ceil(top * 1.15 * 20) / 20;
+    const px = n => m.l + (Math.log(n) - lx0) / (lx1 - lx0) * (W - m.l - m.r), py = v => m.t + (1 - v / y1) * (H - m.t - m.b);
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.fillStyle = C.muted;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const ys = y1 > 0.2 ? 0.1 : 0.05;
+    for (let v = 0; v <= y1 + 1e-9; v += ys) { ctx.beginPath(); ctx.moveTo(m.l, py(v)); ctx.lineTo(W - m.r, py(v)); ctx.stroke(); ctx.fillText(v.toFixed(2), m.l - 6, py(v)); }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const n of [500, 1000, 2000, 5000, 10000, 20000]) { ctx.beginPath(); ctx.moveTo(px(n), m.t); ctx.lineTo(px(n), H - m.b); ctx.stroke(); ctx.fillText(n >= 1000 ? n / 1000 + 'k' : String(n), px(n), H - m.b + 5); }
+    ctx.fillText('careers n (log scale)', (m.l + W - m.r) / 2, H - 15);
+    const ref = SECURVE.find(s => s.n === 20000); const c = ref.se * Math.sqrt(20000);
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath();
+    for (let i = 0; i <= 100; i++) { const n = Math.exp(lx0 + (lx1 - lx0) * i / 100); const X = px(n), Y = py(c / Math.sqrt(n)); if (Y < m.t) continue; ctx.lineTo(X, Y); }
+    ctx.stroke(); ctx.setLineDash([]);
+    // |beta_ind| reference: 0.22/1.96 is the SE where the 95% CI just reaches zero
+    const thr = 0.22 / 1.96;
+    if (thr < y1) { ctx.strokeStyle = C.muted; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(m.l, py(thr)); ctx.lineTo(W - m.r, py(thr)); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('SE = 0.22 / 1.96', W - m.r - 2, py(thr) - 2); }
+    for (const s of SECURVE) { ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(px(s.n), py(s.se), 4.5, 0, 7); ctx.fill(); }
+    const n = NS[S.nIdx]; ctx.strokeStyle = C.ball; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(px(n), py(FIT.se[7]), 7.5, 0, 7); ctx.stroke();
+  }
+
+  // ---------- main render ----------
+  function syncControls() {
+    const segs = [['g', 0], ['m', 1], ['u', 2], ['b', 3]];
+    for (const [p, j] of segs) { $(p + '0').setAttribute('aria-pressed', S.x[j] === 0); $(p + '1').setAttribute('aria-pressed', S.x[j] === 1); }
+    for (const [id, j] of [['func', 4], ['comp', 5], ['ind', 6], ['years', 7]]) { $(id).value = S.x[j]; $(id + 'Out').textContent = S.x[j]; }
+    let which = null;
+    for (const k of ['A', 'B', 'C']) { const on = same(S.x, PROF[k].x); $('pre' + k).setAttribute('aria-pressed', on); if (on) which = k; }
+    $('preNote').textContent = which ? PROF[which].note : 'Custom profile. Press a person to load a published case.';
+    $('anchor').value = S.anchor; $('chg').value = S.chg;
+  }
+  function render() {
+    syncControls();
+    const e = etaOf(S.x, anc()), p = sig(e);
+    $('pBig').textContent = pct(p);
+    $('pSub').innerHTML = `odds ${oddsText(p)} · log-odds η = ${sgn(e)}<br>about <b>1 in ${(1 / p).toFixed(1)}</b> people with this profile`;
+    drawIcons(p); drawWaterfall(); drawMoves(); drawABC(); drawS();
+  }
+
+  // ---------- wiring ----------
+  const segs = [['g', 0], ['m', 1], ['u', 2], ['b', 3]];
+  for (const [p, j] of segs) for (const v of [0, 1]) $(p + v).addEventListener('click', () => { S.x[j] = v; render(); });
+  for (const [id, j] of [['func', 4], ['comp', 5], ['ind', 6], ['years', 7]]) $(id).addEventListener('input', e => { S.x[j] = +e.target.value; render(); });
+  for (const k of ['A', 'B', 'C']) $('pre' + k).addEventListener('click', () => { S.x = PROF[k].x.slice(); render(); });
+  $('anchor').addEventListener('change', e => { S.anchor = e.target.value; render(); });
+  $('chg').addEventListener('change', e => { S.chg = e.target.value; drawS(); });
+  $('nSim').addEventListener('input', e => { S.nIdx = +e.target.value; refit(); });
+  $('redraw').addEventListener('click', () => { S.seed++; runSim(); });
+  const smooth = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+  $('demoB').addEventListener('click', () => { S.x = PROF.B.x.slice(); S.anchor = 'B'; render(); $('movesH').scrollIntoView({ behavior: smooth(), block: 'start' }); });
+  $('demoMBA').addEventListener('click', () => { S.x = PROF.A.x.slice(); S.anchor = 'B'; S.chg = 'mba'; render(); $('curveH').scrollIntoView({ behavior: smooth(), block: 'start' }); });
+
+  const seenW = new Map();
+  function resizeAll(force) {
+    const ch = [cvS, cvC, cvE].some(cv => seenW.get(cv) !== cv.clientWidth);
+    if (!ch && !force) return;
+    for (const cv of [cvS, cvC, cvE]) seenW.set(cv, cv.clientWidth);
+    LS = sizeCanvas(cvS, 0.62, 220, 360);
+    LC = sizeCanvas(cvC, 0.7, 260, 330);
+    LE = sizeCanvas(cvE, 0.7, 240, 330);
+    if (FIT) { drawCoef(); drawSE(); }
+    drawS();
+  }
+  let lastW = window.innerWidth;
+  readColors(); drawOR(); resizeAll(true); runSim(); render();
+  const recolor = () => { readColors(); drawS(); drawCoef(); drawSE(); };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  for (const cv of [cvS, cvC, cvE]) new ResizeObserver(() => { resizeAll(); if ((window.innerWidth < 640) !== (lastW < 640)) { lastW = window.innerWidth; drawWaterfall(); } }).observe(cv.parentElement);
+})();
+</script>
+
+</body></html>
