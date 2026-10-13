@@ -1,0 +1,13 @@
+# Books
+
+Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its LaTeX source and code are on GitHub.
+
+## [On Hilbert's 6th Problem: Probability, Mechanics and Bayesian Computation](https://vsokolov.org/books/hilbert6/)
+
+[![On Hilbert's 6th Problem: Probability, Mechanics and Bayesian Computation](https://vsokolov.org/books/hilbert6/cover.jpg)](https://vsokolov.org/books/hilbert6/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+Hilbert's sixth problem from Kolmogorov's axioms and the Boltzmann equation to the Navier Stokes equations, and the inverse passage: Bayesian estimation on the solution manifold of a differential equation, where the adjoint evolution of the data is a sufficient statistic for linear equations.
+
+[PDF](https://github.com/VadimSokolov/hilbert6/releases/download/v1.0.0/hilbert6.pdf), [source on GitHub](https://github.com/VadimSokolov/hilbert6), [DOI](https://doi.org/10.5281/zenodo.23327515)
+
+Each book page lists the results of the book with their numbers, how to cite them, and a summary of every chapter. The file [llms.txt](https://vsokolov.org/llms.txt) lists everything for agents.
