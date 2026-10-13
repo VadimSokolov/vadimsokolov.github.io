@@ -1,6 +1,7 @@
 import os, glob, shutil
 out = os.environ.get('QUARTO_PROJECT_OUTPUT_DIR', 'docs')
-for f in glob.glob('books/_page.md') + glob.glob('books/*/_page.md'):
-    dest = os.path.join(out, os.path.dirname(f))
-    if os.path.isdir(dest):
-        shutil.copyfile(f, os.path.join(dest, 'index.html.md'))
+for src, page in (('_page.md', 'index'), ('_results.md', 'results')):
+    for f in glob.glob('books/' + src) + glob.glob('books/*/' + src):
+        dest = os.path.join(out, os.path.dirname(f))
+        if os.path.isfile(os.path.join(dest, page + '.html')):
+            shutil.copyfile(f, os.path.join(dest, page + '.html.md'))

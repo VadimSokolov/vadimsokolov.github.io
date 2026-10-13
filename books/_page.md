@@ -10,4 +10,4 @@ Hilbert's sixth problem from Kolmogorov's axioms and the Boltzmann equation to t
 
 [PDF](https://github.com/VadimSokolov/hilbert6/releases/download/v1.0.0/hilbert6.pdf), [paperback on amazon.com](https://www.amazon.com/dp/B0HMV1WFRD), [source on GitHub](https://github.com/VadimSokolov/hilbert6), [DOI](https://doi.org/10.5281/zenodo.23327515)
 
-Each book page lists the results of the book with their numbers and how to cite them.
+Each book has a page with its description, how to cite it and its main results, and a page with all its results chapter by chapter with their numbers.
