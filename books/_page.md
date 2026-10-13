@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
+
+[![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an optimizer and a Diophantine problem; proofs that fixed horizon monotone Lyapunov certificates and finite residue sieves cannot settle it and the cycle inequality cannot exclude all cycles; a momentum method from log2 3.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.0.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.23331100](https://zenodo.org/badge/DOI/10.5281/zenodo.23331100.svg)](https://doi.org/10.5281/zenodo.23331100)
+
 ## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
 
 [![Clinical Trials in Practice: From Foundations to AI Agents](https://vsokolov.org/books/clinical_trials_in_practice/cover.jpg)](https://vsokolov.org/books/clinical_trials_in_practice/) Alexandra Sokolova and Vadim Sokolov. 2026. Edition 1.
