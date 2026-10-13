@@ -6,13 +6,16 @@ Run it from the root of the site repository:
   python3 books/site.py refresh BOOK [--ref REF] [--check] [--force] [--commit] [--push]
   python3 books/site.py check
 
-BOOK is the name of the book's repository on GitHub (VadimSokolov/BOOK, which is also the folder of its pages on the site)
-or OWNER/BOOK. REF is a branch, a tag or a commit of that repository, main by default. "add" is another name of "refresh".
+BOOK is the name of the book's repository on GitHub (VadimSokolov/BOOK) or OWNER/BOOK. The folder of its pages on the site is
+the slug of its book.json, which can differ from the repository name (gbc-book has the slug gbc_book). REF is a branch, a tag
+or a commit of that repository, main by default. "add" is another name of "refresh".
 
 refresh does all of this for one book and stops at the first problem; a failed run puts every file back as it was.
   1. It fetches site/ of the book repository at REF (book.json, the page, the head, llms.txt, and the results page and its
      head when the book has results) and the cover, and checks them: no dash, local path, e-mail address or ISBN, and every
-     results link has its anchor. Everything about the book comes from its repository, nothing is written here by hand.
+     results link has its anchor. It also checks that the release named in book.json exists (the default branch can hold the
+     work toward the next version) and that the PDF, the DOI and its badge, the online edition and the repository answer.
+     Everything about the book comes from its repository, nothing is written here by hand.
   2. It writes books/BOOK/index.qmd and results.qmd from books/_templates/ (the page of the Hilbert book is the template)
      and keeps the downloaded files as the copies that are not committed (_page.md, head.html, _results.md,
      results-head.html, cover.*; books/.gitignore lists them).
@@ -63,6 +66,8 @@ AMAZON_BADGE = 'available-at-amazon.png'
 SHARED = ('docs/search.json', 'docs/sitemap.xml')   # every render of any page writes these two
 COPIES = (('page', '_page.md'), ('head', 'head.html'), ('results', '_results.md'), ('results_head', 'results-head.html'))
 SLUG = re.compile(r'[a-z0-9][a-z0-9_-]*')
+GITHUB_LINK = re.compile(r'\]\(https://github\.com/([A-Za-z0-9][A-Za-z0-9-]*)/([A-Za-z0-9][A-Za-z0-9_.-]*)'
+                         r'[^)\s]*\s+"Source on GitHub"\)')
 DASH = re.compile('[' + chr(0x2013) + chr(0x2014) + ']')   # an en dash or an em dash
 EMAIL = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+')
 PRIVATE = re.compile(r'/Users/|/home/|/scratch/|/tmp/|ghp_[A-Za-z0-9]|github_pat_|AKIA[0-9A-Z]{8}')
@@ -150,6 +155,47 @@ def http_get(url, limit=40_000_000, nocache=False):
     return data
 
 
+def probe(url):
+    """The status of a request for the first byte of url, or the reason it failed; a few tries for a slow server."""
+    last = ''
+    for _ in range(3):
+        req = urllib.request.Request(url, headers={'User-Agent': 'vsokolov.org site script', 'Range': 'bytes=0-0'})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                r.read(1)
+                return r.status
+        except urllib.error.HTTPError as e:
+            if e.code < 500:
+                return e.code
+            last = e.code
+        except (urllib.error.URLError, OSError) as e:
+            last = str(e)
+        time.sleep(2)
+    return last
+
+
+def check_release(owner, repo, book):
+    """The release that the pages link must exist, because the default branch can hold the work toward the next version, and the
+    addresses that a reader follows (the PDF, the DOI and its badge, the online edition, the repository) must answer."""
+    out = []
+    tag = (book.get('release') or {}).get('tag')
+    if not tag:
+        out.append('book.json names no release tag')
+    else:
+        p = subprocess.run(['git', 'ls-remote', f'https://github.com/{owner}/{repo}.git', f'refs/tags/{tag}'],
+                           capture_output=True, text=True, timeout=120)
+        if p.returncode or not p.stdout.strip():
+            out.append(f'book.json names the release {tag}, which {owner}/{repo} does not have: the default branch holds work '
+                       'toward the next version, so use --ref with the latest release tag, or wait for the release')
+    links = book.get('links') or {}
+    for key in ('pdf', 'doi', 'doi_badge', 'html', 'repository'):
+        if links.get(key):
+            code = probe(links[key])
+            if code not in (200, 206):
+                out.append(f'links.{key} ({links[key]}) answers {code}')
+    return out
+
+
 def parse_book(arg):
     owner, _, repo = arg.rpartition('/')
     owner = owner or OWNER
@@ -192,16 +238,13 @@ def full_title(book):
     return f"{book['title']}: {book['subtitle']}" if book.get('subtitle') else book['title']
 
 
-def fetch_bundle(owner, repo, ref):
+def fetch_bundle(owner, repo, ref, probes=True):
     sha = resolve(owner, repo, ref)
     raw = f'https://raw.githubusercontent.com/{owner}/{repo}/{sha}/'
     try:
         book = json.loads(http_get(raw + 'site/book.json').decode('utf-8'))
     except ValueError as e:
         raise Fail(f'site/book.json of {owner}/{repo} is not JSON: {e}')
-    if book.get('slug') != repo:
-        raise Fail(f"the slug {book.get('slug')!r} of book.json is not the name of the repository {repo!r}: the folder of the "
-                   'pages on the site and the repository have the same name')
     bundle = book.get('bundle') or {'page': 'site/index.md', 'head': 'site/head.html', 'llms': 'site/llms.txt'}
     files = {}
     for key, name in COPIES:
@@ -230,6 +273,8 @@ def fetch_bundle(owner, repo, ref):
     if not (cover[:3] == b'\xff\xd8\xff' or cover[:8] == b'\x89PNG\r\n\x1a\n'):
         raise Fail(f'{name} is neither a JPEG nor a PNG file')
     problems = check_bundle(book, {n: d.decode('utf-8') for n, d in files.items()}, llms)
+    if probes:
+        problems += check_release(owner, repo, book)
     if problems:
         raise Fail(f'{owner}/{repo} at {sha[:7]} cannot go on the site:\n  ' + '\n  '.join(problems))
     return Bundle(owner, repo, sha, book, files, llms, name, cover)
@@ -493,6 +538,17 @@ def prune_search(slug, txn):
         say(f'  removed {dropped} search entr{"y" if dropped == 1 else "ies"} of anchors that are gone')
 
 
+def repo_of(slug):
+    """The repository that a listed book comes from: the GitHub link of its entry on the list page (the repository can have
+    another name than the slug), or OWNER/slug when the entry has none."""
+    try:
+        entries = parse_list(get_text(os.path.join(BOOKS, '_page.md')))[1]
+    except Fail:
+        entries = {}
+    m = GITHUB_LINK.search(' '.join(entries.get(slug, [])))
+    return (m.group(1), m.group(2)) if m else (OWNER, slug)
+
+
 def ensure_copies(slug):
     """Quarto reads the include files of every book at every render, so a book whose copies are missing is fetched first."""
     for d in sorted(glob.glob(os.path.join(BOOKS, '*', 'index.qmd'))):
@@ -507,7 +563,7 @@ def ensure_copies(slug):
         if all(os.path.isfile(os.path.join(folder, n)) for n in needed):
             continue
         say(f'  fetching the copies of {other}, which the render needs')
-        b = fetch_bundle(OWNER, other, 'main')
+        b = fetch_bundle(*repo_of(other), 'main', probes=False)
         for name, data in list(b.files.items()) + [(b.cover_name, b.cover)]:
             with open(os.path.join(folder, name), 'wb') as f:
                 f.write(data)
