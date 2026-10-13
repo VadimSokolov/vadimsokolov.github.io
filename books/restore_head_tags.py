@@ -4,17 +4,20 @@ Quarto sets og:title, og:description and the twitter title and description tags 
 page from the page's own title and description, which are not the book's. head.html comes from
 the book repository and is the source of truth, so this copies its tags into the rendered page.
 Run by Quarto after every render (post-render in _quarto.yml). It changes nothing when they match.
+It only touches the pages that the render wrote (QUARTO_PROJECT_OUTPUT_FILES), so that rendering
+one book leaves the pages of the other books alone.
 """
 import glob, os, re
 
 out = os.environ.get('QUARTO_PROJECT_OUTPUT_DIR', 'docs')
+done = {os.path.realpath(f) for f in os.environ.get('QUARTO_PROJECT_OUTPUT_FILES', '').split('\n') if f.strip()}
 keys = ('og:title', 'og:description', 'og:site_name', 'twitter:title', 'twitter:description')
 tag = re.compile(r'<meta\s[^>]*?(?:property|name)="(%s)"[^>]*>' % '|'.join(re.escape(k) for k in keys))
 
 pairs = [(h, 'index.html') for h in glob.glob('books/*/head.html')] + [(h, 'results.html') for h in glob.glob('books/*/results-head.html')]
 for head, name in sorted(pairs):
     page = os.path.join(out, os.path.dirname(head), name)
-    if not os.path.isfile(page):
+    if not os.path.isfile(page) or (done and os.path.realpath(page) not in done):
         continue
     want = {m.group(1): m.group(0) for m in tag.finditer(open(head, encoding='utf-8').read())}
     html = open(page, encoding='utf-8').read()
