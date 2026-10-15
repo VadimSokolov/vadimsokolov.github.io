@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/) <small>Thorin Measures, Pólya Densities and Hitting Times</small>
+
+[![Computing the Riemann Hypothesis: Thorin Measures, Pólya Densities and Hitting Times](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 1.
+
+Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, the reciprocal zeta function and Lee Yang theory.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.1.0/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23400373](https://zenodo.org/badge/DOI/10.5281/zenodo.23400373.svg)](https://doi.org/10.5281/zenodo.23400373) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
+
 ## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
 
 [![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
