@@ -28,9 +28,12 @@ refresh does all of this for one book and stops at the first problem; a failed r
   --check   only reports what would change (exit status 1 if anything would) and writes nothing.
   --force   renders the pages even when nothing differs.
   --commit  then commits exactly the files the run changed, with a pathspec, so that other uncommitted work is left alone.
-            Every render writes docs/search.json and docs/sitemap.xml, so when they held other changes before the run they
-            are left out and named, and are yours to commit. If any other file of the run held other changes before it, the
-            run commits nothing, prints the commands for the commit and stops: a commit of the rest would be inconsistent.
+            Every render writes docs/search.json and docs/sitemap.xml. When they held other changes before the run, the run
+            commits only the entries of this book and of the list page into the committed text of each: the commit is made in
+            a temporary index, so the other work stays in the working copy, uncommitted, and the index is not touched. --check
+            names such a file when the commit lacks entries of the book, so a run also repairs what an earlier run left out.
+            If any other file of the run held other changes before it, the run commits nothing, prints the commands for the
+            commit and stops: a commit of the rest would be inconsistent.
   --push    also pushes (HEAD must be origin/main and the new commit the only one to push), waits for the GitHub Pages build
             and compares the live files with docs/. An agent uses --push only with the user's yes.
 
@@ -538,6 +541,66 @@ def prune_search(slug, txn):
         say(f'  removed {dropped} search entr{"y" if dropped == 1 else "ies"} of anchors that are gone')
 
 
+SM_BLOCK = re.compile(r'[ \t]*<url>.*?</url>[ \t]*\n', re.S)
+SM_LOC = re.compile(r'<loc>([^<]+)</loc>')
+SM_LASTMOD = re.compile(r'<lastmod>([^<]+)</lastmod>')
+
+
+def owned_page(page, slug):
+    """The pages that a refresh of a book brings up to date in the shared files: its own, and the list page, whose text names it."""
+    return page.startswith(f'books/{slug}/') or page == 'books/index.html'
+
+
+def merge_sitemap(base, work, slug):
+    """`base`, the committed docs/sitemap.xml, with the URLs of the book as `work`, the file as it is now, has them: a URL that is
+    there is replaced where it stands, a new one goes to the end (Quarto adds a page at the end), one that `work` no longer has
+    goes; a page is never taken back to an older lastmod than the committed one. Every other URL stays as committed, so the
+    changes of other work in `work` are not taken along."""
+    def loc(block):
+        m = SM_LOC.search(block)
+        return m.group(1) if m else ''
+
+    def mine(url):
+        return url.startswith(SITE + '/') and owned_page(url[len(SITE) + 1:], slug)
+    new = {loc(m.group(0)): m.group(0) for m in SM_BLOCK.finditer(work) if mine(loc(m.group(0)))}
+    seen = set()
+
+    def swap(m):
+        url = loc(m.group(0))
+        if not mine(url):
+            return m.group(0)
+        seen.add(url)
+        mine_now = new.get(url, '')
+        old, cur = SM_LASTMOD.search(m.group(0)), SM_LASTMOD.search(mine_now)
+        return m.group(0) if old and cur and old.group(1) > cur.group(1) else mine_now
+    out = SM_BLOCK.sub(swap, base)
+    added = ''.join(b for url, b in new.items() if url not in seen)
+    return out.replace('</urlset>', added + '</urlset>', 1) if added else out
+
+
+def merge_search(base, work, slug):
+    """The same for docs/search.json: the entries of the pages of the book as `work` has them, where the committed ones stand
+    (the entries of a new page go to the end), and the file written the way Quarto writes it."""
+    def page(e):
+        return e['href'].lstrip('/').partition('#')[0]
+    new = {}
+    for e in json.loads(work):
+        if owned_page(page(e), slug):
+            new.setdefault(page(e), []).append(e)
+    out, seen = [], set()
+    for e in json.loads(base):
+        p = page(e)
+        if not owned_page(p, slug):
+            out.append(e)
+        elif p not in seen:
+            seen.add(p)
+            out.extend(new.get(p, []))
+    for p, es in new.items():
+        if p not in seen:
+            out.extend(es)
+    return json.dumps(out, indent=2, ensure_ascii=False) + ('\n' if base.endswith('\n') else '')
+
+
 def repo_of(slug):
     """The repository that a listed book comes from: the GitHub link of its entry on the list page (the repository can have
     another name than the slug), or OWNER/slug when the entry has none."""
@@ -643,8 +706,10 @@ def guard_push():
         raise Fail('HEAD is not origin/main: run git pull first, or push what is unpushed before you refresh a book')
 
 
-def subject(b, new_book):
+def subject(b, new_book, entries=False):
     title = b.book['title']
+    if entries:
+        return f'Add the entries of {title} to the sitemap and the search index'
     return f'Add {title} to the books section' if new_book else f'Refresh the pages of {title} from its repository'
 
 
@@ -661,7 +726,59 @@ def commit_commands(b, files, new_book):
     say(f'    git commit -m "{subject(b, new_book)}" -- {" ".join(files)}')
 
 
+def head_text(path):
+    """The text of a file in HEAD, None when HEAD does not have it."""
+    p = subprocess.run(['git', 'show', f'HEAD:{path}'], cwd=ROOT, capture_output=True)
+    return p.stdout.decode('utf-8') if p.returncode == 0 else None
+
+
+def own_entries(slug, held):
+    """For each of the shared files in `held` (they hold other uncommitted work): its committed text with the entries of the book
+    put in, when that is a change. A commit may take that much of such a file and no more."""
+    out = {}
+    for path in held:
+        base, work = head_text(path), get_text(os.path.join(ROOT, path))
+        if base is None or work is None:
+            continue
+        try:
+            merged = (merge_sitemap if path.endswith('.xml') else merge_search)(base, work, slug)
+        except (ValueError, KeyError, TypeError) as e:
+            raise Fail(f'{path} is not in the form that the script expects ({e}); nothing is committed of it')
+        if merged != base:
+            out[path] = merged
+    return out
+
+
+def commit_tree(message, files, blobs):
+    """One commit with `files` as they are in the working copy and `blobs` (path: text) as given, made in a temporary index, so
+    that the index and the working copy of other work stay as they are. Afterwards the index entries of these paths are set to
+    the new HEAD (git reset leaves the working copy alone): a file that holds more than the commit shows as modified again."""
+    head = git('rev-parse', 'HEAD').strip()
+    with tempfile.TemporaryDirectory() as tmp:
+        env = dict(os.environ, GIT_INDEX_FILE=os.path.join(tmp, 'index'))
+
+        def g(*args, data=None):
+            p = subprocess.run(['git', *args], cwd=ROOT, env=env, capture_output=True, input=data)
+            if p.returncode:
+                raise Fail('git ' + ' '.join(args) + ': ' + (p.stderr or p.stdout).decode('utf-8', 'replace').strip())
+            return p.stdout.decode('utf-8')
+        g('read-tree', head)
+        if files:
+            g('add', '--', *files)
+        for path, text in blobs.items():
+            mode = (g('ls-tree', head, '--', path).split() or ['100644'])[0]
+            sha = g('hash-object', '-w', '--stdin', data=text.encode('utf-8')).strip()
+            g('update-index', '--add', '--cacheinfo', f'{mode},{sha},{path}')
+        g('commit', '-q', '-F', message)
+    r = subprocess.run(['git', 'reset', '-q', '--', *files, *blobs], cwd=ROOT, capture_output=True, text=True)
+    if r.returncode:   # the commit is made; only the index entries of these paths still show the old state
+        say(f'  note: the commit is made, but git reset failed ({(r.stderr or r.stdout).strip()}); run: '
+            f'git reset -q -- {" ".join([*files, *blobs])}')
+
+
 def commit(b, written, dirty_before, new_book):
+    """Commit what the run changed. Returns the files committed and, for a shared file that holds other work, the text that was
+    committed of it (the push compares the live file with that, not with the working copy)."""
     files = tracked_files(written)
     held = [c for c in files if c in dirty_before]
     blocking = [c for c in held if c not in SHARED]
@@ -670,22 +787,34 @@ def commit(b, written, dirty_before, new_book):
         raise Fail(f'nothing committed: {", ".join(blocking)} held other uncommitted changes before this run and this run '
                    'changed them too, so a commit of the rest would leave the site inconsistent. Commit or discard those '
                    'changes first, then commit the files of this run with the commands above.')
+    own = own_entries(b.slug, [c for c in SHARED if c in dirty_before])
     for c in held:
-        say(f'  not committed: {c} held other uncommitted changes before this run, so it is yours to commit')
+        if c not in own:
+            say(f'  not committed: {c} held other uncommitted changes before this run, so it is yours to commit')
     files = [c for c in files if c not in held]
-    if not files:
+    if not files and not own:
         say('  nothing to commit')
-        return []
-    first = subject(b, new_book)
+        return [], {}
+    first = subject(b, new_book, entries=not files)
+    body = f'The pages follow {b.owner}/{b.repo} at {b.sha[:7]}.\n'
+    if own:
+        body += (f'\n{" and ".join(sorted(own))}: only the entries of {b.slug} and of the list page; the files hold other '
+                 'uncommitted work, which this commit leaves alone.\n')
     with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False, encoding='utf-8') as f:
-        f.write(f'{first}\n\nThe pages follow {b.owner}/{b.repo} at {b.sha[:7]}.\n')
+        f.write(f'{first}\n\n{body}')
     try:
-        git('add', '--', *files)
-        git('commit', '-q', '-F', f.name, '--', *files)
+        if own:
+            commit_tree(f.name, files, own)
+        else:
+            git('add', '--', *files)
+            git('commit', '-q', '-F', f.name, '--', *files)
     finally:
         os.remove(f.name)
-    say(f'  committed {len(files)} files as {git("rev-parse", "--short", "HEAD").strip()}: {first}')
-    return files
+    for c in sorted(own):
+        say(f'  {c} holds other uncommitted work: committed only the entries of the book, the rest stays in your working copy')
+    done = files + sorted(own)
+    say(f'  committed {len(done)} files as {git("rev-parse", "--short", "HEAD").strip()}: {first}')
+    return done, own
 
 
 def pages_latest():
@@ -698,7 +827,7 @@ def pages_latest():
     return json.loads(http_get(f'https://api.github.com/repos/{SITE_REPO}/pages/builds/latest'))
 
 
-def push(files):
+def push(files, expect=None):
     sha = git('rev-parse', 'HEAD').strip()
     git('push', 'origin', 'main')
     say(f'  pushed {sha[:7]}; waiting for the GitHub Pages build')
@@ -714,7 +843,7 @@ def push(files):
         time.sleep(15)
     bad = []
     for f in (f for f in files if f.startswith('docs/')):
-        want = get_bytes(os.path.join(ROOT, f))
+        want = expect[f].encode('utf-8') if expect and f in expect else get_bytes(os.path.join(ROOT, f))
         for attempt in range(6):
             if http_get(f'{SITE}/{f[len("docs/"):]}?v={int(time.time())}', nocache=True) == want:
                 break
@@ -759,20 +888,32 @@ def refresh(args):
     stale = stale_docs(b)
     todo = bool(differing or stale or args.force)
     new_book = not os.path.isfile(os.path.join(BOOKS, b.slug, 'index.qmd'))
+    dirty_now = dirty()
+    pending = own_entries(b.slug, [c for c in SHARED if c in dirty_now])   # entries that HEAD lacks in files of other work
     if args.check:
         for p in sorted(differing):
             say('  would change', rel(p))
         for s in stale:
             say('  would render again:', s)
-        say('  would render the pages' if todo else '  up to date')
-        return 1 if todo else 0
+        for p in sorted(pending):
+            say('  would change', p, '(only the entries of the book: the file holds other uncommitted work)')
+        say('  would render the pages' if todo else '  would commit the entries of the book' if pending else '  up to date')
+        return 1 if todo or pending else 0
     if not b.has_results and os.path.isfile(os.path.join(BOOKS, b.slug, 'results.qmd')):
         say(f'  WARNING: the book has no results page any more. Remove by hand: books/{b.slug}/results.qmd, _results.md and '
             f'results-head.html, and docs/books/{b.slug}/results.html and results.html.md')
-    if not todo:
+    if not todo and not pending:
         say('  already up to date')
         return 0
     before = dirty()
+    if not todo:   # nothing to render: only the entries of the book that the files of other work keep from HEAD are left
+        if not args.commit:
+            say(f'  not committed: {", ".join(sorted(pending))} lack entries of the book that the working copy has (run with --commit)')
+            return 0
+        committed, expect = commit(b, [], before, False)
+        if args.push and committed:
+            push(committed, expect)
+        return 0
     txn = Txn()
     try:
         for p, d in differing.items():
@@ -782,24 +923,29 @@ def refresh(args):
         txn.restore()
         raise
     written = txn.changed()
-    if not written:
+    if not written and not pending:
         say('  rendered again, nothing changed')
         return 0
-    say(f'  changed {len(written)} files:')
+    if written:
+        say(f'  changed {len(written)} files:')
     for p in written:
         say(f'    {rel(p)}')
     extra = sorted(p for p in dirty() - before if not allowed(p, b.slug))
     if extra:
         say('  WARNING: these other files changed too, look at them with git diff: ' + ', '.join(extra))
     if args.commit:
-        committed = commit(b, written, before, new_book)
+        committed, expect = commit(b, written, before, new_book)
         if args.push and committed:
-            push(committed)
+            push(committed, expect)
     else:
         tracked = tracked_files(written)
         if tracked:
             say('  not committed.')
             commit_commands(b, tracked, new_book)
+            held = [c for c in SHARED if c in before and (c in tracked or c in pending)]
+            if held:
+                say(f'  {", ".join(held)} hold other uncommitted work, which the commands above would take along: '
+                    '--commit commits only the entries of the book')
         else:
             say('  nothing to commit: only the copies that are not committed changed')
     return 0
