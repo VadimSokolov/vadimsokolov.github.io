@@ -1,0 +1,1264 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Benter Betting Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: six numbered cards, each a plot area with a 340px control rail (one column under 900px): market calibration, alpha correction, full conditional logit, Kelly growth, one-race Kelly allocation, held-out backtest; then lesson notes and class exercises. Data comes from the sibling benter-data.js. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 76ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 84ch; }
+.src a { color: var(--accent); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.card > h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.card > .intro { margin: 0; max-width: 92ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.colstack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.board canvas { display: block; width: 100%; touch-action: pan-y; }
+.board h3 { font-family: var(--font-display); font-size: 16px; margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.dot { width: 10px; border-radius: 50%; }
+.sw.line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.dash { height: 0; border-top: 2px dashed var(--muted); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+.tip b { font-family: var(--font-display); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 8px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:disabled { opacity: .5; cursor: default; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 7px 4px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 3px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+select, input[type=number] { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0; max-width: 100%; }
+input[type=number] { font-family: var(--font-mono); width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.mini { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+.mini th, .mini td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.mini th:first-child, .mini td:first-child { text-align: left; white-space: normal; padding-left: 0; }
+.mini thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.mini td { font-family: var(--font-mono); }
+.mini td:first-child { font-family: var(--font-body); }
+.mini tr:last-child td { border-bottom: 0; }
+.mini .pub { color: var(--curve); } .mini .mod { color: var(--accent); } .mini .ful { color: var(--fit); }
+.mini .pos { color: var(--fit); font-weight: 600; } .mini .neg { color: var(--muted); }
+.mini tr.hl td { background: var(--board); }
+#simTab td:first-child { white-space: nowrap; }
+.scroll { overflow-x: auto; max-width: 100%; }
+.big { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; color: var(--accent); }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; font-size: 13.5px; }
+.kv span:nth-child(even) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.callout { background: var(--board); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.callout.warn { border-left-color: var(--ball); }
+.callout p { margin: 0; } .callout p + p { margin-top: 6px; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula + .formula { margin-top: 6px; }
+.chip { display: inline-block; font-family: var(--font-mono); font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+.err { color: var(--curve); font-weight: 700; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note ul { margin: 0 0 8px; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Betting markets</span>
+    <h1>Benter Betting Lab</h1>
+    <p class="lead">Bill Benter turned Hong Kong win odds into probabilities, corrected the crowd's biases with a conditional logit model, and sized bets with the Kelly criterion. This lab reruns each step on 73,722 horses in 5,885 races: check how well the odds forecast, fit the correction yourself, size bets, and test the strategy on races the model has not seen.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on the case study “Benter’s Betting Strategy” (V. Sokolov), which reproduces Benter’s computer handicapping paper as annotated by <a href="https://actamachina.com/posts/annotated-benter-paper">Acta Machina</a>; see Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/04-dec.html">Chapter 4</a> (Kelly criterion). Data: Hong Kong Jockey Club races 1997–2005 (<a href="https://www.kaggle.com/datasets/gdaley/hkracing">Kaggle gdaley/hkracing</a>).</p>
+  </header>
+
+  <p class="callout warn" id="loadErr" hidden>The race data file (benter-data.js) did not load, so the charts cannot be drawn. It must sit next to this page.</p>
+
+  <!-- 1 -->
+  <section class="card" aria-labelledby="h1s">
+    <span class="eyebrow">1 · The market as a forecaster</span>
+    <h2 id="h1s">Odds are forecasts. Are they calibrated?</h2>
+    <p class="intro">Each horse's win odds become an implied probability. The case study uses p = 1/(odds + 1), normalised so the field sums to 1. Then horses are grouped by that probability, and each group's actual win rate is compared with the forecast. Points on the 45° line mean the crowd is calibrated.</p>
+    <div class="grid">
+      <div class="board">
+        <h3 id="calTitle">Calibration: 20 equal-sized groups of horses</h3>
+        <canvas id="cvCal" role="img" aria-label="Calibration plot of actual win rate against implied probability"></canvas>
+        <div class="tip" hidden></div>
+        <div class="legend" id="calLegend">
+          <span><i class="sw dot"></i>Actual win rate (±1.96 SE)</span>
+          <span><i class="sw dash"></i>45° line: forecast = outcome</span>
+        </div>
+        <p class="hint" id="calNote"></p>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label" id="convL">Odds → probability</span>
+          <div class="seg" role="group" aria-labelledby="convL">
+            <button id="convFrac" aria-pressed="true">1/(O+1) case study</button>
+            <button id="convDec" aria-pressed="false">1/O dividend</button>
+          </div>
+          <p class="hint" id="convNote"></p>
+        </div>
+        <div class="group">
+          <span class="label" id="viewL">Group horses by</span>
+          <div class="seg" role="group" aria-labelledby="viewL">
+            <button id="viewBins" aria-pressed="true">Probability (20 bins)</button>
+            <button id="viewRank" aria-pressed="false">Betting rank</button>
+          </div>
+        </div>
+        <div class="group">
+          <span class="label">Try one price</span>
+          <div class="field"><label for="oddsIn">Quoted win odds O</label><input type="number" id="oddsIn" min="1" max="99" step="0.1" value="3.5"></div>
+          <div class="kv" id="oddsOut"></div>
+        </div>
+        <div class="group">
+          <span class="label">The track's cut</span>
+          <div class="kv" id="bookKV"></div>
+        </div>
+      </aside>
+    </div>
+    <div class="split">
+      <div class="colstack">
+        <span class="label">Favourite-longshot bias by venue (the favourite in every race)</span>
+        <div class="scroll"><table class="mini" id="venueTab">
+          <thead><tr><th>Venue</th><th>Races</th><th>Avg field</th><th>Fav wins</th><th>Implied</th><th>Bias</th></tr></thead><tbody></tbody>
+        </table></div>
+        <p class="hint">Case study: “favorites win approximately 4–5 percentage points more often than the public odds imply” at both tracks.</p>
+      </div>
+      <div class="colstack">
+        <span class="label">Calibration by betting rank (1 = favourite)</span>
+        <div class="scroll"><table class="mini" id="rankTab">
+          <thead><tr><th>Rank</th><th>Horses</th><th>Actual</th><th>Implied</th><th>Error</th></tr></thead><tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="card" aria-labelledby="h2s">
+    <span class="eyebrow">2 · Correcting the crowd</span>
+    <h2 id="h2s">One parameter, fitted by maximum likelihood</h2>
+    <p class="intro">Benter's public-only model raises every horse's log-odds to a power and renormalises within the race: c<sub>i</sub> ∝ exp(α · logit p<sub>i</sub>). With α = 1 nothing changes. With α &gt; 1 the gaps widen and probability moves from longshots to favourites. Drag α and watch the negative log-likelihood of the observed winners.</p>
+    <div class="grid">
+      <div class="colstack">
+        <div class="board">
+          <h3>Negative log-likelihood of the winners, relative to the best α</h3>
+          <canvas id="cvNll" role="img" aria-label="Negative log-likelihood as a function of alpha"></canvas>
+          <div class="tip" hidden></div>
+          <div class="legend">
+            <span><i class="sw line"></i>−log L(α) − min</span>
+            <span><i class="sw dot" style="background:var(--curve)"></i>MLE α̂</span>
+            <span><i class="sw dot" style="background:var(--ball)"></i>Your α</span>
+            <span><i class="sw dash"></i>1.92: edge of the 95% likelihood interval</span>
+          </div>
+        </div>
+        <div class="split">
+          <div class="board">
+            <h3 id="exTitle">Example race</h3>
+            <canvas id="cvEx" role="img" aria-label="Public and adjusted probabilities for each horse in the example race"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend">
+              <span><i class="sw" style="background:var(--curve)"></i>Public p</span>
+              <span><i class="sw"></i>Adjusted c at your α</span>
+            </div>
+          </div>
+          <div class="board">
+            <h3>Calibration before and after</h3>
+            <canvas id="cvCal2" role="img" aria-label="Calibration of public and adjusted probabilities"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend">
+              <span><i class="sw dot" style="background:var(--curve)"></i>Before (public)</span>
+              <span><i class="sw dot"></i>After (your α)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="alpha">α, weight on public log-odds</label><output id="alphaOut" for="alpha">1.000</output></div>
+            <input type="range" id="alpha" min="0.75" max="1.4" step="0.005" value="1.06"></div>
+          <div class="btns">
+            <button id="alphaMle" class="primary">Set α to the MLE</button>
+            <button id="alphaOne">α = 1 (no change)</button>
+            <button id="exNew" class="wide">Show another race</button>
+          </div>
+        </div>
+        <div class="group">
+          <span class="label">Fit</span>
+          <div class="kv" id="alphaKV"></div>
+        </div>
+        <div class="group">
+          <span class="label">Brier score, all horses (lower is better)</span>
+          <div class="scroll"><table class="mini" id="brier2">
+            <thead><tr><th>Forecast</th><th>Brier</th><th>Gain</th></tr></thead><tbody></tbody>
+          </table></div>
+          <p class="hint">Gain = percent reduction from the raw public Brier score. Case study: α = 1.06 and an improvement of about 0.45%.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="card" aria-labelledby="h3s">
+    <span class="eyebrow">3 · Adding fundamentals</span>
+    <h2 id="h3s">The full combined model: a softmax over the field</h2>
+    <p class="intro">Now add four fundamental factors next to the public log-odds: the jockey's and trainer's past win rates (from earlier races only), the starting gate (standardised within the race, positive = outside) and the horse's rating relative to the field, per 10 points. The model is a conditional logit, fitted here by Newton–Raphson on every race with a single winner.</p>
+    <div class="formula">c<sub>i</sub> = exp(η<sub>i</sub>) / Σ<sub>k in race</sub> exp(η<sub>k</sub>),   η = α·logit(p) + β<sub>J</sub>·jockey + β<sub>T</sub>·trainer + β<sub>D</sub>·draw + β<sub>R</sub>·rating/10</div>
+    <div class="grid">
+      <div class="colstack">
+        <div class="scroll"><table class="mini" id="coefTab">
+          <thead><tr><th>Parameter</th><th>Estimate</th><th>SE</th><th>z</th><th>Public-only fit</th></tr></thead><tbody></tbody>
+        </table></div>
+        <div class="split">
+          <div class="board">
+            <h3 id="cal3Title">Calibration of the full model</h3>
+            <canvas id="cvCal3" role="img" aria-label="Calibration of the full combined model"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend"><span><i class="sw dot" style="background:var(--fit)"></i>Full model, 20 bins</span><span><i class="sw dash"></i>45° line</span></div>
+          </div>
+          <div class="colstack">
+            <span class="label" id="cmpLabel">Model comparison</span>
+            <div class="scroll"><table class="mini" id="cmpTab">
+              <thead><tr><th>Model</th><th>Brier</th><th>Gain</th><th>Log-loss</th></tr></thead><tbody></tbody>
+            </table></div>
+            <div class="callout" id="lrBox"></div>
+            <div class="callout" id="signBox"></div>
+          </div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label" id="evalL">Evaluate on</span>
+          <div class="seg" role="group" aria-labelledby="evalL">
+            <button id="evIn" aria-pressed="true">All races (in-sample)</button>
+            <button id="evOut" aria-pressed="false">Later races</button>
+          </div>
+          <div class="field"><label for="cutSel">Training period (share of race dates)</label>
+            <select id="cutSel"><option value="0.6">First 60%</option><option value="0.7">First 70%</option><option value="0.8" selected>First 80%</option><option value="0.9">First 90%</option></select></div>
+          <p class="hint" id="cutNote"></p>
+        </div>
+        <div class="group">
+          <span class="label">Newton–Raphson</span>
+          <button id="refit" class="primary">Refit the model</button>
+          <div class="scroll"><table class="mini" id="iterTab">
+            <thead><tr><th>Step</th><th>−log L</th><th>max |Δβ|</th></tr></thead><tbody></tbody>
+          </table></div>
+          <p class="hint" id="fitTime"></p>
+        </div>
+        <div class="group">
+          <span class="label">Case study vs this page</span>
+          <div class="scroll"><table class="mini" id="repTab">
+            <thead><tr><th>Quantity</th><th>Case study</th><th>Here</th></tr></thead><tbody></tbody>
+          </table></div>
+          <p class="hint">Rule for dead heats: the 12 races with two winners are left out of every likelihood, as in the case study's R code, and both co-winners count as wins in Brier scores and calibration.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="card" aria-labelledby="h4s">
+    <span class="eyebrow">4 · Betting with Kelly</span>
+    <h2 id="h4s">How much to bet when you have an edge</h2>
+    <p class="intro">For a bet that pays b to 1 and wins with probability p, the Kelly fraction f* = (bp − q)/b maximises the long-run growth rate of the bankroll, g(f) = p·log(1 + bf) + q·log(1 − f). Bet more than f* and growth falls; near 2f* it drops to about zero (exactly zero when the edge is small). The simulator plays the same coin flips for four bettors who stake ¼, ½, 1 and 2 times Kelly.</p>
+    <div class="grid">
+      <div class="colstack">
+        <div class="board">
+          <h3>Bankroll paths, log scale (median solid, 5th percentile dashed)</h3>
+          <canvas id="cvSim" role="img" aria-label="Simulated log-wealth paths for four Kelly fractions"></canvas>
+          <div class="tip" hidden></div>
+          <div class="legend" id="simLegend"></div>
+        </div>
+        <div class="split">
+          <div class="board">
+            <h3>Growth per bet g(f)</h3>
+            <canvas id="cvG" role="img" aria-label="Expected log growth per bet as a function of the fraction staked"></canvas>
+            <div class="tip" hidden></div>
+          </div>
+          <div class="colstack">
+            <p class="hint" id="simNote" style="font-size:14px"></p>
+          </div>
+        </div>
+        <div class="scroll"><table class="mini" id="simTab">
+          <thead><tr><th>Stake</th><th>f</th><th>g per bet</th><th>Share of Kelly growth</th><th>Median end</th><th>5th pct end</th><th>End below start</th></tr></thead><tbody></tbody>
+        </table></div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Case study examples</span>
+          <div class="btns">
+            <button id="ex41" class="primary">4/1 at p = 1/4</button>
+            <button id="ex121">12/1 at p = 1/10</button>
+          </div>
+          <div class="slider"><div class="top"><label for="kb">Pays b to 1</label><output id="kbOut" for="kb">4</output></div>
+            <input type="range" id="kb" min="0.5" max="20" step="0.5" value="4"></div>
+          <div class="slider"><div class="top"><label for="kp">Your win probability p</label><output id="kpOut" for="kp">0.250</output></div>
+            <input type="range" id="kp" min="0.02" max="0.8" step="0.005" value="0.25"></div>
+          <div class="big" id="kellyBig">f* = 1/16</div>
+          <div class="kv" id="kellyKV"></div>
+        </div>
+        <div class="group">
+          <div class="slider"><div class="top"><label for="nBets">Bets per path</label><output id="nBetsOut" for="nBets">1,000</output></div>
+            <input type="range" id="nBets" min="100" max="3000" step="100" value="1000"></div>
+          <button id="simRun">Run 400 new paths</button>
+          <p class="hint">Each path is one bettor. All four bettors see the same outcomes, so the only difference is the stake.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="card" aria-labelledby="h5s">
+    <span class="eyebrow">5 · One race, many horses</span>
+    <h2 id="h5s">Kelly across a whole field</h2>
+    <p class="intro">Only one horse can win, so win bets in the same race are mutually exclusive. Kelly (1956), and Smoczynski and Tomkins for pari-mutuel pools, give the exact solution. Rank horses by expected return c·O. Add them one at a time while c·O is above the threshold R = (1 − Σc)/(1 − Σ1/O) over the horses already chosen, then stake f<sub>i</sub> = c<sub>i</sub> − R/O<sub>i</sub>. The cash you hold back acts as the bet on "none of these".</p>
+    <div class="grid">
+      <div class="colstack">
+        <div class="board">
+          <h3 id="raceTitle">Race</h3>
+          <canvas id="cvRace" role="img" aria-label="Public and model probabilities and Kelly stakes per horse"></canvas>
+          <div class="tip" hidden></div>
+          <div class="legend">
+            <span><i class="sw" style="background:var(--curve)"></i>Public p</span>
+            <span><i class="sw"></i>Model c (full model, all races)</span>
+            <span><i class="sw" style="background:var(--fit)"></i>Kelly stake, % of bankroll</span>
+            <span><i class="sw dash"></i>1/O at the payout odds</span>
+          </div>
+        </div>
+        <div class="scroll"><table class="mini" id="raceTab">
+          <thead><tr><th>Horse</th><th>Odds O</th><th>Public p</th><th>Model c</th><th>Edge c·O − 1</th><th>Kelly stake</th><th>Result</th></tr></thead><tbody></tbody>
+        </table></div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Pick a race</span>
+          <div class="field"><label for="mtgSel">Race meeting</label><select id="mtgSel"></select></div>
+          <div class="field"><label for="raceSel">Race</label><select id="raceSel"></select></div>
+          <div class="btns">
+            <button id="raceRand">Random race</button>
+            <button id="raceMulti">A multi-horse bet</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="slider"><div class="top"><label for="take5">Payout odds: track take</label><output id="take5Out" for="take5">5%</output></div>
+            <input type="range" id="take5" min="0" max="21" step="1" value="5"></div>
+          <p class="hint">The far right uses the actual final odds. Lower values rescale them as if the track kept that share of the pool. At 0% the odds are the public's own fair prices.</p>
+        </div>
+        <div class="group">
+          <span class="label">Allocation</span>
+          <div class="kv" id="raceKV"></div>
+          <div class="callout" id="raceCall"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="card" aria-labelledby="h6s">
+    <span class="eyebrow">6 · Backtest on held-out races</span>
+    <h2 id="h6s">Would the model have made money?</h2>
+    <p class="intro" id="btIntro">The model is refitted on the training period from section 3 and used on the later races only. It bets a horse when its edge c·O − 1 is above the threshold. Flat staking bets 1 unit each time; fractional Kelly stakes a fraction of the multi-horse Kelly allocation, restricted to horses above the threshold, and compounds. The baseline bets 1 unit on the public favourite in every race.</p>
+    <div class="grid">
+      <div class="colstack">
+        <div class="split">
+          <div class="board">
+            <h3>Flat stakes: cumulative profit (units)</h3>
+            <canvas id="cvFlat" role="img" aria-label="Cumulative profit of flat staking strategies"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend"><span><i class="sw line"></i>Model, 1 unit per bet</span><span><i class="sw line" style="border-color:var(--curve)"></i>Public favourite, 1 unit per race</span></div>
+          </div>
+          <div class="board">
+            <h3>Fractional Kelly: bankroll (start = 1)</h3>
+            <canvas id="cvKel" role="img" aria-label="Bankroll multiple of fractional Kelly strategy"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend"><span><i class="sw line" style="border-color:var(--fit)"></i>Model, fractional Kelly</span></div>
+          </div>
+        </div>
+        <div class="scroll"><table class="mini" id="btTab">
+          <thead><tr><th>Strategy</th><th>Bets</th><th>Staked</th><th>Profit</th><th>ROI</th><th>Max drawdown</th></tr></thead><tbody></tbody>
+        </table></div>
+        <div class="board">
+          <h3>Return on stakes against the track take</h3>
+          <canvas id="cvSweep" role="img" aria-label="Flat-stake return on investment as a function of the assumed track take"></canvas>
+          <div class="tip" hidden></div>
+          <div class="legend"><span><i class="sw dot"></i>Model, flat stakes</span><span><i class="sw dot" style="background:var(--curve)"></i>Public favourite</span><span><i class="sw dash"></i>Break-even</span><span>Takes where the model makes fewer than 10 bets are not plotted</span></div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="take6">Payout odds: track take</label><output id="take6Out" for="take6">Actual</output></div>
+            <input type="range" id="take6" min="0" max="21" step="1" value="21"></div>
+          <div class="slider"><div class="top"><label for="thr">Bet when edge exceeds</label><output id="thrOut" for="thr">0%</output></div>
+            <input type="range" id="thr" min="0" max="0.3" step="0.01" value="0"></div>
+          <div class="slider"><div class="top"><label for="kfrac">Kelly fraction</label><output id="kfracOut" for="kfrac">0.25</output></div>
+            <input type="range" id="kfrac" min="0.05" max="1" step="0.05" value="0.25"></div>
+        </div>
+        <div class="group">
+          <span class="label">Held-out sample</span>
+          <div class="kv" id="btKV"></div>
+        </div>
+        <div class="callout" id="btCall"></div>
+        <div class="group">
+          <span class="label">What this backtest ignores</span>
+          <ul class="hint" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">
+            <li>Price impact. In a pari-mutuel pool your own bet lowers your odds. Benter solved for the bet size against the final odds after his money was in.</li>
+            <li>Timing. These are final odds, which nobody knows when betting closes; late money moves prices.</li>
+            <li>The 99 cap. Odds above 99 are recorded as 99, so longshot payouts here are understated.</li>
+            <li>Exotic pools. Benter also bet exactas and trifectas and built synthetic win bets from them; he also received rebates on turnover.</li>
+            <li>His model. Benter used over a hundred factors; this one has four.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="notes" aria-label="Lessons">
+    <div class="note">
+      <h2>Market prices are a strong, biased prior</h2>
+      <p>The odds already pool the views of thousands of bettors. A model that starts from logit(p) and adds a few factors needs to explain only what the crowd missed, which is why α carries almost all the weight.</p>
+      <p>The bias is systematic and small: a few points for favourites, a fraction of a point for each longshot. Check the units first. Section 1 shows how much of the bias here depends on the odds-to-probability formula.</p>
+    </div>
+    <div class="note">
+      <h2>Conditional logit = softmax over the field</h2>
+      <div class="formula">P(i wins) = e<sup>η<sub>i</sub></sup> / Σ<sub>k</sub> e<sup>η<sub>k</sub></sup></div>
+      <p style="margin-top:8px">Only differences within a race matter, so there is no intercept, and factors are expressed relative to the field. It is multinomial logistic regression where the classes are the runners, the same softmax that ends a neural network classifier.</p>
+    </div>
+    <div class="note">
+      <h2>Calibration matters for Kelly</h2>
+      <p>Kelly stakes are linear in the edge c·O − 1. With an 18% take, an edge only appears when the model is more confident than the market. If the model is overconfident by a few points, Kelly converts that error straight into oversized bets, and the bettor goes past 2f* where growth is negative.</p>
+      <p>Brier and log-loss can rank models differently; the betting decision needs the probabilities themselves to be right.</p>
+    </div>
+    <div class="note">
+      <h2>Thorp's rules for using Kelly</h2>
+      <ul>
+        <li>Bet about half Kelly: “about three-quarters of the return with half the volatility.” For a new strategy with an uncertain edge, Thorp simulated at 1/10 Kelly.</li>
+        <li>Shrink positions in a drawdown: after a 5% loss, cut size; after a few more percent, cut again. The system shuts itself down and has to earn its way out.</li>
+        <li>Assume the worst imaginable outcome will occur and ask whether you can tolerate it.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>Why one edge is not enough</h2>
+      <p>The edge must beat the take on each bet, survive price impact and be stable over time. The likelihood ratio test says the four factors carry real information; the backtest shows that real information and profit are different things.</p>
+    </div>
+    <div class="note">
+      <h2>A word on gambling</h2>
+      <p>Pari-mutuel betting has negative expected value for almost everyone: the track keeps about 18% of the pool before anyone is paid. Benter is famous because he is the exception. This lab is about forecasting, calibration and decisions under uncertainty, the same tools used to price insurance, size trading positions and read prediction markets.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Before showing section 1, ask: a horse quoted at 3.5 in Hong Kong, what is its implied probability? Then switch between the two conversion formulas and compare the favourite's bias, the fitted α and the overround. Which formula matches a track that keeps 17.5% of the pool?</li>
+      <li>In section 2, move α from 1.00 to the MLE and read off the gain in log-likelihood. How large is it per race? Use the 1.92 line to read a 95% interval for α, and compare it with α̂ ± 1.96 SE from the panel.</li>
+      <li>In section 3, which coefficients have |z| &gt; 2? Explain the negative jockey sign to a classmate in one sentence, then switch to "Later races" and check whether the full model still beats the public-only model out of sample.</li>
+      <li>In section 4, load the two case-study bets. The 12/1 bet has the larger edge (30% vs 25%), yet Kelly stakes 2.5 times less on it. Why? Then set the stake to 2× Kelly and predict the median growth before running the paths.</li>
+      <li>In section 6, start at the actual odds, then lower the take until the model starts betting. At what take does flat staking break even? Compare with the 17.5% the track deducts, and list what else would have to go right for a real bettor.</li>
+    </ol>
+  </section>
+</div>
+
+<script src="benter-data.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const RAW = window.BENTER_DATA;
+  if (!RAW) { $('loadErr').hidden = false; return; }
+
+  // ---------- formatting ----------
+  const pct = (v, d = 1) => isFinite(v) ? (v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d) + '%' : '–';
+  const fx = (v, d) => isFinite(v) ? (v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–';
+  const sg = (v, d) => (v > 0 ? '+' : '') + fx(v, d);
+  const pts = (v, d = 1) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d) + ' pts';
+  const int = v => Math.round(v).toLocaleString('en-US');
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const D0 = Date.UTC(1997, 0, 1);
+  const dateOf = d => { const t = new Date(D0 + d * 864e5); return t.getUTCDate() + ' ' + MON[t.getUTCMonth()] + ' ' + t.getUTCFullYear(); };
+  const shortDate = d => { const t = new Date(D0 + d * 864e5); return MON[t.getUTCMonth()] + ' ' + t.getUTCFullYear(); };
+
+  // ---------- decode data ----------
+  const M = RAW.meta, N = M.N, R = M.R;
+  const LUT = new Int16Array(128); for (let i = 0; i < 64; i++) LUT[M.alphabet.charCodeAt(i)] = i;
+  function dec(s, w, n) { const o = new Int32Array(n); let k = 0; for (let i = 0; i < n; i++) { let v = 0; for (let j = 0; j < w; j++) v = v * 64 + LUT[s.charCodeAt(k++)]; o[i] = v; } return o; }
+  const H = RAW.h, RC = RAW.race;
+  const oddsI = dec(H.o, 2, N), jI = dec(H.j, 2, N), tI = dec(H.t, 2, N), ratI = dec(H.r, 2, N), dwI = dec(H.d, 1, N), hno = dec(H.h, 1, N);
+  const rN = dec(RC.n, 1, R), rDay = dec(RC.day, 2, R), rVen = dec(RC.v, 1, R), rDist = dec(RC.dist, 1, R), rGo = dec(RC.go, 1, R), rCls = dec(RC.cls, 1, R), rId = dec(RC.id, 3, R);
+  const rS = new Int32Array(R + 1); for (let r = 0; r < R; r++) rS[r + 1] = rS[r] + rN[r];
+  const O = new Float64Array(N), win = new Uint8Array(N), jw = new Float64Array(N), tw = new Float64Array(N), dn = new Float64Array(N), rd = new Float64Array(N), raceOf = new Int32Array(N), rank = new Int32Array(N);
+  const nWin = new Int32Array(R), bookDec = new Float64Array(R), bookFrac = new Float64Array(R), favIdx = new Int32Array(R);
+  for (let r = 0; r < R; r++) {
+    const a = rS[r], b = rS[r + 1], n = b - a; let sd = 0, sr = 0;
+    for (let i = a; i < b; i++) {
+      O[i] = oddsI[i] / 10; win[i] = dwI[i] & 1; jw[i] = jI[i] / 4000; tw[i] = tI[i] / 4000; raceOf[i] = r;
+      sd += dwI[i] >> 1; sr += ratI[i]; nWin[r] += win[i]; bookDec[r] += 1 / O[i]; bookFrac[r] += 1 / (O[i] + 1);
+    }
+    const md = sd / n, mr = sr / n; let v = 0;
+    for (let i = a; i < b; i++) { const d = (dwI[i] >> 1) - md; v += d * d; }
+    const s = Math.sqrt(v / (n - 1));
+    for (let i = a; i < b; i++) { dn[i] = s > 0 ? ((dwI[i] >> 1) - md) / s : 0; rd[i] = ratI[i] - mr; }
+    const idx = []; for (let i = a; i < b; i++) idx.push(i);
+    idx.sort((x, y) => O[x] - O[y] || x - y);
+    idx.forEach((i, k) => rank[i] = k + 1); favIdx[r] = idx[0];
+  }
+  const single = new Uint8Array(R); for (let r = 0; r < R; r++) single[r] = nWin[r] === 1 ? 1 : 0;
+  const clean = new Uint8Array(R); let nIncomplete = 0; for (let r = 0; r < R; r++) { clean[r] = bookDec[r] >= 1.15 ? 1 : 0; if (!clean[r]) nIncomplete++; }
+  const ALLR = new Uint8Array(R).fill(1);
+  // meetings
+  const meetings = []; { let last = -1; for (let r = 0; r < R; r++) { if (rDay[r] !== last) { meetings.push({ day: rDay[r], races: [] }); last = rDay[r]; } meetings[meetings.length - 1].races.push(r); } }
+  const meetOfRace = new Int32Array(R); meetings.forEach((m, k) => m.races.forEach(r => meetOfRace[r] = k));
+
+  // ---------- state ----------
+  const S = { conv: 'frac', view: 'bins', alpha: 1.06, exRace: 0, evalOut: false, cut: 0.8, kb: 4, kp: 0.25, nBets: 1000, seed: 7, race: 0, take5: 5, take6: 21, thr: 0, kfrac: 0.25 };
+  const F = {}; // fitted quantities for the current convention
+  const pub = new Float64Array(N), z = new Float64Array(N);
+
+  // ---------- model core ----------
+  function setConv() {
+    for (let r = 0; r < R; r++) {
+      const a = rS[r], b = rS[r + 1]; let s = 0;
+      for (let i = a; i < b; i++) { pub[i] = S.conv === 'frac' ? 1 / (O[i] + 1) : 1 / O[i]; s += pub[i]; }
+      for (let i = a; i < b; i++) { pub[i] /= s; const p = Math.min(Math.max(pub[i], 1e-10), 1 - 1e-10); z[i] = Math.log(p / (1 - p)); }
+    }
+  }
+  const K5 = 5;
+  const feat = (i, j) => j === 0 ? z[i] : j === 1 ? jw[i] : j === 2 ? tw[i] : j === 3 ? dn[i] : rd[i] / 10;
+  function probs(beta, out) {
+    const K = beta.length; out = out || new Float64Array(N);
+    for (let r = 0; r < R; r++) {
+      const a = rS[r], b = rS[r + 1]; let mx = -Infinity;
+      for (let i = a; i < b; i++) { let e = beta[0] * z[i]; if (K > 1) e += beta[1] * jw[i] + beta[2] * tw[i] + beta[3] * dn[i] + beta[4] * rd[i] / 10; out[i] = e; if (e > mx) mx = e; }
+      let s = 0; for (let i = a; i < b; i++) { out[i] = Math.exp(out[i] - mx); s += out[i]; }
+      for (let i = a; i < b; i++) out[i] /= s;
+    }
+    return out;
+  }
+  function nllOf(c, rmask) { let s = 0; for (let r = 0; r < R; r++) { if (!single[r] || !rmask[r]) continue; for (let i = rS[r]; i < rS[r + 1]; i++) if (win[i]) s -= Math.log(Math.max(c[i], 1e-10)); } return s; }
+  function nllAlpha(a, rmask) {
+    let s = 0;
+    for (let r = 0; r < R; r++) {
+      if (!single[r] || !rmask[r]) continue;
+      const lo = rS[r], hi = rS[r + 1]; let mx = -Infinity, w = 0;
+      for (let i = lo; i < hi; i++) { const e = a * z[i]; if (e > mx) mx = e; if (win[i]) w = e; }
+      let t = 0; for (let i = lo; i < hi; i++) t += Math.exp(a * z[i] - mx);
+      s -= w - mx - Math.log(t);
+    }
+    return s;
+  }
+  function solve(A, b, K) {
+    const Mx = A.slice(), v = b.slice();
+    for (let c = 0; c < K; c++) {
+      let p = c; for (let r = c + 1; r < K; r++) if (Math.abs(Mx[r * K + c]) > Math.abs(Mx[p * K + c])) p = r;
+      if (p !== c) { for (let k = 0; k < K; k++) { const t = Mx[c * K + k]; Mx[c * K + k] = Mx[p * K + k]; Mx[p * K + k] = t; } const t = v[c]; v[c] = v[p]; v[p] = t; }
+      for (let r = c + 1; r < K; r++) { const f = Mx[r * K + c] / Mx[c * K + c]; if (!f) continue; for (let k = c; k < K; k++) Mx[r * K + k] -= f * Mx[c * K + k]; v[r] -= f * v[c]; }
+    }
+    const x = new Array(K).fill(0);
+    for (let r = K - 1; r >= 0; r--) { let s = v[r]; for (let k = r + 1; k < K; k++) s -= Mx[r * K + k] * x[k]; x[r] = s / Mx[r * K + r]; }
+    return x;
+  }
+  // Newton-Raphson for the conditional logit; K = 1 (public only) or 5 (full)
+  function fitCL(K, rmask) {
+    const t0 = performance.now();
+    let beta = new Array(K).fill(0); beta[0] = 1;
+    const c = new Float64Array(N), xb = new Float64Array(K), x = new Float64Array(K), trace = [];
+    let Hm, nll = 0;
+    for (let it = 0; it < 40; it++) {
+      probs(beta, c);
+      const g = new Array(K).fill(0); Hm = new Array(K * K).fill(0); nll = 0;
+      for (let r = 0; r < R; r++) {
+        if (!single[r] || !rmask[r]) continue;
+        xb.fill(0);
+        for (let i = rS[r]; i < rS[r + 1]; i++) {
+          for (let j = 0; j < K; j++) x[j] = feat(i, j);
+          const ci = c[i];
+          for (let j = 0; j < K; j++) { xb[j] += ci * x[j]; const cx = ci * x[j]; for (let k = j; k < K; k++) Hm[j * K + k] += cx * x[k]; }
+          if (win[i]) { for (let j = 0; j < K; j++) g[j] += x[j]; nll -= Math.log(Math.max(ci, 1e-300)); }
+        }
+        for (let j = 0; j < K; j++) { g[j] -= xb[j]; for (let k = j; k < K; k++) Hm[j * K + k] -= xb[j] * xb[k]; }
+      }
+      for (let j = 0; j < K; j++) for (let k = 0; k < j; k++) Hm[j * K + k] = Hm[k * K + j];
+      const step = solve(Hm, g, K); let mx = 0;
+      for (let j = 0; j < K; j++) { beta[j] += step[j]; mx = Math.max(mx, Math.abs(step[j])); }
+      trace.push({ it, nll, mx });
+      if (!(mx > 1e-9)) break;
+    }
+    probs(beta, c);
+    const nllF = nllOf(c, rmask);
+    const se = []; for (let j = 0; j < K; j++) { const e = new Array(K).fill(0); e[j] = 1; se.push(Math.sqrt(solve(Hm, e, K)[j])); }
+    return { beta, se, nll: nllF, c, trace, ms: performance.now() - t0 };
+  }
+  function brier(c, rmask) { let s = 0, n = 0; for (let r = 0; r < R; r++) { if (!rmask[r]) continue; for (let i = rS[r]; i < rS[r + 1]; i++) { const d = c[i] - win[i]; s += d * d; n++; } } return s / n; }
+  function logloss(c, rmask) { let s = 0, n = 0; for (let r = 0; r < R; r++) { if (!single[r] || !rmask[r]) continue; n++; for (let i = rS[r]; i < rS[r + 1]; i++) if (win[i]) s -= Math.log(Math.max(c[i], 1e-10)); } return s / n; }
+  // dplyr::ntile on the horses of the masked races, ties broken by row order
+  function calib(c, rmask, nb = 20) {
+    const idx = []; for (let r = 0; r < R; r++) if (rmask[r]) for (let i = rS[r]; i < rS[r + 1]; i++) idx.push(i);
+    idx.sort((a, b) => c[a] - c[b] || a - b);
+    const n = idx.length, bins = Array.from({ length: nb }, () => ({ n: 0, mp: 0, act: 0 }));
+    idx.forEach((i, k) => { const b = bins[Math.floor(nb * k / n)]; b.n++; b.mp += c[i]; b.act += win[i]; });
+    bins.forEach(b => { b.mp /= b.n; b.act /= b.n; });
+    return bins;
+  }
+  const chi2sf4 = x => Math.exp(-x / 2) * (1 + x / 2);
+
+  function basicStats() {
+    F.calPub = calib(pub, ALLR);
+    F.rank = []; for (let k = 1; k <= 10; k++) F.rank.push({ n: 0, act: 0, imp: 0 });
+    for (let i = 0; i < N; i++) if (rank[i] <= 10) { const b = F.rank[rank[i] - 1]; b.n++; b.act += win[i]; b.imp += pub[i]; }
+    F.rank.forEach(b => { b.act /= b.n; b.imp /= b.n; });
+    // average field size is horse-weighted, as in the case study's mean(field_size) over rows
+    F.venue = [0, 1, 2].map(() => ({ races: 0, fs: 0, h: 0, act: 0, imp: 0 }));
+    for (let r = 0; r < R; r++) for (const v of [rVen[r], 2]) { const b = F.venue[v]; b.races++; b.fs += rN[r] * rN[r]; b.h += rN[r]; b.act += win[favIdx[r]]; b.imp += pub[favIdx[r]]; }
+    F.venue.forEach(b => { b.fs /= b.h; b.act /= b.races; b.imp /= b.races; });
+  }
+  function fitAll() {
+    setConv();
+    basicStats();
+    F.brierPub = brier(pub, ALLR);
+    F.nll1 = nllAlpha(1, ALLR);
+    F.pubFit = fitCL(1, ALLR);
+    F.alphaHat = F.pubFit.beta[0]; F.alphaSE = F.pubFit.se[0];
+    F.adjHat = F.pubFit.c; F.brierAdj = brier(F.adjHat, ALLR);
+    F.curve = []; for (let a = 0.75; a <= 1.4 + 1e-9; a += 0.005) F.curve.push([a, nllAlpha(a, ALLR)]);
+    fitFull();
+    setCut();
+  }
+  function fitFull() {
+    F.full = fitCL(K5, ALLR);
+    F.brierFull = brier(F.full.c, ALLR);
+    F.lr = 2 * (F.pubFit.nll - F.full.nll); F.lrP = chi2sf4(F.lr);
+    F.calFull = calib(F.full.c, ALLR);
+  }
+  function setCut() {
+    const days = meetings.map(m => m.day); F.cutDay = days[Math.floor(S.cut * days.length)];
+    F.train = new Uint8Array(R); F.test = new Uint8Array(R); F.testClean = new Uint8Array(R);
+    let ntr = 0, nte = 0, ntc = 0;
+    for (let r = 0; r < R; r++) { if (rDay[r] < F.cutDay) { F.train[r] = 1; ntr++; } else { F.test[r] = 1; nte++; if (clean[r]) { F.testClean[r] = 1; ntc++; } } }
+    F.nTrain = ntr; F.nTest = nte; F.nTestClean = ntc;
+    F.oPub = fitCL(1, F.train); F.oFull = fitCL(K5, F.train);
+    F.oStats = [pub, F.oPub.c, F.oFull.c].map(c => ({ b: brier(c, F.test), ll: logloss(c, F.test) }));
+    F.oCal = calib(F.oFull.c, F.test);
+  }
+
+  // ---------- colours and plotting ----------
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'ball', 'fit', 'board', 'peg', 'surface', 'coinB']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  readColors();
+  const plots = [];
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function ticks(a, b, n) { const s = niceStep(b - a, n), o = []; for (let v = Math.ceil(a / s - 1e-9) * s; v <= b + 1e-9; v += s) o.push(+v.toFixed(10)); return o; }
+  function makePlot(id, sizeFn, mg, drawFn, hoverFn) {
+    const cv = $(id), box = cv.parentElement, tip = box.querySelector('.tip');
+    const P = { cv, ctx: cv.getContext('2d'), L: { W: 300, H: 200, ...mg }, dirty: true, draw: drawFn, hover: null };
+    P.resize = () => {
+      const w = Math.max(200, box.clientWidth - 24), h = sizeFn(w), d = window.devicePixelRatio || 1;
+      cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+      P.ctx.setTransform(d, 0, 0, d, 0, 0); P.L = { W: w, H: h, ...mg }; P.dirty = true; schedule();
+    };
+    P.dom = (x0, x1, y0, y1) => { P.D = { x0, x1, y0, y1 }; };
+    P.px = x => P.L.ml + (x - P.D.x0) / (P.D.x1 - P.D.x0) * (P.L.W - P.L.ml - P.L.mr);
+    P.py = y => P.L.mt + (P.D.y1 - y) / (P.D.y1 - P.D.y0) * (P.L.H - P.L.mt - P.L.mb);
+    P.ix = px => P.D.x0 + (px - P.L.ml) / (P.L.W - P.L.ml - P.L.mr) * (P.D.x1 - P.D.x0);
+    P.axes = (xt, yt, fxl, fyl, xl, yl) => {
+      const { ctx, L } = P;
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1;
+      ctx.strokeStyle = C.grid; ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (const y of yt) { const p = Math.round(P.py(y)) + .5; ctx.beginPath(); ctx.moveTo(L.ml, p); ctx.lineTo(L.W - L.mr, p); ctx.stroke(); ctx.fillText(fyl(y), L.ml - 6, p); }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const x of xt) { const p = Math.round(P.px(x)) + .5; ctx.beginPath(); ctx.moveTo(p, L.mt); ctx.lineTo(p, L.H - L.mb); ctx.stroke(); ctx.fillText(fxl(x), p, L.H - L.mb + 6); }
+      ctx.strokeStyle = C.line; ctx.strokeRect(L.ml + .5, L.mt + .5, L.W - L.ml - L.mr - 1, L.H - L.mt - L.mb - 1);
+      ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.font = '12px "Atkinson Hyperlegible", system-ui, sans-serif';
+      ctx.fillText(xl, (L.ml + L.W - L.mr) / 2, L.H - 1);
+      ctx.save(); ctx.translate(12, (L.mt + L.H - L.mb) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    };
+    P.clip = () => { const { ctx, L } = P; ctx.save(); ctx.beginPath(); ctx.rect(L.ml, L.mt, L.W - L.ml - L.mr, L.H - L.mt - L.mb); ctx.clip(); };
+    P.line = (pts, col, w = 2, dash) => { const ctx = P.ctx; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); pts.forEach(([x, y], k) => k ? ctx.lineTo(P.px(x), P.py(y)) : ctx.moveTo(P.px(x), P.py(y))); ctx.stroke(); ctx.setLineDash([]); };
+    P.dot = (x, y, r, col, ring) => { const ctx = P.ctx; ctx.beginPath(); ctx.arc(P.px(x), P.py(y), r, 0, 2 * Math.PI); ctx.fillStyle = col; ctx.fill(); if (ring) { ctx.strokeStyle = C.board; ctx.lineWidth = 1.5; ctx.stroke(); } };
+    if (hoverFn) {
+      const move = e => {
+        const rc = cv.getBoundingClientRect(), x = e.clientX - rc.left, y = e.clientY - rc.top;
+        const h = hoverFn(P, x, y);
+        P.hover = h; P.dirty = true; schedule();
+        if (!h) { tip.hidden = true; return; }
+        tip.innerHTML = h.html; tip.hidden = false;
+        const bw = box.clientWidth, tw2 = tip.offsetWidth, th = tip.offsetHeight;
+        let lx = cv.offsetLeft + x + 14, ly = cv.offsetTop + y + 12;
+        if (lx + tw2 > bw - 4) lx = cv.offsetLeft + x - tw2 - 14;
+        lx = Math.max(4, lx); if (ly + th > box.clientHeight - 4) ly = Math.max(4, cv.offsetTop + y - th - 12);
+        tip.style.left = lx + 'px'; tip.style.top = ly + 'px';
+      };
+      cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move);
+      cv.addEventListener('pointerleave', () => { P.hover = null; tip.hidden = true; P.dirty = true; schedule(); });
+    }
+    new ResizeObserver(P.resize).observe(box);
+    plots.push(P); return P;
+  }
+  let raf = 0;
+  function schedule() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; for (const P of plots) if (P.dirty) { P.dirty = false; P.ctx.clearRect(0, 0, P.L.W, P.L.H); P.draw(P); } }); }
+  const dirty = (...ps) => { ps.forEach(p => p.dirty = true); schedule(); };
+  const sq = w => Math.round(Math.min(Math.max(w * 0.78, 260), 470));
+  const wide = w => Math.round(Math.min(Math.max(w * 0.5, 240), 360));
+  const nearest = (P, pts, x, y, rmax = 24) => { let best = -1, bd = rmax * rmax; pts.forEach(([a, b], k) => { const dx = P.px(a) - x, dy = P.py(b) - y, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = k; } }); return best; };
+
+  // generic calibration drawing
+  function drawCal(P, sets, maxV) {
+    const m = maxV || 0.4;
+    P.dom(0, m, 0, m);
+    const t = ticks(0, m, 4);
+    P.axes(t, t, v => Math.round(v * 100) + '%', v => Math.round(v * 100) + '%', 'Forecast probability', 'Actual win rate');
+    P.clip();
+    P.line([[0, 0], [m, m]], C.muted, 1.5, [5, 4]);
+    for (const s of sets) {
+      if (s.err) for (const b of s.pts) { const se = Math.sqrt(b.act * (1 - b.act) / b.n) * 1.96; P.ctx.strokeStyle = s.col; P.ctx.globalAlpha = .45; P.ctx.lineWidth = 1.5; P.ctx.beginPath(); P.ctx.moveTo(P.px(b.mp), P.py(b.act - se)); P.ctx.lineTo(P.px(b.mp), P.py(b.act + se)); P.ctx.stroke(); P.ctx.globalAlpha = 1; }
+      if (s.join) P.line(s.pts.map(b => [b.mp, b.act]), s.col, 1.2);
+      s.pts.forEach((b, k) => P.dot(b.mp, b.act, P.hover && P.hover.set === s.key && P.hover.k === k ? 6.5 : 4.5, s.col, true));
+      if (s.labels) { P.ctx.fillStyle = C.ink; P.ctx.font = '11px "JetBrains Mono", monospace'; P.ctx.textAlign = 'left'; P.ctx.textBaseline = 'bottom'; s.pts.forEach((b, k) => { if (k < 6 || k === 9) P.ctx.fillText(String(k + 1), P.px(b.mp) + 6, P.py(b.act) - 3); }); }
+    }
+    P.ctx.restore();
+  }
+  function calHover(sets, label) {
+    return (P, x, y) => {
+      let best = null, bd = 22 * 22;
+      for (const s of sets()) s.pts.forEach((b, k) => { const dx = P.px(b.mp) - x, dy = P.py(b.act) - y, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = { set: s.key, k, b, s }; } });
+      if (!best) return null;
+      const b = best.b;
+      best.html = `<b>${label(best)}</b><br>${int(b.n)} horses<br>forecast ${pct(b.mp, 2)}<br>actual ${pct(b.act, 2)}<br>error ${pts(b.act - b.mp, 2)}`;
+      return best;
+    };
+  }
+
+  // ---------- section 1 ----------
+  const calSets = () => S.view === 'bins'
+    ? [{ key: 'pub', pts: F.calPub, col: C.accent, err: true }]
+    : [{ key: 'rank', pts: F.rank.map(b => ({ n: b.n, mp: b.imp, act: b.act })), col: C.accent, err: true, join: true, labels: true }];
+  const pCal = makePlot('cvCal', sq, { ml: 50, mr: 12, mt: 10, mb: 42 }, P => drawCal(P, calSets()),
+    calHover(calSets, h => S.view === 'bins' ? `Bin ${h.k + 1} of 20` : (h.k === 0 ? 'Favourites (rank 1)' : `Rank ${h.k + 1}`)));
+  function renderS1() {
+    $('convFrac').setAttribute('aria-pressed', S.conv === 'frac'); $('convDec').setAttribute('aria-pressed', S.conv === 'dec');
+    $('viewBins').setAttribute('aria-pressed', S.view === 'bins'); $('viewRank').setAttribute('aria-pressed', S.view === 'rank');
+    $('calTitle').textContent = S.view === 'bins' ? 'Calibration: 20 equal-sized groups of horses' : 'Calibration by betting rank (labels = rank)';
+    const f = F.rank[0];
+    $('calNote').textContent = S.view === 'bins'
+      ? `${F.calPub[19].act > F.calPub[19].mp && F.calPub[0].act < F.calPub[0].mp ? 'Longshot bins sit below the line and the top bin above it. ' : ''}Top bin: forecast ${pct(F.calPub[19].mp)}, actual ${pct(F.calPub[19].act)}. Bottom bin: forecast ${pct(F.calPub[0].mp, 2)}, actual ${pct(F.calPub[0].act, 2)}.`
+      : `The favourite wins ${pct(f.act)} of races against ${pct(f.imp)} implied (case study: 30.0% vs 25.5%). ${F.rank.slice(1).filter(b => b.act < b.imp).length} of ranks 2 to 10 win less often than implied.`;
+    $('convNote').innerHTML = S.conv === 'frac'
+      ? 'The case study treats O as "O to 1" odds. Hong Kong quotes the dividend per $1 including the stake, so 1/O is the price the pool actually pays. Switch to compare: every number on the page refits.'
+      : 'With 1/O the favourite bias shrinks to about one point and the fitted α drops below 1. Much of the case study\'s bias comes from the conversion formula, not the crowd.';
+    // venue
+    const vn = ['Happy Valley', 'Sha Tin', 'All races'];
+    $('venueTab').tBodies[0].innerHTML = F.venue.map((b, k) => `<tr${k === 2 ? ' class="hl"' : ''}><td>${vn[k]}</td><td>${int(b.races)}</td><td>${fx(b.fs, 1)}</td><td class="mod">${pct(b.act)}</td><td class="pub">${pct(b.imp)}</td><td>${pts(b.act - b.imp)}</td></tr>`).join('');
+    $('rankTab').tBodies[0].innerHTML = F.rank.map((b, k) => `<tr${k === 0 ? ' class="hl"' : ''}><td>${k + 1}</td><td>${int(b.n)}</td><td class="mod">${pct(b.act)}</td><td class="pub">${pct(b.imp)}</td><td>${pts(b.act - b.imp)}</td></tr>`).join('');
+    renderOdds(); dirty(pCal);
+  }
+  function renderOdds() {
+    let o = parseFloat($('oddsIn').value); if (!isFinite(o) || o < 1) o = 1; if (o > 999) o = 999;
+    $('oddsOut').innerHTML = `<span>1/(O+1), case study</span><span>${pct(1 / (o + 1))}</span><span>1/O, dividend</span><span>${pct(1 / o)}</span><span>$10 on a winner returns</span><span>$${fx(10 * o, 2)}</span>`;
+  }
+  { // book statistics do not depend on the convention
+    let sd = 0, sf = 0, fr = 0, fp = 0, cap = 0; for (let r = 0; r < R; r++) { sd += bookDec[r]; sf += bookFrac[r]; const i = favIdx[r]; fr += win[i] * O[i]; } for (let i = 0; i < N; i++) if (O[i] >= 99) cap++;
+    sd /= R; sf /= R; fr = fr / R - 1;
+    F.bookDec = sd; F.takeAvg = 1 - 1 / sd;
+    $('bookKV').innerHTML = `<span>Average Σ 1/(O+1) per race</span><span>${fx(sf, 3)}</span><span>Average Σ 1/O per race</span><span>${fx(sd, 3)}</span><span>Implied take 1 − 1/Σ(1/O)</span><span>${pct(F.takeAvg)}</span><span>Return on $1 on every favourite</span><span>${pct(fr)}</span><span>Horses at the 99 cap</span><span>${pct(cap / N)}</span>`
+      + `<span style="grid-column:1/-1" class="hint">The Jockey Club deducts 17.5% of the win pool; rounding odds down to 0.1 takes a little more. A take of ${pct(1 - 1 / sf)} under 1/(O+1) would be far too small, and a 1/(O+1) reader would expect a profit from backing every favourite. ${int(nIncomplete)} races have Σ 1/O below 1.15 because runners are missing from the data; they stay in the model fits but are not bet.</span>`;
+  }
+
+  // ---------- section 2 ----------
+  const adjC = new Float64Array(N);
+  let calAdj = null;
+  function exampleRace() { for (let r = 0; r < R; r++) if (rN[r] === 14 && pub[favIdx[r]] > 0.24 && pub[favIdx[r]] < 0.3 && rDay[r] > 2500) return r; return 0; }
+  const pNll = makePlot('cvNll', wide, { ml: 54, mr: 12, mt: 10, mb: 40 }, P => {
+    if (!F.curve) return;
+    const mn = Math.min(...F.curve.map(c => c[1]), F.pubFit.nll);
+    const ys = F.curve.map(([a, v]) => [a, v - mn]);
+    const ymax = Math.max(...ys.map(p => p[1])) * 1.05;
+    P.dom(0.75, 1.4, 0, ymax);
+    P.axes(ticks(0.75, 1.4, 7), ticks(0, ymax, 4), v => v.toFixed(1), v => int(v), 'α', 'Δ negative log-likelihood');
+    P.clip();
+    P.line([[0.75, 1.92], [1.4, 1.92]], C.muted, 1.2, [5, 4]);
+    P.line(ys, C.accent, 2.2);
+    P.dot(F.alphaHat, 0, 5.5, C.curve, true);
+    P.dot(S.alpha, nllAlpha(S.alpha, ALLR) - mn, 6, C.ball, true);
+    if (P.hover) { const x = P.px(P.hover.a); P.ctx.strokeStyle = C.muted; P.ctx.lineWidth = 1; P.ctx.beginPath(); P.ctx.moveTo(x, P.L.mt); P.ctx.lineTo(x, P.L.H - P.L.mb); P.ctx.stroke(); }
+    P.ctx.restore();
+  }, (P, x) => {
+    const a = Math.min(1.4, Math.max(0.75, P.ix(x))); if (x < P.L.ml || x > P.L.W - P.L.mr) return null;
+    const v = nllAlpha(a, ALLR), mn = F.pubFit.nll;
+    return { a, html: `<b>α = ${a.toFixed(3)}</b><br>−log L = ${fx(v, 1)}<br>above the minimum by ${fx(v - mn, 2)}` };
+  });
+  const pEx = makePlot('cvEx', w => Math.round(Math.min(Math.max(w * 0.85, 250), 380)), { ml: 46, mr: 10, mt: 10, mb: 40 }, P => {
+    if (!F.curve) return;
+    const r = S.exRace, a = rS[r], b = rS[r + 1], idx = []; for (let i = a; i < b; i++) idx.push(i); idx.sort((x, y) => rank[x] - rank[y]);
+    const ymax = Math.max(...idx.map(i => Math.max(pub[i], adjC[i]))) * 1.12;
+    P.dom(0, idx.length, 0, ymax);
+    P.axes([], ticks(0, ymax, 4), () => '', v => Math.round(v * 100) + '%', 'Horses, favourite first (★ = winner)', 'Win probability');
+    const { ctx } = P, bw = (P.px(1) - P.px(0));
+    idx.forEach((i, k) => {
+      const x0 = P.px(k) + bw * 0.12, w = bw * 0.36;
+      ctx.fillStyle = C.curve; ctx.fillRect(x0, P.py(pub[i]), w, P.py(0) - P.py(pub[i]));
+      ctx.fillStyle = C.accent; ctx.fillRect(x0 + w + 1, P.py(adjC[i]), w, P.py(0) - P.py(adjC[i]));
+      if (P.hover && P.hover.k === k) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1; ctx.strokeRect(P.px(k) + 1.5, P.L.mt + 1.5, bw - 3, P.py(0) - P.L.mt - 3); }
+      ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText((win[i] ? '★' : '') + hno[i], P.px(k + 0.5), P.L.H - P.L.mb + 6);
+    });
+  }, (P, x) => {
+    const r = S.exRace, n = rN[r], k = Math.floor(P.ix(x)); if (k < 0 || k >= n) return null;
+    const idx = []; for (let i = rS[r]; i < rS[r + 1]; i++) idx.push(i); idx.sort((x, y) => rank[x] - rank[y]); const i = idx[k];
+    return { k, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>odds ${fx(O[i], 1)}<br>public ${pct(pub[i], 2)}<br>adjusted ${pct(adjC[i], 2)}<br>shift ${pts(adjC[i] - pub[i], 2)}` };
+  });
+  const cal2Sets = () => [{ key: 'b', pts: F.calPub, col: C.curve }, { key: 'a', pts: calAdj, col: C.accent }];
+  const pCal2 = makePlot('cvCal2', w => Math.round(Math.min(Math.max(w * 0.85, 250), 380)), { ml: 46, mr: 10, mt: 10, mb: 40 }, P => { if (calAdj) drawCal(P, cal2Sets()); },
+    calHover(cal2Sets, h => (h.set === 'b' ? 'Before' : 'After') + `, bin ${h.k + 1}`));
+  let s2pending = false;
+  function renderS2(full) {
+    probs([S.alpha], adjC);
+    if (full !== false) calAdj = calib(adjC, ALLR);
+    $('alphaOut').textContent = S.alpha.toFixed(3); $('alpha').value = S.alpha;
+    const r = S.exRace;
+    $('exTitle').textContent = `Example race: ${dateOf(rDay[r])}, ${rVen[r] ? 'Sha Tin' : 'Happy Valley'}, ${rN[r]} runners`;
+    const nl = nllAlpha(S.alpha, ALLR), bA = brier(adjC, ALLR);
+    const nr = R - nWin.reduce((s, v) => s + (v !== 1), 0);
+    $('alphaKV').innerHTML = `<span>MLE α̂ (SE)</span><span>${fx(F.alphaHat, 3)} (${fx(F.alphaSE, 3)})</span><span>95% interval α̂ ± 1.96 SE</span><span>${fx(F.alphaHat - 1.96 * F.alphaSE, 3)} to ${fx(F.alphaHat + 1.96 * F.alphaSE, 3)}</span><span>−log L at α = 1</span><span>${fx(F.nll1, 1)}</span><span>−log L at α̂</span><span>${fx(F.pubFit.nll, 1)}</span><span>−log L at your α</span><span>${fx(nl, 1)}</span><span>LR test of α = 1 (1 df)</span><span>χ² = ${fx(2 * (F.nll1 - F.pubFit.nll), 1)}</span><span>Races in the likelihood</span><span>${int(nr)}</span>`;
+    const rows = [['Raw public p', F.brierPub, 'pub'], [`Your α = ${S.alpha.toFixed(3)}`, bA, 'mod'], [`MLE α̂ = ${F.alphaHat.toFixed(3)}`, F.brierAdj, 'mod']];
+    $('brier2').tBodies[0].innerHTML = rows.map(([n, b, c]) => `<tr><td>${n}</td><td class="${c}">${fx(b, 5)}</td><td>${pct((F.brierPub - b) / F.brierPub, 2)}</td></tr>`).join('');
+    dirty(pNll, pEx, pCal2);
+  }
+  function s2Slider() { if (s2pending) return; s2pending = true; requestAnimationFrame(() => { s2pending = false; renderS2(); }); }
+
+  // ---------- section 3 ----------
+  const cal3Sets = () => [{ key: 'f', pts: S.evalOut ? F.oCal : F.calFull, col: C.fit, err: true }];
+  const pCal3 = makePlot('cvCal3', w => Math.round(Math.min(Math.max(w * 0.85, 250), 380)), { ml: 46, mr: 10, mt: 10, mb: 40 }, P => { if (F.calFull) drawCal(P, cal3Sets()); },
+    calHover(cal3Sets, h => `Full model, bin ${h.k + 1}`));
+  const PNAMES = ['α · logit(public p)', 'β jockey win rate', 'β trainer win rate', 'β draw (z-score)', 'β rating diff / 10'];
+  function renderS3() {
+    $('evIn').setAttribute('aria-pressed', !S.evalOut); $('evOut').setAttribute('aria-pressed', S.evalOut);
+    const fit = S.evalOut ? F.oFull : F.full, pf = S.evalOut ? F.oPub : F.pubFit;
+    $('coefTab').tBodies[0].innerHTML = fit.beta.map((b, j) => `<tr><td>${PNAMES[j]}</td><td class="ful">${fx(b, 3)}</td><td>${fx(fit.se[j], 3)}</td><td>${fx(j === 0 ? (b - 1) / fit.se[j] : b / fit.se[j], 1)}${j === 0 ? '<span class="chip" style="margin-left:4px">vs 1</span>' : ''}</td><td>${j === 0 ? fx(pf.beta[0], 3) : '–'}</td></tr>`).join('');
+    $('cal3Title').textContent = S.evalOut ? `Calibration on later races (${int(F.nTest)})` : 'Calibration of the full model (all races)';
+    $('cutNote').textContent = `Training: ${int(F.nTrain)} races before ${dateOf(F.cutDay)}. Test: ${int(F.nTest)} later races, to ${dateOf(rDay[R - 1])}.`;
+    let rows;
+    if (!S.evalOut) {
+      $('cmpLabel').textContent = 'Model comparison, all races (in-sample, as in the case study)';
+      const llp = logloss(pub, ALLR), lla = logloss(F.adjHat, ALLR), llf = logloss(F.full.c, ALLR);
+      rows = [['Raw public odds', F.brierPub, llp, 'pub'], ['Public adjusted (α)', F.brierAdj, lla, 'mod'], ['Full combined', F.brierFull, llf, 'ful']];
+    } else {
+      $('cmpLabel').textContent = `Model comparison on ${int(F.nTest)} later races (fitted on earlier races only)`;
+      const s = F.oStats;
+      rows = [['Raw public odds', s[0].b, s[0].ll, 'pub'], ['Public adjusted (α)', s[1].b, s[1].ll, 'mod'], ['Full combined', s[2].b, s[2].ll, 'ful']];
+    }
+    $('cmpTab').tBodies[0].innerHTML = rows.map(([n, b, ll, c], k) => `<tr><td>${n}</td><td class="${c}">${fx(b, 5)}</td><td>${k ? pct((rows[0][1] - b) / rows[0][1], 2) : '—'}</td><td>${fx(ll, 4)}</td></tr>`).join('');
+    const lr = S.evalOut ? 2 * (F.oPub.nll - F.oFull.nll) : F.lr, p = chi2sf4(lr);
+    $('lrBox').innerHTML = `<p><b>Likelihood ratio test</b> (${S.evalOut ? 'training races' : 'all races'}): LR = 2(ℓ<sub>full</sub> − ℓ<sub>public</sub>) = <b>${fx(lr, 2)}</b> on 4 df, p = <b>${p < 0.0001 ? p.toExponential(1) : fx(p, 4)}</b>. ${p < 0.05 ? 'The four factors add information beyond the odds at the 5% level.' : 'Not significant at the 5% level.'}</p>`
+      + `<p class="hint">Log-loss = −log c<sub>winner</sub> per race. Brier and log-loss need not agree: ${rows[2][1] > rows[1][1] ? 'here the full model has the better likelihood but a slightly worse Brier score than α alone.' : 'here the full model is ahead on both.'}</p>`;
+    const zj = fit.beta[1] / fit.se[1], zt = fit.beta[2] / fit.se[2], zd = fit.beta[3] / fit.se[3];
+    $('signBox').innerHTML = `<p><b>Why are the jockey and trainer signs negative?</b> The odds already price the jockey and trainer. Bettors pile onto famous names, so given the odds, a top jockey's horse is slightly overbet. The factor corrects that double counting. The jockey effect is borderline (z = ${fx(zj, 1)}), the trainer effect is noise (z = ${fx(zt, 1)}). The clearest signal is the draw (z = ${fx(zd, 1)}): outside gates do a little better than the crowd expects.</p>`;
+    const it = F.full.trace;
+    $('iterTab').tBodies[0].innerHTML = it.map(t => `<tr><td>${t.it}</td><td>${fx(t.nll, 3)}</td><td>${t.mx < 1e-4 ? t.mx.toExponential(1) : fx(t.mx, 4)}</td></tr>`).join('');
+    $('fitTime').textContent = `Full model on all races: ${it.length} Newton steps in ${fx(F.full.ms, 0)} ms (${int(N)} horses × 5 parameters). Starting values α = 1, β = 0.`;
+    const rk = F.rank[0];
+    const rep = [
+      ['Favourite wins', '30.0%', pct(rk.act)], ['Favourite implied', '25.5%', pct(rk.imp)],
+      ['Bias, Happy Valley', '4–5 pts', pts(F.venue[0].act - F.venue[0].imp)], ['Bias, Sha Tin', '4–5 pts', pts(F.venue[1].act - F.venue[1].imp)],
+      ['α̂ (public only)', '1.06', fx(F.alphaHat, 3)], ['Brier gain with α̂', '≈0.45%', pct((F.brierPub - F.brierAdj) / F.brierPub, 2)],
+      ['LR test, 4 df', 'p < 0.05', 'p = ' + fx(F.lrP, 3)]
+    ];
+    $('repTab').tBodies[0].innerHTML = rep.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="mod">${r[2]}</td></tr>`).join('')
+      + (S.conv === 'dec' ? '<tr><td colspan="3" class="hint" style="white-space:normal">The case study used 1/(O+1); switch back in section 1 to compare like with like.</td></tr>' : '');
+    dirty(pCal3);
+  }
+
+  // ---------- section 4 ----------
+  const KCOL = () => [C.coinB, C.fit, C.accent, C.ball];
+  const KM = [0.25, 0.5, 1, 2], KN = ['¼ Kelly', '½ Kelly', 'Kelly', '2× Kelly'];
+  const g = (f, b, p) => p * Math.log(1 + b * f) + (1 - p) * Math.log(1 - f);
+  let SIM = null;
+  function mulberry32(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function kellyF() { const b = S.kb, p = S.kp; return (b * p - (1 - p)) / b; }
+  function frac(v) { // nice fraction label for f*
+    for (let d = 2; d <= 64; d++) { const n = Math.round(v * d); if (n > 0 && Math.abs(v - n / d) < 1e-9) return n + '/' + d; }
+    return null;
+  }
+  function runSim() {
+    const fs = kellyF(), T = S.nBets, Mp = 400, rnd = mulberry32(S.seed * 7919 + 13);
+    const fr = KM.map(m => Math.min(Math.max(m * fs, 0), 0.999));
+    const step = Math.max(1, Math.floor(T / 200)), nS = Math.floor(T / step) + 1;
+    const lw = KM.map(() => new Float64Array(Mp * nS)), fin = KM.map(() => new Float64Array(Mp));
+    const up = fr.map(f => Math.log10(1 + S.kb * f)), dn2 = fr.map(f => Math.log10(1 - f));
+    for (let m = 0; m < Mp; m++) {
+      const w = [0, 0, 0, 0];
+      for (let t = 1; t <= T; t++) {
+        const won = rnd() < S.kp;
+        for (let k = 0; k < 4; k++) w[k] += won ? up[k] : dn2[k];
+        if (t % step === 0) { const s = t / step; for (let k = 0; k < 4; k++) lw[k][m * nS + s] = w[k]; }
+      }
+      for (let k = 0; k < 4; k++) fin[k][m] = w[k];
+    }
+    const q = (arr, pr) => { const a = Array.from(arr).sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(pr * a.length))]; };
+    const paths = KM.map((_, k) => { const med = [], lo = []; for (let s = 0; s < nS; s++) { const col = new Float64Array(Mp); for (let m = 0; m < Mp; m++) col[m] = lw[k][m * nS + s]; med.push([s * step, q(col, 0.5)]); lo.push([s * step, q(col, 0.05)]); } return { med, lo }; });
+    SIM = { fs, fr, T, paths, finMed: fin.map(a => q(a, 0.5)), fin5: fin.map(a => q(a, 0.05)), below: fin.map(a => a.filter(v => v < 0).length / Mp) };
+  }
+  const pSim = makePlot('cvSim', wide, { ml: 62, mr: 22, mt: 10, mb: 40 }, P => {
+    if (!SIM) return;
+    if (SIM.fs <= 0) { P.dom(0, 1, 0, 1); P.ctx.fillStyle = C.muted; P.ctx.font = '14px "Atkinson Hyperlegible", sans-serif'; P.ctx.textAlign = 'center'; P.ctx.fillText('No edge (bp ≤ q): Kelly says bet nothing.', P.L.W / 2, P.L.H / 2); return; }
+    let lo = 0, hi = 0; SIM.paths.forEach(p => { p.med.concat(p.lo).forEach(([, v]) => { lo = Math.min(lo, v); hi = Math.max(hi, v); }); });
+    lo = Math.max(lo, -12); const pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    P.dom(0, SIM.T, lo, hi);
+    const st = Math.max(1, niceStep(hi - lo, 5)), yt = []; for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) yt.push(Math.round(v));
+    const SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+    const lab = v => v === 0 ? '1×' : v === 1 ? '10×' : v === 2 ? '100×' : v === -1 ? '0.1×' : v === -2 ? '0.01×' : '10' + String(v).split('').map(ch => SUP[ch]).join('') + '×';
+    P.axes(ticks(0, SIM.T, 5), yt, v => int(v), lab, 'Bets', 'Bankroll (log scale)');
+    P.clip(); const col = KCOL();
+    P.line([[0, 0], [SIM.T, 0]], C.muted, 1, [2, 3]);
+    SIM.paths.forEach((p, k) => { P.line(p.lo, col[k], 1.5, [5, 4]); P.line(p.med, col[k], 2.4); });
+    if (P.hover) { const x = P.px(P.hover.t); P.ctx.strokeStyle = C.muted; P.ctx.lineWidth = 1; P.ctx.beginPath(); P.ctx.moveTo(x, P.L.mt); P.ctx.lineTo(x, P.L.H - P.L.mb); P.ctx.stroke(); }
+    P.ctx.restore();
+  }, (P, x) => {
+    if (!SIM || SIM.fs <= 0 || x < P.L.ml || x > P.L.W - P.L.mr) return null;
+    const t = P.ix(x), s = Math.max(0, Math.min(SIM.paths[0].med.length - 1, Math.round(t / (SIM.paths[0].med[1] ? SIM.paths[0].med[1][0] : 1))));
+    const tt = SIM.paths[0].med[s][0];
+    const mult = v => { const m = Math.pow(10, v); return m >= 1000 ? m.toExponential(1) + '×' : fx(m, 2) + '×'; };
+    return { t: tt, html: `<b>After ${int(tt)} bets</b><br>` + KN.map((n, k) => `${n}: median ${mult(SIM.paths[k].med[s][1])}, 5th pct ${mult(SIM.paths[k].lo[s][1])}`).join('<br>') };
+  });
+  const pG = makePlot('cvG', w => Math.round(Math.min(Math.max(w * 0.7, 220), 320)), { ml: 58, mr: 10, mt: 10, mb: 40 }, P => {
+    const fs = kellyF(); if (fs <= 0) { P.dom(0, 1, 0, 1); return; }
+    const fmax = Math.min(0.999, 2.6 * fs), pts2 = [];
+    for (let k = 0; k <= 200; k++) { const f = fmax * k / 200; pts2.push([f, g(f, S.kb, S.kp)]); }
+    const gm = g(fs, S.kb, S.kp), lo = Math.min(-gm * 0.6, ...pts2.map(p => p[1])), hi = gm * 1.15;
+    P.dom(0, fmax, Math.max(lo, -gm * 1.5), hi);
+    P.axes(ticks(0, fmax, 4), ticks(Math.max(lo, -gm * 1.5), hi, 4), v => pct(v, v < 0.1 ? 1 : 0), v => { if (Math.abs(v) < 1e-12) return '0'; const d = Math.max(0, -Math.floor(Math.log10(Math.abs(v))) ); return (v < 0 ? '−' : '') + Math.abs(v).toFixed(d); }, 'Fraction of bankroll staked f', 'g(f) per bet');
+    P.clip(); P.line([[0, 0], [fmax, 0]], C.muted, 1, [2, 3]); P.line(pts2, C.accent, 2.2);
+    const col = KCOL(); KM.forEach((m, k) => { const f = Math.min(m * fs, 0.999); if (f <= fmax) P.dot(f, g(f, S.kb, S.kp), 5.5, col[k], true); });
+    if (P.hover) P.dot(P.hover.f, g(P.hover.f, S.kb, S.kp), 4, C.ink);
+    P.ctx.restore();
+  }, (P, x) => {
+    const fs = kellyF(); if (fs <= 0 || x < P.L.ml || x > P.L.W - P.L.mr) return null;
+    const f = Math.max(0, P.ix(x)), gv = g(f, S.kb, S.kp), gm = g(fs, S.kb, S.kp);
+    return { f, html: `<b>f = ${pct(f, 2)}</b> (${fx(f / fs, 2)} × Kelly)<br>g = ${gv.toExponential(3)} per bet<br>${pct(gv / gm, 0)} of the Kelly growth` };
+  });
+  function renderS4(rerun) {
+    $('kbOut').textContent = fx(S.kb, 1).replace(/\.0$/, ''); $('kpOut').textContent = S.kp.toFixed(3);
+    $('kb').value = S.kb; $('kp').value = S.kp; $('nBetsOut').textContent = int(S.nBets);
+    const fs = kellyF(), b = S.kb, p = S.kp, edge = b * p - (1 - p), fl = frac(fs);
+    $('kellyBig').textContent = fs > 0 ? `f* = ${fl || pct(fs, 2)}` : 'f* ≤ 0: no bet';
+    $('kellyKV').innerHTML = `<span>Edge bp − q (profit per $1)</span><span>${sg(edge, 3)}</span><span>Kelly f* = edge / b</span><span>${fs > 0 ? pct(fs, 2) : '0%'}</span><span>Decimal odds b + 1</span><span>${fx(b + 1, 1)}</span><span>Break-even p = 1/(b+1)</span><span>${fx(1 / (b + 1), 3)}</span>`;
+    $('simLegend').innerHTML = KM.map((m, k) => `<span><i class="sw line" style="border-color:${KCOL()[k]}"></i>${KN[k]}</span>`).join('') + '<span><i class="sw dash"></i>5th percentile</span>';
+    if (rerun !== false) runSim();
+    if (fs > 0) {
+      const gm = g(fs, b, p);
+      const mult = v => { const m = Math.pow(10, v); return m >= 1e4 || m < 0.01 ? m.toExponential(1) + '×' : m >= 100 ? int(m) + '×' : fx(m, 2) + '×'; };
+      $('simTab').tBodies[0].innerHTML = KM.map((m, k) => { const f = SIM.fr[k], gg = f < 1 ? g(f, b, p) : -Infinity; return `<tr><td>${KN[k]}</td><td>${pct(f, 2)}</td><td>${gg.toExponential(2)}</td><td>${pct(gg / gm, 0)}</td><td>${mult(SIM.finMed[k])}</td><td>${mult(SIM.fin5[k])}</td><td>${pct(SIM.below[k], 0)}</td></tr>`; }).join('');
+      const h = g(fs / 2, b, p) / gm;
+      $('simNote').textContent = `Half Kelly earns ${pct(h, 0)} of the Kelly growth rate with half the stake, so half the swings in log-wealth. 2× Kelly grows at ${pct(g(Math.min(2 * fs, 0.999), b, p) / gm, 0)} of Kelly, and ${pct(SIM.below[3], 0)} of its paths end below where they started (Kelly: ${pct(SIM.below[2], 0)}). Medians and percentiles are over 400 simulated paths of ${int(S.nBets)} bets.`;
+    } else { $('simTab').tBodies[0].innerHTML = ''; $('simNote').textContent = 'With no edge every positive stake has negative growth.'; }
+    dirty(pSim, pG);
+  }
+
+  // ---------- Kelly for one race (Smoczynski-Tomkins) ----------
+  function kellyRace(c, o, cand) { // arrays for one race, returns stakes and R
+    const n = c.length, ord = []; for (let k = 0; k < n; k++) if (!cand || cand[k]) ord.push(k);
+    ord.sort((a, b) => c[b] * o[b] - c[a] * o[a]);
+    let Rt = 1, sp = 0, sqv = 0; const set = [];
+    for (const k of ord) {
+      if (c[k] * o[k] <= Rt) break;
+      const sp2 = sp + c[k], sq2 = sqv + 1 / o[k]; if (sq2 >= 1) break;
+      set.push(k); sp = sp2; sqv = sq2; Rt = (1 - sp) / (1 - sqv);
+    }
+    const f = new Float64Array(n); for (const k of set) f[k] = Math.max(0, c[k] - Rt / o[k]);
+    return { f, R: Rt, set };
+  }
+  const takeOdds = (r, i, t) => t >= 21 ? O[i] : O[i] * bookDec[r] * (1 - t / 100);
+  const takeLabel = t => t >= 21 ? 'Actual' : t + '%';
+
+  // ---------- section 5 ----------
+  let RACE = null;
+  function computeRace() {
+    const r = S.race, a = rS[r], b = rS[r + 1], n = b - a, c = [], o = [];
+    for (let i = a; i < b; i++) { c.push(F.full.c[i]); o.push(takeOdds(r, i, S.take5)); }
+    const k = kellyRace(c, o), F2 = k.f.reduce((s, v) => s + v, 0);
+    let G = 0; for (let j = 0; j < n; j++) G += c[j] * Math.log(1 - F2 + k.f[j] * o[j]);
+    let best = { G: 0, j: -1, f: 0 }; for (let j = 0; j < n; j++) { if (c[j] * o[j] <= 1) continue; const f = (c[j] * o[j] - 1) / (o[j] - 1); const gg = c[j] * Math.log(1 + f * (o[j] - 1)) + (1 - c[j]) * Math.log(1 - f); if (gg > best.G) best = { G: gg, j, f }; }
+    RACE = { r, a, n, c, o, f: k.f, R: k.R, set: k.set, F: F2, G, best };
+  }
+  const pRace = makePlot('cvRace', wide, { ml: 46, mr: 10, mt: 10, mb: 40 }, P => {
+    if (!RACE) return;
+    const { a, n, c, o, f } = RACE, idx = Array.from({ length: n }, (_, k) => k).sort((x, y) => rank[a + x] - rank[a + y]);
+    const ymax = Math.max(...idx.map(k => Math.max(pub[a + k], c[k], f[k], 1 / o[k]))) * 1.12;
+    P.dom(0, n, 0, ymax);
+    P.axes([], ticks(0, ymax, 4), () => '', v => Math.round(v * 100) + '%', 'Horse number, favourite first (★ = winner)', 'Probability or stake');
+    const { ctx } = P, bw = P.px(1) - P.px(0);
+    idx.forEach((k, pos) => {
+      const i = a + k, x0 = P.px(pos) + bw * 0.1, w = bw * 0.26;
+      ctx.fillStyle = C.curve; ctx.fillRect(x0, P.py(pub[i]), w, P.py(0) - P.py(pub[i]));
+      ctx.fillStyle = C.accent; ctx.fillRect(x0 + w + 1, P.py(c[k]), w, P.py(0) - P.py(c[k]));
+      if (f[k] > 0) { ctx.fillStyle = C.fit; ctx.fillRect(x0 + 2 * w + 2, P.py(f[k]), w, P.py(0) - P.py(f[k])); }
+      ctx.strokeStyle = C.muted; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(P.px(pos) + 2, P.py(1 / o[k])); ctx.lineTo(P.px(pos + 1) - 2, P.py(1 / o[k])); ctx.stroke(); ctx.setLineDash([]);
+      if (P.hover && P.hover.pos === pos) { ctx.strokeStyle = C.ink; ctx.lineWidth = 1; ctx.strokeRect(P.px(pos) + 1.5, P.L.mt + 1.5, bw - 3, P.py(0) - P.L.mt - 3); }
+      ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText((win[i] ? '★' : '') + hno[i], P.px(pos + 0.5), P.L.H - P.L.mb + 6);
+    });
+  }, (P, x) => {
+    if (!RACE) return null;
+    const pos = Math.floor(P.ix(x)); if (pos < 0 || pos >= RACE.n) return null;
+    const { a, n, c, o, f } = RACE, idx = Array.from({ length: n }, (_, k) => k).sort((x2, y) => rank[a + x2] - rank[a + y]), k = idx[pos], i = a + k;
+    return { pos, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>odds ${fx(o[k], 2)} (1/O = ${pct(1 / o[k], 1)})<br>public ${pct(pub[i], 2)} · model ${pct(c[k], 2)}<br>edge ${pct(c[k] * o[k] - 1, 1)}<br>Kelly stake ${pct(f[k], 2)}` };
+  });
+  function fillMeetings() {
+    $('mtgSel').innerHTML = meetings.map((m, k) => `<option value="${k}">${dateOf(m.day)} · ${rVen[m.races[0]] ? 'Sha Tin' : 'Happy Valley'}</option>`).join('');
+  }
+  function fillRaces(k) {
+    $('raceSel').innerHTML = meetings[k].races.map((r, j) => `<option value="${r}">Race ${j + 1} · ${rN[r]} runners · ${M.dist[rDist[r]]} m</option>`).join('');
+  }
+  function renderS5() {
+    computeRace();
+    const r = S.race, mk = meetOfRace[r];
+    if (+$('mtgSel').value !== mk) { $('mtgSel').value = mk; fillRaces(mk); }
+    $('raceSel').value = r;
+    $('take5Out').textContent = takeLabel(S.take5); $('take5').value = S.take5;
+    const pos = meetings[mk].races.indexOf(r) + 1, cls = M.cls[rCls[r]];
+    $('raceTitle').textContent = `${dateOf(rDay[r])}, ${rVen[r] ? 'Sha Tin' : 'Happy Valley'}, race ${pos}: ${rN[r]} runners, ${M.dist[rDist[r]]} m, ${M.going[rGo[r]].toLowerCase()}${cls >= 1 && cls <= 5 ? ', class ' + cls : ''}`;
+    const { a, n, c, o, f } = RACE, idx = Array.from({ length: n }, (_, k) => k).sort((x, y) => rank[a + x] - rank[a + y]);
+    $('raceTab').tBodies[0].innerHTML = idx.map(k => { const i = a + k, e = c[k] * o[k] - 1; return `<tr${f[k] > 0 ? ' class="hl"' : ''}><td>${hno[i]}</td><td>${fx(o[k], S.take5 >= 21 ? 1 : 2)}</td><td class="pub">${pct(pub[i], 1)}</td><td class="mod">${pct(c[k], 1)}</td><td class="${e > 0 ? 'pos' : 'neg'}">${sg(e * 100, 1)}%</td><td class="${f[k] > 0 ? 'pos' : 'neg'}">${f[k] > 0 ? pct(f[k], 2) : '–'}</td><td>${win[i] ? '★ won' : ''}</td></tr>`; }).join('');
+    const hedge = RACE.set.filter(k => c[k] * o[k] < 1).length;
+    const ret = RACE.set.length ? (1 - RACE.F + RACE.set.reduce((s, k) => s + (win[a + k] ? f[k] * o[k] : 0), 0)) : 1;
+    $('raceKV').innerHTML = `<span>Horses bet</span><span>${RACE.set.length}</span><span>Threshold R</span><span>${fx(RACE.R, 3)}</span><span>Total stake</span><span>${pct(RACE.F, 2)}</span><span>Expected log growth</span><span>${RACE.G.toExponential(2)}</span><span>Best single-horse Kelly</span><span>${RACE.best.j >= 0 ? RACE.best.G.toExponential(2) : 'no bet'}</span><span>Bankroll after the race</span><span>${fx(ret, 4)}×</span><span>Actual take this race</span><span>${pct(1 - 1 / bookDec[r])}</span>`;
+    let msg;
+    if (!RACE.set.length) msg = `<p>No bet. No horse has c·O above 1 at these odds, so Kelly keeps all the cash.${S.take5 >= 21 ? ' This is the usual result at the actual odds: the take is larger than the model\'s disagreements with the crowd.' : ''}</p>`;
+    else if (RACE.set.length === 1) msg = `<p>One horse is worth backing. Its Kelly stake equals the single-bet formula (c·O − 1)/(O − 1).</p>`;
+    else msg = `<p><b>${RACE.set.length} horses</b> share the bankroll. Each extra horse lowers R, because when one bet loses another may win: the bets hedge each other. ${hedge ? `${hedge} of them ${hedge > 1 ? 'have' : 'has'} a negative edge on its own and is still in the optimal set, since c·O exceeds R.` : 'The combined bet grows the bankroll faster than the best single bet.'}</p>`;
+    if (!clean[r]) msg += '<p class="err">Runners are missing from this race in the data (Σ 1/O below 1.15), so its odds look too generous. The backtest skips races like this.</p>';
+    $('raceCall').innerHTML = msg;
+    dirty(pRace);
+  }
+  function pickMulti() { // a race where Kelly backs several horses at the current take
+    const cands = [];
+    for (let r = 0; r < R; r++) {
+      if (!clean[r]) continue; const a = rS[r], b = rS[r + 1], c = [], o = [];
+      for (let i = a; i < b; i++) { c.push(F.full.c[i]); o.push(takeOdds(r, i, S.take5)); }
+      const k = kellyRace(c, o); if (k.set.length >= 2 && k.set.length <= 5) cands.push(r);
+    }
+    return cands;
+  }
+
+  // ---------- section 6 ----------
+  let BT = null;
+  function backtest(take, thr, kf, keepCurves) {
+    const c = F.oFull.c; let flatN = 0, flatP = 0, favP = 0, favN = 0, kelN = 0, W = 1, peakW = 1, mddK = 0, stakeK = 0;
+    let cf = 0, pf = 0, mddF = 0, cfav = 0, pfav = 0, mddFav = 0;
+    const curF = [], curFav = [], curK = [];
+    for (let r = 0; r < R; r++) {
+      if (!F.testClean[r]) continue;
+      const a = rS[r], b = rS[r + 1], n = b - a, cc = [], oo = [], cand = [];
+      for (let i = a; i < b; i++) { const o = takeOdds(r, i, take); cc.push(c[i]); oo.push(o); const ok = c[i] * o - 1 > thr; cand.push(ok); if (ok) { flatN++; cf += (win[i] ? o : 0) - 1; } }
+      pf = Math.max(pf, cf); mddF = Math.max(mddF, pf - cf);
+      const fi = favIdx[r], ofav = takeOdds(r, fi, take); favN++; cfav += (win[fi] ? ofav : 0) - 1; pfav = Math.max(pfav, cfav); mddFav = Math.max(mddFav, pfav - cfav);
+      if (cand.some(Boolean)) {
+        const k = kellyRace(cc, oo, cand); let F2 = 0, back = 0;
+        for (let j = 0; j < n; j++) { const s = k.f[j] * kf; if (s > 0) { kelN++; F2 += s; if (win[a + j]) back += s * oo[j]; } }
+        stakeK += F2 * W; W = W * (1 - F2 + back); peakW = Math.max(peakW, W); mddK = Math.max(mddK, 1 - W / peakW);
+      }
+      if (keepCurves) { curF.push([rDay[r], cf]); curFav.push([rDay[r], cfav]); curK.push([rDay[r], W]); }
+    }
+    return { flatN, flatP: cf, mddF, favN, favP: cfav, mddFav, kelN, W, mddK, stakeK, curF, curFav, curK };
+  }
+  const dayTicks = (d0, d1) => { const o = []; for (let y = 1998; y <= 2006; y++) { for (const m of [0, 6]) { const d = (Date.UTC(y, m, 1) - D0) / 864e5; if (d >= d0 && d <= d1) o.push(d); } } return o.length > 6 ? o.filter((_, k) => k % 2 === 0) : o; };
+  const pFlat = makePlot('cvFlat', w => Math.round(Math.min(Math.max(w * 0.75, 230), 330)), { ml: 50, mr: 10, mt: 10, mb: 40 }, P => {
+    if (!BT) return;
+    const all = BT.curF.concat(BT.curFav).map(p => p[1]); let lo = Math.min(0, ...all), hi = Math.max(0, ...all); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+    const d0 = BT.curF[0][0], d1 = BT.curF[BT.curF.length - 1][0];
+    P.dom(d0, d1, lo, hi); P.axes(dayTicks(d0, d1), ticks(lo, hi, 5), shortDate, v => int(v), 'Race date (held-out period)', 'Profit (units)');
+    P.clip(); P.line([[d0, 0], [d1, 0]], C.muted, 1, [2, 3]); P.line(BT.curFav, C.curve, 2); P.line(BT.curF, C.accent, 2.2);
+    if (P.hover) { const x = P.px(P.hover.d); P.ctx.strokeStyle = C.muted; P.ctx.lineWidth = 1; P.ctx.beginPath(); P.ctx.moveTo(x, P.L.mt); P.ctx.lineTo(x, P.L.H - P.L.mb); P.ctx.stroke(); }
+    P.ctx.restore();
+  }, (P, x) => {
+    if (!BT || x < P.L.ml || x > P.L.W - P.L.mr) return null;
+    const d = P.ix(x); let k = BT.curF.findIndex(p => p[0] >= d); if (k < 0) k = BT.curF.length - 1;
+    return { d: BT.curF[k][0], html: `<b>${dateOf(BT.curF[k][0])}</b><br>model: ${sg(BT.curF[k][1], 1)} units<br>favourite: ${sg(BT.curFav[k][1], 1)} units` };
+  });
+  const pKel = makePlot('cvKel', w => Math.round(Math.min(Math.max(w * 0.75, 230), 330)), { ml: 60, mr: 10, mt: 10, mb: 40 }, P => {
+    if (!BT) return;
+    const ys = BT.curK.map(p => p[1]); let lo = Math.min(1, ...ys), hi = Math.max(1, ...ys); const pad = (hi - lo) * 0.08 || 0.05; lo -= pad; hi += pad;
+    const d0 = BT.curK[0][0], d1 = BT.curK[BT.curK.length - 1][0];
+    P.dom(d0, d1, lo, hi); P.axes(dayTicks(d0, d1), ticks(lo, hi, 5), shortDate, v => fx(v, hi - lo < 0.5 ? 2 : 1) + '×', 'Race date (held-out period)', 'Bankroll');
+    P.clip(); P.line([[d0, 1], [d1, 1]], C.muted, 1, [2, 3]); P.line(BT.curK, C.fit, 2.2);
+    if (P.hover) { const x = P.px(P.hover.d); P.ctx.strokeStyle = C.muted; P.ctx.lineWidth = 1; P.ctx.beginPath(); P.ctx.moveTo(x, P.L.mt); P.ctx.lineTo(x, P.L.H - P.L.mb); P.ctx.stroke(); }
+    P.ctx.restore();
+  }, (P, x) => {
+    if (!BT || x < P.L.ml || x > P.L.W - P.L.mr) return null;
+    const d = P.ix(x); let k = BT.curK.findIndex(p => p[0] >= d); if (k < 0) k = BT.curK.length - 1;
+    return { d: BT.curK[k][0], html: `<b>${dateOf(BT.curK[k][0])}</b><br>bankroll ${fx(BT.curK[k][1], 3)}×` };
+  });
+  let SW = null;
+  const pSweep = makePlot('cvSweep', w => Math.round(Math.min(Math.max(w * 0.4, 220), 300)), { ml: 54, mr: 12, mt: 10, mb: 40 }, P => {
+    if (!SW) return;
+    const ys = SW.flatMap(s => [s.n >= 10 ? s.model : NaN, s.fav]).filter(isFinite); let lo = Math.min(-0.2, ...ys), hi = Math.max(0.15, ...ys); lo -= 0.03; hi += 0.03;
+    P.dom(-0.5, 20.5, lo, hi); P.axes([0, 5, 10, 15, 20], ticks(lo, hi, 5), v => v + '%', v => pct(v, 0), 'Assumed track take', 'Return on stakes');
+    P.clip(); P.line([[-0.5, 0], [20.5, 0]], C.muted, 1.2, [5, 4]);
+    const avgT = F.takeAvg * 100; P.ctx.strokeStyle = C.ball; P.ctx.lineWidth = 1.5; P.ctx.setLineDash([3, 3]); P.ctx.beginPath(); P.ctx.moveTo(P.px(avgT), P.L.mt); P.ctx.lineTo(P.px(avgT), P.L.H - P.L.mb); P.ctx.stroke(); P.ctx.setLineDash([]);
+    P.ctx.fillStyle = C.ball; P.ctx.font = '11px "JetBrains Mono", monospace'; P.ctx.textAlign = 'right'; P.ctx.textBaseline = 'top'; P.ctx.fillText('actual ≈ ' + avgT.toFixed(1) + '%', P.px(avgT) - 4, P.L.mt + 4);
+    P.line(SW.map(s => [s.t, s.fav]), C.curve, 1.5); SW.forEach(s => P.dot(s.t, s.fav, 3.5, C.curve, true));
+    const mp = SW.filter(s => s.n >= 10); P.line(mp.map(s => [s.t, s.model]), C.accent, 1.5); mp.forEach(s => P.dot(s.t, s.model, P.hover && P.hover.t === s.t ? 6 : 4, C.accent, true));
+    if (S.take6 < 21) { const x = P.px(S.take6); P.ctx.strokeStyle = C.ink; P.ctx.lineWidth = 1; P.ctx.beginPath(); P.ctx.moveTo(x, P.L.mt); P.ctx.lineTo(x, P.L.H - P.L.mb); P.ctx.stroke(); }
+    P.ctx.restore();
+  }, (P, x) => {
+    if (!SW) return null; const t = Math.round(P.ix(x)); const s = SW.find(q => q.t === t); if (!s) return null;
+    return { t, html: `<b>Take ${t}%</b><br>model: ${s.n ? pct(s.model, 1) + ' on ' + int(s.n) + ' bets' : 'no bets'}<br>favourite: ${pct(s.fav, 1)} on ${int(s.nf)} races` };
+  });
+  function renderS6(sweep) {
+    $('take6Out').textContent = takeLabel(S.take6); $('take6').value = S.take6;
+    $('thrOut').textContent = pct(S.thr, 0); $('kfracOut').textContent = S.kfrac.toFixed(2);
+    BT = backtest(S.take6, S.thr, S.kfrac, true);
+    if (sweep !== false) { SW = []; for (let t = 0; t <= 20; t++) { const b = backtest(t, S.thr, 1, false); SW.push({ t, n: b.flatN, model: b.flatN ? b.flatP / b.flatN : NaN, fav: b.favP / b.favN, nf: b.favN }); } }
+    const b = BT;
+    $('btTab').tBodies[0].innerHTML = [
+      ['Model, flat 1 unit', b.flatN, b.flatN, b.flatP, b.flatN ? b.flatP / b.flatN : NaN, b.flatN ? fx(b.mddF, 1) + ' units' : '–', 'mod'],
+      [`Model, ${S.kfrac.toFixed(2)} Kelly`, b.kelN, b.stakeK, b.W - 1, b.stakeK ? (b.W - 1) / b.stakeK : NaN, b.kelN ? pct(b.mddK, 1) : '–', 'ful'],
+      ['Public favourite, flat', b.favN, b.favN, b.favP, b.favP / b.favN, fx(b.mddFav, 1) + ' units', 'pub']
+    ].map(([n, k, st, pr, roi, dd, c], j) => `<tr><td>${n}</td><td>${int(k)}</td><td>${j === 1 ? fx(st, 3) + '×' : int(st)}</td><td class="${c}">${j === 1 ? sg(pr, 3) + '×' : sg(pr, 1)}</td><td>${pct(roi, 1)}</td><td>${dd}</td></tr>`).join('');
+    let horses = 0; for (let r = 0; r < R; r++) if (F.testClean[r]) horses += rN[r];
+    $('btKV').innerHTML = `<span>Held-out races bet on</span><span>${int(F.nTestClean)}</span><span>Horses</span><span>${int(horses)}</span><span>Period</span><span>${shortDate(F.cutDay)} to ${shortDate(rDay[R - 1])}</span><span>Skipped (missing runners)</span><span>${int(F.nTest - F.nTestClean)}</span>`;
+    let be = -1; for (const q of SW) { if (q.n >= 10 && q.model > 0) be = q.t; else break; }
+    const firstBet = SW.filter(s => s.n).map(s => s.t).pop();
+    let msg = '';
+    if (S.take6 >= 21 && !b.flatN) msg = `<p><b>No bets.</b> At the actual odds the model never finds a horse with c·O above ${fx(1 + S.thr, 2)} in ${int(F.nTestClean)} held-out races. Its disagreements with the crowd are a few points of probability; the take is about 18% of every payout.</p>`;
+    else if (!b.flatN) msg = `<p><b>No bets</b> at this take and threshold.</p>`;
+    else msg = `<p>Flat staking returns <b>${pct(b.flatP / b.flatN, 1)}</b> on ${int(b.flatN)} bets; betting the favourite every race returns ${pct(b.favP / b.favN, 1)}. ${b.flatN < 100 ? 'With so few bets, one longshot winner can swing the result.' : ''}</p>`;
+    msg += `<p class="hint">The model starts to bet once the take falls to about ${firstBet !== undefined ? firstBet + '%' : 'zero'} at this threshold${be >= 0 ? `, and flat stakes stay profitable only up to a take of about ${be}%` : ''}. The real take is ${pct(F.takeAvg)}.</p>`;
+    $('btCall').innerHTML = msg;
+    dirty(pFlat, pKel, pSweep);
+  }
+
+  // ---------- wiring ----------
+  function setConvUI(c) { if (S.conv === c) return; S.conv = c; fitAll(); S.alpha = Math.round(F.alphaHat * 200) / 200; renderAll(); }
+  $('convFrac').onclick = () => setConvUI('frac'); $('convDec').onclick = () => setConvUI('dec');
+  $('viewBins').onclick = () => { S.view = 'bins'; renderS1(); }; $('viewRank').onclick = () => { S.view = 'rank'; renderS1(); };
+  $('oddsIn').oninput = renderOdds;
+  $('alpha').oninput = e => { S.alpha = +e.target.value; s2Slider(); };
+  $('alphaMle').onclick = () => { S.alpha = F.alphaHat; renderS2(); };
+  $('alphaOne').onclick = () => { S.alpha = 1; renderS2(); };
+  const exRnd = mulberry32(99);
+  $('exNew').onclick = () => { let r; do { r = Math.floor(exRnd() * R); } while (rN[r] < 10 || !clean[r]); S.exRace = r; renderS2(false); };
+  $('evIn').onclick = () => { S.evalOut = false; renderS3(); }; $('evOut').onclick = () => { S.evalOut = true; renderS3(); };
+  $('cutSel').onchange = e => { S.cut = +e.target.value; setCut(); renderS3(); renderS6(); };
+  $('refit').onclick = () => { fitFull(); renderS3(); renderS5(); };
+  $('ex41').onclick = () => { S.kb = 4; S.kp = 0.25; renderS4(); }; $('ex121').onclick = () => { S.kb = 12; S.kp = 0.1; renderS4(); };
+  let s4t = 0; const s4 = () => { cancelAnimationFrame(s4t); s4t = requestAnimationFrame(() => renderS4()); };
+  $('kb').oninput = e => { S.kb = +e.target.value; s4(); }; $('kp').oninput = e => { S.kp = +e.target.value; s4(); };
+  $('nBets').oninput = e => { S.nBets = +e.target.value; s4(); };
+  $('simRun').onclick = () => { S.seed++; renderS4(); };
+  $('mtgSel').onchange = e => { const k = +e.target.value; fillRaces(k); S.race = meetings[k].races[0]; renderS5(); };
+  $('raceSel').onchange = e => { S.race = +e.target.value; renderS5(); };
+  const rRnd = mulberry32(2024);
+  $('raceRand').onclick = () => { let r; do { r = Math.floor(rRnd() * R); } while (!clean[r]); S.race = r; renderS5(); };
+  $('raceMulti').onclick = () => { const c = pickMulti(); if (!c.length) { $('raceCall').innerHTML = '<p>At this take no race has a bet on two to five horses. Lower the take.</p>'; return; } S.race = c[Math.floor(rRnd() * c.length)]; renderS5(); };
+  $('take5').oninput = e => { S.take5 = +e.target.value; renderS5(); };
+  let s6t = 0; const s6 = sw => { cancelAnimationFrame(s6t); s6t = requestAnimationFrame(() => renderS6(sw)); };
+  $('take6').oninput = e => { S.take6 = +e.target.value; s6(false); };
+  $('thr').oninput = e => { S.thr = +e.target.value; s6(true); };
+  $('kfrac').oninput = e => { S.kfrac = +e.target.value; s6(false); };
+
+  function renderAll() { renderS1(); renderS2(); renderS3(); renderS5(); renderS6(); }
+  function recolor() { readColors(); renderS4(false); plots.forEach(p => p.dirty = true); schedule(); }
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+
+  // first paint: section 1 needs only the public probabilities, the fits follow in the next frame
+  setConv();
+  basicStats();
+  renderS1();
+  renderS4();
+  fillMeetings();
+  setTimeout(() => {
+    const t0 = performance.now();
+    fitAll();
+    S.alpha = Math.round(F.alphaHat * 200) / 200;
+    S.exRace = exampleRace();
+    const multi = pickMulti(); S.race = multi.length ? multi[multi.length - 1] : R - 1;
+    fillRaces(meetOfRace[S.race]);
+    renderAll();
+    F.totalMs = performance.now() - t0;
+    window.__benter = { F, S, ms: F.totalMs }; // for verification
+  }, 30);
+})();
+</script>
+
+</body></html>

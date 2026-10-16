@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Bayesian Search Lab</title>
+<title>Lost City of Gold</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: the search grid heatmap is the hero; search actions, readouts, scenarios and detection settings in the right rail; strategy comparison, lesson and class notes below. */
+/* Layout: HUD, status and the jungle map with the probability heat map on the left; action picker, Bayes' advisor and the per-cell evidence sum in the right rail; evidence cards (stacked log-likelihood layers), lesson, notes and class exercises below. */
 :root {
   --bg: #eceff3;
   --surface: #ffffff;
@@ -24,6 +24,11 @@
   --fit: #0e7f73;
   --coinA: #0e7f73;
   --coinB: #7a4fc4;
+  --jungle: #dfe8d6;
+  --jungle2: #b9cdaa;
+  --ridge: #7d8a6c;
+  --river: #3f7fc4;
+  --heat: #d9480f;
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -33,6 +38,7 @@
     --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
     --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
     --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    --jungle: #18241b; --jungle2: #2a3d2c; --ridge: #6f8466; --river: #4f93dc; --heat: #ff7a3d;
     color-scheme: dark;
   }
 }
@@ -40,9 +46,11 @@
   --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
   --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
   --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  --jungle: #18241b; --jungle2: #2a3d2c; --ridge: #6f8466; --river: #4f93dc; --heat: #ff7a3d;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 .wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
 
@@ -53,21 +61,22 @@ h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 
 a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
 a.back:hover { text-decoration: underline; }
 a.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 80ch; }
+.src a { color: var(--accent); }
 
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
 @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 
 .board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.board canvas { display: block; width: 100%; touch-action: pan-y; }
+.board canvas { display: block; width: 100%; }
+#map { touch-action: manipulation; cursor: crosshair; border-radius: 8px; }
+#map:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }
 .sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
 .sw.dot { width: 10px; border-radius: 50%; }
-.sw.line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
-.sw.curve { height: 0; border-top: 2px dashed var(--curve); border-radius: 0; background: none; }
 .tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
 .tip b { font-family: var(--font-display); }
-.eqn { font-family: var(--font-mono); font-size: clamp(13px, 1.7vw, 16px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
 
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -87,31 +96,94 @@ button:disabled { opacity: .5; cursor: default; }
 .seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; box-shadow: none; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.seg button small { display: block; font-weight: 400; font-family: var(--font-mono); font-size: 11px; opacity: .85; }
 
-.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider { display: flex; flex-direction: column; gap: 2px; }
 .slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .slider label { font-weight: 700; }
-.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
-input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
 .checks { display: flex; flex-direction: column; gap: 6px; }
 .checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
-input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
-select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; max-width: 100%; }
-.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.field label { font-weight: 700; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; margin: 0; }
 .hint { font-size: 12.5px; color: var(--muted); margin: 0; }
-
 table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
 .stats th:first-child, .stats td:first-child { text-align: left; }
 .stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
-.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td { font-family: var(--font-mono); font-size: 13.5px; }
 .stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats td + td, .stats th + th { padding-left: 8px; }
 .stats tr:last-child td { border-bottom: 0; }
-.stats td.th { color: var(--curve); }
-.stats td.ob { color: var(--accent); }
-.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.stats tr.rec td { color: var(--fit); font-weight: 600; }
 .scroll { overflow-x: auto; max-width: 100%; }
+
+/* HUD */
+.hud { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px 20px; padding: 2px 4px; }
+.hud .st { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.hud .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hud .v { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.hud .days { flex: 1 1 200px; }
+.pips { display: flex; gap: 3px; margin-top: 4px; flex-wrap: wrap; }
+.pip { width: 13px; height: 16px; border-radius: 3px; background: var(--ball); transition: background .25s, transform .25s; }
+.pip.used { background: var(--line); }
+.pip.cost { background: var(--ball); box-shadow: inset 0 0 0 2px var(--curve); }
+.pip.spend { transform: scale(.6); }
+.status { font-size: 14.5px; min-height: 3em; padding: 8px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); font-variant-numeric: tabular-nums; }
+.status.miss { border-left-color: var(--curve); }
+.status.gold { border-left-color: var(--ball); }
+.status.win { border-left-color: var(--ball); background: color-mix(in srgb, var(--ball) 14%, var(--surface)); font-weight: 700; }
+.status.pop { animation: pop .45s ease-out; }
+@keyframes pop { 0% { transform: scale(.97); } 60% { transform: scale(1.015); } 100% { transform: scale(1); } }
+.mapbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; }
+.mapbar .seg { min-width: 230px; }
+.mapbar .checks { flex-direction: row; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; }
+
+.selbox { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 13.5px; font-variant-numeric: tabular-nums; line-height: 1.5; }
+.selbox b { font-family: var(--font-mono); font-weight: 600; }
+.advice { background: var(--board); border: 1px solid var(--line); border-left: 3px solid var(--fit); border-radius: 8px; padding: 9px 11px; font-size: 14px; }
+.advice b { color: var(--fit); }
+
+.why { display: grid; grid-template-columns: minmax(0, 1fr) 92px 50px; font-size: 12.5px; align-items: center; row-gap: 2px; }
+.why .l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px; }
+.why .t { position: relative; height: 12px; }
+.why .t .z { position: absolute; left: 50%; top: -2px; bottom: -2px; border-left: 1px solid var(--muted); opacity: .6; }
+.why .t .b { position: absolute; top: 2px; height: 8px; border-radius: 2px; }
+.why .b.pos { background: var(--fit); } .why .b.neg { background: var(--coinB); }
+.why .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.why .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 3px 0; }
+.why .tot { font-weight: 700; }
+
+.reveal { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--ball); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.reveal h3 { font-family: var(--font-display); font-size: 20px; margin: 0; }
+.reveal p { margin: 0; }
+.reveal .row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* evidence cards */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.evhead { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; justify-content: space-between; }
+.evhead .btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.eqline { font-family: var(--font-mono); font-size: 13px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 16px 24px; padding-left: 4px; }
+@media (max-width: 520px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; } }
+.ev { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 9px; display: flex; flex-direction: column; gap: 6px; min-width: 0; transition: border-color .2s, opacity .2s; }
+.ev::before { content: "+"; position: absolute; left: -19px; top: 34px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--muted); }
+.ev.first::before { content: none; }
+.ev.sum::before { content: "="; color: var(--ink); }
+.ev.sum { border-color: var(--heat); }
+.ev.off canvas { opacity: .25; }
+.ev.off .ttl { color: var(--muted); }
+.ev.flash { border-color: var(--fit); }
+.ev canvas { width: 100%; aspect-ratio: 4 / 3; height: auto; border-radius: 6px; display: block; }
+.ev .ttl { display: flex; gap: 7px; align-items: flex-start; font-weight: 700; font-size: 13.5px; line-height: 1.25; cursor: pointer; }
+.ev .ttl input { margin-top: 1px; }
+.ev .sub { font-size: 12px; color: var(--muted); line-height: 1.35; margin: 0; }
+.ev .here { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ev .here b { font-weight: 600; }
+.ev .here b.pos { color: var(--fit); } .ev .here b.neg { color: var(--coinB); }
+.ev .slider label { font-weight: 400; font-size: 12px; color: var(--muted); }
+.ramp { display: inline-block; width: 64px; height: 10px; border-radius: 2px; flex: none; }
 
 .lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
 @media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
@@ -136,33 +208,11 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
 .note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
 .note p { margin: 0 0 8px; }
-.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.formula + .formula { margin-top: 6px; }
+.note ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
 .try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
 .try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
-@media (prefers-reduced-motion: reduce) { button { transition: none; } }
-
-.status { font-size: 15px; font-weight: 700; min-height: 1.5em; padding: 0 4px; }
-.status.found { color: var(--fit); }
-.ramp { display: inline-block; width: 70px; height: 10px; border-radius: 2px; flex: none; }
-.sw.last { background: transparent; box-shadow: inset 0 0 0 2px var(--ball); }
-.sw.wreck { background: var(--curve); border-radius: 50%; width: 10px; }
-.sw.cnt { background: transparent; width: auto; height: auto; font-family: var(--font-mono); font-size: 11px; color: var(--ink); }
-.panel .stats td + td { white-space: nowrap; padding-left: 8px; }
-.scen { display: flex; flex-direction: column; gap: 10px; }
-.scen .slider label { font-weight: 400; font-size: 14px; }
-.scen .slider label b { font-family: var(--font-mono); }
-.cmpGrid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
-@media (max-width: 900px) { .cmpGrid { grid-template-columns: minmax(0, 1fr); } }
-.cmpBoard { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; }
-.cmpBoard canvas { display: block; width: 100%; }
-.sw.sp { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
-.sw.spq { height: 0; border-top: 2.5px solid var(--fit); border-radius: 0; background: none; }
-.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
-.src a { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { button, .pip, .ev { transition: none; } .status.pop { animation: none; } }
 </style>
 </head><body>
 
@@ -170,141 +220,156 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 <div class="wrap">
   <header>
     <span class="eyebrow">Polson–Sokolov Lab · Bayesian search</span>
-    <h1>Bayesian Search Lab</h1>
-    <p class="lead">A lost submarine lies somewhere on a 15 × 15 grid. The map starts as a prior built from three weighted scenarios. Each failed search lowers the probability of the searched cell and raises every other cell. Hunt by hand, then compare two search rules over many simulated hunts.</p>
+    <h1>Lost City of Gold</h1>
+    <p class="lead">A Spanish gold-mining town lies hidden somewhere in this stretch of jungle. Old records, a 1574 map and modern surveys each add a layer of log-evidence to the map. Weigh the sources, then spend 12 survey days sampling streams, flying LiDAR and digging before the money runs out.</p>
     <a class="back" href="index.html">← All labs</a>
-    <p class="src">Based on Chapter 2, <a href="https://vsokolov.org/html/_book/02-bayes.html">Bayes' Rule</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
+    <p class="src">Based on the Logroño example in Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/00-intro.html">The Modern AI Playbook</a> and <a href="https://vsokolov.org/html/_book/02-bayes.html">Chapter 2</a>. The search area, clues and numbers in this game are invented for teaching; the real story is told in Aurania Resources’ 2022 announcement and MIT Sloan’s “Math, magic, and a lost city of gold”.</p>
   </header>
 
   <main class="grid">
-    <section class="board" aria-label="Search grid heatmap">
+    <section class="board" aria-label="Search map with the posterior heat map">
+      <div class="hud" aria-label="Expedition status">
+        <div class="st days"><span class="k">Survey days left</span><div style="display:flex;align-items:center;gap:10px"><span class="v" id="hDays">12</span><div class="pips" id="pips" aria-hidden="true"></div></div></div>
+        <div class="st"><span class="k">Digs</span><span class="v" id="hDigs">0</span></div>
+        <div class="st"><span class="k">Finds</span><span class="v" id="hFinds">0 / 0</span></div>
+        <div class="st"><span class="k">Score</span><span class="v" id="hScore">0</span></div>
+        <div class="st"><span class="k">Best</span><span class="v" id="hBest">–</span></div>
+      </div>
       <div class="status" id="status" aria-live="polite"></div>
-      <canvas id="map" role="img" aria-label="15 by 15 grid shaded by probability; click a cell to search it"></canvas>
+      <canvas id="map" tabindex="0" role="img" aria-label="Stylised jungle map, 40 by 30 cells, with two rivers, a village at their confluence and a heat map of where the town may be. Click or tap a cell to select it; arrow keys move the selection and Enter acts."></canvas>
       <div id="tip" class="tip" hidden></div>
-      <div class="legend">
-        <span><i class="ramp" id="ramp"></i><span id="rampLab">Posterior P(cell)</span></span>
-        <span><i class="sw last"></i>Last cell searched</span>
-        <span><i class="sw cnt">3</i>Times searched</span>
-        <span><i class="sw wreck"></i>True location (when shown)</span>
+      <div class="mapbar">
+        <div class="seg" role="group" aria-label="Map shows">
+          <button id="vProb" aria-pressed="true">Probability</button>
+          <button id="vLog" aria-pressed="false">Log-evidence</button>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="showAdv" checked> Advisor's pick</label>
+          <label><input type="checkbox" id="showPath" checked> My path</label>
+        </div>
+      </div>
+      <div class="legend" id="legend">
+        <span><i class="ramp" id="ramp"></i><span id="rampLab">P(town in cell), scaled to the top cell</span></span>
+        <span><i class="sw dot" style="background:var(--ball)"></i>Stream sample (size = grade)</span>
+        <span><i class="sw" style="background:transparent;box-shadow:inset 0 0 0 2px var(--curve)"></i>Failed dig</span>
+        <span><i class="sw" style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--accent)"></i>LiDAR flight</span>
+      </div>
+      <div class="reveal" id="reveal" hidden>
+        <h3 id="revTitle"></h3>
+        <div id="revBody"></div>
+        <div class="row"><button class="primary" id="again">Play again with a new hidden town</button></div>
       </div>
     </section>
 
     <aside class="panel">
       <div class="group">
-        <span class="label">Search</span>
-        <div class="btns">
-          <button id="bestP" class="primary">Search best cell</button>
-          <button id="bestPQ">Search best p × q</button>
-          <button id="auto">Search best ×10</button>
-          <button id="newHunt">New hunt</button>
+        <span class="label">Choose an action, then a place</span>
+        <div class="seg" role="group" aria-label="Action">
+          <button id="mDig" aria-pressed="true">Dig<small>2 days</small></button>
+          <button id="mSample" aria-pressed="false">Sample stream<small>1 day</small></button>
+          <button id="mLidar" aria-pressed="false">Fly LiDAR<small>2 days</small></button>
         </div>
-        <p class="hint">"Best cell" has the highest posterior p. "Best p × q" has the highest chance of finding the wreck on this search. You can also click any cell.</p>
+        <div class="selbox" id="selInfo" aria-live="polite"></div>
+        <button class="primary" id="go">Dig here</button>
+        <p class="hint" id="modeHint"></p>
       </div>
 
       <div class="group">
-        <span class="label">Map shows</span>
-        <div class="seg" role="group" aria-label="Map layer">
-          <button id="vP" aria-pressed="true">Posterior p</button>
-          <button id="vQ" aria-pressed="false">Detection q</button>
-          <button id="vPQ" aria-pressed="false">p × q</button>
-        </div>
-        <div class="checks">
-          <label><input type="checkbox" id="showScen" checked> Mark scenario centers</label>
-          <label><input type="checkbox" id="showWreck"> Show the true location</label>
-        </div>
+        <span class="label">Bayes' advisor</span>
+        <div class="advice" id="advText" aria-live="polite">Thinking…</div>
+        <button id="follow">Follow the advice</button>
+        <div class="scroll"><table class="stats" id="advTab">
+          <thead><tr><th>Best option</th><th>Next-dig chance</th><th>Per day</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="hint">Rule: pick the action with the highest chance of finding the town on the next dig, divided by all the days it uses. Digging now scores P(plot)·q / 2 days. A sample or flight scores the expected best dig chance after you see the reading, divided by its days plus 2 for the dig.</p>
       </div>
 
       <div class="group">
-        <div style="display:flex;justify-content:space-between;align-items:end;gap:8px">
-          <span class="label">Searches this hunt</span><span class="big" id="nSearch">0</span>
-        </div>
-        <table class="stats">
-          <tbody>
-            <tr><td>Last cell searched</td><td id="sLast">–</td></tr>
-            <tr><td>Its p before → after</td><td id="sPP">–</td></tr>
-            <tr><td>Best cell now (p)</td><td id="sBest">–</td></tr>
-            <tr><td>Best cell now (p × q)</td><td id="sBestPQ">–</td></tr>
-            <tr><td>P(found by now), from the prior</td><td class="th" id="sFound">–</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="group scen">
-        <span class="label">Prior scenarios (simulated)</span>
-        <div class="slider"><div class="top"><label for="w0"><b>A</b> Turned back toward port</label><output id="w0Out">0.45</output></div><input type="range" id="w0" min="0" max="1" step="0.05" value="0.45"></div>
-        <div class="slider"><div class="top"><label for="w1"><b>B</b> Sank on its planned route</label><output id="w1Out">0.35</output></div><input type="range" id="w1" min="0" max="1" step="0.05" value="0.35"></div>
-        <div class="slider"><div class="top"><label for="w2"><b>C</b> Drifted south while sinking</label><output id="w2Out">0.20</output></div><input type="range" id="w2" min="0" max="1" step="0.05" value="0.2"></div>
-        <p class="hint">Weights are rescaled to sum to 1. Each scenario spreads its weight around a center. A further 2% is spread evenly over the whole grid.</p>
+        <span class="label">Why this cell? Evidence adds up</span>
+        <div class="why" id="why"></div>
+        <p class="hint">Each bar is reliability × log-likelihood ratio for the selected cell. The posterior is e<sup>total</sup> divided by the sum over all 1,200 cells.</p>
       </div>
 
       <div class="group">
-        <span class="label">Detection probability when the wreck is in the cell</span>
-        <div class="slider"><div class="top"><label for="qHi">Open seabed, q</label><output id="qHiOut">0.90</output></div><input type="range" id="qHi" min="0.1" max="1" step="0.05" value="0.9"></div>
-        <div class="slider"><div class="top"><label for="qLo">Deep trench, q</label><output id="qLoOut">0.15</output></div><input type="range" id="qLo" min="0.05" max="1" step="0.05" value="0.15"></div>
-        <p class="hint">Switch the map to "Detection q" to see the trench. Changing any setting starts a new hunt.</p>
+        <button id="newGame">New game</button>
       </div>
     </aside>
   </main>
 
-  <section class="card" aria-labelledby="cmpH">
-    <h2 id="cmpH">Which cell should you search next?</h2>
-    <p class="hint" style="font-size:14px;max-width:90ch">Each simulated hunt draws a wreck location from the prior and searches until it is found. Both rules use the same wreck locations and the same detection luck, so only the choice of cell differs.</p>
-    <div class="cmpGrid">
-      <div class="cmpBoard">
-        <canvas id="cmp" role="img" aria-label="Share of hunts finished against the number of searches for the two rules"></canvas>
-        <div class="legend" style="padding-top:6px">
-          <span><i class="sw sp"></i>Search the highest p</span>
-          <span><i class="sw spq"></i>Search the highest p × q</span>
-        </div>
+  <section class="card" aria-labelledby="evH">
+    <div class="evhead">
+      <div style="display:flex;flex-direction:column;gap:4px;max-width:70ch">
+        <span class="eyebrow">Ten layers, one sum</span>
+        <h2 id="evH">Evidence cards</h2>
+        <p class="hint" style="font-size:14px">Each card is a map of log-likelihood ratios: teal where the clue makes the town more likely, purple where less. The reliability slider multiplies the layer (0 ignores it, 1 takes it at face value, above 1 over-trusts it). The heat map is the sum.</p>
       </div>
-      <div class="group">
-        <button id="runCmp" class="primary">Run 1,000 hunts per rule</button>
-        <table class="stats">
-          <thead><tr><th>Searches to find</th><th>Highest p</th><th>Highest p×q</th></tr></thead>
-          <tbody>
-            <tr><td>Average</td><td class="ob" id="mP">–</td><td id="mPQ" style="color:var(--fit)">–</td></tr>
-            <tr><td>Median</td><td class="ob" id="medP">–</td><td id="medPQ" style="color:var(--fit)">–</td></tr>
-            <tr><td>90th percentile</td><td class="ob" id="q9P">–</td><td id="q9PQ" style="color:var(--fit)">–</td></tr>
-            <tr><td>Hunts</td><td id="hP">–</td><td id="hPQ">–</td></tr>
-          </tbody>
-        </table>
-        <p class="hint" id="cmpNote"></p>
+      <div class="btnrow">
+        <button class="primary" id="stack">Stack the clues one by one</button>
+        <button id="resetW">Reset weights</button>
       </div>
     </div>
+    <div class="eqline" id="eqline"></div>
+    <div class="cards" id="cards"></div>
+    <div class="legend"><span><i class="ramp" id="rampDiv"></i>log-LR from −2 (purple) through 0 to +2 (teal); the sum card runs from −6 to +6</span></div>
   </section>
 
   <section class="lesson">
     <div class="head">
-      <span class="eyebrow">John Craven and the USS Scorpion, 1968</span>
-      <h2>Prior belief + facts = revised belief</h2>
-      <p class="hint" style="font-size:14px;max-width:80ch">Craven had experts bet on what had happened to the Scorpion, turned the scenarios into a probability map, and searched where the map pointed. This lab follows his four steps on a made-up grid. The scenarios, trench and detection rates are simulated for teaching and are not the real Scorpion search data.</p>
+      <span class="eyebrow">Logroño de los Caballeros</span>
+      <h2>On the log scale, evidence adds</h2>
+      <p class="hint" style="font-size:14px;max-width:86ch">In 2022 the mining company Aurania Resources announced that it had located Logroño de los Caballeros, a Spanish gold-mining town abandoned in the Ecuadorian jungle for more than 400 years. The team used Bayesian search theory with Larry Stone of Metron, who had earlier helped find the USS Scorpion and Air France 447. Colonial records from the 1580s and 1590s, a 1574 map, stream-sediment gold, magnetic and radiometric surveys, LiDAR and geochemistry each said a little. Together they pointed to the Río Santiago valley, where fieldwork found alluvial gold. This game copies the method on an invented map.</p>
       <div class="demo">
-        <button class="primary" id="demoHard">Deep trench hides the likely spot</button>
-        <button id="demoFlat">Same detection everywhere</button>
+        <button class="primary" id="demoStack">Watch the clues stack up</button>
+        <button id="demoNoMap">Ignore the 1574 map</button>
+        <button id="demoDocs">Old documents only</button>
       </div>
     </div>
     <ol class="steps">
-      <li><div><h3>Prior map</h3><p>Combine expert scenarios into P(location) for every cell, and record how likely a search is to spot the wreck if it is there (q). Deep water makes q small.</p></div></li>
-      <li><div><h3>Search the highest-probability cell</h3><p>The simple rule: search the cell with the largest p, for example C5. A refinement uses p × q, the chance that this search succeeds.</p></div></li>
-      <li><div><h3>Update after a failed search</h3><p>Nothing found is evidence. The searched cell keeps only the part of its probability where the search missed, p(1 − q), and every cell is rescaled by 1 − p·q so the map sums to 1 again. Other cells rise.</p></div></li>
-      <li><div><h3>Iterate</h3><p>Repeat steps 2 and 3 until you find the target. A cell with low q gets searched again and again, because one miss there says little.</p></div></li>
+      <li><div><h3>Each clue is a likelihood ratio</h3><p>"Half a league from the Río Zamora" says little on its own: it lights up a band on both banks. In log form it is a layer you add to the map. The church bells add a circle around the village. Where the band and the circle cross, both layers are positive and the sum is large.</p></div></li>
+      <li><div><h3>Weak independent clues make a sharp peak</h3><p>A clue that multiplies the odds by 3 adds log 3 ≈ 1.1. Five such clues that agree on one spot add 5.5, a factor of e<sup>5.5</sup> ≈ 245 over cells where they all say no. That only works if the clues are independent. Two chroniclers copying each other count once.</p></div></li>
+      <li><div><h3>Weight sources by reliability</h3><p>Multiplying a layer by a reliability r between 0 and 1 flattens it toward zero. A 1574 sketch that may be mis-drawn gets a smaller r than a measured gold grade. Setting r = 0 removes a source entirely.</p></div></li>
+      <li><div><h3>A failed dig is evidence too</h3><p>If the town is in the plot with probability p and a dig finds it with probability q, a miss leaves p(1 − q) / (1 − pq) in the plot and divides every other cell by 1 − pq. On the log scale, the miss adds log(1 − q) inside the plot, and normalising does the rest.</p></div></li>
+      <li><div><h3>From beliefs to decisions</h3><p>The map says where the town probably is. The decision is what to do with a day. Digging pays P(plot)·q now. A stream sample pays nothing now but can sharpen the map so the next dig is better. Compare both per day spent.</p></div></li>
     </ol>
     <div class="eqs">
-      <div class="eq"><div class="cap">Bayes' rule</div><div class="m">P(loc | evidence) = P(evidence | loc)·P(loc) / P(evidence)</div></div>
-      <div class="eq"><div class="cap">Searched cell i, nothing found</div><div class="m">P(no find) = 1 − p<sub>i</sub>·q<sub>i</sub></div><div class="m">p<sub>i</sub> ← p<sub>i</sub>(1 − q<sub>i</sub>) / (1 − p<sub>i</sub>q<sub>i</sub>)</div></div>
-      <div class="eq"><div class="cap">Every other cell j</div><div class="m">p<sub>j</sub> ← p<sub>j</sub> / (1 − p<sub>i</sub>q<sub>i</sub>)</div></div>
+      <div class="eq"><div class="cap">Log posterior over cells c (r<sub>k</sub> = reliability of source k)</div><div class="m">log p(c | clues) = log p(c) + Σ<sub>k</sub> r<sub>k</sub> · log LR<sub>k</sub>(c) − log Z</div><div class="m">LR<sub>k</sub>(c) = P(clue k | town at c) / P(clue k | baseline)</div></div>
+      <div class="eq"><div class="cap">Stream sample with gold grade g at distance d from the town</div><div class="m">log g ~ Normal(log(5 + 150·e<sup>−d/2.5</sup>), 0.8²)  ppb</div></div>
+      <div class="eq"><div class="cap">Dig in a plot with probability p, detection q, nothing found</div><div class="m">P(miss) = 1 − p·q</div><div class="m">p<sub>plot</sub> ← p(1 − q) / (1 − pq),  p<sub>other</sub> ← p<sub>other</sub> / (1 − pq)</div></div>
+      <div class="eq"><div class="cap">Advisor: chance of a find on the next dig, per day</div><div class="m">dig now: max P(plot)·q / 2</div><div class="m">scout first: E[max P'(plot)·q | reading] / (cost + 2)</div></div>
     </div>
-    <div class="takeaway"><p><b>Takeaway for students.</b> A failed search is not wasted. It moves probability to the cells you have not checked. The same update finds lost aircraft (Air France 447) and, run millions of times a second, tells a self-driving car where it is (SLAM).</p></div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> No single clue found Logroño. Each one shifted the log-odds a little, the shifts added up, and the sum was sharp enough to send a field team to one valley. The same arithmetic, adding log-likelihood ratios and renormalising, runs spam filters, naive Bayes classifiers and search-and-rescue planning.</p></div>
+  </section>
+
+  <section class="notes" aria-label="Notes">
+    <div class="note">
+      <h2>The real clues</h2>
+      <p>The book lists the corroborating evidence. Juan López de Avendaño wrote in 1588 that Logroño was half a league from the Río Zamora. Two soldiers drowned in 1588 crossing "the river" to fight an uprising. In the mid-1590s seven soldiers drowned trying to reach a garrison downstream. A 1684 Jesuit account tells of an elderly woman who remembered hearing Logroño's church bells from her village at the mouth of the Río Zamora.</p>
+    </div>
+    <div class="note">
+      <h2>What is stylised here</h2>
+      <ul>
+        <li>The map, rivers, ridges, village and garrison are drawn for the game. They are not the real geography.</li>
+        <li>Every likelihood surface, grade, detection rate and cost is invented.</li>
+        <li>Each game hides the town by drawing from e<sup>Σ w*·LLR</sup> with hidden weights w* near the default reliabilities, then simulates the 1574 map and the stream readings from that town. The clues are informative but noisy, and the reveal shows the hidden weights.</li>
+        <li>The town is a single cell, and the sources are treated as independent.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>Reliability is a modelling choice</h2>
+      <p>Raising a likelihood to a power r is a simple way to discount a source you only half trust. It is a judgment call. If two documents share a source, give them a combined weight of about 1, since counting both at full strength double counts one witness.</p>
+      <p>Over-trusting (r &gt; 1) makes the map look sharper than the evidence allows. The advisor then digs confidently in the wrong place.</p>
+    </div>
   </section>
 
   <section class="try">
     <h2>Try this in class</h2>
     <ol>
-      <li>Before any search, ask students to name the cell they would search first. Then switch the map between "Posterior p", "Detection q" and "p × q" and ask whether they would change their answer.</li>
-      <li>Press "Search best cell" five times and watch the searched cell fade while scenario B's area darkens. Read "Its p before → after" and check it against p(1 − q) / (1 − pq).</li>
-      <li>Click a cell far from every scenario and search it. Its p barely changes, and neither does the rest of the map. Ask why a search there tells you so little.</li>
-      <li>Run the comparison. Then press "Same detection everywhere" and run it again. When q is the same in every cell, the two rules pick the same cells and tie.</li>
-      <li>Set scenario A's weight to 0 and start a new hunt. Ask what the experts' bet would cost if the wreck really was near A, then tick "Show the true location".</li>
+      <li>Press "Stack the clues one by one". After each card switches on, ask students to point to the peak and say how sure they are. Read the top cell's probability from the "Why this cell?" panel as it climbs.</li>
+      <li>Set the 1574 map's reliability to 0, then to 1.5. How far does the peak move? Should one sketch be able to move it that far? Check at the end of the game whether this map was mis-drawn.</li>
+      <li>Before a dig, read P(plot) and q from the selection box and predict the plot's probability after a miss with p(1 − q) / (1 − pq). Dig and compare with the status line.</li>
+      <li>Half the class follows the advisor every turn and half plays by gut feel. Play 10 games each and compare finds and days left on the board.</li>
+      <li>Find a turn where the advisor prefers a stream sample to digging. Ask why spending a day on information can beat digging now, and when it stops being worth it.</li>
     </ol>
   </section>
 </div>
@@ -312,263 +377,710 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const cv = $('map'), ctx = cv.getContext('2d'), tip = $('tip');
-  const cc = $('cmp'), cx = cc.getContext('2d');
-  const G = 15, NC = G * G, COLS = 'ABCDEFGHIJKLMNO';
-  const SCEN = [ { name: 'A', x: 10.5, y: 3.5, sd: 1.0 }, { name: 'B', x: 4.5, y: 8, sd: 1.2 }, { name: 'C', x: 9, y: 11.5, sd: 1.5 } ];
-  const TRENCH = { x: 10.5, y: 3.5, sd: 1.8 };
-  const S = { w: [0.45, 0.35, 0.2], qHi: 0.9, qLo: 0.15, view: 'p', showScen: true, showWreck: false,
-              prior: null, q: null, p: null, wreck: 0, found: false, n: 0, counts: null, last: -1, lastPP: null, notFound: 1, cmp: null };
-  let C = {}, L = {}, LC = {};
+  /*CORE*/
+  const W = 40, H = 30, N = W * H;
+  const DAYS = 12, COST = { dig: 2, sample: 1, lidar: 2 };
+  const BG = 5, AMP = 150, LAM = 2.5, SIG = 0.8;           // stream-sediment model, ppb
+  const PA_NEAR = 0.45, PA_FAR = 0.06;                      // LiDAR anomaly rates
+  const KEYS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  const STATIC = ['A', 'B', 'C', 'D', 'G', 'H'];
+  const DEF = { A: 1, B: 0.8, C: 0.6, D: 0.9, E: 1, F: 1, G: 0.6, H: 1, I: 1, J: 1 };
+  const SANT = [[31, -1], [30, 3], [28, 7], [26, 10], [24, 13], [22, 16], [20.5, 18.5], [19, 21], [17.5, 24], [15, 27], [13, 31]];
+  const ZAM = [[-1, 6], [4, 7], [8, 9], [11, 12], [14, 14], [17, 16], [20.5, 18.5]];
+  const CREEKS = [[[36.5, 14.5], [32, 13], [25.2, 12]], [[4.5, 18.5], [9.5, 16.8], [13.3, 13.9]], [[31, 23.5], [25, 21.6], [19.4, 20.2]],
+    [[12.5, -0.5], [12.8, 5.5], [11.3, 11.6]], [[7, 29.5], [12, 25.5], [17.8, 23.4]]];
+  const VILLAGE = [22.5, 18.7], GARRISON = [15.7, 26.3];
+  const RIDGES = [[3, 22, 11, 26, 1.0, 2.0], [15, 1, 24, 4, 0.9, 2.0], [33, 16, 37, 27, 1.1, 2.2], [1, 11, 6, 13.5, 0.7, 1.5], [29, 5, 35, 8.5, 0.8, 1.8], [26, 25.5, 30, 28.5, 0.6, 1.6]];
 
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function randn(r) { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); }
+  const cxOf = i => i % W + 0.5, cyOf = i => Math.floor(i / W) + 0.5;
+  const cheb = (a, b) => Math.max(Math.abs(a % W - b % W), Math.abs(Math.floor(a / W) - Math.floor(b / W)));
+  function polyNear(P, x, y) {
+    let best = 1e9, bs = 0, acc = 0;
+    for (let k = 0; k < P.length - 1; k++) {
+      const ax = P[k][0], ay = P[k][1], dx = P[k + 1][0] - ax, dy = P[k + 1][1] - ay, L2 = dx * dx + dy * dy, L = Math.sqrt(L2);
+      let t = ((x - ax) * dx + (y - ay) * dy) / L2; t = Math.max(0, Math.min(1, t));
+      const d = Math.hypot(ax + t * dx - x, ay + t * dy - y);
+      if (d < best) { best = d; bs = acc + t * L; }
+      acc += L;
+    }
+    return [best, bs];
+  }
+  const segD = (x, y, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay; let t = ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy); t = Math.max(0, Math.min(1, t)); return Math.hypot(ax + t * dx - x, ay + t * dy - y); };
+
+  // ---- fixed geography
+  const GEO = (() => {
+    const dZ = new Float64Array(N), dS = new Float64Array(N), sS = new Float64Array(N), dV = new Float64Array(N), dC = new Float64Array(N);
+    const elev = new Float64Array(N), slope = new Float64Array(N), q = new Float64Array(N), water = new Uint8Array(N), belt = new Float64Array(N), noise = new Float64Array(N);
+    const sG = polyNear(SANT, GARRISON[0], GARRISON[1])[1];
+    const ux = 28 / Math.hypot(28, 24), uy = -24 / Math.hypot(28, 24);
+    for (let i = 0; i < N; i++) {
+      const x = cxOf(i), y = cyOf(i);
+      dZ[i] = polyNear(ZAM, x, y)[0];
+      const s = polyNear(SANT, x, y); dS[i] = s[0]; sS[i] = s[1];
+      dV[i] = Math.hypot(x - VILLAGE[0], y - VILLAGE[1]);
+      let c = 1e9; for (const P of CREEKS) c = Math.min(c, polyNear(P, x, y)[0]); dC[i] = c;
+      const dW = Math.min(dZ[i], dS[i]);
+      let e = 0.05 * Math.min(dW, 14) + 0.03 * Math.min(dC[i], 6);
+      for (const R of RIDGES) { const d = segD(x, y, R[0], R[1], R[2], R[3]); e += R[4] * Math.exp(-d * d / (2 * R[5] * R[5])); }
+      elev[i] = e;
+      water[i] = dS[i] < 0.9 || dZ[i] < 0.8 ? 2 : dC[i] < 0.6 ? 1 : 0;
+      belt[i] = Math.abs((x - 8) * uy - (y - 28) * ux);
+      noise[i] = (Math.sin(0.47 * x + 1.3) + Math.sin(0.39 * y + 0.4) + Math.sin(0.31 * (x + y) + 2.1) + Math.sin(0.53 * (x - y) + 0.7)) / 4;
+    }
+    let mx = 0, me = 0;
+    for (let i = 0; i < N; i++) {
+      const x = i % W, y = Math.floor(i / W);
+      const ex = (elev[y * W + Math.min(W - 1, x + 1)] - elev[y * W + Math.max(0, x - 1)]) / 2;
+      const ey = (elev[Math.min(H - 1, y + 1) * W + x] - elev[Math.max(0, y - 1) * W + x]) / 2;
+      slope[i] = Math.hypot(ex, ey); mx = Math.max(mx, slope[i]); me = Math.max(me, elev[i]);
+    }
+    for (let i = 0; i < N; i++) { slope[i] /= mx; elev[i] /= me; q[i] = 0.8 - 0.3 * slope[i]; }
+    const stream = []; for (let i = 0; i < N; i++) if (water[i]) stream.push(i);
+    return { dZ, dS, sS, sG, dV, dC, elev, slope, q, water, belt, noise, stream };
+  })();
+  const Q = GEO.q;
+
+  function centred(f) { const a = new Float64Array(N); let m = 0; for (let i = 0; i < N; i++) { a[i] = f(i); m += a[i]; } m /= N; for (let i = 0; i < N; i++) a[i] -= m; return a; }
+  const band = d => Math.exp(-(d - 7) * (d - 7) / 8);
+  const LS = {
+    A: centred(i => Math.log(0.15 + 0.85 * (0.8 * band(GEO.dZ[i]) + 0.2 * band(GEO.dS[i])))),
+    B: centred(i => Math.log(0.2 + Math.exp(-(GEO.dS[i] ** 2) / 32))),
+    C: centred(i => Math.log(0.15 + Math.exp(-(GEO.dS[i] ** 2) / 128) / (1 + Math.exp(-(GEO.sG - GEO.sS[i] - 1) / 1.5)))),
+    D: centred(i => Math.log(0.1 + Math.exp(-(GEO.dV[i] ** 2) / 72))),
+    G: centred(i => 1.1 * Math.exp(-(GEO.belt[i] ** 2) / 50) + 0.35 * GEO.noise[i]),
+    H: centred(i => -1.8 * GEO.slope[i] - 0.8 * GEO.elev[i] + (GEO.water[i] === 2 ? -5 : GEO.water[i] === 1 ? -1.5 : Math.min(GEO.dS[i], GEO.dZ[i]) < 1.8 ? -0.7 : 0))
+  };
+
+  for (const k of STATIC) for (let i = 0; i < N; i++) LS[k][i] *= 0.6;   // keep each old clue weak on its own
+  function softmax(s) { let m = -Infinity; for (const v of s) if (v > m) m = v; const p = new Float64Array(s.length); let z = 0; for (let i = 0; i < s.length; i++) { p[i] = Math.exp(s[i] - m); z += p[i]; } for (let i = 0; i < s.length; i++) p[i] /= z; return p; }
+  function drawFrom(p, r) { let u = r(), i = 0; for (; i < p.length - 1; i++) { u -= p[i]; if (u <= 0) break; } return i; }
+  function plotCells(c) { const out = [], x = c % W, y = Math.floor(c / W); for (let yy = Math.max(0, y - 1); yy <= Math.min(H - 1, y + 1); yy++) for (let xx = Math.max(0, x - 1); xx <= Math.min(W - 1, x + 1); xx++) out.push(yy * W + xx); return out; }
+  function plotVal(p, useQ = true) {
+    const pq = new Float64Array(N), row = new Float64Array(N), V = new Float64Array(N);
+    for (let i = 0; i < N; i++) pq[i] = useQ ? p[i] * Q[i] : p[i];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; row[i] = pq[i] + (x > 0 ? pq[i - 1] : 0) + (x < W - 1 ? pq[i + 1] : 0); }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; V[i] = row[i] + (y > 0 ? row[i - W] : 0) + (y < H - 1 ? row[i + W] : 0); }
+    return V;
+  }
+  function argmax(a) { let b = 0; for (let i = 1; i < a.length; i++) if (a[i] > a[b]) b = i; return b; }
+  const muAt = d => Math.log(BG + AMP * Math.exp(-d / LAM));
+  const LLR_A = Math.log(PA_NEAR / PA_FAR), LLR_N = Math.log((1 - PA_NEAR) / (1 - PA_FAR));
+  function blockOf(c) { const x0 = Math.max(0, Math.min(W - 6, c % W - 2)), y0 = Math.max(0, Math.min(H - 6, Math.floor(c / W) - 2)); return [x0, y0]; }
+
+  function layerE(m) {
+    const L = new Float64Array(N), n2 = (d2, s) => Math.exp(-d2 / (2 * s * s)) / (2 * Math.PI * s * s);
+    for (let i = 0; i < N; i++) { const d2 = (cxOf(i) - m.x) ** 2 + (cyOf(i) - m.y) ** 2; L[i] = Math.log(N * (0.7 * n2(d2, 6) + 0.3 * n2(d2, 14))); }
+    return L;
+  }
+  function addSample(L, s, g) {
+    const z = Math.log(g), z0 = Math.log(BG);
+    for (let i = 0; i < N; i++) { const mu = muAt(Math.hypot(cxOf(i) - cxOf(s), cyOf(i) - cyOf(s))); L[i] += ((z - z0) ** 2 - (z - mu) ** 2) / (2 * SIG * SIG); }
+  }
+  function addFlight(L, f) {
+    for (let k = 0; k < 36; k++) {
+      const j = (f.y0 + Math.floor(k / 6)) * W + f.x0 + k % 6, v = f.r[k] ? LLR_A : LLR_N;
+      for (const c of plotCells(j)) L[c] += v;
+    }
+  }
+  function gradeAt(G, s) { return Math.exp(muAt(Math.hypot(cxOf(G.city) - cxOf(s), cyOf(G.city) - cyOf(s))) + SIG * randn(G.r)); }
+
+  function makeGame(seed) {
+    const r = mulberry32(seed), wTrue = {};
+    for (const k of STATIC) wTrue[k] = +(DEF[k] * (0.6 + 0.8 * r())).toFixed(2);
+    const s = new Float64Array(N); for (const k of STATIC) for (let i = 0; i < N; i++) s[i] += wTrue[k] * LS[k][i];
+    const pT = softmax(s), city = drawFrom(pT, r);
+    const mis = r() < 0.3, sd = mis ? 14 : 6;
+    const map = { x: Math.max(0.5, Math.min(W - 0.5, cxOf(city) + sd * randn(r))), y: Math.max(0.5, Math.min(H - 0.5, cyOf(city) + sd * randn(r))), mis };
+    const G = { seed, r, city, wTrue, map, samples: [], flights: [], digs: [], days: DAYS, found: false, over: false, foundDay: 0, actions: [] };
+    G.L = { A: LS.A, B: LS.B, C: LS.C, D: LS.D, G: LS.G, H: LS.H, E: layerE(map), F: new Float64Array(N), I: new Float64Array(N), J: new Float64Array(N) };
+    let tries = 0;
+    while (G.samples.length < 3 && tries++ < 500) {
+      const s0 = GEO.stream[Math.floor(r() * GEO.stream.length)];
+      if (G.samples.some(o => Math.hypot(cxOf(o.i) - cxOf(s0), cyOf(o.i) - cyOf(s0)) < 9)) continue;
+      const g = gradeAt(G, s0); G.samples.push({ i: s0, g, init: true }); addSample(G.L.F, s0, g);
+    }
+    G.follow = follower(G);
+    return G;
+  }
+  function posterior(G, w) {
+    const s = new Float64Array(N);
+    for (const k of KEYS) { const wk = w[k]; if (!wk) continue; const L = G.L[k]; for (let i = 0; i < N; i++) s[i] += wk * L[i]; }
+    return { s, p: softmax(s) };
+  }
+  // greedy "always dig the most probable plot" from the opening map, default weights, no scouting
+  function follower(G) {
+    const p = posterior(G, DEF).p, plots = [], hits = [];
+    for (let k = 1; k <= 40; k++) {
+      const V = plotVal(p), c = argmax(V), cells = plotCells(c); plots.push(c);
+      if (cells.includes(G.city)) hits.push(k);
+      let miss = 1; for (const j of cells) miss -= p[j] * Q[j];
+      for (const j of cells) p[j] *= 1 - Q[j];
+      for (let i = 0; i < N; i++) p[i] /= miss;
+    }
+    const q = Q[G.city]; let cum = 0, med = null, within = 0, exp = 0;
+    hits.forEach((k, j) => { const pr = q * (1 - q) ** j; cum += pr; exp += k * pr; if (med === null && cum >= 0.5) med = k; if (k <= DAYS / COST.dig) within += pr; });
+    return { plots, hits, q, med, within, cum };
+  }
+  function act(G, type, c, p) {
+    if (G.over || G.days < COST[type]) return null;
+    const res = { type, c, day: DAYS - G.days + 1 };
+    G.days -= COST[type];
+    if (type === 'dig') {
+      const cells = plotCells(c); let P = 0, PQ = 0; for (const j of cells) { P += p[j]; PQ += p[j] * Q[j]; }
+      res.P = P; res.PQ = PQ; res.q = PQ / P;
+      if (cells.includes(G.city) && G.r() < Q[G.city]) { G.found = true; res.found = true; G.foundDay = res.day; }
+      else { for (const j of cells) G.L.J[j] += Math.log(1 - Q[j]); res.found = false; }
+      G.digs.push({ c, found: res.found });
+    } else if (type === 'sample') {
+      res.g = gradeAt(G, c); G.samples.push({ i: c, g: res.g }); addSample(G.L.F, c, res.g);
+    } else {
+      const [x0, y0] = blockOf(c), rd = new Uint8Array(36);
+      for (let k = 0; k < 36; k++) { const j = (y0 + Math.floor(k / 6)) * W + x0 + k % 6; rd[k] = G.r() < (cheb(j, G.city) <= 1 ? PA_NEAR : PA_FAR) ? 1 : 0; }
+      const f = { x0, y0, r: rd }; G.flights.push(f); addFlight(G.L.I, f); res.f = f; res.n = rd.reduce((a, b) => a + b, 0);
+    }
+    G.actions.push(res);
+    if (G.found || G.days < COST.dig) G.over = true;
+    return res;
+  }
+  // Bayes' advisor: one-step lookahead, value = chance of a find on the next dig per day used
+  function advise(G, p, seed) {
+    const opts = []; if (G.over || G.days < COST.dig) return opts;
+    const V = plotVal(p), b = argmax(V), now = V[b];
+    opts.push({ type: 'dig', c: b, next: now, per: now / COST.dig });
+    const r = mulberry32(seed);
+    if (G.days >= COST.sample + COST.dig) {
+      const cand = GEO.stream.map(s => { let v = 0; for (let i = 0; i < N; i++) if (p[i] > 1e-6) v += p[i] * Math.exp(-Math.hypot(cxOf(i) - cxOf(s), cyOf(i) - cyOf(s)) / LAM); return [s, v]; })
+        .sort((a, b) => b[1] - a[1]).slice(0, 18);
+      const K = 12, z0 = Math.log(BG) - 1, z1 = Math.log(BG + AMP) + 1;
+      let best = null;
+      for (const [s] of cand) {
+        const mu = new Float64Array(N); for (let i = 0; i < N; i++) mu[i] = muAt(Math.hypot(cxOf(i) - cxOf(s), cyOf(i) - cyOf(s)));
+        let E = 0, Wt = 0; const pp = new Float64Array(N);
+        for (let k = 0; k < K; k++) {
+          const z = z0 + (z1 - z0) * k / (K - 1); let tot = 0;
+          for (let i = 0; i < N; i++) { pp[i] = p[i] * Math.exp(-((z - mu[i]) ** 2) / (2 * SIG * SIG)); tot += pp[i]; }
+          if (!(tot > 0)) continue;
+          for (let i = 0; i < N; i++) pp[i] /= tot;
+          const V2 = plotVal(pp); E += tot * V2[argmax(V2)]; Wt += tot;
+        }
+        E /= Wt;
+        if (!best || E > best.next) best = { type: 'sample', c: s, next: E, per: E / (COST.sample + COST.dig) };
+      }
+      if (best) opts.push(best);
+    }
+    if (G.days >= COST.lidar + COST.dig) {
+      const cdf = new Float64Array(N); let acc = 0; for (let i = 0; i < N; i++) { acc += p[i]; cdf[i] = acc; }
+      const pick = () => { const u = r() * acc; let lo = 0, hi = N - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cdf[m] < u) lo = m + 1; else hi = m; } return lo; };
+      const cands = [];
+      for (let y = 2; y < H - 2; y += 2) for (let x = 2; x < W - 2; x += 2) {
+        const c = y * W + x, [x0, y0] = blockOf(c); let m = 0;
+        for (let yy = y0; yy < y0 + 6; yy++) for (let xx = x0; xx < x0 + 6; xx++) m += p[yy * W + xx];
+        cands.push([c, m]);
+      }
+      cands.sort((a, b) => b[1] - a[1]);
+      let best = null; const M = 24, pp = new Float64Array(N);
+      for (const [c] of cands.slice(0, 8)) {
+        const [x0, y0] = blockOf(c); let E = 0;
+        for (let m = 0; m < M; m++) {
+          const t = pick(); pp.set(p); const add = new Float64Array(N);
+          for (let k = 0; k < 36; k++) { const j = (y0 + Math.floor(k / 6)) * W + x0 + k % 6; const a = r() < (cheb(j, t) <= 1 ? PA_NEAR : PA_FAR); for (const cc of plotCells(j)) add[cc] += a ? LLR_A : LLR_N; }
+          let z = 0; for (let i = 0; i < N; i++) { if (add[i]) pp[i] *= Math.exp(add[i]); z += pp[i]; }
+          for (let i = 0; i < N; i++) pp[i] /= z;
+          const V2 = plotVal(pp); E += V2[argmax(V2)];
+        }
+        E /= M;
+        if (!best || E > best.next) best = { type: 'lidar', c, next: E, per: E / (COST.lidar + COST.dig) };
+      }
+      if (best) opts.push(best);
+    }
+    opts.sort((a, b) => b.per - a.per);
+    return opts;
+  }
+  /*ENDCORE*/
+
+  // ================= UI =================
+  const CARDS = {
+    A: { t: 'Avendaño, 1588', s: '“Half a league from the Río Zamora.” A band about 7 cells (2.8 km) from the river; 1 chance in 5 he meant the Santiago.' },
+    B: { t: 'Drowned crossing, 1588', s: 'Two soldiers drowned crossing “the river” to fight an uprising. Favours ground near the big river, the Santiago.' },
+    C: { t: 'Downstream garrison, 1590s', s: 'Seven soldiers drowned trying to reach a garrison downstream. Favours the Santiago valley upstream of it.' },
+    D: { t: 'Church bells, 1684', s: 'A woman at the mouth of the Zamora heard the bells. Favours ground within earshot of the village.' },
+    E: { t: 'The 1574 map', s: 'A sketch of where the town sat. Usually right to within a few km; sometimes badly mis-drawn.' },
+    F: { t: 'Stream-sediment gold', s: 'Gold grains in stream mud. The grade falls with distance from the town’s workings.' },
+    G: { t: 'Magnetics & radiometrics', s: 'Airborne geophysics. Favours the magnetic belt where gold-bearing rock sits.' },
+    H: { t: 'Topography & rivers', s: 'Regional LiDAR elevation. Towns sit on gentle ground, off ridges and out of river channels.' },
+    I: { t: 'Your LiDAR flights', s: 'Close-up scans. Platforms and walls show up as anomalies near the town (45%), rarely elsewhere (6%).' },
+    J: { t: 'Your failed digs', s: 'Each miss adds log(1 − q) inside the plot. Fixed at full weight.' }
+  };
+  const U = { w: { ...DEF }, on: Object.fromEntries(KEYS.map(k => [k, true])), mode: 'dig', sel: 0, view: 'prob', showAdv: true, showPath: true,
+    s: null, p: null, pShown: null, sShown: null, trans: null, adv: [], anims: [], wins: 0, games: 0, best: null, stacking: false };
+  let G = null;
+  try { const b = localStorage.getItem('lostCityBest'); if (b !== null && isFinite(+b)) U.best = +b; } catch (e) { /* storage unavailable */ }
+
+  const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pct = p => p >= 0.1 ? (p * 100).toFixed(1) + '%' : p >= 0.001 ? (p * 100).toFixed(2) + '%' : p >= 0.00001 ? (p * 100).toFixed(3) + '%' : p > 0 ? '<0.001%' : '0%';
+  const sgn = (v, d = 2) => (v > 0.005 ? '+' : v < -0.005 ? '−' : '') + Math.abs(v).toFixed(d);
+  const cellName = i => `(${i % W + 1}, ${Math.floor(i / W) + 1})`;
+  const effW = () => { const w = {}; for (const k of KEYS) w[k] = k === 'J' ? 1 : U.on[k] ? U.w[k] : 0; return w; };
+
+  // colours
+  let C = {}, RGB = {};
+  const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  function toRGB(col) { probe.clearRect(0, 0, 1, 1); probe.fillStyle = '#000'; probe.fillStyle = col; probe.fillRect(0, 0, 1, 1); const d = probe.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2]]; }
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
-    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'fit', 'ball', 'coinB', 'board', 'surface'])
-      C[k] = cs.getPropertyValue('--' + k).trim();
-  }
-  const cellName = i => COLS[i % G] + (Math.floor(i / G) + 1);
-  const f3 = x => x < 0.001 && x > 0 ? x.toExponential(1) : x.toFixed(3);
-
-  function buildMaps() {
-    const ws = S.w.reduce((a, b) => a + b, 0) || 1, prior = new Float64Array(NC), q = new Float64Array(NC);
-    for (let s = 0; s < 3; s++) {
-      const sc = SCEN[s], w = (ws ? S.w[s] / ws : 1 / 3) * 0.98; let tot = 0; const tmp = new Float64Array(NC);
-      for (let i = 0; i < NC; i++) { const x = i % G + 0.5, y = Math.floor(i / G) + 0.5; tmp[i] = Math.exp(-((x - sc.x) ** 2 + (y - sc.y) ** 2) / (2 * sc.sd * sc.sd)); tot += tmp[i]; }
-      for (let i = 0; i < NC; i++) prior[i] += w * tmp[i] / tot;
-    }
-    for (let i = 0; i < NC; i++) {
-      prior[i] += 0.02 / NC;
-      const x = i % G + 0.5, y = Math.floor(i / G) + 0.5;
-      const t = Math.exp(-((x - TRENCH.x) ** 2 + (y - TRENCH.y) ** 2) / (2 * TRENCH.sd ** 2));
-      q[i] = S.qHi + (S.qLo - S.qHi) * t;
-    }
-    let tot = 0; for (let i = 0; i < NC; i++) tot += prior[i];
-    for (let i = 0; i < NC; i++) prior[i] /= tot;
-    S.prior = prior; S.q = q;
-  }
-  function drawFrom(p) { let u = Math.random(), i = 0; for (; i < NC - 1; i++) { u -= p[i]; if (u <= 0) break; } return i; }
-  function argmax(p, q) { let b = 0, bv = -1; for (let i = 0; i < NC; i++) { const v = q ? p[i] * q[i] : p[i]; if (v > bv) { bv = v; b = i; } } return b; }
-  function updateFail(p, q, i) {
-    const d = 1 - p[i] * q[i];
-    p[i] *= (1 - q[i]);
-    for (let j = 0; j < NC; j++) p[j] /= d;
-    return d;
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'fit', 'ball', 'coinB', 'board', 'surface', 'jungle', 'jungle2', 'ridge', 'river', 'heat', 'peg']) { C[k] = cs.getPropertyValue('--' + k).trim(); RGB[k] = toRGB(C[k]); }
+    $('ramp').style.background = U.view === 'prob' ? `linear-gradient(90deg, transparent, ${C.heat})` : `linear-gradient(90deg, ${C.coinB}, transparent, ${C.fit})`;
+    $('rampDiv').style.background = `linear-gradient(90deg, ${C.coinB}, ${C.board}, ${C.fit})`;
   }
 
-  function newHunt() {
-    S.p = Float64Array.from(S.prior); S.wreck = drawFrom(S.prior); S.found = false; S.n = 0;
-    S.counts = new Int32Array(NC); S.last = -1; S.lastPP = null; S.notFound = 1;
-    stats(); dirty = true;
-  }
-  function search(i) {
-    if (S.found) return;
-    const before = S.p[i];
-    S.n++; S.counts[i]++; S.last = i;
-    S.notFound *= (1 - S.p[i] * S.q[i]);
-    if (i === S.wreck && Math.random() < S.q[i]) { S.found = true; S.lastPP = [before, 1]; }
-    else { updateFail(S.p, S.q, i); S.lastPP = [before, S.p[i]]; }
-    stats(); dirty = true;
-  }
-
-  function stats() {
-    const st = $('status');
-    if (S.found) { st.className = 'status found'; st.textContent = `Found in ${cellName(S.wreck)} after ${S.n} search${S.n === 1 ? '' : 'es'}. Press "New hunt" to hide a new wreck.`; }
-    else { st.className = 'status'; st.textContent = S.n ? `Searched ${cellName(S.last)}: nothing found. The map has been updated.` : 'A new wreck is hidden, drawn from the prior map. Pick a cell to search.'; }
-    $('nSearch').textContent = S.n;
-    $('sLast').textContent = S.last >= 0 ? `${cellName(S.last)} (q = ${S.q[S.last].toFixed(2)})` : '–';
-    $('sPP').textContent = S.lastPP ? `${f3(S.lastPP[0])} → ${S.found ? 'found' : f3(S.lastPP[1])}` : '–';
-    const b = argmax(S.p), bq = argmax(S.p, S.q);
-    $('sBest').textContent = `${cellName(b)} · ${f3(S.p[b])}`;
-    $('sBestPQ').textContent = `${cellName(bq)} · ${f3(S.p[bq] * S.q[bq])}`;
-    $('sFound').textContent = (1 - S.notFound).toFixed(3);
-    for (const id of ['bestP', 'bestPQ', 'auto']) $(id).disabled = S.found;
-  }
-
-  // ---- heatmap
+  // ---------- map canvas ----------
+  const cv = $('map'), ctx = cv.getContext('2d'), tip = $('tip');
+  const base = document.createElement('canvas'), top = document.createElement('canvas');
+  const heat = document.createElement('canvas'); heat.width = W; heat.height = H; const hctx = heat.getContext('2d');
+  const himg = hctx.createImageData(W, H);
+  let LM = { w: 300, h: 225, cs: 7.5, dpr: 1 };
   function resize() {
-    const w = Math.max(240, cv.parentElement.clientWidth - 24), side = Math.min(w, 640);
-    const d = window.devicePixelRatio || 1;
-    cv.style.width = side + 'px'; cv.style.height = side + 'px'; cv.style.margin = '0 auto';
-    cv.width = Math.round(side * d); cv.height = Math.round(side * d);
-    ctx.setTransform(d, 0, 0, d, 0, 0);
-    const ml = 26, mt = 20, cell = (side - ml - 4) / G;
-    L = { side, ml, mt, cell };
-    dirty = true;
+    const w = Math.max(260, cv.parentElement.clientWidth - 24), h = Math.round(w * 0.75), d = window.devicePixelRatio || 1;
+    if (Math.abs(w - LM.w) < 1 && d === LM.dpr && base.width) return;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    LM = { w, h, cs: w / W, dpr: d };
+    buildBase(); dirty = true;
   }
-  function layer() {
-    if (S.view === 'q') return { v: S.q, max: 1, col: C.fit, name: 'Detection probability q' };
-    const v = S.view === 'pq' ? S.p.map((x, i) => x * S.q[i]) : S.p;
-    let m = 0; for (const x of v) m = Math.max(m, x);
-    return { v, max: m, col: S.view === 'pq' ? C.coinB : C.accent, name: S.view === 'pq' ? 'p × q, scaled to its maximum' : 'Posterior p, scaled to its maximum' };
+  function smoothPath(c, P, s) {
+    c.beginPath(); c.moveTo(P[0][0] * s, P[0][1] * s);
+    for (let k = 1; k < P.length - 1; k++) { const mx = (P[k][0] + P[k + 1][0]) / 2, my = (P[k][1] + P[k + 1][1]) / 2; c.quadraticCurveTo(P[k][0] * s, P[k][1] * s, mx * s, my * s); }
+    const l = P[P.length - 1]; c.lineTo(l[0] * s, l[1] * s);
   }
-  function draw() {
-    const { side, ml, mt, cell } = L;
-    ctx.clearRect(0, 0, side, side);
-    const ly = layer();
-    ctx.font = '10px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (let c = 0; c < G; c++) ctx.fillText(COLS[c], ml + (c + 0.5) * cell, mt / 2);
-    ctx.textAlign = 'right';
-    for (let r = 0; r < G; r++) ctx.fillText(String(r + 1), ml - 5, mt + (r + 0.5) * cell);
-    for (let i = 0; i < NC; i++) {
-      const x = ml + (i % G) * cell, y = mt + Math.floor(i / G) * cell;
-      const t = ly.max > 0 ? ly.v[i] / ly.max : 0;
-      ctx.fillStyle = C.surface; ctx.fillRect(x, y, cell, cell);
-      ctx.globalAlpha = 0.04 + 0.96 * (S.view === 'q' ? t : Math.sqrt(t));
-      ctx.fillStyle = ly.col; ctx.fillRect(x, y, cell, cell);
-      ctx.globalAlpha = 1;
+  function labelAlong(c, text, a, b, s, off, color, size) {
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), fl = Math.abs(ang) > Math.PI / 2;
+    c.save(); c.translate((a[0] + b[0]) / 2 * s, (a[1] + b[1]) / 2 * s); c.rotate(fl ? ang + Math.PI : ang);
+    c.font = `italic 600 ${size}px ${getComputedStyle(document.body).fontFamily}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.lineWidth = 3; c.strokeStyle = C.jungle; c.strokeText(text, 0, off); c.fillStyle = color; c.fillText(text, 0, off); c.restore();
+  }
+  function buildBase() {
+    const { w, h, cs, dpr } = LM;
+    for (const c of [base, top]) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const b = base.getContext('2d'); b.setTransform(dpr, 0, 0, dpr, 0, 0);
+    b.fillStyle = C.jungle; b.fillRect(0, 0, w, h);
+    // elevation shading
+    const el = document.createElement('canvas'); el.width = W; el.height = H; const ec = el.getContext('2d'), im = ec.createImageData(W, H), [r, g, bl] = RGB.jungle2;
+    for (let i = 0; i < N; i++) { im.data[i * 4] = r; im.data[i * 4 + 1] = g; im.data[i * 4 + 2] = bl; im.data[i * 4 + 3] = Math.round(255 * Math.min(1, 0.15 + 0.95 * GEO.elev[i])); }
+    ec.putImageData(im, 0, 0); b.imageSmoothingEnabled = true; b.drawImage(el, 0, 0, w, h);
+    // tree tufts
+    const rr = mulberry32(7); b.fillStyle = C.jungle2;
+    for (let k = 0; k < 420; k++) { const x = rr() * W, y = rr() * H; if (Math.min(GEO.dS[Math.floor(y) * W + Math.floor(x)], GEO.dZ[Math.floor(y) * W + Math.floor(x)]) < 1.2) continue; b.globalAlpha = 0.55; b.beginPath(); b.arc(x * cs, y * cs, cs * (0.18 + rr() * 0.14), 0, 7); b.fill(); }
+    b.globalAlpha = 1;
+    // overlay: rivers, ridges, labels (drawn above the heat map)
+    const t = top.getContext('2d'); t.setTransform(dpr, 0, 0, dpr, 0, 0); t.clearRect(0, 0, w, h); t.lineCap = 'round'; t.lineJoin = 'round';
+    t.strokeStyle = C.ridge; t.lineWidth = 1.3;
+    for (const R of RIDGES) {
+      const L = Math.hypot(R[2] - R[0], R[3] - R[1]), n = Math.max(2, Math.round(L / 1.4));
+      for (let k = 0; k <= n; k++) { const x = (R[0] + (R[2] - R[0]) * k / n) * cs, y = (R[1] + (R[3] - R[1]) * k / n) * cs, a = cs * 0.42; t.beginPath(); t.moveTo(x - a, y + a * 0.55); t.lineTo(x, y - a * 0.45); t.lineTo(x + a, y + a * 0.55); t.stroke(); }
     }
-    ctx.strokeStyle = C.board; ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let k = 0; k <= G; k++) { ctx.moveTo(ml + k * cell, mt); ctx.lineTo(ml + k * cell, mt + G * cell); ctx.moveTo(ml, mt + k * cell); ctx.lineTo(ml + G * cell, mt + k * cell); }
-    ctx.stroke();
-    // search counts
-    ctx.font = `600 ${Math.max(9, Math.min(12, cell * 0.38))}px "JetBrains Mono", ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (let i = 0; i < NC; i++) if (S.counts[i]) {
-      const x = ml + (i % G + 0.5) * cell, y = mt + (Math.floor(i / G) + 0.5) * cell;
-      const t = ly.max > 0 ? ly.v[i] / ly.max : 0;
-      ctx.fillStyle = (S.view === 'q' ? t : Math.sqrt(t)) > 0.55 ? C.surface : C.ink;
-      ctx.fillText(String(S.counts[i]), x, y);
+    t.strokeStyle = C.river; t.globalAlpha = 0.9;
+    for (const P of CREEKS) { t.lineWidth = Math.max(1.2, cs * 0.16); smoothPath(t, P, cs); t.stroke(); }
+    t.lineWidth = Math.max(3, cs * 0.5); smoothPath(t, ZAM, cs); t.stroke();
+    t.lineWidth = Math.max(3.5, cs * 0.62); smoothPath(t, SANT, cs); t.stroke();
+    t.globalAlpha = 1;
+    const fs = Math.max(10, Math.min(13, cs * 0.6));
+    labelAlong(t, 'Río Santiago', [28.6, 5.4], [26.6, 9], cs, -cs * 1.1, C.river, fs);
+    labelAlong(t, 'Río Zamora', [4.4, 7.1], [8.6, 9.3], cs, -cs * 1.1, C.river, fs);
+    // village and garrison
+    const mark = (P, label, dx) => {
+      const x = P[0] * cs, y = P[1] * cs, s = Math.max(5, cs * 0.45);
+      t.fillStyle = C.surface; t.strokeStyle = C.ink; t.lineWidth = 1.5; t.fillRect(x - s, y - s * 0.6, s * 2, s * 1.4); t.strokeRect(x - s, y - s * 0.6, s * 2, s * 1.4);
+      t.beginPath(); t.moveTo(x - s * 1.2, y - s * 0.6); t.lineTo(x, y - s * 1.5); t.lineTo(x + s * 1.2, y - s * 0.6); t.closePath(); t.fillStyle = C.ink; t.fill();
+      t.font = `600 ${fs}px ${getComputedStyle(document.body).fontFamily}`; t.textBaseline = 'middle'; t.textAlign = dx > 0 ? 'left' : 'right';
+      t.lineWidth = 3; t.strokeStyle = C.jungle; t.strokeText(label, x + dx * (s + 4), y); t.fillStyle = C.ink; t.fillText(label, x + dx * (s + 4), y);
+    };
+    mark(VILLAGE, 'Village', 1); mark(GARRISON, 'Garrison', 1);
+    // scale bar and north arrow
+    const sx = cs * 1, sy = h - cs * 1.2, len = 7 * cs;
+    t.strokeStyle = C.ink; t.lineWidth = 2; t.beginPath(); t.moveTo(sx, sy - 4); t.lineTo(sx, sy); t.lineTo(sx + len, sy); t.lineTo(sx + len, sy - 4); t.stroke();
+    t.font = `${Math.max(10, fs - 1)}px ${getComputedStyle(document.body).fontFamily}`; t.textAlign = 'left'; t.textBaseline = 'bottom'; t.fillStyle = C.ink;
+    t.lineWidth = 3; t.strokeStyle = C.jungle; t.strokeText('½ league ≈ 2.8 km', sx, sy - 5); t.fillText('½ league ≈ 2.8 km', sx, sy - 5);
+    const nx = w - cs * 1.4, ny = cs * 1.3; t.fillStyle = C.ink; t.beginPath(); t.moveTo(nx, ny - cs * 0.9); t.lineTo(nx + cs * 0.45, ny + cs * 0.4); t.lineTo(nx, ny + cs * 0.1); t.lineTo(nx - cs * 0.45, ny + cs * 0.4); t.closePath(); t.fill();
+    t.textAlign = 'center'; t.textBaseline = 'top'; t.fillText('N', nx, ny + cs * 0.5);
+  }
+  function median(a) { const s = Array.from(a).sort((x, y) => x - y); return s[s.length >> 1]; }
+  function buildHeat(p, s) {
+    const d = himg.data;
+    if (U.view === 'prob') {
+      let m = 0; for (const v of p) m = Math.max(m, v); const [r, g, b] = RGB.heat;
+      for (let i = 0; i < N; i++) { const t = Math.sqrt(p[i] / m); d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = t < 0.04 ? 0 : Math.round(235 * t); }
+    } else {
+      const md = median(s), P = RGB.fit, Ng = RGB.coinB;
+      for (let i = 0; i < N; i++) { const v = (s[i] - md) / 6, a = Math.min(1, Math.abs(v)), c = v > 0 ? P : Ng; d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = Math.round(215 * a); }
     }
-    if (S.showScen) {
-      ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace';
-      for (let s = 0; s < 3; s++) {
-        const sc = SCEN[s], x = ml + sc.x * cell, y = mt + sc.y * cell;
-        ctx.strokeStyle = C.ink; ctx.lineWidth = 1.25; ctx.setLineDash([3, 3]);
-        ctx.beginPath(); ctx.arc(x, y, sc.sd * cell, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-        ctx.fillStyle = C.surface; ctx.beginPath(); ctx.arc(x, y - sc.sd * cell, 9, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = C.ink; ctx.stroke();
-        ctx.fillStyle = C.ink; ctx.fillText(sc.name, x, y - sc.sd * cell + 0.5);
+    hctx.putImageData(himg, 0, 0);
+  }
+  function strokeCells(c, x0, y0, nx, ny, col, lw, dash) {
+    const cs = LM.cs; c.strokeStyle = col; c.lineWidth = lw; c.setLineDash(dash || []); c.strokeRect(x0 * cs + lw / 2, y0 * cs + lw / 2, nx * cs - lw, ny * cs - lw); c.setLineDash([]);
+  }
+  function plotBox(i) { const x = i % W, y = Math.floor(i / W), x0 = Math.max(0, x - 1), y0 = Math.max(0, y - 1); return [x0, y0, Math.min(W - 1, x + 1) - x0 + 1, Math.min(H - 1, y + 1) - y0 + 1]; }
+  function selShape(c, i, mode, col, lw, dash) {
+    if (mode === 'dig') { const [x0, y0, nx, ny] = plotBox(i); strokeCells(c, x0, y0, nx, ny, col, lw, dash); }
+    else if (mode === 'sample') { c.strokeStyle = col; c.lineWidth = lw; c.setLineDash(dash || []); c.beginPath(); c.arc(cxOf(i) * LM.cs, cyOf(i) * LM.cs, LM.cs * 0.9, 0, 7); c.stroke(); c.setLineDash([]); }
+    else { const [x0, y0] = blockOf(i); strokeCells(c, x0, y0, 6, 6, col, lw, dash); }
+  }
+  function badge(c, x, y, text, bg, fg) {
+    const r = Math.max(7, LM.cs * 0.42); c.fillStyle = bg; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill();
+    c.fillStyle = fg; c.font = `600 ${Math.round(r * 1.15)}px "JetBrains Mono", ui-monospace, monospace`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, x, y + 0.5);
+  }
+  function draw(now) {
+    const { w, h, cs, dpr } = LM;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(base, 0, 0, w, h);
+    // heat with transition
+    let p = U.p, s = U.s;
+    if (U.trans) {
+      const k = Math.min(1, (now - U.trans.t0) / U.trans.dur), e = 1 - (1 - k) ** 3;
+      if (!U.pShown || U.pShown.length !== N) { U.pShown = new Float64Array(N); U.sShown = new Float64Array(N); }
+      for (let i = 0; i < N; i++) { U.pShown[i] = U.trans.p0[i] + (U.p[i] - U.trans.p0[i]) * e; U.sShown[i] = U.trans.s0[i] + (U.s[i] - U.trans.s0[i]) * e; }
+      p = U.pShown; s = U.sShown; if (k >= 1) U.trans = null;
+    }
+    buildHeat(p, s); ctx.imageSmoothingEnabled = true; ctx.drawImage(heat, 0, 0, w, h);
+    ctx.drawImage(top, 0, 0, w, h);
+    // flights
+    for (const f of G.flights) {
+      strokeCells(ctx, f.x0, f.y0, 6, 6, C.accent, 1.5, [4, 3]);
+      for (let k = 0; k < 36; k++) if (f.r[k]) { const x = (f.x0 + k % 6 + 0.5) * cs, y = (f.y0 + Math.floor(k / 6) + 0.5) * cs, a = cs * 0.32; ctx.fillStyle = C.accent; ctx.beginPath(); ctx.moveTo(x, y - a); ctx.lineTo(x + a, y); ctx.lineTo(x, y + a); ctx.lineTo(x - a, y); ctx.closePath(); ctx.fill(); }
+    }
+    // samples
+    for (const sm of G.samples) {
+      const t = Math.max(0, Math.min(1, (Math.log(sm.g) - Math.log(BG)) / (Math.log(BG + AMP) - Math.log(BG))));
+      const x = cxOf(sm.i) * cs, y = cyOf(sm.i) * cs, r = Math.max(3, cs * (0.22 + 0.45 * t));
+      ctx.fillStyle = C.ball; ctx.strokeStyle = C.surface; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke();
+      if (cs >= 15) { ctx.font = `600 ${Math.round(cs * 0.55)}px "JetBrains Mono", ui-monospace, monospace`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = C.jungle; const txt = Math.round(sm.g) + ''; ctx.strokeText(txt, x + r + 3, y); ctx.fillStyle = C.ink; ctx.fillText(txt, x + r + 3, y); }
+    }
+    // digs
+    for (const d of G.digs) if (!d.found) {
+      const [x0, y0, nx, ny] = plotBox(d.c); strokeCells(ctx, x0, y0, nx, ny, C.curve, 2);
+      const x = cxOf(d.c) * cs, y = cyOf(d.c) * cs, a = cs * 0.3; ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - a, y - a); ctx.lineTo(x + a, y + a); ctx.moveTo(x + a, y - a); ctx.lineTo(x - a, y + a); ctx.stroke();
+    }
+    // game-over reveal: follower's plots, path, town
+    if (G.over) {
+      const F = G.follow, n = Math.min(F.hits.length ? F.hits[0] : 6, 8);
+      for (let k = 0; k < n; k++) { const [x0, y0, nx, ny] = plotBox(F.plots[k]); strokeCells(ctx, x0, y0, nx, ny, C.peg, 1.2, [2, 3]); }
+    }
+    if (U.showPath && G.actions.length) {
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.moveTo(VILLAGE[0] * cs, VILLAGE[1] * cs);
+      for (const a of G.actions) ctx.lineTo(cxOf(a.c) * cs, cyOf(a.c) * cs);
+      ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      G.actions.forEach((a, k) => badge(ctx, cxOf(a.c) * cs + cs * 0.75, cyOf(a.c) * cs - cs * 0.75, String(k + 1), C.ink, C.surface));
+    }
+    if (G.over) {
+      const x = cxOf(G.city) * cs, y = cyOf(G.city) * cs, R = Math.max(8, cs * 0.75);
+      ctx.fillStyle = C.ball; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? R * 0.45 : R; ctx.lineTo(x + rr * Math.cos(a), y + rr * Math.sin(a)); }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    // advisor pick and selection
+    if (U.showAdv && U.adv.length && !G.over) {
+      const a = U.adv[0]; selShape(ctx, a.c, a.type, C.fit, 2, [3, 3]);
+      ctx.font = `600 ${Math.max(10, Math.round(cs * 0.5))}px "JetBrains Mono", ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const bk = blockOf(a.c), ax = a.type === 'lidar' ? (bk[0] + 3) * cs : cxOf(a.c) * cs, ay = (a.type === 'lidar' ? bk[1] + 6 : Math.min(H, Math.floor(a.c / W) + 2)) * cs + 3;
+      ctx.lineWidth = 3; ctx.strokeStyle = C.jungle; const yy = Math.min(LM.h - 14, ay); ctx.strokeText('advice', ax, yy); ctx.fillStyle = C.fit; ctx.fillText('advice', ax, yy);
+    }
+    if (!G.over) selShape(ctx, U.sel, U.mode, C.ink, 2.5);
+    // animations
+    U.anims = U.anims.filter(a => now - a.t0 < a.dur);
+    for (const a of U.anims) {
+      const k = (now - a.t0) / a.dur, x = cxOf(a.c) * cs, y = cyOf(a.c) * cs;
+      if (a.kind === 'ring') { ctx.strokeStyle = a.col; ctx.globalAlpha = 1 - k; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, cs * (0.6 + 3.2 * k), 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
+      else if (a.kind === 'float') { ctx.globalAlpha = Math.min(1, 2.2 * (1 - k)); ctx.font = `700 ${Math.max(13, Math.round(cs * 0.75))}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.lineWidth = 4; ctx.strokeStyle = C.surface; const yy = y - cs - 26 * k; ctx.strokeText(a.text, x, yy); ctx.fillStyle = a.col; ctx.fillText(a.text, x, yy); ctx.globalAlpha = 1; }
+      else if (a.kind === 'burst') { for (const pt of a.parts) { const d = pt.v * k * cs * 5; ctx.globalAlpha = 1 - k; ctx.fillStyle = C.ball; ctx.beginPath(); ctx.arc(x + Math.cos(pt.a) * d, y + Math.sin(pt.a) * d + 20 * k * k, Math.max(2, cs * 0.2), 0, 7); ctx.fill(); } ctx.globalAlpha = 1; }
+      else if (a.kind === 'sweep') { const [x0, y0] = blockOf(a.c), sx = (x0 + 6 * k) * cs; ctx.fillStyle = C.accent; ctx.globalAlpha = 0.25; ctx.fillRect(x0 * cs, y0 * cs, 6 * k * cs, 6 * cs); ctx.globalAlpha = 1; ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx, y0 * cs); ctx.lineTo(sx, (y0 + 6) * cs); ctx.stroke(); }
+    }
+  }
+  function anim(o) { if (RM()) return; o.t0 = performance.now(); U.anims.push(o); }
+
+  // ---------- thumbnails ----------
+  const thumbs = {};
+  function drawThumb(k) {
+    const cnv = thumbs[k]; if (!cnv) return;
+    const w = cnv.clientWidth || 160, h = Math.round(w * 0.75), d = window.devicePixelRatio || 1;
+    if (cnv.width !== Math.round(w * d)) { cnv.width = Math.round(w * d); cnv.height = Math.round(h * d); }
+    const c = cnv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0);
+    c.fillStyle = C.surface; c.fillRect(0, 0, w, h);
+    let L, scale;
+    if (k === 'SUM') { L = U.s; scale = 6; }
+    else { const wk = k === 'J' ? 1 : U.w[k]; L = G.L[k].map(v => v * wk); scale = 2; }
+    const md = k === 'SUM' ? median(L) : 0, el = document.createElement('canvas'); el.width = W; el.height = H;
+    const ec = el.getContext('2d'), im = ec.createImageData(W, H);
+    for (let i = 0; i < N; i++) { const v = (L[i] - md) / scale, a = Math.min(1, Math.abs(v)), col = v > 0 ? RGB.fit : RGB.coinB; im.data[i * 4] = col[0]; im.data[i * 4 + 1] = col[1]; im.data[i * 4 + 2] = col[2]; im.data[i * 4 + 3] = Math.round(230 * a); }
+    ec.putImageData(im, 0, 0); c.imageSmoothingEnabled = true; c.drawImage(el, 0, 0, w, h);
+    const s = w / W; c.strokeStyle = C.river; c.globalAlpha = 0.6; c.lineWidth = 1.2; c.lineCap = 'round'; c.lineJoin = 'round';
+    smoothPath(c, SANT, s); c.stroke(); smoothPath(c, ZAM, s); c.stroke(); c.globalAlpha = 1;
+    c.fillStyle = C.ink; c.fillRect(VILLAGE[0] * s - 2, VILLAGE[1] * s - 2, 4, 4);
+    const sx = (U.sel % W + 0.5) * s, sy = (Math.floor(U.sel / W) + 0.5) * s; c.strokeStyle = C.ink; c.lineWidth = 1.2; c.beginPath(); c.arc(sx, sy, 3.5, 0, 7); c.stroke();
+    if (k === 'E') { c.strokeStyle = C.ink; c.lineWidth = 1.2; const mx = G.map.x * s, my = G.map.y * s; c.beginPath(); c.moveTo(mx - 4, my - 4); c.lineTo(mx + 4, my + 4); c.moveTo(mx + 4, my - 4); c.lineTo(mx - 4, my + 4); c.stroke(); }
+    if (k === 'F') for (const sm of G.samples) { c.fillStyle = C.ball; c.beginPath(); c.arc(cxOf(sm.i) * s, cyOf(sm.i) * s, 2.5, 0, 7); c.fill(); }
+  }
+  function buildCards() {
+    const box = $('cards'); box.innerHTML = '';
+    KEYS.forEach((k, n) => {
+      const d = document.createElement('div'); d.className = 'ev' + (n === 0 ? ' first' : ''); d.id = 'card' + k;
+      const lock = k === 'J';
+      d.innerHTML = `<canvas id="th${k}" role="img" aria-label="Log-likelihood layer: ${CARDS[k].t}"></canvas>
+        <label class="ttl" for="on${k}"><input type="checkbox" id="on${k}" ${U.on[k] ? 'checked' : ''} ${lock ? 'disabled' : ''}><span>${CARDS[k].t}</span></label>
+        <p class="sub" id="sub${k}">${CARDS[k].s}</p>
+        <div class="slider"><div class="top"><label for="w${k}">Reliability</label><output id="w${k}Out" for="w${k}">${U.w[k].toFixed(2)}</output></div>
+        <input type="range" id="w${k}" min="0" max="1.5" step="0.05" value="${U.w[k]}" ${lock ? 'disabled' : ''}></div>
+        <span class="here" id="here${k}"></span>`;
+      box.appendChild(d); thumbs[k] = d.querySelector('canvas');
+      if (!lock) {
+        d.querySelector('#on' + k).addEventListener('change', e => { U.on[k] = e.target.checked; d.classList.toggle('off', !U.on[k]); refresh(true); });
+        d.querySelector('#w' + k).addEventListener('input', e => { U.w[k] = +e.target.value; $('w' + k + 'Out').textContent = U.w[k].toFixed(2); refresh(true, [k]); });
       }
-    }
-    if (S.last >= 0) {
-      const x = ml + (S.last % G) * cell, y = mt + Math.floor(S.last / G) * cell;
-      ctx.strokeStyle = C.ball; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
-    }
-    if (S.showWreck || S.found) {
-      const x = ml + (S.wreck % G + 0.5) * cell, y = mt + (Math.floor(S.wreck / G) + 0.5) * cell;
-      ctx.fillStyle = C.curve; ctx.strokeStyle = C.surface; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(x, y, Math.max(4, cell * 0.24), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    }
-    $('rampLab').textContent = ly.name;
-    $('ramp').style.background = `linear-gradient(90deg, color-mix(in srgb, ${ly.col} 6%, var(--surface)), ${ly.col})`;
+    });
+    const s = document.createElement('div'); s.className = 'ev sum'; s.id = 'cardSUM';
+    s.innerHTML = `<canvas id="thSUM" role="img" aria-label="Sum of all active layers"></canvas><div class="ttl" style="cursor:default"><span>Sum of active layers</span></div><p class="sub">log posterior + constant. Normalising gives the heat map.</p><span class="here" id="hereSUM"></span>`;
+    box.appendChild(s); thumbs.SUM = s.querySelector('canvas');
   }
+  function syncCards() {
+    for (const k of KEYS) {
+      const el = $('card' + k); el.classList.toggle('off', !U.on[k]);
+      $('on' + k).checked = U.on[k]; $('w' + k).value = U.w[k]; $('w' + k + 'Out').textContent = U.w[k].toFixed(2);
+    }
+    $('subF').textContent = `${CARDS.F.s} ${G.samples.length} sample${G.samples.length === 1 ? '' : 's'} so far.`;
+    $('subI').textContent = G.flights.length ? `${CARDS.I.s} ${G.flights.length} flight${G.flights.length === 1 ? '' : 's'}.` : `${CARDS.I.s} None flown yet.`;
+    $('subJ').textContent = `${CARDS.J.s} ${G.digs.filter(d => !d.found).length} so far.`;
+  }
+
+  // ---------- readouts ----------
+  function contrib(i) { const w = effW(), out = []; for (const k of KEYS) { const v = w[k] * G.L[k][i]; out.push([k, v, w[k] > 0]); } return out; }
+  function renderWhy() {
+    const i = U.sel, rows = contrib(i), sc = 4; let h = '', tot = 0;
+    const bar = v => { const c = Math.max(-sc, Math.min(sc, v)) / sc * 50; return `<div class="t"><span class="z"></span><span class="b ${v >= 0 ? 'pos' : 'neg'}" style="left:${c >= 0 ? 50 : 50 + c}%;width:${Math.abs(c)}%"></span></div>`; };
+    h += `<div class="l">Prior (flat)</div>${bar(0)}<div class="v">0.00</div>`;
+    for (const [k, v, on] of rows) {
+      if (!on && k !== 'J') continue; tot += v;
+      if (k === 'I' && !G.flights.length) continue;
+      if (k === 'J' && !G.digs.length) continue;
+      h += `<div class="l" title="${CARDS[k].t}">${CARDS[k].t}</div>${bar(v)}<div class="v">${sgn(v)}</div>`;
+    }
+    h += `<div class="sep"></div><div class="l tot">Total log-evidence</div>${bar(tot)}<div class="v tot">${sgn(tot)}</div>`;
+    const Pp = plotCells(i).reduce((a, j) => a + U.p[j], 0);
+    h += `<div class="l" style="grid-column:1/3">p(cell) = e<sup>total</sup> / Z</div><div class="v">${pct(U.p[i])}</div>`;
+    h += `<div class="l" style="grid-column:1/3">P(town in 3×3 plot)</div><div class="v">${pct(Pp)}</div>`;
+    $('why').innerHTML = h;
+    for (const [k, v, on] of rows) { const el = $('here' + k); if (el) el.innerHTML = `at ${cellName(i)}: <b class="${v >= 0 ? 'pos' : 'neg'}">${sgn(v)}</b>${on || k === 'J' ? '' : ' (off)'}`; }
+    $('hereSUM').innerHTML = `at ${cellName(i)}: <b>${sgn(tot)}</b> → p = ${pct(U.p[i])}`;
+    const on = KEYS.filter(k => k === 'J' ? G.digs.length : (U.on[k] && U.w[k] > 0 && !(k === 'I' && !G.flights.length)));
+    $('eqline').innerHTML = `log p(c | clues) = log prior ${on.map(k => `+ ${k === 'J' ? '' : U.w[k].toFixed(2) + '·'}[${CARDS[k].t}]`).join(' ')} − log Z`;
+  }
+  function renderSel() {
+    const i = U.sel, m = U.mode, el = $('selInfo'), go = $('go');
+    let txt = '', ok = !G.over && G.days >= COST[m];
+    if (m === 'dig') {
+      const cells = plotCells(i); let P = 0, PQ = 0; for (const j of cells) { P += U.p[j]; PQ += U.p[j] * Q[j]; }
+      const q = PQ / P, after = P * (1 - q) / (1 - P * q);
+      txt = `Plot centred on <b>${cellName(i)}</b><br>P(town in plot) p = <b>${pct(P)}</b> · detection q = <b>${q.toFixed(2)}</b><br>Chance this dig finds it, p·q = <b>${pct(PQ)}</b><br>If it misses: p → p(1 − q)/(1 − pq) = <b>${pct(after)}</b>`;
+      go.textContent = `Dig at ${cellName(i)} · 2 days`;
+    } else if (m === 'sample') {
+      const isS = GEO.water[i] > 0; ok = ok && isS;
+      txt = isS ? `Stream cell <b>${cellName(i)}</b><br>Mud from here shows a gold grade near ${BG} ppb if the town is far away and up to about ${BG + AMP} ppb if it is right here.` : `Cell <b>${cellName(i)}</b> is not on a river or stream. Tap a blue line.`;
+      go.textContent = isS ? `Sample stream at ${cellName(i)} · 1 day` : 'Pick a stream cell';
+    } else {
+      const [x0, y0] = blockOf(i); let P = 0; for (let y = y0; y < y0 + 6; y++) for (let x = x0; x < x0 + 6; x++) P += U.p[y * W + x];
+      txt = `Block <b>(${x0 + 1}–${x0 + 6}, ${y0 + 1}–${y0 + 6})</b><br>P(town in block) = <b>${pct(P)}</b><br>Earthworks show as anomalies near the town 45% of the time and elsewhere 6% of the time.`;
+      go.textContent = `Fly LiDAR over this block · 2 days`;
+    }
+    if (G.over) { txt = 'The expedition is over. Start a new game to search again.'; go.textContent = 'Expedition over'; }
+    else if (G.days < COST[m]) txt += `<br>Not enough days left for this action.`;
+    el.innerHTML = txt; go.disabled = !ok;
+    $('modeHint').textContent = m === 'dig' ? 'A dig searches a 3×3 plot. Jungle on steep ground hides ruins, so q is lower there.' : m === 'sample' ? 'Taps snap to the nearest river or stream.' : 'A flight scans a 6×6 block and changes the "Your LiDAR flights" layer.';
+  }
+  function renderHUD(spent) {
+    $('hDays').textContent = G.days; $('hDigs').textContent = G.digs.length; $('hFinds').textContent = `${U.wins} / ${U.games}`;
+    $('hScore').textContent = (G.found ? scoreOf(G) : 0).toLocaleString(); $('hBest').textContent = U.best === null ? '–' : U.best.toLocaleString();
+    const pips = $('pips'); if (pips.children.length !== DAYS) { pips.innerHTML = ''; for (let k = 0; k < DAYS; k++) pips.appendChild(document.createElement('i')); }
+    const cost = G.over ? 0 : COST[U.mode];
+    [...pips.children].forEach((p, k) => { const left = k < G.days; p.className = 'pip' + (left ? '' : ' used') + (left && k >= G.days - cost && G.days >= cost ? ' cost' : '') + (spent && !left && k < G.days + spent ? ' spend' : ''); });
+    if (spent && !RM()) setTimeout(() => [...pips.children].forEach(p => p.classList.remove('spend')), 260);
+  }
+  const scoreOf = g => g.found ? 1000 + 100 * g.days : 0;
+  function setStatus(html, cls) { const st = $('status'); st.className = 'status ' + (cls || ''); st.innerHTML = html; if (!RM()) { void st.offsetWidth; st.classList.add('pop'); } }
+
+  // ---------- advisor ----------
+  let advTimer = null;
+  function scheduleAdvice() {
+    clearTimeout(advTimer); $('advText').textContent = 'Thinking…';
+    advTimer = setTimeout(() => {
+      U.adv = advise(G, U.p, 1000 + G.actions.length);
+      renderAdvice(); dirty = true;
+    }, 30);
+  }
+  const verb = { dig: 'Dig', sample: 'Sample', lidar: 'Fly LiDAR' };
+  function renderAdvice() {
+    const tb = $('advTab').tBodies[0]; $('advTab').hidden = !U.adv.length;
+    if (!U.adv.length) { $('advText').textContent = G.over ? 'Game over. The advisor rests.' : 'No useful action left.'; tb.innerHTML = ''; $('follow').disabled = true; return; }
+    const a = U.adv[0];
+    const where = a.type === 'lidar' ? (() => { const [x0, y0] = blockOf(a.c); return `the block (${x0 + 1}–${x0 + 6}, ${y0 + 1}–${y0 + 6})`; })() : cellName(a.c);
+    const why = a.type === 'dig' ? `a ${pct(a.next)} chance of finding the town right now.` : `it should lift the next dig's chance from ${pct(U.adv.find(o => o.type === 'dig').next)} to about ${pct(a.next)} on average.`;
+    $('advText').innerHTML = `<b>${verb[a.type]} ${a.type === 'lidar' ? 'over' : 'at'} ${where}</b>: ${why}`;
+    tb.innerHTML = U.adv.map((o, k) => `<tr class="${k === 0 ? 'rec' : ''}"><td>${verb[o.type]} ${o.type === 'lidar' ? '' : cellName(o.c)}</td><td>${pct(o.next)}</td><td>${pct(o.per)}</td></tr>`).join('');
+    $('follow').disabled = false;
+  }
+
+  // ---------- game flow ----------
+  function refresh(animate, changed) {
+    const prev = U.p ? { p0: U.p, s0: U.s } : null;
+    const r = posterior(G, effW()); U.s = r.s; U.p = r.p;
+    if (animate && prev && !RM()) U.trans = { ...prev, t0: performance.now(), dur: 450 }; else U.trans = null;
+    renderSel(); renderWhy(); renderHUD();
+    for (const k of (changed || KEYS)) drawThumb(k);
+    drawThumb('SUM'); syncCards();
+    scheduleAdvice(); dirty = true;
+  }
+  function newGame(seed) {
+    G = makeGame(seed ?? ((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0));
+    U.p = null; U.anims = []; U.adv = [];
+    $('reveal').hidden = true;
+    const r = posterior(G, effW()); U.s = r.s; U.p = r.p;
+    U.sel = argmax(plotVal(U.p));
+    refresh(false);
+    setStatus(`A new town is hidden. You have ${DAYS} survey days. The map already holds the old records, the 1574 map, three stream samples and the regional surveys. Select a place, or follow the advisor.`);
+  }
+  function doAction(type, c) {
+    if (G.over) return;
+    if (type === 'sample' && !GEO.water[c]) return;
+    const res = act(G, type, c, U.p); if (!res) return;
+    const before = U.p;
+    if (type === 'dig') {
+      if (res.found) {
+        U.wins++; U.games++;
+        anim({ kind: 'burst', c, dur: 1400, parts: Array.from({ length: 28 }, (_, k) => ({ a: k / 28 * 2 * Math.PI, v: 0.5 + Math.random() * 0.6 })) });
+        anim({ kind: 'float', c, text: 'Found!', col: C.ball, dur: 1600 });
+        setStatus(`Found it on day ${res.day}! Church foundations and gold-washing channels in the plot at ${cellName(c)}. This dig had a ${pct(res.PQ)} chance. Score ${scoreOf(G).toLocaleString()} (1,000 + 100 for each of ${G.days} days left).`, 'win');
+      } else {
+        anim({ kind: 'ring', c, col: C.curve, dur: 700 }); anim({ kind: 'float', c, text: 'Nothing', col: C.curve, dur: 1100 });
+      }
+    } else if (type === 'sample') {
+      anim({ kind: 'ring', c, col: C.river, dur: 800 }); anim({ kind: 'float', c, text: Math.round(res.g) + ' ppb', col: C.ball, dur: 1400 });
+    } else {
+      anim({ kind: 'sweep', c, dur: 700 });
+    }
+    refresh(true); renderHUD(COST[type]);
+    if (type === 'dig' && !res.found) {
+      const after = plotCells(c).reduce((a, j) => a + U.p[j], 0);
+      setStatus(`Dig ${G.digs.length} at ${cellName(c)}: nothing. The plot fell from ${pct(res.P)} to ${pct(after)} = ${res.P.toPrecision(3)} × (1 − ${res.q.toFixed(2)}) / (1 − ${res.P.toPrecision(3)} × ${res.q.toFixed(2)}). Every other cell was divided by 1 − pq = ${(1 - res.PQ).toFixed(4)}.`, 'miss');
+    } else if (type === 'sample') {
+      const g = res.g, txt = g > 40 ? 'Well above background. The map pulls toward this stream.' : g > 12 ? 'Above background. The town may be within a few km.' : 'Close to background (5 ppb). The town is probably not near here.';
+      setStatus(`Stream sample at ${cellName(c)}: <b>${Math.round(g)} ppb</b> gold. ${txt}`, 'gold');
+    } else if (type === 'lidar') {
+      setStatus(`LiDAR flight over (${res.f.x0 + 1}–${res.f.x0 + 6}, ${res.f.y0 + 1}–${res.f.y0 + 6}): ${res.n} anomal${res.n === 1 ? 'y' : 'ies'}. ${res.n >= 2 ? 'Clustered anomalies are strong evidence of earthworks.' : res.n === 1 ? 'One anomaly can be a natural false alarm (6% per cell).' : 'Nothing seen. Probability drains out of the block.'}`);
+    }
+    if (G.over) endGame();
+  }
+  function endGame() {
+    if (!G.found) U.games++;
+    const sc = scoreOf(G);
+    if (sc > 0 && (U.best === null || sc > U.best)) { U.best = sc; try { localStorage.setItem('lostCityBest', String(sc)); } catch (e) { /* ignore */ } }
+    renderHUD(); renderSel(); renderAdvice(); dirty = true;
+    if (!G.found) setStatus(`Out of survey days. The town was at ${cellName(G.city)}, marked with a gold star. The expedition report is below the map.`, 'miss');
+    const F = G.follow;
+    const open = openingMap(), Vp = plotCells(G.city).reduce((a, j) => a + open[j], 0);
+    const Vall = plotVal(open, false); let rank = 1; for (let i = 0; i < N; i++) if (Vall[i] > Vp) rank++;
+    const nS = G.actions.filter(a => a.type === 'sample').length, nL = G.actions.filter(a => a.type === 'lidar').length, nD = G.digs.length;
+    $('revTitle').textContent = G.found ? `Found on day ${G.foundDay} · score ${sc.toLocaleString()}` : `Not found · the town was at ${cellName(G.city)}`;
+    const fol = F.hits.length
+      ? `An “always dig the most probable plot” player, starting from the same opening map with no scouting, would first have dug the town's plot on dig ${F.hits[0]} and found it there with chance q = ${F.q.toFixed(2)}. Its median is ${F.med ? F.med + ' digs' : 'more than 40 digs'}, and its chance of finding the town within ${DAYS / COST.dig} digs (${DAYS} days) is ${pct(F.within)}. Its first plots are drawn dashed on the map.`
+      : 'An “always dig the most probable plot” player starting from the same opening map would not have reached the town in 40 digs.';
+    const wt = STATIC.concat(['E']).map(k => `<tr><td>${CARDS[k].t}</td><td>${U.on[k] ? U.w[k].toFixed(2) : 'off'}</td><td>${k === 'E' ? (G.map.mis ? 'mis-drawn' : 'about right') : G.wTrue[k].toFixed(2)}</td></tr>`).join('');
+    $('revBody').innerHTML = `<p>Your expedition: ${nS} stream sample${nS === 1 ? '' : 's'}, ${nL} LiDAR flight${nL === 1 ? '' : 's'}, ${nD} dig${nD === 1 ? '' : 's'}, ${G.days} day${G.days === 1 ? '' : 's'} left. Your moves are numbered on the map from the village.</p>
+      <p>On the opening map the town's plot held ${pct(Vp)}, rank ${rank.toLocaleString()} of 1,200 plots.</p>
+      <p>${fol}</p>
+      <div class="scroll"><table class="stats"><thead><tr><th>Source</th><th>Your weight</th><th>Hidden truth</th></tr></thead><tbody>${wt}</tbody></table></div>`;
+    $('reveal').hidden = false;
+  }
+  function openingMap() {
+    const L = G.L, save = { F: L.F, I: L.I, J: L.J }, F0 = new Float64Array(N);
+    for (const s of G.samples) if (s.init) addSample(F0, s.i, s.g);
+    L.F = F0; L.I = new Float64Array(N); L.J = new Float64Array(N);
+    const p = posterior(G, DEF).p; Object.assign(L, save); return p;
+  }
+
+  // ---------- input ----------
   function cellAt(ev) {
-    const r = cv.getBoundingClientRect(), x = ev.clientX - r.left - L.ml, y = ev.clientY - r.top - L.mt;
-    const c = Math.floor(x / L.cell), rr = Math.floor(y / L.cell);
-    if (c < 0 || rr < 0 || c >= G || rr >= G) return -1;
-    return rr * G + c;
+    const r = cv.getBoundingClientRect(), x = Math.floor((ev.clientX - r.left) / (r.width / W)), y = Math.floor((ev.clientY - r.top) / (r.height / H));
+    if (x < 0 || y < 0 || x >= W || y >= H) return -1; return y * W + x;
   }
-  function showTip(ev) {
-    const i = cellAt(ev);
-    if (i < 0) { tip.hidden = true; return; }
-    tip.innerHTML = `<b>${cellName(i)}</b><br>p = ${f3(S.p[i])} (prior ${f3(S.prior[i])})<br>q = ${S.q[i].toFixed(2)}<br>p × q = ${f3(S.p[i] * S.q[i])}<br>Searched ${S.counts[i]}×`;
+  function snapStream(i) {
+    if (GEO.water[i]) return i; let b = -1, bd = 2.6;
+    for (const s of GEO.stream) { const d = Math.hypot(cxOf(s) - cxOf(i), cyOf(s) - cyOf(i)); if (d < bd) { bd = d; b = s; } }
+    return b < 0 ? i : b;
+  }
+  function select(i) { U.sel = U.mode === 'sample' ? snapStream(i) : i; renderSel(); renderWhy(); for (const k of KEYS) drawThumb(k); drawThumb('SUM'); dirty = true; }
+  cv.addEventListener('click', ev => { const i = cellAt(ev); if (i < 0) return; select(i); cv.focus({ preventScroll: true }); });
+  cv.addEventListener('pointermove', ev => {
+    if (ev.pointerType !== 'mouse') return;
+    const i = cellAt(ev); if (i < 0 || !U.p) { tip.hidden = true; return; }
+    const P = plotCells(i).reduce((a, j) => a + U.p[j], 0), sm = G.samples.filter(s => s.i === i);
+    tip.innerHTML = `<b>${cellName(i)}</b>${GEO.water[i] ? ' · stream' : ''}<br>p(cell) = ${pct(U.p[i])}<br>P(3×3 plot) = ${pct(P)}<br>detection q = ${Q[i].toFixed(2)}${sm.length ? '<br>sample: ' + sm.map(s => Math.round(s.g) + ' ppb').join(', ') : ''}`;
     tip.hidden = false;
-    const r = cv.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
-    const left = cv.offsetLeft + x + 16, maxX = cv.parentElement.clientWidth - tip.offsetWidth - 8;
-    tip.style.left = Math.max(8, Math.min(left, maxX)) + 'px';
-    tip.style.top = Math.max(8, cv.offsetTop + y - tip.offsetHeight - 12) + 'px';
-  }
-  cv.addEventListener('pointermove', showTip);
+    const r = cv.getBoundingClientRect(), br = cv.parentElement.getBoundingClientRect();
+    const x = ev.clientX - br.left, y = ev.clientY - br.top;
+    tip.style.left = Math.max(8, Math.min(x + 16, br.width - tip.offsetWidth - 8)) + 'px';
+    tip.style.top = Math.max(8, y - tip.offsetHeight - 12) + 'px';
+    void r;
+  });
   cv.addEventListener('pointerleave', () => tip.hidden = true);
-  cv.addEventListener('click', ev => { const i = cellAt(ev); if (i >= 0) { search(i); showTip(ev); } });
-
-  // ---- strategy comparison (common random numbers)
-  const MAXS = 3000;
-  function huntOnce(useQ, wreck, us) {
-    const p = Float64Array.from(S.prior), q = S.q, seen = new Int32Array(NC);
-    for (let n = 1; n <= MAXS; n++) {
-      const i = argmax(p, useQ ? q : null);
-      if (i === wreck) { const u = us[seen[i]++ % us.length]; if (u < q[i]) return n; }
-      updateFail(p, q, i);
+  cv.addEventListener('keydown', ev => {
+    const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key];
+    if (d) { ev.preventDefault(); const x = Math.max(0, Math.min(W - 1, U.sel % W + d[0])), y = Math.max(0, Math.min(H - 1, Math.floor(U.sel / W) + d[1])); U.sel = y * W + x; renderSel(); renderWhy(); dirty = true; }
+    else if (ev.key === 'Enter' && !$('go').disabled) { ev.preventDefault(); doAction(U.mode, U.sel); }
+  });
+  const modes = { mDig: 'dig', mSample: 'sample', mLidar: 'lidar' };
+  function setMode(m) { U.mode = m; for (const [id, v] of Object.entries(modes)) $(id).setAttribute('aria-pressed', v === m); if (m === 'sample') U.sel = snapStream(U.sel); renderSel(); renderHUD(); dirty = true; }
+  for (const [id, v] of Object.entries(modes)) $(id).addEventListener('click', () => setMode(v));
+  $('go').addEventListener('click', () => doAction(U.mode, U.sel));
+  $('follow').addEventListener('click', () => { const a = U.adv[0]; if (!a) return; setMode(a.type); U.sel = a.c; doAction(a.type, a.c); });
+  $('newGame').addEventListener('click', () => newGame());
+  $('again').addEventListener('click', () => { newGame(); $('map').scrollIntoView({ behavior: RM() ? 'auto' : 'smooth', block: 'center' }); });
+  function setView(v) { U.view = v; $('vProb').setAttribute('aria-pressed', v === 'prob'); $('vLog').setAttribute('aria-pressed', v === 'log'); $('rampLab').textContent = v === 'prob' ? 'P(town in cell), scaled to the top cell' : 'Total log-evidence, −6 to +6 around the median cell'; readColors(); dirty = true; }
+  $('vProb').addEventListener('click', () => setView('prob'));
+  $('vLog').addEventListener('click', () => setView('log'));
+  $('showAdv').addEventListener('change', e => { U.showAdv = e.target.checked; dirty = true; });
+  $('showPath').addEventListener('change', e => { U.showPath = e.target.checked; dirty = true; });
+  $('resetW').addEventListener('click', () => { U.w = { ...DEF }; for (const k of KEYS) U.on[k] = true; refresh(true); });
+  async function stack() {
+    if (U.stacking) return; U.stacking = true; $('stack').disabled = true; $('demoStack').disabled = true;
+    const order = KEYS.filter(k => k !== 'J');
+    for (const k of order) U.on[k] = false; refresh(true);
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    await wait(700);
+    for (const k of order) {
+      U.on[k] = true; refresh(true); const el = $('card' + k); el.classList.add('flash');
+      setStatus(`Added <b>${CARDS[k].t}</b>. Top cell now ${pct(Math.max(...U.p))}.`);
+      await wait(900); el.classList.remove('flash');
     }
-    return MAXS;
+    U.stacking = false; $('stack').disabled = false; $('demoStack').disabled = false;
   }
-  function runCmp(H = 1000) {
-    const rP = [], rQ = [];
-    for (let h = 0; h < H; h++) {
-      const wreck = drawFrom(S.prior), us = []; for (let k = 0; k < 64; k++) us.push(Math.random());
-      rP.push(huntOnce(false, wreck, us)); rQ.push(huntOnce(true, wreck, us));
-    }
-    const sum = a => { const s = a.slice().sort((x, y) => x - y); return { s, mean: a.reduce((x, y) => x + y, 0) / a.length, med: s[Math.floor(s.length / 2)], q9: s[Math.floor(s.length * 0.9)] }; };
-    S.cmp = { P: sum(rP), Q: sum(rQ), H };
-    const c = S.cmp;
-    $('mP').textContent = c.P.mean.toFixed(1); $('mPQ').textContent = c.Q.mean.toFixed(1);
-    $('medP').textContent = c.P.med; $('medPQ').textContent = c.Q.med;
-    $('q9P').textContent = c.P.q9; $('q9PQ').textContent = c.Q.q9;
-    $('hP').textContent = H.toLocaleString(); $('hPQ').textContent = H.toLocaleString();
-    const d = c.P.mean - c.Q.mean;
-    $('cmpNote').textContent = Math.abs(d) < 0.05 * c.Q.mean
-      ? 'The two rules finish in about the same number of searches with these settings.'
-      : d > 0 ? `Searching the highest p × q saves about ${d.toFixed(1)} searches per hunt (${(d / c.P.mean * 100).toFixed(0)}%). The highest-p rule keeps returning to trench cells where a search usually misses.`
-              : `With these settings the highest-p rule is faster by ${(-d).toFixed(1)} searches per hunt.`;
-    dirtyC = true;
-  }
-  function cmpResize() {
-    const w = Math.max(240, cc.parentElement.clientWidth - 20), h = Math.round(Math.min(Math.max(w * 0.5, 220), 320));
-    const d = window.devicePixelRatio || 1;
-    cc.style.height = h + 'px'; cc.width = Math.round(w * d); cc.height = Math.round(h * d);
-    cx.setTransform(d, 0, 0, d, 0, 0);
-    LC = { W: w, H: h, ml: 42, mr: 12, mt: 12, mb: 34 };
-    dirtyC = true;
-  }
-  function drawCmp() {
-    const { W, H, ml, mr, mt, mb } = LC; cx.clearRect(0, 0, W, H);
-    if (!S.cmp) return;
-    const c = S.cmp, raw = Math.max(c.P.s[Math.floor(c.H * 0.97)], c.Q.s[Math.floor(c.H * 0.97)]);
-    const stp = raw > 200 ? 50 : raw > 100 ? 25 : raw > 40 ? 10 : 5, xmax = Math.ceil(raw / stp) * stp;
-    const PX = x => ml + x / xmax * (W - ml - mr), PY = y => mt + (1 - y) * (H - mt - mb);
-    cx.font = '11px "JetBrains Mono", ui-monospace, monospace';
-    cx.strokeStyle = C.grid; cx.lineWidth = 1; cx.fillStyle = C.muted; cx.textAlign = 'right'; cx.textBaseline = 'middle';
-    for (let y = 0; y <= 1.0001; y += 0.25) { const py = Math.round(PY(y)) + .5; cx.beginPath(); cx.moveTo(ml, py); cx.lineTo(W - mr, py); cx.stroke(); cx.fillText(y.toFixed(2), ml - 6, py); }
-    cx.textAlign = 'center'; cx.textBaseline = 'top';
-    const every = (W < 420 ? 2 : 1) * stp * (xmax / stp > 8 ? 2 : 1);
-    for (let x = 0; x <= xmax; x += every) { const px = Math.round(PX(x)) + .5; cx.beginPath(); cx.moveTo(px, mt); cx.lineTo(px, H - mb); cx.stroke(); cx.fillText(String(x), px, H - mb + 7); }
-    cx.textAlign = 'right'; cx.fillText('searches', W - mr, H - 12);
-    cx.textAlign = 'left'; cx.textBaseline = 'top'; cx.fillText('share of hunts finished', ml + 6, mt + 4);
-    for (const [s, col] of [[c.P.s, C.accent], [c.Q.s, C.fit]]) {
-      cx.strokeStyle = col; cx.lineWidth = 2.25; cx.beginPath(); cx.moveTo(PX(0), PY(0));
-      let j = 0;
-      for (let k = 1; k <= xmax; k++) { while (j < s.length && s[j] <= k) j++; cx.lineTo(PX(k), PY(j / s.length)); }
-      cx.stroke();
-    }
-    cx.strokeStyle = C.line; cx.strokeRect(ml + .5, mt + .5, W - ml - mr - 1, H - mt - mb - 1);
-  }
+  $('stack').addEventListener('click', stack);
+  const toMap = () => document.querySelector('.board').scrollIntoView({ behavior: RM() ? 'auto' : 'smooth', block: 'start' });
+  $('demoStack').addEventListener('click', () => { toMap(); stack(); });
+  $('demoNoMap').addEventListener('click', () => { U.on.E = true; U.w.E = 0; refresh(true); toMap(); setStatus('The 1574 map now has reliability 0. Its layer is flat, so it no longer moves the heat map.'); });
+  $('demoDocs').addEventListener('click', () => { for (const k of KEYS) U.on[k] = ['A', 'B', 'C', 'D', 'E', 'J'].includes(k); refresh(true); toMap(); setStatus('Only the old documents and the 1574 map are on. The peak is broader: these clues narrow the valley but not the spot.'); });
 
-  // ---- controls
-  function settingsChanged(rerun) { buildMaps(); newHunt(); if (rerun) runCmp(); }
-  for (let s = 0; s < 3; s++) {
-    $('w' + s).oninput = e => { S.w[s] = +e.target.value; $('w' + s + 'Out').textContent = S.w[s].toFixed(2); settingsChanged(false); };
-    $('w' + s).onchange = () => runCmp();
-  }
-  for (const k of ['qHi', 'qLo']) {
-    $(k).oninput = e => { S[k] = +e.target.value; $(k + 'Out').textContent = S[k].toFixed(2); settingsChanged(false); };
-    $(k).onchange = () => runCmp();
-  }
-  $('bestP').onclick = () => search(argmax(S.p));
-  $('bestPQ').onclick = () => search(argmax(S.p, S.q));
-  $('auto').onclick = () => { for (let k = 0; k < 10 && !S.found; k++) search(argmax(S.p)); };
-  $('newHunt').onclick = newHunt;
-  const views = { vP: 'p', vQ: 'q', vPQ: 'pq' };
-  for (const [id, v] of Object.entries(views)) $(id).onclick = () => { S.view = v; for (const k of Object.keys(views)) $(k).setAttribute('aria-pressed', k === id); dirty = true; };
-  $('showScen').onchange = e => { S.showScen = e.target.checked; dirty = true; };
-  $('showWreck').onchange = e => { S.showWreck = e.target.checked; dirty = true; };
-  $('runCmp').onclick = () => runCmp();
-  function setQ(hi, lo) { S.qHi = hi; S.qLo = lo; $('qHi').value = hi; $('qLo').value = lo; $('qHiOut').textContent = hi.toFixed(2); $('qLoOut').textContent = lo.toFixed(2); settingsChanged(true);
-    document.querySelector('.board').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); }
-  $('demoHard').onclick = () => setQ(0.9, 0.15);
-  $('demoFlat').onclick = () => setQ(0.6, 0.6);
-
-  let dirty = true, dirtyC = true;
-  function frame() { if (dirty) { draw(); dirty = false; } if (dirtyC) { drawCmp(); dirtyC = false; } requestAnimationFrame(frame); }
+  // ---------- loop ----------
+  let dirty = true;
+  function frame(now) { if (dirty || U.anims.length || U.trans) { draw(now); dirty = false; } requestAnimationFrame(frame); }
   readColors();
-  const recolor = () => { readColors(); dirty = dirtyC = true; };
+  const recolor = () => { readColors(); buildBase(); for (const k of KEYS) drawThumb(k); drawThumb('SUM'); dirty = true; };
   new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
-  new ResizeObserver(resize).observe(cv.parentElement);
-  new ResizeObserver(cmpResize).observe(cc.parentElement);
-  resize(); cmpResize();
-  buildMaps(); newHunt(); runCmp();
+  resize();
+  G = makeGame(20220601);
+  buildCards();
+  newGame(20220601);
+  new ResizeObserver(() => resize()).observe(cv.parentElement);
+  new ResizeObserver(() => { for (const k of KEYS) drawThumb(k); drawThumb('SUM'); }).observe($('cards'));
   requestAnimationFrame(frame);
+  Object.defineProperty(window, '__lostCity', { value: { get G() { return G; }, get p() { return U.p; }, act: doAction, newGame }, configurable: true });
 })();
 </script>
 

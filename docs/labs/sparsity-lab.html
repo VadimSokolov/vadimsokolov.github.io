@@ -1,0 +1,1402 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Needle in a Haystack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: three-row haystack plot (truth, gene-by-gene |t|, estimates) with data and method controls in the right rail; scorecard, lasso path + CV, shrinkage functions, phase transition, L1/L2 geometry lesson, notes and class exercises below. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 76ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 80ch; }
+.src a { color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.board canvas, .plotbox canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.dot { width: 10px; border-radius: 50%; }
+.sw.ring { width: 11px; height: 11px; border-radius: 50%; background: none; border: 2px solid var(--curve); }
+.sw.stem { width: 3px; height: 14px; border-radius: 1px; }
+.sw.line { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.dash { height: 0; border-top: 2px dashed var(--muted); border-radius: 0; background: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+.tip b { font-family: var(--font-display); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button[aria-pressed="true"]:not(.primary) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--surface); }
+button:disabled { opacity: .5; cursor: default; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 7px 4px; box-shadow: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; max-width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.row2 { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
+.row2 > * { flex: 1 1 180px; min-width: 0; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.th { color: var(--curve); }
+.stats td.ob { color: var(--accent); }
+.stats td.good { color: var(--fit); font-weight: 600; }
+.stats td.bad { color: var(--ball); font-weight: 600; }
+.scroll { overflow-x: auto; max-width: 100%; }
+
+.status { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); min-height: 1.5em; font-variant-numeric: tabular-nums; }
+.bar { height: 4px; background: var(--grid); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .1s; }
+.callout { background: var(--board); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.callout.warn { border-left-color: var(--ball); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.card > p { margin: 0; max-width: 92ch; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.split.wideL { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .split, .split.wideL { grid-template-columns: minmax(0, 1fr); } }
+.plotbox { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.plotbox h3 { font-family: var(--font-display); font-size: 16px; margin: 0 4px; }
+
+.mini { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+.mini th, .mini td { padding: 6px 7px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.mini th:first-child, .mini td:first-child { text-align: left; padding-left: 0; white-space: normal; min-width: 150px; }
+.mini thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; vertical-align: bottom; }
+.mini td { font-family: var(--font-mono); }
+.mini td:first-child { font-family: var(--font-body); }
+.mini tr:last-child td { border-bottom: 0; }
+.mini tr.cur td { background: var(--board); }
+.mini td.good { color: var(--fit); font-weight: 600; }
+.mini td.bad { color: var(--ball); font-weight: 600; }
+.mini td.th { color: var(--curve); }
+.mini small { color: var(--muted); font-family: var(--font-mono); font-size: 11px; display: block; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1000px) { .notes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; margin: 0 0 8px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+@media (prefers-reduced-motion: reduce) { button, .bar i { transition: none; } }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Sparsity and regularization</span>
+    <h1>Needle in a Haystack</h1>
+    <p class="lead">A study measures the expression of 1,000 genes on 100 patients. Only a handful of genes move the disease score: those are the needles, the rest is hay. Compare what each gene shows on its own with least squares, ridge, the lasso and a spike-and-slab prior, all fitted to the same simulated data, and find out when the needles can no longer be found.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/17-theoryai.html">Chapter 17</a> (statistical learning theory and regularization). Gene data on this page are simulated.</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Haystack plot: truth, gene-by-gene evidence and estimates">
+      <canvas id="hay" role="img" aria-label="Three spike plots over gene index: the true coefficients, the gene-by-gene t statistics with significance lines, and the estimates of the selected method"></canvas>
+      <div class="legend" id="hayLegend">
+        <span><i class="sw stem" style="background:var(--curve)"></i>True needle</span>
+        <span><i class="sw stem" style="background:var(--accent)"></i>|t| for one gene</span>
+        <span><i class="sw stem" style="background:var(--fit)"></i>Hit: needle found</span>
+        <span><i class="sw stem" style="background:var(--ball)"></i>False alarm: hay selected</span>
+        <span><i class="sw ring"></i>True value (a miss if no teal stem)</span>
+      </div>
+      <div class="tip" id="tip" hidden></div>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Method shown in (c)</span>
+        <div class="btns" id="methBtns">
+          <button id="mLS" aria-pressed="false">Least squares</button>
+          <button id="mRidge" aria-pressed="false">Ridge</button>
+          <button id="mLasso" aria-pressed="true">Lasso</button>
+          <button id="mBayes" aria-pressed="false">Spike-and-slab</button>
+        </div>
+        <div class="slider" id="lamBox"><div class="top"><label for="lam">Lasso penalty λ</label><output id="lamOut" for="lam">–</output></div>
+          <input type="range" id="lam" min="0" max="79" step="1" value="40">
+          <div class="btns"><button id="lamMin">Use λ<sub>min</sub></button><button id="lam1se" aria-pressed="true">Use λ<sub>1se</sub></button></div>
+          <p class="hint">Right = stronger penalty, fewer genes. λ<sub>min</sub> minimises 5-fold CV error; λ<sub>1se</sub> is the largest λ within one standard error of it.</p>
+        </div>
+        <div class="slider" id="ridgeBox" hidden><div class="top"><label for="rlam">Ridge penalty λ</label><output id="rlamOut" for="rlam">–</output></div>
+          <input type="range" id="rlam" min="0" max="70" step="1" value="35">
+          <div class="btns"><button id="rCv" class="wide" aria-pressed="true">Use the leave-one-out CV choice</button></div>
+        </div>
+        <p class="hint" id="methHint"></p>
+        <div class="status" id="status" aria-live="polite">Fitting…</div>
+        <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+      </div>
+
+      <div class="group">
+        <span class="label">The study</span>
+        <div class="slider"><div class="top"><label for="p">Genes measured, p</label><output id="pOut" for="p">1,000</output></div>
+          <input type="range" id="p" min="100" max="2000" step="50" value="1000"></div>
+        <div class="slider"><div class="top"><label for="n">Patients, n</label><output id="nOut" for="n">100</output></div>
+          <input type="range" id="n" min="50" max="500" step="10" value="100"></div>
+        <div class="slider"><div class="top"><label for="k">Needles (genes that matter), k</label><output id="kOut" for="k">5</output></div>
+          <input type="range" id="k" min="1" max="30" step="1" value="5"></div>
+        <div class="slider"><div class="top"><label for="b">Signal strength |β| / σ</label><output id="bOut" for="b">1.00</output></div>
+          <input type="range" id="b" min="0.1" max="3" step="0.05" value="1"></div>
+        <div class="slider"><div class="top"><label for="rho">Correlation between neighbouring genes ρ</label><output id="rhoOut" for="rho">0.00</output></div>
+          <input type="range" id="rho" min="0" max="0.95" step="0.05" value="0"></div>
+        <div class="field"><label for="corr">Correlation structure</label>
+          <select id="corr"><option value="ar" selected>Chain: corr(gene j, gene j+d) = ρ^d</option><option value="block">Blocks of 10 genes, all pairs ρ</option></select></div>
+        <div class="btns"><button id="newData" class="primary">New patients</button><button id="resetData">Reset study</button></div>
+        <div class="checks"><label><input type="checkbox" id="reveal" checked> Reveal the needles</label></div>
+      </div>
+
+      <div class="group">
+        <span class="label" id="scoreLabel">Scorecard · lasso</span>
+        <table class="stats" id="mini">
+          <tbody></tbody>
+        </table>
+        <p class="hint">Test MSE uses 500 fresh patients. The red value is the best possible, σ² = 1, reached only by knowing the true β.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card" aria-labelledby="scH">
+    <span class="eyebrow">Same data, every method</span>
+    <h2 id="scH">Scorecard: who found the needles?</h2>
+    <p class="hint" style="font-size:14px">A gene counts as selected when its estimate is not exactly zero (screening: when it passes the threshold; spike-and-slab: when its posterior inclusion probability is above 0.5). Estimation error is ‖β̂ − β‖ on the original gene scale. Prediction error is the mean squared error on 500 new patients; predicting with the true β gives 1.00 and predicting the average gives <span id="nullMse">6.00</span>.</p>
+    <div class="scroll"><table class="mini" id="score">
+      <thead><tr><th>Method</th><th>Selected</th><th>Hits<br>(TP)</th><th>False<br>alarms</th><th>Missed</th><th>Precision</th><th>Recall</th><th style="text-transform:none">‖β̂ − β‖</th><th>Test MSE</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" aria-labelledby="pathH">
+    <span class="eyebrow">Coordinate descent with warm starts · 5-fold cross-validation</span>
+    <h2 id="pathH">The lasso path: needles enter first, if they are strong enough</h2>
+    <div class="split">
+      <div class="plotbox">
+        <h3>Coefficient paths</h3>
+        <canvas id="pathCv" role="img" aria-label="Lasso coefficient paths against log lambda with true needles highlighted"></canvas>
+        <div class="legend">
+          <span><i class="sw line" style="border-color:var(--curve)"></i>True needle</span>
+          <span><i class="sw line" style="border-color:var(--peg);opacity:.5"></i>Hay gene</span>
+          <span><i class="sw line" style="border-color:var(--accent)"></i>Current λ</span>
+        </div>
+      </div>
+      <div class="plotbox">
+        <h3>Cross-validated error</h3>
+        <canvas id="cvCv" role="img" aria-label="Cross-validated mean squared error against log lambda with lambda min and lambda 1se marked"></canvas>
+        <div class="legend">
+          <span><i class="sw dot"></i>CV MSE ± 1 SE</span>
+          <span><i class="sw dash"></i>λ<sub>min</sub></span>
+          <span><i class="sw dash" style="border-color:var(--fit)"></i>λ<sub>1se</sub></span>
+          <span><i class="sw line" style="border-color:var(--curve)"></i>σ² = 1</span>
+        </div>
+      </div>
+    </div>
+    <p class="hint" style="font-size:14px" id="pathNote"></p>
+  </section>
+
+  <section class="card" aria-labelledby="shH">
+    <span class="eyebrow">Orthogonal genes · estimate against raw evidence</span>
+    <h2 id="shH">Three ways to shrink a noisy estimate</h2>
+    <div class="split wideL">
+      <div class="plotbox">
+        <canvas id="shrCv" role="img" aria-label="Shrinkage functions: estimate against raw z for least squares, ridge, lasso and spike-and-slab"></canvas>
+        <div class="legend">
+          <span><i class="sw dash" style="border-color:var(--muted)"></i>Least squares: no shrinkage</span>
+          <span><i class="sw line" style="border-color:var(--fit)"></i>Ridge</span>
+          <span><i class="sw line"></i>Lasso</span>
+          <span><i class="sw line" style="border-color:var(--coinB)"></i>Spike-and-slab posterior mean</span>
+          <span><i class="sw line" style="border-color:var(--curve)"></i>Bonferroni |t|</span>
+        </div>
+      </div>
+      <div class="group">
+        <p style="margin:0">Suppose the genes were uncorrelated, so each gene's raw evidence is a z-score z = β̂<sub>LS</sub>√n / σ. Each method then becomes a function of z alone. The lasso curve uses the λ chosen above, so moving the lasso slider moves it; ridge has its own slider here.</p>
+        <div class="slider"><div class="top"><label for="shR">Ridge λ in this plot</label><output id="shROut" for="shR">0.50</output></div>
+          <input type="range" id="shR" min="0" max="3" step="0.05" value="0.5"></div>
+        <table class="stats" id="shrTab"><thead><tr><th>Raw z</th><th>Ridge</th><th>Lasso</th><th>Slab</th></tr></thead><tbody></tbody></table>
+        <p class="hint">Ridge multiplies every z by the same factor 1/(1 + λ), so nothing is ever exactly zero. The lasso subtracts the same amount λ√n/σ from every z, so small ones become exactly zero and big ones are biased toward zero by a constant. The spike-and-slab posterior mean is close to zero for noise-sized z and close to z for big ones: it shrinks hay hard and leaves needles alone.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="ptH">
+    <span class="eyebrow">Repeated simulations · exact support recovery</span>
+    <h2 id="ptH">Phase transition: when do the needles become impossible to find?</h2>
+    <p>Each point re-simulates the study many times at the current p, k and correlation and asks whether a method picks out exactly the true set of needles, with no misses and no false alarms. Success jumps from near 0% to near 100% over a narrow range.</p>
+    <div class="row2">
+      <div class="field"><label for="ptAxis">Vary</label><select id="ptAxis"><option value="b" selected>Signal strength (n fixed at current value)</option><option value="n">Patients n (signal fixed at current value)</option></select></div>
+      <div class="slider field"><div class="top"><label for="ptReps">Simulations per point</label><output id="ptRepsOut" for="ptReps">20</output></div>
+        <input type="range" id="ptReps" min="10" max="100" step="10" value="20"></div>
+      <button id="ptRun" class="primary">Run phase transition</button>
+    </div>
+    <div class="status" id="ptStatus">Not run yet. The plot shows a quick 10-simulation preview.</div>
+    <div class="bar" aria-hidden="true"><i id="ptProg"></i></div>
+    <div class="plotbox">
+      <canvas id="ptCv" role="img" aria-label="Probability of exact support recovery against signal strength or sample size"></canvas>
+      <div class="legend">
+        <span><i class="sw line" style="border-color:var(--curve)"></i>Screening + Bonferroni</span>
+        <span><i class="sw line"></i>Lasso, λ = σ√(2 log p / n)</span>
+        <span><i class="sw line" style="border-color:var(--fit)"></i>Lasso, best λ on the path (oracle)</span>
+        <span><i class="sw line" style="border-color:var(--ball);border-top-style:dashed"></i>Current setting</span>
+      </div>
+    </div>
+    <p class="hint">The oracle curve asks whether any λ on the lasso path gives exactly the right genes; no real analyst knows which λ that is, so it is an upper bound for the lasso. The universal λ assumes σ = 1 is known. Spike-and-slab is left out here to keep the run short.</p>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Geometry of the penalty</span>
+      <h2>Why the lasso gives exact zeros and ridge does not</h2>
+      <p class="hint" style="font-size:14px;max-width:86ch">Penalised least squares is the same as least squares inside a budget: ‖β‖₁ ≤ t for the lasso (a diamond) or ‖β‖₂ ≤ t for ridge (a circle). The solution is where the smallest error ellipse around the least-squares point first touches the budget. A diamond has corners on the axes, and the ellipse usually touches a corner, where one coefficient is exactly zero. A circle has no corners. Drag on the plot to move the least-squares point.</p>
+      <div class="demo">
+        <button id="preDefault" class="primary">Default study</button>
+        <button id="preEasy">Strong needles</button>
+        <button id="preWeak">Weak needles</button>
+        <button id="prePair">Correlated neighbours</button>
+        <button id="preSmallP">p &lt; n</button>
+      </div>
+    </div>
+    <div class="plotbox">
+      <canvas id="geoCv" role="img" aria-label="Two-coefficient plane with lasso diamond and ridge circle constraints and error ellipses touching them"></canvas>
+      <div class="slider"><div class="top"><label for="geoT">Budget t</label><output id="geoTOut" for="geoT">1.00</output></div>
+        <input type="range" id="geoT" min="0.2" max="2.4" step="0.05" value="1"></div>
+      <div class="legend">
+        <span><i class="sw dot" style="background:var(--ink)"></i>Least squares</span>
+        <span><i class="sw dot"></i>Lasso (diamond)</span>
+        <span><i class="sw dot" style="background:var(--fit)"></i>Ridge (circle)</span>
+      </div>
+      <div class="status" id="geoOut"></div>
+    </div>
+    <div class="eqs">
+      <div class="eq"><div class="cap">The model</div><div class="m">y = Xβ + ε,  ε ~ N(0, σ²I),  σ = 1</div><div class="m">β<sub>j</sub> = ±signal for k needles, 0 for the other p − k genes</div></div>
+      <div class="eq"><div class="cap">Lasso, the scaling used here and in scikit-learn</div><div class="m">β̂ = argmin (1/2n)‖y − Xβ‖² + λ‖β‖₁</div><div class="m">coordinate step: β<sub>j</sub> ← S(x<sub>j</sub>ᵀr<sub>j</sub>/n, λ),  S(z, λ) = sign(z)(|z| − λ)₊</div></div>
+      <div class="eq"><div class="cap">Ridge, closed form</div><div class="m">β̂ = (XᵀX + nλI)⁻¹Xᵀy = Xᵀ(XXᵀ + nλI)⁻¹y</div></div>
+      <div class="eq"><div class="cap">Lasso is a posterior mode under a Laplace prior</div><div class="m">p(β<sub>j</sub>) ∝ exp(−|β<sub>j</sub>|/s)  ⇒  −log p(β | y) = ‖y − Xβ‖²/2σ² + ‖β‖₁/s</div><div class="m">so the mode is the lasso with λ = σ²/(n s)</div></div>
+      <div class="eq"><div class="cap">Spike-and-slab prior fitted here (Gibbs sampler)</div><div class="m">β<sub>j</sub> ~ (1 − π) δ₀ + π N(0, σ²τ²),  τ = 1,  π ~ Beta(1, 1),  p(σ²) ∝ 1/σ²</div><div class="m">PIP<sub>j</sub> = P(β<sub>j</sub> ≠ 0 | y)</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> With more genes than patients, the data alone cannot pin down β: infinitely many coefficient vectors fit perfectly. A sparsity assumption, written as an L1 penalty or as a prior that puts most genes at exactly zero, is what makes the problem solvable, and it only works when the needles are strong enough relative to σ√(2 log p / n).</p></div>
+  </section>
+
+  <section class="notes" aria-label="Lesson cards">
+    <div class="note">
+      <h2>Why p ≫ n needs a sparsity assumption</h2>
+      <p>With p = 1,000 genes and n = 100 patients, XᵀX is a 1,000 × 1,000 matrix of rank at most 99. The normal equations have infinitely many solutions, and every one of them fits the training data exactly. Least squares cannot choose between them.</p>
+      <p>If only k genes matter, there are only k unknowns to find, plus the job of finding which ones. That is possible when n is of order k log(p/k), far smaller than p.</p>
+    </div>
+    <div class="note">
+      <h2>L1 versus L2</h2>
+      <div class="formula">ridge: β̂ = z/(1 + λ)   lasso: β̂ = S(z, λ)</div>
+      <p>Ridge shrinks every coefficient by the same proportion and keeps all genes. That helps prediction a little but finds no needles. The lasso shrinks every coefficient by the same amount and sets the small ones to exactly zero, so it selects genes. The price is bias: big needles are pulled toward zero too.</p>
+    </div>
+    <div class="note">
+      <h2>The lasso is a Bayesian posterior mode</h2>
+      <div class="formula">Laplace prior p(β) ∝ e<sup>−|β|/s</sup>  ⇒  mode = lasso</div>
+      <p>The Laplace density has a sharp peak at zero, which is what produces exact zeros at the mode. But its posterior mean is never exactly zero, and its tails are only exponential, so it cannot leave big signals alone. The penalty is a prior in disguise.</p>
+    </div>
+    <div class="note">
+      <h2>Most genes are exactly hay, a few are big</h2>
+      <p>Spike-and-slab says this literally: each gene is either exactly zero (the spike) or drawn from a wide normal (the slab). The horseshoe prior says it smoothly, with a density that has a pole at zero and heavy Cauchy-like tails.</p>
+      <p>Both give the shrinkage profile in the plot above: noise-sized estimates are pulled to zero, big ones are left almost untouched. Inclusion probabilities give an honest answer to "is this gene a needle?"</p>
+    </div>
+    <div class="note">
+      <h2>Multiple testing: screening versus joint modelling</h2>
+      <div class="formula">Bonferroni: p<sub>j</sub> &lt; 0.05/p   BH: p<sub>(i)</sub> ≤ 0.05 · i/p</div>
+      <p>Testing genes one at a time is marginal screening. At p = 0.05 about 50 of 1,000 hay genes pass by chance. Bonferroni controls the chance of any false alarm; Benjamini–Hochberg controls the expected share of false alarms. Each gene's marginal |t| also carries noise from the other needles, which a joint model removes.</p>
+    </div>
+    <div class="note">
+      <h2>Correlated genes</h2>
+      <p>When two genes are highly correlated, the lasso tends to pick one of them, and which one can flip with a few patients. A hay gene next to a needle can take the needle's place. Marginal screening has the opposite problem: hay neighbours of a needle light up too.</p>
+      <p>Spike-and-slab spreads the inclusion probability across the pair, saying "one of these two" with roughly 0.5 each.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Untick "Reveal the needles". Ask the class to point at the needles using panel (b) only. Then reveal them. How many of the tallest |t| spikes were hay, and how many hay genes cross the p &lt; 0.05 line? (Expect about 5% of p.)</li>
+      <li>Switch to least squares with the default p = 1,000 and n = 100. Read off the rank and explain why the estimate is useless. Then click "p &lt; n" and see least squares work again, noisily, with every gene selected.</li>
+      <li>Slowly lower the signal strength with the lasso at λ<sub>1se</sub>. Find the value where needles start to be missed, then compare it with the universal threshold σ√(2 log p / n) shown in the path card. Run the phase transition to confirm.</li>
+      <li>Switch between λ<sub>min</sub> and λ<sub>1se</sub>. Which has more false alarms? Which predicts better? Ask why the CV-best λ for prediction is not the best λ for finding needles.</li>
+      <li>Click "Correlated neighbours" (ρ = 0.9). Compare the lasso and spike-and-slab in panel (c): look for a hay neighbour selected in place of a needle, and for inclusion probabilities split across a pair.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  /*CORE*/
+  function mulberry32(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function hashSeed(a, b, c) { let h = 2166136261 >>> 0; for (const v of [a, b, c]) { h ^= v >>> 0; h = Math.imul(h, 16777619); h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15; } return h >>> 0; }
+  function normalGen(rnd) { let spare = null; return function () { if (spare !== null) { const s = spare; spare = null; return s; } let u = 0; while (u === 0) u = rnd(); const v = rnd(), R = Math.sqrt(-2 * Math.log(u)); spare = R * Math.sin(2 * Math.PI * v); return R * Math.cos(2 * Math.PI * v); }; }
+  function fillNormals(seed, out, m) { const rn = normalGen(mulberry32(seed)); for (let i = 0; i < m; i++) out[i] = rn(); }
+
+  // Simulated study. X is column-major: gene j occupies X[j*n .. j*n+n-1].
+  // Every gene column has its own random stream, so adding patients or genes keeps the earlier draws.
+  function genStudy(o) {
+    const { n, p, k, b, rho, struct, seed } = o, nT = o.nTest || 0;
+    const X = new Float64Array(n * p), Xt = new Float64Array(nT * p);
+    const z = new Float64Array(Math.max(n, nT, 1)), w = new Float64Array(Math.max(n, nT, 1));
+    const a = Math.sqrt(1 - rho * rho), BS = 10;
+    const make = (M, m, tag) => {
+      for (let j = 0; j < p; j++) {
+        fillNormals(hashSeed(seed, j, tag), z, m);
+        const off = j * m;
+        if (struct === 'block') {
+          if (j % BS === 0) fillNormals(hashSeed(seed, j / BS | 0, tag + 10), w, m);
+          const sr = Math.sqrt(rho), sq = Math.sqrt(1 - rho);
+          for (let i = 0; i < m; i++) M[off + i] = sr * w[i] + sq * z[i];
+        } else if (j === 0 || rho === 0) {
+          for (let i = 0; i < m; i++) M[off + i] = z[i];
+        } else {
+          const pr = off - m;
+          for (let i = 0; i < m; i++) M[off + i] = rho * M[pr + i] + a * z[i];
+        }
+      }
+    };
+    make(X, n, 1); if (nT) make(Xt, nT, 2);
+    // needles: the k genes with the smallest position draw; random signs
+    const u = new Float64Array(p), sg = new Int8Array(p);
+    for (let j = 0; j < p; j++) { const r = mulberry32(hashSeed(seed, j, 5)); u[j] = r(); sg[j] = r() < 0.5 ? -1 : 1; }
+    const order = Array.from({ length: p }, (_, j) => j).sort((x, y) => u[x] - u[y]);
+    const needles = order.slice(0, Math.min(k, p)).sort((x, y) => x - y);
+    const beta = new Float64Array(p); for (const j of needles) beta[j] = sg[j] * b;
+    const y = new Float64Array(n), yt = new Float64Array(nT);
+    fillNormals(hashSeed(seed, 0, 6), y, n); if (nT) fillNormals(hashSeed(seed, 0, 7), yt, nT);
+    for (const j of needles) { const bj = beta[j]; for (let i = 0; i < n; i++) y[i] += bj * X[j * n + i]; for (let i = 0; i < nT; i++) yt[i] += bj * Xt[j * nT + i]; }
+    return { n, p, nT, X, Xt, y, yt, beta, needles };
+  }
+
+  // centre and scale each column so that sum x^2 = n; centre y
+  function standardize(X, n, p, y) {
+    const Xs = new Float64Array(n * p), mu = new Float64Array(p), sd = new Float64Array(p);
+    for (let j = 0; j < p; j++) {
+      const off = j * n; let s = 0; for (let i = 0; i < n; i++) s += X[off + i];
+      const m = s / n; let v = 0; for (let i = 0; i < n; i++) { const d = X[off + i] - m; v += d * d; }
+      const sdj = Math.sqrt(v / n) || 1; mu[j] = m; sd[j] = sdj;
+      for (let i = 0; i < n; i++) Xs[off + i] = (X[off + i] - m) / sdj;
+    }
+    let ym = 0; for (let i = 0; i < n; i++) ym += y[i]; ym /= n;
+    const yc = new Float64Array(n); for (let i = 0; i < n; i++) yc[i] = y[i] - ym;
+    return { Xs, mu, sd, ym, yc };
+  }
+
+  // ---- distributions ----
+  function lgamma(x) {
+    const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * x))) - lgamma(1 - x);
+    x -= 1; let a = c[0]; const t = x + 7.5; for (let i = 1; i < 9; i++) a += c[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  function betacf(a, b, x) {
+    const FP = 1e-300; const qab = a + b, qap = a + 1, qam = a - 1; let c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < FP) d = FP; d = 1 / d; let h = d;
+    for (let m = 1; m <= 400; m++) {
+      const m2 = 2 * m; let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FP) d = FP; c = 1 + aa / c; if (Math.abs(c) < FP) c = FP; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FP) d = FP; c = 1 + aa / c; if (Math.abs(c) < FP) c = FP; d = 1 / d;
+      const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-16) break;
+    }
+    return h;
+  }
+  function betai(a, b, x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const lbt = lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x);
+    return x < (a + 1) / (a + b + 2) ? Math.exp(lbt) * betacf(a, b, x) / a : 1 - Math.exp(lbt) * betacf(b, a, 1 - x) / b;
+  }
+  const tTwoSided = (t, df) => betai(df / 2, 0.5, df / (df + t * t));
+  function tCrit(alpha, df) { let lo = 0, hi = 60; for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (tTwoSided(m, df) > alpha) lo = m; else hi = m; } return (lo + hi) / 2; }
+
+  // gene-by-gene simple regressions
+  function marginal(Xs, n, p, yc) {
+    let yy = 0; for (let i = 0; i < n; i++) yy += yc[i] * yc[i];
+    const t = new Float64Array(p), pv = new Float64Array(p), df = n - 2;
+    for (let j = 0; j < p; j++) {
+      const off = j * n; let g = 0; for (let i = 0; i < n; i++) g += Xs[off + i] * yc[i];
+      const bj = g / n, rss = Math.max(yy - n * bj * bj, 1e-12), se = Math.sqrt(rss / df / n);
+      t[j] = bj / se; pv[j] = tTwoSided(t[j], df);
+    }
+    const tRaw = tCrit(0.05, df), tBon = tCrit(0.05 / p, df);
+    const idx = Array.from({ length: p }, (_, j) => j).sort((a, b) => pv[a] - pv[b]);
+    let kBH = 0; for (let i = 0; i < p; i++) if (pv[idx[i]] <= 0.05 * (i + 1) / p) kBH = i + 1;
+    const bh = new Uint8Array(p); for (let i = 0; i < kBH; i++) bh[idx[i]] = 1;
+    const tBH = kBH ? tCrit(0.05 * kBH / p, df) : null; // BH rejects every p-value below 0.05 k/p
+    return { t, pv, tRaw, tBon, bh, kBH, tBH };
+  }
+
+  // ---- lasso by coordinate descent: minimise (1/2m)||y - Xb||^2 + lam ||b||_1 ----
+  function lamGrid(lmax, L, ratio) { const g = new Float64Array(L); for (let i = 0; i < L; i++) g[i] = lmax * Math.pow(ratio, i / (L - 1)); return g; }
+  function lamMax(X, m, p, y) { let mx = 0; for (let j = 0; j < p; j++) { let g = 0; const off = j * m; for (let i = 0; i < m; i++) g += X[off + i] * y[i]; mx = Math.max(mx, Math.abs(g) / m); } return mx; }
+  function cdState(m, p, y) { return { b: new Float64Array(p), r: Float64Array.from(y), act: new Uint8Array(p), list: [], sweeps: 0 }; }
+  // generator: yields between sweeps so the page never blocks for long; returns the number of nonzero coefficients
+  function* cdSolve(X, m, p, d, st, lam, tol) {
+    const b = st.b, r = st.r, act = st.act, list = st.list;
+    let yy = 0; for (let i = 0; i < m; i++) yy += r[i] * r[i];
+    const upd = j => {
+      const off = j * m; let g = 0; for (let i = 0; i < m; i++) g += X[off + i] * r[i];
+      const bj = b[j], dj = d[j], z = g / m + dj * bj;
+      const nb = z > lam ? (z - lam) / dj : z < -lam ? (z + lam) / dj : 0;
+      if (nb !== bj) {
+        const df = nb - bj; for (let i = 0; i < m; i++) r[i] -= df * X[off + i];
+        b[j] = nb; if (!act[j]) { act[j] = 1; list.push(j); } return dj * df * df;
+      }
+      return 0;
+    };
+    const thr = tol;
+    for (let outer = 0; outer < 200; outer++) {
+      let md = 0; for (let j = 0; j < p; j++) { const v = upd(j); if (v > md) md = v; } st.sweeps++;
+      yield -1;
+      if (md < thr) break;
+      for (let inner = 0; inner < 2000; inner++) {
+        let md2 = 0; for (let q = 0; q < list.length; q++) { const v = upd(list[q]); if (v > md2) md2 = v; } st.sweeps += list.length / p;
+        if (md2 < thr) break;
+        if (inner % 25 === 24) yield -1;
+      }
+    }
+    let nz = 0; for (let j = 0; j < p; j++) if (b[j] !== 0) nz++;
+    return nz;
+  }
+  // full path with warm starts; onLam(i, b, nz) is called after each lambda; returns index of last solved lambda
+  function* lassoPathGen(X, m, p, y, lams, tol, maxAct, onLam) {
+    const d = new Float64Array(p);
+    for (let j = 0; j < p; j++) { let s = 0; const off = j * m; for (let i = 0; i < m; i++) s += X[off + i] * X[off + i]; d[j] = s / m || 1e-12; }
+    let yy = 0; for (let i = 0; i < m; i++) yy += y[i] * y[i];
+    const st = cdState(m, p, y), tl = tol * yy / m;
+    let last = -1;
+    for (let i = 0; i < lams.length; i++) {
+      const nz = yield* cdSolve(X, m, p, d, st, lams[i], tl);
+      onLam(i, st.b, nz); last = i;
+      yield i;
+      if (nz > maxAct) break;
+    }
+    return last;
+  }
+
+  // ---- symmetric eigen-decomposition (Householder tridiagonalisation + implicit QL, after JAMA) ----
+  function* symEigGen(A, n) {
+    const V = []; for (let i = 0; i < n; i++) V.push(Float64Array.from(A.subarray(i * n, i * n + n)));
+    const d = new Float64Array(n), e = new Float64Array(n);
+    for (let j = 0; j < n; j++) d[j] = V[n - 1][j];
+    for (let i = n - 1; i > 0; i--) {
+      let scale = 0, h = 0;
+      for (let k = 0; k < i; k++) scale += Math.abs(d[k]);
+      if (scale === 0) {
+        e[i] = d[i - 1];
+        for (let j = 0; j < i; j++) { d[j] = V[i - 1][j]; V[i][j] = 0; V[j][i] = 0; }
+      } else {
+        for (let k = 0; k < i; k++) { d[k] /= scale; h += d[k] * d[k]; }
+        let f = d[i - 1], g = Math.sqrt(h); if (f > 0) g = -g;
+        e[i] = scale * g; h -= f * g; d[i - 1] = f - g;
+        for (let j = 0; j < i; j++) e[j] = 0;
+        for (let j = 0; j < i; j++) {
+          f = d[j]; V[j][i] = f; g = e[j] + V[j][j] * f;
+          for (let k = j + 1; k <= i - 1; k++) { g += V[k][j] * d[k]; e[k] += V[k][j] * f; }
+          e[j] = g;
+        }
+        f = 0;
+        for (let j = 0; j < i; j++) { e[j] /= h; f += e[j] * d[j]; }
+        const hh = f / (h + h);
+        for (let j = 0; j < i; j++) e[j] -= hh * d[j];
+        for (let j = 0; j < i; j++) {
+          f = d[j]; g = e[j];
+          for (let k = j; k <= i - 1; k++) V[k][j] -= (f * e[k] + g * d[k]);
+          d[j] = V[i - 1][j]; V[i][j] = 0;
+        }
+      }
+      d[i] = h;
+      if (i % 8 === 0) yield 0.4 * (n - i) / n;
+    }
+    for (let i = 0; i < n - 1; i++) {
+      V[n - 1][i] = V[i][i]; V[i][i] = 1;
+      const h = d[i + 1];
+      if (h !== 0) {
+        for (let k = 0; k <= i; k++) d[k] = V[k][i + 1] / h;
+        for (let j = 0; j <= i; j++) {
+          let g = 0; for (let k = 0; k <= i; k++) g += V[k][i + 1] * V[k][j];
+          for (let k = 0; k <= i; k++) V[k][j] -= g * d[k];
+        }
+      }
+      for (let k = 0; k <= i; k++) V[k][i + 1] = 0;
+      if (i % 8 === 0) yield 0.4 + 0.2 * i / n;
+    }
+    for (let j = 0; j < n; j++) { d[j] = V[n - 1][j]; V[n - 1][j] = 0; }
+    V[n - 1][n - 1] = 1; e[0] = 0;
+    // tql2
+    for (let i = 1; i < n; i++) e[i - 1] = e[i];
+    e[n - 1] = 0;
+    let f = 0, tst1 = 0; const eps = Math.pow(2, -52);
+    for (let l = 0; l < n; l++) {
+      tst1 = Math.max(tst1, Math.abs(d[l]) + Math.abs(e[l]));
+      let m = l; while (m < n) { if (Math.abs(e[m]) <= eps * tst1) break; m++; }
+      if (m > l) {
+        let iter = 0;
+        do {
+          iter++;
+          let g = d[l], p = (d[l + 1] - g) / (2 * e[l]), r = Math.hypot(p, 1); if (p < 0) r = -r;
+          d[l] = e[l] / (p + r); d[l + 1] = e[l] * (p + r);
+          const dl1 = d[l + 1]; let h = g - d[l];
+          for (let i = l + 2; i < n; i++) d[i] -= h;
+          f += h;
+          p = d[m]; let c = 1, c2 = c, c3 = c; const el1 = e[l + 1]; let s = 0, s2 = 0;
+          for (let i = m - 1; i >= l; i--) {
+            c3 = c2; c2 = c; s2 = s;
+            g = c * e[i]; h = c * p; r = Math.hypot(p, e[i]);
+            e[i + 1] = s * r; s = e[i] / r; c = p / r;
+            p = c * d[i] - s * g; d[i + 1] = h + s * (c * g + s * d[i]);
+            for (let k = 0; k < n; k++) { const Vk = V[k]; h = Vk[i + 1]; Vk[i + 1] = s * Vk[i] + c * h; Vk[i] = c * Vk[i] - s * h; }
+          }
+          p = -s * s2 * c3 * el1 * e[l] / dl1; e[l] = s * p; d[l] = c * p;
+          if (iter % 2 === 0) yield 0.6 + 0.4 * l / n;
+        } while (Math.abs(e[l]) > eps * tst1 && iter < 60);
+      }
+      d[l] = d[l] + f; e[l] = 0;
+    }
+    // vectors as columns: vec i component k = V[k][i]
+    return { vals: d, V };
+  }
+
+  // Ridge / minimum-norm least squares through the thin SVD X = U S W^T computed from the smaller Gram matrix.
+  function* ridgeSetupGen(Xs, n, p) {
+    const m = Math.min(n, p), G = new Float64Array(m * m);
+    if (p < n) { // G = X^T X
+      for (let a = 0; a < p; a++) { const oa = a * n; for (let c = a; c < p; c++) { const oc = c * n; let s = 0; for (let i = 0; i < n; i++) s += Xs[oa + i] * Xs[oc + i]; G[a * m + c] = s; G[c * m + a] = s; } if (a % 16 === 0) yield 0.3 * a / p; }
+    } else { // G = X X^T, accumulated gene by gene
+      for (let j = 0; j < p; j++) { const off = j * n; for (let a = 0; a < n; a++) { const xa = Xs[off + a]; if (xa === 0) continue; const ro = a * m; for (let c = a; c < n; c++) G[ro + c] += xa * Xs[off + c]; } if (j % 8 === 0) yield 0.3 * j / p; }
+      for (let a = 0; a < n; a++) for (let c = 0; c < a; c++) G[a * m + c] = G[c * m + a];
+    }
+    const eg = symEigGen(G, m); let r;
+    while (!(r = eg.next()).done) yield 0.3 + 0.65 * r.value;
+    const { vals, V } = r.value;
+    let vmax = 0; for (let i = 0; i < m; i++) vmax = Math.max(vmax, vals[i]);
+    const tolE = vmax * m * 1e-12, keep = [];
+    for (let i = 0; i < m; i++) if (vals[i] > tolE) keep.push(i);
+    const W = [], U = [], lam = new Float64Array(keep.length);
+    for (let q = 0; q < keep.length; q++) {
+      const i = keep[q];
+      lam[q] = vals[i];
+      const w = new Float64Array(p), u = new Float64Array(n), s = Math.sqrt(vals[i]);
+      if (p < n) { for (let k = 0; k < p; k++) w[k] = V[k][i]; for (let j = 0; j < p; j++) { const off = j * n, wj = w[j] / s; for (let k = 0; k < n; k++) u[k] += Xs[off + k] * wj; } }
+      else { for (let k = 0; k < n; k++) u[k] = V[k][i]; for (let j = 0; j < p; j++) { const off = j * n; let a = 0; for (let k = 0; k < n; k++) a += Xs[off + k] * u[k]; w[j] = a / s; } }
+      W.push(w); U.push(u);
+      if (q % 16 === 15) yield 0.95 + 0.05 * q / keep.length;
+    }
+    return { W, U, lam, rank: keep.length, n, p };
+  }
+  // project y once: c_k = u_k^T y = w_k^T X^T y / s_k
+  function ridgeProject(R, Xs, n, p, y) {
+    const Xty = new Float64Array(p);
+    for (let j = 0; j < p; j++) { const off = j * n; let s = 0; for (let i = 0; i < n; i++) s += Xs[off + i] * y[i]; Xty[j] = s; }
+    const c = new Float64Array(R.rank);
+    for (let q = 0; q < R.rank; q++) { const w = R.W[q]; let s = 0; for (let j = 0; j < p; j++) s += w[j] * Xty[j]; c[q] = s / Math.sqrt(R.lam[q]); }
+    let yy = 0; for (let i = 0; i < n; i++) yy += y[i] * y[i];
+    return { c, yy, y };
+  }
+  // b(lam) = sum_k w_k s_k c_k / (Lam_k + n lam); lam = 0 gives the minimum-norm least-squares solution
+  function ridgeCoef(R, P, lam) {
+    const b = new Float64Array(R.p), n = R.n;
+    for (let q = 0; q < R.rank; q++) { const L = R.lam[q], f = Math.sqrt(L) * P.c[q] / (L + n * lam), w = R.W[q]; for (let j = 0; j < R.p; j++) b[j] += f * w[j]; }
+    return b;
+  }
+  // exact leave-one-out CV error (PRESS / n) for ridge with an intercept: e_i / (1 - H_ii), H = 11^T/n + sum_k u_k u_k^T L_k/(L_k + n lam)
+  function ridgeLOO(R, P, lam) {
+    const n = R.n, fit = new Float64Array(n), h = new Float64Array(n).fill(1 / n); let df = 0;
+    for (let q = 0; q < R.rank; q++) { const L = R.lam[q], sh = L / (L + n * lam), u = R.U[q], f = P.c[q] * sh; df += sh; for (let i = 0; i < n; i++) { fit[i] += u[i] * f; h[i] += u[i] * u[i] * sh; } }
+    let press = 0; for (let i = 0; i < n; i++) { const e = (P.y[i] - fit[i]) / Math.max(1 - h[i], 1e-12); press += e * e; }
+    return { loo: press / n, df };
+  }
+
+  // ---- spike-and-slab Gibbs sampler on the standardized regression ----
+  function gammaSample(a, rnd, rn) {
+    if (a < 1) return gammaSample(a + 1, rnd, rn) * Math.pow(rnd(), 1 / a);
+    const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) { let x, v; do { x = rn(); v = 1 + c * x; } while (v <= 0); v = v * v * v; const u = rnd(); if (u < 1 - 0.0331 * x * x * x * x) return d * v; if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v; }
+  }
+  // columns of Xs must satisfy x_j^T x_j = n. Single-site updates of (gamma_j, beta_j) given the rest,
+  // then sigma^2 | . ~ IG((n+|gamma|)/2, RSS/2 + sum beta^2/(2 tau^2)), pi | . ~ Beta(1+|gamma|, 1+p-|gamma|).
+  // PIPs and posterior means are Rao-Blackwellised: averages of P(gamma_j = 1 | rest) and of P(gamma_j=1|rest) * m_j.
+  function* gibbsGen(Xs, n, p, y, o) {
+    const tau2 = o.tau2, burn = o.burn, iters = o.iters, rnd = mulberry32(o.seed), rn = normalGen(rnd);
+    const b = new Float64Array(p), r = Float64Array.from(y), pipS = new Float64Array(p), bS = new Float64Array(p);
+    let yy = 0; for (let i = 0; i < n; i++) yy += y[i] * y[i];
+    let s2 = yy / n, pi = Math.min(0.5, 1 / p), size = 0;
+    const prec = n + 1 / tau2, hl = 0.5 * Math.log(1 / (tau2 * prec));
+    let sS = 0, piS = 0, sizeS = 0, cnt = 0;
+    const sizeTrace = [];
+    for (let t = 0; t < burn + iters; t++) {
+      const lo = Math.log(pi / (1 - pi)), v = s2 / prec, sv = Math.sqrt(v), keep = t >= burn;
+      let sb2 = 0; size = 0;
+      for (let j = 0; j < p; j++) {
+        const off = j * n; let g = 0; for (let i = 0; i < n; i++) g += Xs[off + i] * r[i];
+        const bj = b[j], mj = (g + n * bj) / prec, z = lo + hl + mj * mj / (2 * v);
+        const p1 = z > 0 ? 1 / (1 + Math.exp(-z)) : Math.exp(z) / (1 + Math.exp(z));
+        if (keep) { pipS[j] += p1; bS[j] += p1 * mj; }
+        let nb = 0;
+        if (rnd() < p1) { nb = mj + sv * rn(); size++; sb2 += nb * nb; }
+        if (nb !== bj) { const df = nb - bj; for (let i = 0; i < n; i++) r[i] -= df * Xs[off + i]; b[j] = nb; }
+      }
+      let rss = 0; for (let i = 0; i < n; i++) rss += r[i] * r[i];
+      s2 = (rss / 2 + sb2 / (2 * tau2)) / gammaSample((n + size) / 2, rnd, rn);
+      const ga = gammaSample(1 + size, rnd, rn), gb = gammaSample(1 + p - size, rnd, rn); pi = ga / (ga + gb);
+      if (keep) { cnt++; sS += s2; piS += pi; sizeS += size; }
+      sizeTrace.push(size);
+      yield t;
+    }
+    const pip = new Float64Array(p), bm = new Float64Array(p);
+    for (let j = 0; j < p; j++) { pip[j] = pipS[j] / cnt; bm[j] = bS[j] / cnt; }
+    return { pip, bm, s2: sS / cnt, pi: piS / cnt, size: sizeS / cnt, sizeTrace };
+  }
+  /*ENDCORE*/
+
+  // ---------- state ----------
+  const DEF = { p: 1000, n: 100, k: 5, b: 1, rho: 0, corr: 'ar', seed: 1 };
+  const S = Object.assign({}, DEF, { method: 'lasso', reveal: true, lamMode: '1se', lamIdx: 40, rMode: 'cv', rIdx: 35 });
+  const L = 80, NT = 500, RL = Array.from({ length: 71 }, (_, i) => Math.pow(10, -3 + i * 0.1));
+  let D = null;           // data + standardized + marginal
+  let FIT = {};           // lasso path, cv, ridge, bayes
+  let ridgeCache = { key: null, R: null };
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'ball', 'fit', 'board', 'peg', 'surface', 'coinB']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const fmt = (v, d = 2) => (v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
+  const int = v => Math.round(v).toLocaleString('en-US');
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- job runner (cooperative, ~25 ms chunks) ----------
+  function makeRunner() {
+    let tok = 0;
+    return {
+      run(gen, onStep, onDone) {
+        const my = ++tok;
+        const step = () => {
+          if (my !== tok) return;
+          const t0 = performance.now();
+          while (performance.now() - t0 < 25) {
+            const r = gen.next();
+            if (r.done) { if (onDone) onDone(r.value); return; }
+            if (onStep) onStep(r.value);
+          }
+          setTimeout(step, 0);
+        };
+        step();
+      },
+      cancel() { tok++; }
+    };
+  }
+  const main = makeRunner(), ptRunner = makeRunner();
+
+  // ---------- data ----------
+  function buildData() {
+    const st = genStudy({ n: S.n, p: S.p, k: S.k, b: S.b, rho: S.rho, struct: S.corr, seed: S.seed, nTest: NT });
+    const z = standardize(st.X, st.n, st.p, st.y);
+    const mg = marginal(z.Xs, st.n, st.p, z.yc);
+    D = Object.assign(st, z, { mg, isNeedle: new Uint8Array(st.p) });
+    for (const j of st.needles) D.isNeedle[j] = 1;
+    let v = 1; for (const j of st.needles) v += st.beta[j] * st.beta[j]; D.nullMse = v;
+    D.xkey = [S.n, S.p, S.rho, S.corr, S.seed].join('|');
+  }
+  // coefficients on the original gene scale and test-set MSE
+  function evalCoef(bstd) {
+    const p = D.p, n = NT, bo = new Float64Array(p); let icpt = D.ym, err = 0;
+    for (let j = 0; j < p; j++) { bo[j] = bstd[j] / D.sd[j]; icpt -= bo[j] * D.mu[j]; const e = bo[j] - D.beta[j]; err += e * e; }
+    const pred = new Float64Array(n).fill(icpt);
+    for (let j = 0; j < p; j++) { const bj = bo[j]; if (bj === 0) continue; const off = j * n; for (let i = 0; i < n; i++) pred[i] += bj * D.Xt[off + i]; }
+    let mse = 0; for (let i = 0; i < n; i++) { const e = D.yt[i] - pred[i]; mse += e * e; }
+    return { bo, err: Math.sqrt(err), mse: mse / n };
+  }
+  function scoreSel(sel) {
+    let tp = 0, fp = 0; for (let j = 0; j < D.p; j++) if (sel[j]) { if (D.isNeedle[j]) tp++; else fp++; }
+    const fn = D.needles.length - tp;
+    return { tp, fp, fn, sel: tp + fp, prec: tp + fp ? tp / (tp + fp) : null, rec: D.needles.length ? tp / D.needles.length : null };
+  }
+
+  // ---------- fitting pipeline ----------
+  function* pipeline() {
+    const { Xs, yc, n, p } = D;
+    const F = FIT = { stage: 'lasso' };
+    // 1. lasso path on the full data
+    const lmax = lamMax(Xs, n, p, yc), ratio = p >= n ? 0.01 : 0.001;
+    F.lams = lamGrid(lmax, L, ratio); F.B = new Array(L).fill(null); F.nz = new Int32Array(L).fill(-1);
+    const maxAct = Math.floor(0.9 * Math.min(n - 1, p));
+    yield* lassoPathGen(Xs, n, p, yc, F.lams, 1e-7, maxAct, (i, b, nz) => { F.B[i] = Float64Array.from(b); F.nz[i] = nz; });
+    F.last = F.B.findIndex(b => b === null); if (F.last < 0) F.last = L - 1; else F.last -= 1;
+    F.pathDone = true; F.stage = 'cv';
+    // 2. 5-fold CV on the same lambda grid
+    const K = 5, rnd = mulberry32(hashSeed(S.seed, n, 9)), perm = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+    const foldOf = new Int32Array(n); perm.forEach((r, q) => { foldOf[r] = q % K; });
+    const err = Array.from({ length: K }, () => new Float64Array(L).fill(NaN));
+    for (let f = 0; f < K; f++) {
+      const tr = [], te = []; for (let i = 0; i < n; i++) (foldOf[i] === f ? te : tr).push(i);
+      const m = tr.length, Xf = new Float64Array(m * p), mu = new Float64Array(p), Xte = new Float64Array(te.length * p);
+      let ym = 0; for (const i of tr) ym += yc[i]; ym /= m;
+      const yf = new Float64Array(m); tr.forEach((i, q) => { yf[q] = yc[i] - ym; });
+      for (let j = 0; j < p; j++) {
+        const off = j * n; let s = 0; for (const i of tr) s += Xs[off + i]; s /= m; mu[j] = s;
+        const o2 = j * m; tr.forEach((i, q) => { Xf[o2 + q] = Xs[off + i] - s; });
+        const o3 = j * te.length; te.forEach((i, q) => { Xte[o3 + q] = Xs[off + i] - s; });
+      }
+      const nt = te.length;
+      yield* lassoPathGen(Xf, m, p, yf, F.lams, 1e-7, Math.floor(0.9 * Math.min(m - 1, p)), (li, b) => {
+        let mse = 0;
+        for (let q = 0; q < nt; q++) { let pr = ym; for (let j = 0; j < p; j++) { const bj = b[j]; if (bj !== 0) pr += bj * Xte[j * nt + q]; } const e = yc[te[q]] - pr; mse += e * e; }
+        err[f][li] = mse / nt;
+      });
+      F.cvFold = f + 1;
+    }
+    const cvm = new Float64Array(L).fill(NaN), cvs = new Float64Array(L).fill(NaN);
+    for (let i = 0; i < L; i++) {
+      const v = err.map(e => e[i]); if (v.some(x => !isFinite(x))) continue;
+      const mean = v.reduce((a, b) => a + b, 0) / K, sd = Math.sqrt(v.reduce((a, b) => a + (b - mean) * (b - mean), 0) / (K - 1));
+      cvm[i] = mean; cvs[i] = sd / Math.sqrt(K);
+    }
+    let iMin = -1; for (let i = 0; i <= F.last; i++) if (isFinite(cvm[i]) && (iMin < 0 || cvm[i] < cvm[iMin])) iMin = i;
+    let i1 = iMin; for (let i = 0; i <= iMin; i++) if (isFinite(cvm[i]) && cvm[i] <= cvm[iMin] + cvs[iMin]) { i1 = i; break; }
+    F.cvm = cvm; F.cvs = cvs; F.iMin = iMin; F.i1se = i1; F.cvDone = true; F.stage = 'ridge';
+    yield 'cv';
+    // 3. ridge and least squares via the eigen-decomposition (cached while X is unchanged)
+    if (ridgeCache.key !== D.xkey) {
+      const g = ridgeSetupGen(Xs, n, p); let r;
+      while (!(r = g.next()).done) { F.ridgeProg = r.value; yield 'ridge'; }
+      ridgeCache = { key: D.xkey, R: r.value };
+    }
+    const R = ridgeCache.R, P = ridgeProject(R, Xs, n, p, yc);
+    let best = 0, bg = Infinity; F.loo = RL.map((lam, i) => { const g = ridgeLOO(R, P, lam).loo; if (g < bg) { bg = g; best = i; } return g; });
+    F.R = R; F.P = P; F.rBest = best; F.ls = ridgeCoef(R, P, 0); F.lsEval = evalCoef(F.ls); F.ridgeDone = true; F.stage = 'bayes';
+    yield 'ridge';
+    // 4. spike-and-slab Gibbs
+    const iters = 1000, burn = 200; F.gIters = iters + burn;
+    const gg = gibbsGen(Xs, n, p, yc, { tau2: 1, burn, iters, seed: hashSeed(S.seed, 11, 12) }); let r;
+    const t0 = performance.now();
+    while (!(r = gg.next()).done) { F.gSweep = r.value + 1; yield 'gibbs'; }
+    F.bayes = r.value; F.bayes.ms = performance.now() - t0;
+    F.bayesEval = evalCoef(F.bayes.bm); F.bayesDone = true; F.stage = 'done';
+    return 'done';
+  }
+  let tStart = 0, lastDraw = 0;
+  function startFits() {
+    main.cancel(); FIT = {}; tStart = performance.now();
+    const gen = pipeline();
+    main.run(gen, v => {
+      updateStatus();
+      if (v === 'cv' || v === 'ridge' && FIT.ridgeDone) { applyLam(); renderAll(); }
+      else if (performance.now() - lastDraw > 120) { lastDraw = performance.now(); if (FIT.stage === 'lasso' && FIT.nz[0] >= 0) { applyLam(); drawHay(); drawPath(); } }
+    }, () => { FIT.totalMs = performance.now() - tStart; updateStatus(); applyLam(); renderAll(); if (!ptStarted) { ptStarted = true; runPT(10, true); } });
+  }
+  function updateStatus() {
+    const F = FIT; let msg = '', frac = 0;
+    if (F.stage === 'lasso') { const i = F.nz.findIndex(v => v < 0); msg = `Lasso path: λ ${i < 0 ? L : i} of ${L}`; frac = 0.25 * (i < 0 ? 1 : i / L); }
+    else if (F.stage === 'cv') { msg = `Cross-validation: fold ${(F.cvFold || 0) + 1} of 5`; frac = 0.25 + 0.25 * (F.cvFold || 0) / 5; }
+    else if (F.stage === 'ridge') { msg = `Ridge and least squares: eigen-decomposition ${Math.round(100 * (F.ridgeProg || 0))}%`; frac = 0.5 + 0.1 * (F.ridgeProg || 0); }
+    else if (F.stage === 'bayes') { msg = `Spike-and-slab: Gibbs sweep ${int(F.gSweep || 0)} of ${int(F.gIters)}`; frac = 0.6 + 0.4 * (F.gSweep || 0) / F.gIters; }
+    else if (F.stage === 'done') { msg = `All four methods fitted in ${(F.totalMs / 1000).toFixed(2)} s.`; frac = 1; }
+    $('status').textContent = msg; $('prog').style.width = (100 * frac).toFixed(1) + '%';
+  }
+
+  // ---------- current method selections ----------
+  function applyLam() {
+    const F = FIT; if (!F.lams) return;
+    if (F.cvDone && S.lamMode !== 'manual') S.lamIdx = S.lamMode === 'min' ? F.iMin : F.i1se;
+    const lastValid = F.pathDone ? F.last : Math.max(0, F.nz.findIndex(v => v < 0) - 1);
+    if (!F.cvDone && S.lamMode !== 'manual') S.lamIdx = Math.min(lastValid, Math.round(L * 0.3));
+    S.lamIdx = Math.max(0, Math.min(S.lamIdx, lastValid));
+    $('lam').min = L - 1 - lastValid; $('lam').max = L - 1; $('lam').value = L - 1 - S.lamIdx;
+    $('lamOut').textContent = 'λ = ' + F.lams[S.lamIdx].toPrecision(3) + (S.lamMode === 'min' ? ' (min)' : S.lamMode === '1se' && F.cvDone ? ' (1se)' : '');
+    $('lamMin').setAttribute('aria-pressed', S.lamMode === 'min'); $('lam1se').setAttribute('aria-pressed', S.lamMode === '1se');
+    if (F.ridgeDone && S.rMode === 'cv') S.rIdx = F.rBest;
+    $('rlam').value = S.rIdx; $('rlamOut').textContent = 'λ = ' + fmtLam(RL[S.rIdx]) + (S.rMode === 'cv' && F.ridgeDone ? ' (LOO-CV)' : '');
+    $('rCv').setAttribute('aria-pressed', S.rMode === 'cv');
+  }
+  const fmtLam = v => v >= 100 ? int(v) : v >= 1 ? v.toFixed(2) : v.toPrecision(2);
+  function methodResult(meth) {
+    const F = FIT, p = D.p;
+    if (meth === 'lasso') {
+      if (!F.B || !F.B[S.lamIdx]) return null;
+      const b = F.B[S.lamIdx], sel = new Uint8Array(p); for (let j = 0; j < p; j++) sel[j] = b[j] !== 0;
+      return { kind: 'coef', bstd: b, sel, ev: evalCoef(b), lam: F.lams[S.lamIdx] };
+    }
+    if (meth === 'ridge') {
+      if (!F.ridgeDone) return null;
+      const b = ridgeCoef(F.R, F.P, RL[S.rIdx]), sel = new Uint8Array(p); for (let j = 0; j < p; j++) sel[j] = Math.abs(b[j]) > 1e-12;
+      return { kind: 'coef', bstd: b, sel, ev: evalCoef(b), lam: RL[S.rIdx] };
+    }
+    if (meth === 'ls') {
+      if (!F.ridgeDone) return null;
+      const b = F.ls, sel = new Uint8Array(p); for (let j = 0; j < p; j++) sel[j] = Math.abs(b[j]) > 1e-12;
+      return { kind: 'coef', bstd: b, sel, ev: F.lsEval, rank: F.R.rank };
+    }
+    if (meth === 'bayes') {
+      if (!F.bayesDone) return null;
+      const sel = new Uint8Array(p); for (let j = 0; j < p; j++) sel[j] = F.bayes.pip[j] > 0.5;
+      return { kind: 'pip', bstd: F.bayes.bm, pip: F.bayes.pip, sel, ev: F.bayesEval };
+    }
+    return null;
+  }
+
+  // ---------- canvas helpers ----------
+  function sizeCanvas(cv, ratio, minH, maxH) {
+    const w = Math.max(220, cv.clientWidth || cv.parentElement.clientWidth - 20);
+    const h = Math.round(Math.min(maxH, Math.max(minH, w * ratio))), d = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    const ctx = cv.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0);
+    return { W: w, H: h, ctx };
+  }
+  function niceTicks(lo, hi, nt) {
+    const span = hi - lo, raw = span / Math.max(1, nt), mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+    const step = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag, out = [];
+    for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9 * step; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+    return out;
+  }
+  const tickLab = v => { const a = Math.abs(v); const s = a >= 1000 ? int(a) : a >= 10 || Number.isInteger(+a.toFixed(6)) ? (+a.toFixed(2)).toString() : (+a.toPrecision(2)).toString(); return (v < 0 ? '−' : '') + s; };
+  function mono(ctx, px) { ctx.font = `${px}px "JetBrains Mono", ui-monospace, monospace`; }
+  function body(ctx, px, bold) { ctx.font = `${bold ? '700 ' : ''}${px}px "Atkinson Hyperlegible", system-ui, sans-serif`; }
+
+  // ---------- haystack plot ----------
+  const cvH = $('hay'); let LH = null, hayGeo = null;
+  function drawHay() {
+    if (!LH || !D) return;
+    const { W, H, ctx } = LH; ctx.clearRect(0, 0, W, H);
+    const p = D.p, ml = 44, mr = 10, pw = W - ml - mr, titleH = 20, gap = 14, axH = 30;
+    const ph = (H - 3 * titleH - 2 * gap - axH) / 3;
+    const px = j => ml + (j + 0.5) / p * pw;
+    const tops = [0, 1, 2].map(i => i * (titleH + ph + gap) + titleH);
+    const res = methodResult(S.method), rev = S.reveal;
+    // shared signed scale for (a) and (c)
+    let ymax = S.b; if (res && res.kind === 'coef') for (let j = 0; j < p; j++) ymax = Math.max(ymax, Math.abs(res.ev.bo[j]));
+    ymax = niceTicks(0, ymax * 1.08, 3).slice(-1)[0] < ymax * 1.08 ? ymax * 1.15 : niceTicks(0, ymax * 1.08, 3).slice(-1)[0];
+    const sc = { a: ymax };
+    hayGeo = { ml, pw, px, tops, ph, res };
+    body(ctx, 13, true); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    const titles = [
+      `(a) Truth: ${D.needles.length} needle${D.needles.length > 1 ? 's' : ''} among ${int(p)} genes`,
+      `(b) What each gene shows on its own: |t| from ${int(p)} simple regressions`,
+      titleC(res)
+    ];
+    const short = W < 560;
+    if (short) titles[1] = `(b) Each gene on its own: |t|`;
+    titles.forEach((t, i) => { ctx.fillStyle = C.ink; ctx.fillText(t, 4, tops[i] - 6); });
+    // y axes
+    const yA = v => tops[0] + ph / 2 - v / sc.a * (ph / 2 - 4);
+    const yC = res && res.kind === 'pip' ? (v => tops[2] + ph - v * (ph - 6)) : (v => tops[2] + ph / 2 - v / sc.a * (ph / 2 - 4));
+    const tmax0 = Math.max(D.mg.tBon * 1.12, ...Array.from(D.mg.t, Math.abs)) * 1.05;
+    const yB = v => tops[1] + ph - v / tmax0 * (ph - 4);
+    mono(ctx, 10.5); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const axis = (fy, vals, top) => {
+      for (const v of vals) { const y = fy(v); ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ml, Math.round(y) + .5); ctx.lineTo(ml + pw, Math.round(y) + .5); ctx.stroke(); ctx.fillStyle = C.muted; ctx.fillText(tickLab(v), ml - 6, y); }
+      ctx.strokeStyle = C.line; ctx.strokeRect(ml + .5, top + .5, pw - 1, ph - 1);
+    };
+    const symT = m => { const t = niceTicks(0, m * 0.95, 2); const top = t[t.length - 1]; return [-top, 0, top]; };
+    axis(yA, symT(sc.a), tops[0]);
+    axis(yB, niceTicks(0, tmax0 * 0.98, 3), tops[1]);
+    if (res && res.kind === 'pip') axis(yC, [0, 0.5, 1], tops[2]); else axis(yC, symT(sc.a), tops[2]);
+    // stems
+    const stem = (x, y0, y1, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); };
+    const thin = Math.max(1, Math.min(2, pw / p * 0.8));
+    // (a) truth
+    stem(0, 0, 0, C.ink, 0);
+    ctx.strokeStyle = C.peg; ctx.globalAlpha = .5; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ml, yA(0)); ctx.lineTo(ml + pw, yA(0)); ctx.stroke(); ctx.globalAlpha = 1;
+    if (rev) {
+      for (const j of D.needles) { stem(px(j), yA(0), yA(D.beta[j]), C.curve, 2.5); ctx.fillStyle = C.curve; ctx.beginPath(); ctx.arc(px(j), yA(D.beta[j]), 3.5, 0, 7); ctx.fill(); }
+    } else {
+      body(ctx, 13); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.fillText('Hidden. Tick “Reveal the needles” to see where they are.', ml + pw / 2, yA(0) - 14); ctx.textAlign = 'right';
+    }
+    // (b) |t|
+    ctx.globalAlpha = 0.75;
+    for (let j = 0; j < p; j++) if (!(rev && D.isNeedle[j])) stem(px(j), yB(0), yB(Math.abs(D.mg.t[j])), C.accent, thin);
+    ctx.globalAlpha = 1;
+    if (rev) for (const j of D.needles) { const v = Math.abs(D.mg.t[j]); stem(px(j), yB(0), yB(v), C.curve, 2.5); ctx.fillStyle = C.curve; ctx.beginPath(); ctx.arc(px(j), yB(v), 3.5, 0, 7); ctx.fill(); }
+    const hline = (y, col, dash, lab) => {
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(ml + pw, y); ctx.stroke(); ctx.restore();
+      mono(ctx, 10.5); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      const w = ctx.measureText(lab).width; ctx.fillStyle = C.board; ctx.globalAlpha = .85; ctx.fillRect(ml + pw - w - 8, y - 15, w + 6, 13); ctx.globalAlpha = 1;
+      ctx.fillStyle = col; ctx.fillText(lab, ml + pw - 5, y - 2); ctx.textBaseline = 'middle';
+    };
+    const nRaw = D.mg.pv.reduce((a, v) => a + (v < 0.05), 0), nBon = D.mg.pv.reduce((a, v) => a + (v < 0.05 / p), 0);
+    hline(yB(D.mg.tRaw), C.muted, [4, 3], `p < 0.05: ${nRaw} genes`);
+    hline(yB(D.mg.tBon), C.curve, [], `Bonferroni: ${nBon}`);
+    if (D.mg.kBH && Math.abs(D.mg.tBH - D.mg.tBon) / D.mg.tBon > 0.06) {
+      ctx.save(); ctx.strokeStyle = C.coinB; ctx.lineWidth = 1.5; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(ml, yB(D.mg.tBH)); ctx.lineTo(ml + pw * 0.55, yB(D.mg.tBH)); ctx.stroke(); ctx.restore();
+      mono(ctx, 10.5); ctx.fillStyle = C.coinB; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(`BH 5%: ${D.mg.kBH}`, ml + 4, yB(D.mg.tBH) - 2); ctx.textBaseline = 'middle';
+    }
+    // (c) estimates
+    if (!res) {
+      body(ctx, 13); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.fillText('Fitting…', ml + pw / 2, tops[2] + ph / 2);
+    } else if (res.kind === 'pip') {
+      ctx.save(); ctx.strokeStyle = C.muted; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(ml, yC(0.5)); ctx.lineTo(ml + pw, yC(0.5)); ctx.stroke(); ctx.restore();
+      for (let j = 0; j < p; j++) {
+        const v = res.pip[j]; if (v < 0.004) continue;
+        const col = !rev ? C.accent : res.sel[j] ? (D.isNeedle[j] ? C.fit : C.ball) : C.peg;
+        stem(px(j), yC(0), yC(v), col, res.sel[j] ? 2.5 : thin);
+      }
+      if (rev) for (const j of D.needles) if (!res.sel[j]) { ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px(j), yC(1), 4.5, 0, 7); ctx.stroke(); }
+    } else {
+      ctx.strokeStyle = C.peg; ctx.globalAlpha = .5; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ml, yC(0)); ctx.lineTo(ml + pw, yC(0)); ctx.stroke(); ctx.globalAlpha = 1;
+      const dense = res.sel.reduce((a, v) => a + v, 0) > 60;
+      for (let j = 0; j < p; j++) {
+        if (!res.sel[j]) continue; const v = res.ev.bo[j];
+        const col = !rev ? C.accent : D.isNeedle[j] ? C.fit : C.ball;
+        if (rev && D.isNeedle[j]) continue;
+        stem(px(j), yC(0), yC(v), col, dense ? thin : 2.5);
+        if (!dense) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px(j), yC(v), 3, 0, 7); ctx.fill(); }
+      }
+      for (const j of D.needles) {
+        if (rev && res.sel[j]) { const v = res.ev.bo[j]; stem(px(j), yC(0), yC(v), C.fit, 3); ctx.fillStyle = C.fit; ctx.beginPath(); ctx.arc(px(j), yC(v), 3.2, 0, 7); ctx.fill(); }
+        if (rev) { ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px(j), yC(D.beta[j]), 4.5, 0, 7); ctx.stroke(); }
+      }
+      if (S.method === 'ls' && res.rank < p) {
+        body(ctx, 12.5, true); const msg = `rank(X) = ${res.rank} < p = ${int(p)}: infinitely many exact fits. This is the minimum-norm one.`;
+        ctx.textAlign = 'center'; const w = Math.min(pw - 10, ctx.measureText(msg).width + 14);
+        ctx.fillStyle = C.surface; ctx.globalAlpha = .9; ctx.fillRect(ml + pw / 2 - w / 2, tops[2] + 4, w, 20); ctx.globalAlpha = 1;
+        ctx.fillStyle = C.ball; ctx.fillText(short ? `rank(X) = ${res.rank} < p: not unique` : msg, ml + pw / 2, tops[2] + 14);
+      }
+    }
+    // shared x axis
+    mono(ctx, 10.5); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const yb = tops[2] + ph + 4;
+    for (const v of niceTicks(1, p, W < 560 ? 4 : 8)) { if (v < 1) continue; const x = px(v - 1); ctx.textAlign = x > ml + pw - 18 ? 'right' : 'center'; ctx.fillText(int(v), Math.min(x, ml + pw), yb); }
+    ctx.textAlign = 'center';
+    body(ctx, 12); ctx.fillText('Gene index', ml + pw / 2, yb + 14);
+    if (rev) { for (const j of D.needles) { ctx.fillStyle = C.curve; ctx.beginPath(); ctx.moveTo(px(j), yb - 1); ctx.lineTo(px(j) - 3.5, yb + 5); ctx.lineTo(px(j) + 3.5, yb + 5); ctx.fill(); } }
+  }
+  function titleC(res) {
+    const names = { ls: 'Least squares', ridge: 'Ridge', lasso: 'Lasso', bayes: 'Spike-and-slab' };
+    if (!res) return `(c) ${names[S.method]}: fitting…`;
+    const k = res.sel.reduce((a, v) => a + v, 0);
+    if (res.kind === 'pip') return `(c) Spike-and-slab: inclusion probabilities, ${k} above 0.5`;
+    if (S.method === 'lasso') return `(c) Lasso at λ = ${res.lam.toPrecision(3)}: ${k} gene${k === 1 ? '' : 's'} selected`;
+    if (S.method === 'ridge') return `(c) Ridge at λ = ${fmtLam(res.lam)}: all ${int(k)} genes nonzero`;
+    return `(c) Least squares: all ${int(k)} genes nonzero`;
+  }
+  // tooltip
+  cvH.addEventListener('pointermove', e => {
+    if (!hayGeo || !D) return;
+    const r = cvH.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, g = hayGeo;
+    if (x < g.ml || x > g.ml + g.pw || y < g.tops[0] - 4 || y > g.tops[2] + g.ph) { $('tip').hidden = true; return; }
+    const p = D.p, j0 = Math.floor((x - g.ml) / g.pw * p), win = Math.max(1, Math.ceil(3 / (g.pw / p)));
+    let best = Math.max(0, Math.min(p - 1, j0)), bv = -1;
+    for (let j = Math.max(0, j0 - win); j <= Math.min(p - 1, j0 + win); j++) {
+      const v = (S.reveal && D.isNeedle[j] ? 100 : 0) + Math.abs(D.mg.t[j]) + (g.res && g.res.sel[j] ? 50 : 0);
+      if (v > bv) { bv = v; best = j; }
+    }
+    const j = best, res = g.res;
+    let h = `<b>Gene ${int(j + 1)}</b>${S.reveal ? (D.isNeedle[j] ? ' · needle' : ' · hay') : ''}<br>`;
+    if (S.reveal) h += `True β: ${fmt(D.beta[j])}<br>`;
+    h += `|t| = ${Math.abs(D.mg.t[j]).toFixed(2)}, p = ${D.mg.pv[j] < 1e-4 ? D.mg.pv[j].toExponential(1) : D.mg.pv[j].toFixed(4)}<br>`;
+    if (res) h += res.kind === 'pip' ? `PIP = ${res.pip[j].toFixed(3)}, mean β = ${fmt(res.ev.bo[j], 3)}` : `Estimate: ${fmt(res.ev.bo[j], 3)}`;
+    const tip = $('tip'); tip.innerHTML = h; tip.hidden = false;
+    const br = cvH.parentElement.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    let lx = e.clientX - br.left + 14, ly = e.clientY - br.top + 14;
+    if (lx + tw > br.width - 6) lx = e.clientX - br.left - tw - 14; lx = Math.max(6, lx);
+    if (ly + th > br.height - 6) ly = br.height - th - 6;
+    tip.style.left = lx + 'px'; tip.style.top = ly + 'px';
+  });
+  cvH.addEventListener('pointerleave', () => { $('tip').hidden = true; });
+
+  // ---------- path + CV plots ----------
+  const cvP = $('pathCv'), cvC = $('cvCv'); let LP = null, LC = null;
+  function frameX(F) { const lo = Math.log10(F.lams[F.pathDone ? F.last : Math.max(0, F.nz.findIndex(v => v < 0) - 1)]), hi = Math.log10(F.lams[0]); return [lo - 0.03 * (hi - lo), hi + 0.05 * (hi - lo)]; }
+  function drawFrame(ctx, W, H, m, x0, x1, y0, y1, xl, yl, yt) {
+    const px = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r), py = v => m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b);
+    mono(ctx, 10.5); ctx.lineWidth = 1;
+    for (const v of yt) { const y = Math.round(py(v)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(W - m.r, y); ctx.stroke(); ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(tickLab(v), m.l - 5, y); }
+    const xt = niceTicks(x0, x1, W < 400 ? 3 : 5);
+    for (const v of xt) { const x = Math.round(px(v)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, H - m.b); ctx.stroke(); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(tickLab(v), x, H - m.b + 4); }
+    ctx.strokeStyle = C.line; ctx.strokeRect(m.l + .5, m.t + .5, W - m.l - m.r - 1, H - m.t - m.b - 1);
+    body(ctx, 12); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText(xl, (m.l + W - m.r) / 2, H - 4);
+    ctx.save(); ctx.translate(12, (m.t + H - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(yl, 0, 0); ctx.restore();
+    return { px, py };
+  }
+  function vline(ctx, x, t, b, col, dash, w) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w || 1.5; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x, t); ctx.lineTo(x, b); ctx.stroke(); ctx.restore(); }
+  function drawPath() {
+    if (!LP) return; const { W, H, ctx } = LP; ctx.clearRect(0, 0, W, H);
+    const F = FIT; if (!F.lams || !D || F.nz[0] < 0) return;
+    const lastI = F.pathDone ? F.last : Math.max(0, F.nz.findIndex(v => v < 0) - 1);
+    let ym = 0.1; for (let i = 0; i <= lastI; i++) { const b = F.B[i]; for (let j = 0; j < D.p; j++) ym = Math.max(ym, Math.abs(b[j])); }
+    const yt = niceTicks(-ym, ym, 4), m = { l: 46, r: 12, t: 22, b: 40 };
+    const [x0, x1] = frameX(F);
+    const { px, py } = drawFrame(ctx, W, H, m, x0, x1, -ym * 1.05, ym * 1.05, 'log₁₀ λ', 'Coefficient (standardized)', yt);
+    // which genes ever enter
+    const ever = []; for (let j = 0; j < D.p; j++) { for (let i = 0; i <= lastI; i++) if (F.B[i][j] !== 0) { ever.push(j); break; } }
+    const line = (j, col, w, a) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.globalAlpha = a; ctx.beginPath(); for (let i = 0; i <= lastI; i++) { const x = px(Math.log10(F.lams[i])), y = py(F.B[i][j]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); ctx.globalAlpha = 1; };
+    for (const j of ever) if (!(S.reveal && D.isNeedle[j])) line(j, S.reveal ? C.peg : C.accent, 1, S.reveal ? 0.45 : 0.6);
+    if (S.reveal) for (const j of D.needles) line(j, C.curve, 2.2, 1);
+    if (F.cvDone) { vline(ctx, px(Math.log10(F.lams[F.iMin])), m.t, H - m.b, C.muted, [4, 3]); vline(ctx, px(Math.log10(F.lams[F.i1se])), m.t, H - m.b, C.fit, [4, 3]); }
+    vline(ctx, px(Math.log10(F.lams[S.lamIdx])), m.t, H - m.b, C.accent, [], 2);
+    // top: number of nonzero genes
+    mono(ctx, 10); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    let lastX = -1e9; for (let i = lastI; i >= 0; i -= 1) { const x = px(Math.log10(F.lams[i])); if (Math.abs(x - lastX) < 34) continue; ctx.fillText(F.nz[i], x, m.t - 4); lastX = x; }
+  }
+  function drawCV() {
+    if (!LC) return; const { W, H, ctx } = LC; ctx.clearRect(0, 0, W, H);
+    const F = FIT; const m = { l: 46, r: 12, t: 22, b: 40 };
+    if (!F.cvDone) { body(ctx, 13); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.fillText(F.lams ? `Cross-validating… fold ${(F.cvFold || 0) + 1} of 5` : 'Waiting for the lasso path…', W / 2, H / 2); return; }
+    let lo = 0.8, hi = 0; for (let i = 0; i <= F.last; i++) if (isFinite(F.cvm[i])) { lo = Math.min(lo, F.cvm[i] - F.cvs[i]); hi = Math.max(hi, F.cvm[i] + F.cvs[i]); }
+    hi = Math.max(hi, 1.2); lo = Math.max(0, Math.min(lo, 0.9));
+    const pad = (hi - lo) * 0.06, yt = niceTicks(lo, hi, 4);
+    const [x0, x1] = frameX(F);
+    const { px, py } = drawFrame(ctx, W, H, m, x0, x1, lo - pad, hi + pad, 'log₁₀ λ', 'CV mean squared error', yt);
+    ctx.strokeStyle = C.curve; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(m.l, py(1)); ctx.lineTo(W - m.r, py(1)); ctx.stroke();
+    for (let i = 0; i <= F.last; i++) {
+      if (!isFinite(F.cvm[i])) continue; const x = px(Math.log10(F.lams[i]));
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x, py(F.cvm[i] - F.cvs[i])); ctx.lineTo(x, py(F.cvm[i] + F.cvs[i])); ctx.stroke();
+      ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(x, py(F.cvm[i]), 2.6, 0, 7); ctx.fill();
+    }
+    vline(ctx, px(Math.log10(F.lams[F.iMin])), m.t, H - m.b, C.muted, [4, 3]); vline(ctx, px(Math.log10(F.lams[F.i1se])), m.t, H - m.b, C.fit, [4, 3]);
+    vline(ctx, px(Math.log10(F.lams[S.lamIdx])), m.t, H - m.b, C.accent, [], 2);
+    mono(ctx, 10); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    let lastX = -1e9; for (let i = F.last; i >= 0; i--) { const x = px(Math.log10(F.lams[i])); if (Math.abs(x - lastX) < 34) continue; ctx.fillText(F.nz[i], x, m.t - 4); lastX = x; }
+  }
+
+  // ---------- shrinkage functions ----------
+  const cvS = $('shrCv'); let LS = null;
+  function shrinkParams() {
+    const F = FIT, n = D.n;
+    const sig = F.bayesDone ? Math.sqrt(F.bayes.s2) : 1;
+    const lamL = F.lams ? F.lams[S.lamIdx] : 0.1;
+    const thrL = lamL * Math.sqrt(n) / sig;
+    const lamR = +$('shR').value;
+    const pi = F.bayesDone ? F.bayes.pi : Math.min(0.5, S.k / D.p), t2n = 1 * n; // slab variance on the z scale: n tau^2
+    const slab = z => { const v1 = 1 + t2n, l1 = Math.log(pi) - 0.5 * Math.log(v1) - z * z / (2 * v1), l0 = Math.log(1 - pi) - z * z / 2; const w = 1 / (1 + Math.exp(l0 - l1)); return w * z * t2n / (1 + t2n); };
+    return { thrL, lamR, pi, slab, sig };
+  }
+  function drawShrink() {
+    if (!LS || !D) return; const { W, H, ctx } = LS; ctx.clearRect(0, 0, W, H);
+    const sp = shrinkParams(), R = Math.max(8, Math.ceil(D.mg.tBon * 1.6));
+    const m = { l: 46, r: 12, t: 12, b: 40 }, ticks = niceTicks(-R, R, 4);
+    const { px, py } = drawFrame(ctx, W, H, m, -R, R, -R, R, 'Raw evidence z', 'Estimate, z units', ticks);
+    // bonferroni band
+    ctx.fillStyle = C.curve; ctx.globalAlpha = .07; ctx.fillRect(px(-D.mg.tBon), m.t, px(D.mg.tBon) - px(-D.mg.tBon), H - m.t - m.b); ctx.globalAlpha = 1;
+    vline(ctx, px(D.mg.tBon), m.t, H - m.b, C.curve, [], 1.2); vline(ctx, px(-D.mg.tBon), m.t, H - m.b, C.curve, [], 1.2);
+    const curve = (f, col, w, dash) => { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); for (let i = 0; i <= 400; i++) { const z = -R + 2 * R * i / 400, v = Math.max(-R, Math.min(R, f(z))); i ? ctx.lineTo(px(z), py(v)) : ctx.moveTo(px(z), py(v)); } ctx.stroke(); ctx.restore(); };
+    curve(z => z, C.muted, 1.5, [5, 4]);
+    curve(z => z / (1 + sp.lamR), C.fit, 2.2);
+    curve(z => Math.sign(z) * Math.max(0, Math.abs(z) - sp.thrL), C.accent, 2.4);
+    curve(sp.slab, C.coinB, 2.4);
+    mono(ctx, 10.5); ctx.fillStyle = C.curve; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('Bonferroni', px(D.mg.tBon) + 4, m.t + 4);
+    const rows = [1, 2, 3, 4, 5, 6].map(z => `<tr><td>${z}</td><td class="ob">${(z / (1 + sp.lamR)).toFixed(2)}</td><td class="ob">${Math.max(0, z - sp.thrL).toFixed(2)}</td><td class="ob">${sp.slab(z).toFixed(2)}</td></tr>`).join('');
+    $('shrTab').querySelector('tbody').innerHTML = rows + `<tr><td colspan="4" style="text-align:left;font-family:var(--font-body);font-size:12.5px;color:var(--muted)">Ridge λ = ${fmtLam(sp.lamR)}; lasso threshold λ√n/σ = ${sp.thrL.toFixed(2)}; slab π = ${sp.pi.toPrecision(2)}, τ = 1, σ̂ = ${sp.sig.toFixed(2)}.</td></tr>`;
+  }
+
+  // ---------- phase transition ----------
+  const cvT = $('ptCv'); let LT = null, PT = null;
+  function ptGrid(axis) { return axis === 'b' ? [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1, 1.25, 1.5, 2, 2.5, 3] : [50, 75, 100, 150, 200, 250, 300, 400, 500]; }
+  function* ptGen(cfg) {
+    const grid = ptGrid(cfg.axis), out = grid.map(() => ({ bon: 0, uni: 0, ora: 0, n: 0 }));
+    const total = grid.length * cfg.reps; let done = 0;
+    for (let rep = 0; rep < cfg.reps; rep++) {
+      for (let g = 0; g < grid.length; g++) {
+        const n = cfg.axis === 'n' ? grid[g] : cfg.n, b = cfg.axis === 'b' ? grid[g] : cfg.b;
+        const st = genStudy({ n, p: cfg.p, k: cfg.k, b, rho: cfg.rho, struct: cfg.corr, seed: hashSeed(cfg.seed, rep, 77) });
+        const z = standardize(st.X, n, cfg.p, st.y), mg = marginal(z.Xs, n, cfg.p, z.yc);
+        const truth = new Uint8Array(cfg.p); for (const j of st.needles) truth[j] = 1;
+        const exact = sel => { for (let j = 0; j < cfg.p; j++) if (!!sel(j) !== !!truth[j]) return false; return true; };
+        if (exact(j => mg.pv[j] < 0.05 / cfg.p)) out[g].bon++;
+        const lmax = lamMax(z.Xs, n, cfg.p, z.yc), lu = Math.sqrt(2 * Math.log(cfg.p) / n);
+        const lams = []; const lend = Math.min(lu, lmax) * 0.25;
+        for (let i = 0; i < 40; i++) lams.push(lmax * Math.pow(lend / lmax, i / 39));
+        if (lu < lmax) { lams.push(lu); lams.sort((a, c) => c - a); }
+        let ora = false, uni = lu >= lmax && st.needles.length === 0;
+        const it = lassoPathGen(z.Xs, n, cfg.p, z.yc, Float64Array.from(lams), 1e-6, 3 * cfg.k + 10, (i, bb) => {
+          const ok = exact(j => bb[j] !== 0); if (ok) ora = true; if (lams[i] === lu && ok) uni = true;
+        });
+        while (!it.next().done) { /* run synchronously; one study is one chunk */ }
+        if (ora) out[g].ora++; if (uni) out[g].uni++; out[g].n++;
+        done++; yield done / total;
+      }
+    }
+    return out;
+  }
+  function runPT(reps, quiet) {
+    const cfg = { axis: $('ptAxis').value, reps, p: S.p, n: S.n, k: S.k, b: S.b, rho: S.rho, corr: S.corr, seed: S.seed };
+    PT = { cfg, grid: ptGrid(cfg.axis), res: null, partial: true };
+    const t0 = performance.now();
+    $('ptRun').disabled = true;
+    ptRunner.run(ptGen(cfg), f => { $('ptProg').style.width = (100 * f).toFixed(1) + '%'; $('ptStatus').textContent = `Simulating… ${Math.round(100 * f)}%`; }, out => {
+      PT.res = out; PT.partial = false; $('ptRun').disabled = false;
+      const s = (performance.now() - t0) / 1000;
+      $('ptStatus').textContent = (quiet ? 'Quick preview: ' : '') + `${int(cfg.reps * PT.grid.length)} simulated studies at p = ${int(cfg.p)}, k = ${cfg.k}, ρ = ${cfg.rho.toFixed(2)}${cfg.axis === 'b' ? `, n = ${cfg.n}` : `, signal = ${cfg.b.toFixed(2)}`} in ${s.toFixed(1)} s.`;
+      drawPT();
+    });
+  }
+  function drawPT() {
+    if (!LT) return; const { W, H, ctx } = LT; ctx.clearRect(0, 0, W, H);
+    if (!PT || !PT.res) { body(ctx, 13); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.fillText('Simulating…', W / 2, H / 2); return; }
+    const g = PT.grid, ax = PT.cfg.axis, m = { l: 46, r: 14, t: 14, b: 40 };
+    const x0 = g[0], x1 = g[g.length - 1];
+    const { px, py } = drawFrame(ctx, W, H, m, x0, x1, -0.03, 1.03, ax === 'b' ? 'Signal strength |β| / σ' : 'Patients n', 'Exact recovery rate', [0, 0.25, 0.5, 0.75, 1]);
+    const cur = ax === 'b' ? S.b : S.n; if (cur >= x0 && cur <= x1) vline(ctx, px(cur), m.t, H - m.b, C.ball, [5, 4], 1.5);
+    // theory marker: signal where the universal threshold equals |beta| (orthogonal design)
+    const series = [['bon', C.curve], ['uni', C.accent], ['ora', C.fit]];
+    for (const [key, col] of series) {
+      ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.beginPath();
+      PT.res.forEach((r, i) => { const x = px(g[i]), y = py(r[key] / r.n); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      ctx.fillStyle = col; PT.res.forEach((r, i) => { ctx.beginPath(); ctx.arc(px(g[i]), py(r[key] / r.n), 3, 0, 7); ctx.fill(); });
+    }
+  }
+
+  // ---------- L1 / L2 geometry ----------
+  const cvG = $('geoCv'); let LG = null; const GEO = { b0: [1.6, 0.55], rho: 0.4 };
+  function geoSolve(t) {
+    const [a, c] = GEO.b0, r = GEO.rho; // Q = [[1,r],[r,1]]
+    // lasso: min 1/2 (b-b0)^T Q (b-b0) + mu |b|_1, bisect mu so |b|_1 = t
+    const las = mu => { let b1 = 0, b2 = 0; for (let it = 0; it < 200; it++) { const z1 = a + r * (c - b2); b1 = Math.sign(z1) * Math.max(0, Math.abs(z1) - mu); const z2 = c + r * (a - b1); b2 = Math.sign(z2) * Math.max(0, Math.abs(z2) - mu); } return [b1, b2]; };
+    let L1;
+    if (Math.abs(a) + Math.abs(c) <= t) L1 = [a, c]; else { let lo = 0, hi = 10; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2, b = las(m); if (Math.abs(b[0]) + Math.abs(b[1]) > t) lo = m; else hi = m; } L1 = las(hi); }
+    const rid = mu => { const q1 = 1 + mu, det = q1 * q1 - r * r, v1 = a + r * c, v2 = r * a + c; return [(q1 * v1 - r * v2) / det, (-r * v1 + q1 * v2) / det]; };
+    let L2;
+    if (Math.hypot(a, c) <= t) L2 = [a, c]; else { let lo = 0, hi = 1e4; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2, b = rid(m); if (Math.hypot(b[0], b[1]) > t) lo = m; else hi = m; } L2 = rid(hi); }
+    return { L1, L2 };
+  }
+  function drawGeo() {
+    if (!LG) return; const { W, H, ctx } = LG; ctx.clearRect(0, 0, W, H);
+    const t = +$('geoT').value, R = 2.6, m = { l: 34, r: 10, t: 10, b: 30 };
+    const side = Math.min(W - m.l - m.r, H - m.t - m.b), ox = m.l + (W - m.l - m.r - side) / 2, oy = m.t;
+    const px = v => ox + (v + R) / (2 * R) * side, py = v => oy + (1 - (v + R) / (2 * R)) * side;
+    GEO.map = { ox, oy, side, R };
+    mono(ctx, 10); ctx.lineWidth = 1;
+    for (const v of [-2, -1, 0, 1, 2]) {
+      ctx.strokeStyle = v === 0 ? C.muted : C.grid; ctx.beginPath(); ctx.moveTo(px(v), py(-R)); ctx.lineTo(px(v), py(R)); ctx.moveTo(px(-R), py(v)); ctx.lineTo(px(R), py(v)); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(tickLab(v), px(v), py(-R) + 4); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(tickLab(v), px(-R) - 4, py(v));
+    }
+    body(ctx, 12); ctx.fillStyle = C.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('β₂', px(0) + 5, py(R) + 2); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('β₁', px(R) - 2, py(0) - 3);
+    // constraint regions
+    ctx.fillStyle = C.accent; ctx.globalAlpha = .13; ctx.beginPath(); ctx.moveTo(px(t), py(0)); ctx.lineTo(px(0), py(t)); ctx.lineTo(px(-t), py(0)); ctx.lineTo(px(0), py(-t)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = C.fit; ctx.globalAlpha = .10; ctx.beginPath(); ctx.arc(px(0), py(0), t / (2 * R) * side, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.fit; ctx.lineWidth = 2; ctx.stroke();
+    const { L1, L2 } = geoSolve(t), b0 = GEO.b0, r = GEO.rho;
+    // ellipses (b-b0)^T Q (b-b0) = c through each solution
+    const ell = (b, col) => {
+      const d1 = b[0] - b0[0], d2 = b[1] - b0[1], cc = d1 * d1 + 2 * r * d1 * d2 + d2 * d2; if (cc < 1e-10) return;
+      const e1 = Math.sqrt(cc / (1 + r)), e2 = Math.sqrt(cc / (1 - r)), s = Math.SQRT1_2;
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath();
+      for (let i = 0; i <= 120; i++) { const th = 2 * Math.PI * i / 120, u = e1 * Math.cos(th), v = e2 * Math.sin(th); const x = b0[0] + s * (u + v), y = b0[1] + s * (u - v); i ? ctx.lineTo(px(x), py(y)) : ctx.moveTo(px(x), py(y)); }
+      ctx.stroke(); ctx.restore();
+    };
+    ell(L1, C.accent); ell(L2, C.fit);
+    const dot = (b, col, rr) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px(b[0]), py(b[1]), rr, 0, 7); ctx.fill(); ctx.strokeStyle = C.surface; ctx.lineWidth = 1.5; ctx.stroke(); };
+    dot(b0, C.ink, 5.5); dot(L2, C.fit, 5.5); dot(L1, C.accent, 5.5);
+    const z = v => Math.abs(v) < 5e-4 ? '<b>0.00</b>' : fmt(v);
+    $('geoOut').innerHTML = `Least squares (${fmt(b0[0])}, ${fmt(b0[1])}) · lasso (${z(L1[0])}, ${z(L1[1])}) · ridge (${fmt(L2[0])}, ${fmt(L2[1])})`;
+  }
+  const geoPointer = e => {
+    if (!GEO.map) return; const r = cvG.getBoundingClientRect(), g = GEO.map;
+    const x = (e.clientX - r.left - g.ox) / g.side * 2 * g.R - g.R, y = (1 - (e.clientY - r.top - g.oy) / g.side) * 2 * g.R - g.R;
+    GEO.b0 = [Math.max(-2.4, Math.min(2.4, x)), Math.max(-2.4, Math.min(2.4, y))]; drawGeo();
+  };
+  let geoDrag = false;
+  cvG.addEventListener('pointerdown', e => { geoDrag = true; cvG.setPointerCapture(e.pointerId); geoPointer(e); });
+  cvG.addEventListener('pointermove', e => { if (geoDrag) geoPointer(e); });
+  cvG.addEventListener('pointerup', () => { geoDrag = false; });
+  $('geoT').addEventListener('input', () => { $('geoTOut').textContent = (+$('geoT').value).toFixed(2); drawGeo(); });
+
+  // ---------- tables ----------
+  function renderTables() {
+    const rows = [], cur = S.method;
+    const cell = (v, d, cls) => v === null || v === undefined ? '<td>–</td>' : `<td${cls ? ` class="${cls}"` : ''}>${typeof v === 'number' ? (d === 0 ? int(v) : v.toFixed(d)) : v}</td>`;
+    const addSel = (name, key, sel, ev, sub) => {
+      const s = scoreSel(sel);
+      rows.push(`<tr${key === cur ? ' class="cur"' : ''}><td>${name}${sub ? `<small>${sub}</small>` : ''}</td>${cell(s.sel, 0)}${cell(s.tp, 0, s.tp === D.needles.length ? 'good' : '')}${cell(s.fp, 0, s.fp > 0 ? 'bad' : '')}${cell(s.fn, 0, s.fn > 0 ? 'bad' : '')}${cell(s.prec, 2)}${cell(s.rec, 2)}${cell(ev ? ev.err : null, 2)}${cell(ev ? ev.mse : null, 2)}</tr>`);
+      return s;
+    };
+    const p = D.p, raw = new Uint8Array(p), bon = new Uint8Array(p);
+    for (let j = 0; j < p; j++) { raw[j] = D.mg.pv[j] < 0.05; bon[j] = D.mg.pv[j] < 0.05 / p; }
+    addSel('Screening, p < 0.05', 'raw', raw, null, 'one gene at a time');
+    addSel('Screening + Bonferroni', 'bon', bon, null, `|t| > ${D.mg.tBon.toFixed(2)}`);
+    addSel('Screening + BH, FDR 5%', 'bh', D.mg.bh, null, D.mg.kBH ? `p < 0.05 × ${D.mg.kBH}/${int(p)}, |t| > ${D.mg.tBH.toFixed(2)}` : 'nothing passes');
+    const R = {};
+    for (const [k, name] of [['ls', 'Least squares'], ['ridge', 'Ridge'], ['lasso', 'Lasso'], ['bayes', 'Spike-and-slab']]) {
+      const r = R[k] = methodResult(k);
+      if (!r) { rows.push(`<tr${k === cur ? ' class="cur"' : ''}><td>${name}<small>fitting…</small></td>${'<td>–</td>'.repeat(8)}</tr>`); continue; }
+      const sub = k === 'ls' ? (r.rank < p ? `min-norm, rank ${r.rank} < p` : 'ordinary') : k === 'ridge' ? `λ = ${fmtLam(r.lam)}${S.rMode === 'cv' ? ' (LOO-CV)' : ''}` : k === 'lasso' ? `λ = ${r.lam.toPrecision(3)}${S.lamMode === 'manual' ? '' : ` (${S.lamMode})`}` : 'PIP > 0.5, posterior mean';
+      addSel(name, k, r.sel, r.ev, sub);
+    }
+    rows.push(`<tr><td>Oracle<small>true β, for reference</small></td><td>${D.needles.length}</td><td class="th">${D.needles.length}</td><td class="th">0</td><td class="th">0</td><td class="th">1.00</td><td class="th">1.00</td><td class="th">0.00</td><td class="th">1.00</td></tr>`);
+    $('score').querySelector('tbody').innerHTML = rows.join('');
+    $('nullMse').textContent = D.nullMse.toFixed(2);
+    // mini scorecard for the current method
+    const r = R[cur], names = { ls: 'least squares', ridge: 'ridge', lasso: 'lasso', bayes: 'spike-and-slab' };
+    $('scoreLabel').textContent = 'Scorecard · ' + names[cur];
+    let h = '';
+    if (!r) h = `<tr><td>Fitting…</td><td></td></tr>`;
+    else {
+      const s = scoreSel(r.sel);
+      h += `<tr><td>Genes selected</td><td class="ob">${int(s.sel)}</td></tr>`;
+      h += `<tr><td>Needles found</td><td class="${s.tp === D.needles.length ? 'good' : 'ob'}">${s.tp} of ${D.needles.length}</td></tr>`;
+      h += `<tr><td>False alarms</td><td class="${s.fp ? 'bad' : 'ob'}">${int(s.fp)}</td></tr>`;
+      h += `<tr><td>Precision · recall</td><td class="ob">${s.prec === null ? '–' : s.prec.toFixed(2)} · ${s.rec.toFixed(2)}</td></tr>`;
+      h += `<tr><td>‖β̂ − β‖ (truth: 0)</td><td class="ob">${r.ev.err.toFixed(2)}</td></tr>`;
+      h += `<tr><td>Test MSE</td><td class="ob">${r.ev.mse.toFixed(2)} <span style="color:var(--curve)">/ 1.00</span></td></tr>`;
+    }
+    $('mini').querySelector('tbody').innerHTML = h;
+    // method hint
+    const F = FIT; let hint = '';
+    if (cur === 'ls') hint = !F.ridgeDone ? '' : F.R.rank < p ? `p = ${int(p)} > n = ${D.n}: XᵀX has rank ${F.R.rank}, so the normal equations have infinitely many solutions. Shown is the one with the smallest ‖β‖, Xᵀ(XXᵀ)⁺y. It fits the training data exactly.` : `p < n: XᵀX has full rank ${F.R.rank}, so least squares is unique. It keeps every gene and is noisy.`;
+    if (cur === 'ridge') hint = 'Closed form via the eigen-decomposition of the smaller of XᵀX and XXᵀ. λ minimises the exact leave-one-out CV error unless you move the slider.' + (F.ridgeDone && S.rMode === 'cv' && F.rBest <= 2 ? ' Here CV pushes λ to the bottom of the grid: with sparse needles ridge cannot beat near-interpolation, so it matches minimum-norm least squares. Move the slider to see the shrinkage.' : '');
+    if (cur === 'lasso') hint = 'Coordinate descent with warm starts along 80 values of λ, same scaling as scikit-learn: (1/2n)‖y − Xβ‖² + λ‖β‖₁ on standardized genes.';
+    if (cur === 'bayes') hint = F.bayesDone ? `Gibbs sampler, 200 burn-in + 1,000 sweeps over all genes (${(F.bayes.ms / 1000).toFixed(2)} s). Posterior: σ̂ = ${Math.sqrt(F.bayes.s2).toFixed(2)}, π̂ = ${F.bayes.pi.toPrecision(2)}, about ${F.bayes.size.toFixed(1)} genes in the model per sweep.` : 'Gibbs sampler running…';
+    $('methHint').textContent = hint;
+    // path note
+    if (F.lams) {
+      const lu = Math.sqrt(2 * Math.log(p) / D.n);
+      $('pathNote').innerHTML = `Path from λ<sub>max</sub> = ${F.lams[0].toFixed(3)} (no genes) down to ${F.lams[F.last || 0].toFixed(4)}${F.last < L - 1 ? `, stopped once ${F.nz[F.last]} genes entered` : ''}. Numbers along the top count the genes in the model. The universal threshold σ√(2 log p / n) = ${lu.toFixed(3)} (log₁₀ = ${Math.log10(lu).toFixed(2)}) is about where pure-noise genes stop entering when σ = 1.${F.cvDone ? ` λ<sub>min</sub> = ${F.lams[F.iMin].toFixed(4)} keeps ${F.nz[F.iMin]} genes; λ<sub>1se</sub> = ${F.lams[F.i1se].toFixed(4)} keeps ${F.nz[F.i1se]}.` : ''}`;
+    }
+  }
+
+  function renderAll() { drawHay(); drawPath(); drawCV(); drawShrink(); renderTables(); }
+
+  // ---------- controls ----------
+  const sliders = [['p', v => int(v)], ['n', v => int(v)], ['k', v => String(v)], ['b', v => (+v).toFixed(2)], ['rho', v => (+v).toFixed(2)]];
+  function syncControls() {
+    for (const [id, f] of sliders) { $(id).value = S[id]; $(id + 'Out').textContent = f(S[id]); }
+    $('corr').value = S.corr; $('reveal').checked = S.reveal;
+    for (const [id, m] of [['mLS', 'ls'], ['mRidge', 'ridge'], ['mLasso', 'lasso'], ['mBayes', 'bayes']]) $(id).setAttribute('aria-pressed', S.method === m);
+    $('lamBox').hidden = S.method !== 'lasso'; $('ridgeBox').hidden = S.method !== 'ridge';
+  }
+  let deb = null;
+  function dataChanged(immediate) {
+    clearTimeout(deb);
+    const go = () => { buildData(); FIT = {}; renderAll(); startFits(); };
+    if (immediate) go(); else deb = setTimeout(go, 160);
+  }
+  for (const [id, f] of sliders) $(id).addEventListener('input', () => {
+    S[id] = +$(id).value; if (id === 'p' || id === 'n' || id === 'k') S[id] = Math.round(S[id]);
+    $(id + 'Out').textContent = f(S[id]); dataChanged();
+  });
+  $('corr').addEventListener('change', () => { S.corr = $('corr').value; dataChanged(true); });
+  $('reveal').addEventListener('change', () => { S.reveal = $('reveal').checked; drawHay(); drawPath(); });
+  $('newData').addEventListener('click', () => { S.seed++; dataChanged(true); });
+  $('resetData').addEventListener('click', () => { Object.assign(S, DEF); syncControls(); dataChanged(true); });
+  for (const [id, m] of [['mLS', 'ls'], ['mRidge', 'ridge'], ['mLasso', 'lasso'], ['mBayes', 'bayes']]) $(id).addEventListener('click', () => { S.method = m; syncControls(); renderAll(); });
+  $('lam').addEventListener('input', () => { S.lamMode = 'manual'; S.lamIdx = L - 1 - +$('lam').value; applyLam(); drawHay(); drawPath(); drawCV(); drawShrink(); renderTables(); });
+  $('lamMin').addEventListener('click', () => { S.lamMode = 'min'; applyLam(); renderAll(); });
+  $('lam1se').addEventListener('click', () => { S.lamMode = '1se'; applyLam(); renderAll(); });
+  $('rlam').addEventListener('input', () => { S.rMode = 'manual'; S.rIdx = +$('rlam').value; applyLam(); drawHay(); drawShrink(); renderTables(); });
+  $('rCv').addEventListener('click', () => { S.rMode = 'cv'; applyLam(); renderAll(); });
+  $('shR').addEventListener('input', () => { $('shROut').textContent = (+$('shR').value).toFixed(2); drawShrink(); });
+  $('ptReps').addEventListener('input', () => { $('ptRepsOut').textContent = $('ptReps').value; });
+  $('ptRun').addEventListener('click', () => runPT(+$('ptReps').value, false));
+  $('ptAxis').addEventListener('change', () => runPT(+$('ptReps').value, false));
+  const preset = (o, meth) => {
+    Object.assign(S, DEF, o); if (meth) S.method = meth; syncControls(); dataChanged(true);
+    $('hay').scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+  };
+  $('preDefault').addEventListener('click', () => preset({}, 'lasso'));
+  $('preEasy').addEventListener('click', () => preset({ b: 2 }));
+  $('preWeak').addEventListener('click', () => preset({ b: 0.45 }));
+  $('prePair').addEventListener('click', () => preset({ rho: 0.9, corr: 'ar', b: 1.25 }));
+  $('preSmallP').addEventListener('click', () => preset({ p: 100, n: 300 }, 'ls'));
+
+  // ---------- sizing / theme ----------
+  const seen = new Map();
+  function resizeAll(force) {
+    const cvs = [cvH, cvP, cvC, cvS, cvT, cvG];
+    if (!force && cvs.every(cv => seen.get(cv) === cv.clientWidth)) return;
+    cvs.forEach(cv => seen.set(cv, cv.clientWidth));
+    LH = sizeCanvas(cvH, 0.74, 470, 640);
+    LP = sizeCanvas(cvP, 0.72, 250, 340); LC = sizeCanvas(cvC, 0.72, 250, 340);
+    LS = sizeCanvas(cvS, 0.75, 280, 420); LT = sizeCanvas(cvT, 0.38, 240, 320); LG = sizeCanvas(cvG, 0.8, 260, 380);
+    renderAll(); drawPT(); drawGeo();
+  }
+  readColors(); syncControls(); buildData(); resizeAll(true); startFits();
+  let ptStarted = false;
+  const recolor = () => { readColors(); renderAll(); drawPT(); drawGeo(); };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  const ro = new ResizeObserver(() => resizeAll()); [cvH, cvP, cvC, cvS, cvT, cvG].forEach(cv => ro.observe(cv.parentElement));
+})();
+</script>
+
+</body></html>
