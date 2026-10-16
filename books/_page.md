@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
+
+[![On Langlands Conjectures: Probabilistic Methods](https://vsokolov.org/books/langlands/cover.jpg)](https://vsokolov.org/books/langlands/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+What probability can and cannot contribute to the Langlands programme: Sato Tate laws, random walks on trees and isogeny graphs, Thorin measures and generalized gamma convolutions as reformulations of the Riemann hypothesis, and Bayesian identification of Sato Tate groups, with code and data.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.0.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23419248](https://zenodo.org/badge/DOI/10.5281/zenodo.23419248.svg)](https://doi.org/10.5281/zenodo.23419248)
+
 ## [On Hilbert's 6th Problem](https://vsokolov.org/books/hilbert6/) <small>Probability, Mechanics and Bayesian Computation</small>
 
 [![On Hilbert's 6th Problem: Probability, Mechanics and Bayesian Computation](https://vsokolov.org/books/hilbert6/cover.jpg)](https://vsokolov.org/books/hilbert6/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
