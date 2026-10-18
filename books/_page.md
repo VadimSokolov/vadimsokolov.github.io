@@ -16,7 +16,7 @@ Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an op
 
 What probability can and cannot contribute to the Langlands programme: Sato Tate laws, random walks on trees and isogeny graphs, Thorin measures and generalized gamma convolutions as reformulations of the Riemann hypothesis, and Bayesian identification of Sato Tate groups, with code and data.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.0.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23419248](https://zenodo.org/badge/DOI/10.5281/zenodo.23419248.svg)](https://doi.org/10.5281/zenodo.23419248)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.0.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23419248](https://zenodo.org/badge/DOI/10.5281/zenodo.23419248.svg)](https://doi.org/10.5281/zenodo.23419248) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8BVRB5 "Paperback on Amazon")
 
 ## [On Hilbert's 6th Problem](https://vsokolov.org/books/hilbert6/) <small>Probability, Mechanics and Bayesian Computation</small>
 
