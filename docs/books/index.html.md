@@ -8,7 +8,7 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 
 Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an optimizer and a Diophantine problem; proofs that fixed horizon monotone Lyapunov certificates and finite residue sieves cannot settle it and the cycle inequality cannot exclude all cycles; a momentum method from log2 3.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.1.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.23421852](https://zenodo.org/badge/DOI/10.5281/zenodo.23421852.svg)](https://doi.org/10.5281/zenodo.23421852)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.1.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.23421852](https://zenodo.org/badge/DOI/10.5281/zenodo.23421852.svg)](https://doi.org/10.5281/zenodo.23421852) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8TS5N8 "Paperback on Amazon")
 
 ## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
 
