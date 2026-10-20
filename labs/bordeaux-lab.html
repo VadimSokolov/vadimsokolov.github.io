@@ -1,0 +1,965 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Bordeaux Wine Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: vintage chart + "new vintage" tool, then coefficients, partial effects, diagnostics, out-of-sample tests, the 1980s call, lesson, notes, class exercises. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 76ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible, .src a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 80ch; }
+.src a { color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+.bhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding: 0 4px; }
+.bhead h2 { font-family: var(--font-display); font-size: 18px; margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: inline-block; flex: none; }
+.sw.hol { background: transparent; border: 2px solid var(--accent); }
+.sw.sq { border-radius: 1px; background: var(--coinB); }
+.sw.line { width: 16px; height: 0; border-top: 2.5px solid var(--fit); border-radius: 0; background: none; }
+.sw.ref { width: 16px; height: 0; border-top: 2px dashed var(--curve); border-radius: 0; background: none; }
+.sw.ring { background: transparent; border: 2.5px solid var(--ball); width: 12px; height: 12px; }
+.sw.bar { border-radius: 2px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.14); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; font-family: var(--font-mono); }
+.tip b { font-family: var(--font-display); font-size: 14px; }
+.tip .mu { color: var(--muted); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 2px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ball); }
+.slider.off label, .slider.off output { opacity: .5; }
+.slider small { font-size: 11.5px; color: var(--muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--ball); }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13px; background: var(--board); border: 1px solid var(--line); border-left: 3px solid var(--ball); border-radius: 8px; padding: 8px 10px; margin: 0; }
+
+.readout { display: flex; flex-direction: column; gap: 4px; }
+.readout .k { font-size: 13px; color: var(--muted); }
+.readout .huge { font-family: var(--font-display); font-weight: 700; font-size: 52px; line-height: .95; color: var(--ball); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.readout .sub { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; line-height: 1.55; }
+.pibar { position: relative; height: 40px; margin: 4px 6px 0; }
+.pibar .trk { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: var(--line); }
+.pibar .rng { position: absolute; top: 5px; height: 12px; border-radius: 6px; background: color-mix(in srgb, var(--ball) 30%, transparent); border: 1px solid var(--ball); }
+.pibar .pt { position: absolute; top: 3px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--ball); border: 2px solid var(--surface); }
+.pibar .ref { position: absolute; top: 0; height: 22px; border-left: 2px dashed var(--curve); }
+.pibar .tk { position: absolute; top: 24px; transform: translateX(-50%); font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); }
+
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.stats { width: 100%; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13.5px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats tr.tot td { font-weight: 700; }
+.up { color: var(--fit); } .down { color: var(--ball); }
+.scroll { overflow-x: auto; max-width: 100%; min-width: 0; }
+.mini { width: 100%; font-size: 13.5px; }
+.mini th, .mini td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.mini th:first-child, .mini td:first-child { text-align: left; padding-left: 0; }
+.mini thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.mini td { font-family: var(--font-mono); }
+.mini td.w { font-family: var(--font-body); white-space: normal; text-align: left; min-width: 190px; }
+.mini tr:last-child td { border-bottom: 0; }
+.mini .cs { color: var(--curve); }
+.mini .est { color: var(--fit); }
+.mini tr.sel td { background: var(--board); }
+.mini tbody tr[data-year] { cursor: pointer; }
+.mini tbody tr[data-year]:hover td { background: var(--board); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.card .intro { margin: 0; max-width: 84ch; }
+.chead { display: flex; flex-direction: column; gap: 6px; }
+.split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.plotbox { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.plotbox h3 { font-family: var(--font-display); font-size: 15.5px; margin: 0; }
+.plotbox p { font-size: 12.5px; color: var(--muted); margin: 0; }
+.plotbox .eff { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kpi { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.kpi .k { font-size: 12.5px; color: var(--muted); }
+.kpi .v { font-family: var(--font-display); font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kpi .c { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
+.row > * { flex: 1 1 220px; min-width: 0; }
+.tables2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .tables2 { grid-template-columns: minmax(0, 1fr); } }
+.tables2 h3 { font-family: var(--font-display); font-size: 16px; margin: 0 0 4px; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 86ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Regression on log prices</span>
+    <h1>Bordeaux Wine Lab</h1>
+    <p class="lead">Can the weather tell you how good a Bordeaux vintage will be before anyone tastes it? Fit Orley Ashenfelter's wine equation to 27 vintages, read its coefficients as percent effects, test it on vintages it has not seen, and set the weather of a new vintage to get a predicted price with a 95% prediction interval.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Source: the instructor's case study summary (N. Polson, 2026), using Orley Ashenfelter's Bordeaux wine equation and vintage data as the materials describe them. See also Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/12-regression.html">Chapter 12</a>.</p>
+  </header>
+
+  <main class="grid">
+    <section class="board" aria-label="Vintage prices, fitted values and predictions">
+      <div class="bhead">
+        <h2>Price index by vintage (1961 = 100)</h2>
+        <div class="checks"><label for="logY"><input type="checkbox" id="logY"> Log scale</label></div>
+      </div>
+      <canvas id="cvMain" tabindex="0" aria-label="Scatter of price index by vintage year with fitted line and predictions for 1981 to 1991. Hover a vintage for details; click to load it into the tool."></canvas>
+      <div class="legend">
+        <span><i class="sw"></i>Actual price, 1952–1980</span>
+        <span><i class="sw line"></i>Model fit</span>
+        <span><i class="sw sq"></i>Predicted 1981–1991, 95% interval</span>
+        <span><i class="sw ring"></i>Vintage in the tool</span>
+      </div>
+      <p class="hint" style="padding:0 4px">Hover a vintage to see its weather and how it compares with the model. Click one to load it into the tool. The 1981–1991 vintages have weather but no mature price in the data, so the model forecasts them.</p>
+      <div class="bhead" style="border-top:1px solid var(--line);padding-top:12px"><h2 id="c80H">The 1980s call, made before any tasting</h2></div>
+      <p class="hint" style="padding:0 4px;font-size:13.5px">Age is set to 31 for every vintage, so each bar compares that year's weather directly with 1961 = 100. Was 1986 a great vintage, as the market priced it? Could 1989 or 1990 match 1961?</p>
+      <canvas id="cv80" aria-label="Bar chart of predicted quality index at age 31 for 1981 to 1991"></canvas>
+      <div class="legend">
+        <span><i class="sw bar" style="background:var(--accent)"></i>1983, 1989, 1990</span>
+        <span><i class="sw bar" style="background:var(--ball)"></i>1986</span>
+        <span><i class="sw bar" style="background:var(--peg);opacity:.45"></i>Other vintages</span>
+        <span><i class="sw ref"></i>1961 = 100</span>
+      </div>
+      <p class="hint" id="c80Note" style="padding:0 4px"></p>
+    </section>
+
+    <aside class="panel" aria-label="Weather of a new vintage">
+      <div class="group">
+        <span class="label">Model</span>
+        <div class="seg" role="group" aria-label="Model">
+          <button id="mFull" aria-pressed="true">Case study (5 inputs)</button>
+          <button id="mNoSep" aria-pressed="false">Drop September</button>
+        </div>
+        <p class="hint" id="modelHint"></p>
+      </div>
+      <div class="group">
+        <span class="label">Weather of a new vintage</span>
+        <div class="field">
+          <label for="preset">Start from</label>
+          <select id="preset"></select>
+        </div>
+        <div class="slider"><div class="top"><label for="xSum">Summer temperature</label><output id="oSum" for="xSum"></output></div><input type="range" id="xSum" min="14" max="22" step="0.1"><small id="rSum"></small></div>
+        <div class="slider"><div class="top"><label for="xHar">Harvest rain</label><output id="oHar" for="xHar"></output></div><input type="range" id="xHar" min="0" max="350" step="0.1"><small id="rHar"></small></div>
+        <div class="slider" id="sSep"><div class="top"><label for="xSep">September temperature</label><output id="oSep" for="xSep"></output></div><input type="range" id="xSep" min="13" max="23" step="0.1"><small id="rSep"></small></div>
+        <div class="slider"><div class="top"><label for="xWin">Winter rain</label><output id="oWin" for="xWin"></output></div><input type="range" id="xWin" min="300" max="950" step="1"><small id="rWin"></small></div>
+        <div class="slider"><div class="top"><label for="xAge">Age of the wine</label><output id="oAge" for="xAge"></output></div><input type="range" id="xAge" min="1" max="45" step="1"><small>Years in the bottle when priced. Age 31 matches 1961 in the data.</small></div>
+        <div class="btns">
+          <button id="age31">Set age to 31</button>
+          <button id="age1">Set age to 1</button>
+        </div>
+      </div>
+      <div class="group" aria-live="polite">
+        <div class="readout">
+          <span class="k" id="predK">Predicted price index</span>
+          <span class="huge" id="predBig">–</span>
+          <div class="sub" id="predSub"></div>
+        </div>
+        <div class="pibar" id="pibar" aria-hidden="true"></div>
+        <p class="msg" id="extrap" hidden></p>
+      </div>
+      <div class="group">
+        <span class="label">Compared with the 1961 vintage</span>
+        <div class="scroll"><table class="stats" id="vs61">
+          <thead><tr><th>Input</th><th>Change</th><th>Price ×</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="hint">Each row multiplies the predicted price by exp(β × change). The rows multiply to the total. The model itself puts 1961 at <span id="fit61">89</span>; 1961 sold above its weather.</p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card" aria-labelledby="coefH">
+    <div class="chead">
+      <span class="eyebrow">Least squares on log price · fitted in your browser</span>
+      <h2 id="coefH">The wine equation and what each coefficient means</h2>
+      <p class="intro">The model is fitted to the 27 mature vintages from 1952 to 1980. Prices are skewed to the right and weather acts on them multiplicatively, so the response is log price. A coefficient β then means "one more unit multiplies the price by e<sup>β</sup>", or about 100β percent when β is small.</p>
+    </div>
+    <div class="eq"><div class="m" id="eqnLine"></div></div>
+    <div class="scroll"><table class="mini" id="coefTab">
+        <thead><tr><th>Term</th><th>Estimate</th><th>SE</th><th>t</th><th>p</th><th class="cs">Case study</th><th style="text-align:left">In plain words</th></tr></thead>
+        <tbody></tbody>
+    </table></div>
+    <div class="split">
+      <div class="scroll"><table class="mini" id="fitTab">
+        <thead><tr><th>Fit statistic</th><th>This fit</th><th class="cs">Case study</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="scroll"><table class="mini" id="cmpTab">
+        <thead><tr><th>Model for log price</th><th>R²</th><th>Adj. R²</th><th>s</th><th class="cs">Case study</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="hint" id="sepTest" style="font-size:13.5px"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="peH">
+    <div class="chead">
+      <span class="eyebrow">Partial effects · component plus residual</span>
+      <h2 id="peH">One input at a time, the others held fixed</h2>
+      <p class="intro">Each panel plots β<sub>j</sub>(x<sub>j</sub> − x̄<sub>j</sub>) + residual against one input. The slope of the line is that input's coefficient, and the scatter around it is what the model cannot explain. The amber line marks the value set in the tool.</p>
+    </div>
+    <div class="plots" id="pePlots"></div>
+  </section>
+
+  <section class="card" aria-labelledby="dgH">
+    <div class="chead">
+      <span class="eyebrow">Residual diagnostics</span>
+      <h2 id="dgH">Which vintages beat their weather, and which fell short</h2>
+      <p class="intro" id="dgIntro"></p>
+    </div>
+    <div class="plots">
+      <div class="plotbox"><h3>Residuals vs fitted</h3><p>No funnel or curve means constant spread on the log scale.</p><canvas id="dgFit"></canvas></div>
+      <div class="plotbox"><h3>Residuals by vintage</h3><p>Look for runs above or below zero over time.</p><canvas id="dgYear"></canvas></div>
+      <div class="plotbox"><h3>Normal Q–Q plot</h3><p>Studentized residuals against normal quantiles.</p><canvas id="dgQQ"></canvas></div>
+    </div>
+    <div class="kpis" id="dgKpis"></div>
+    <div class="tables2">
+      <div><h3>Beat the weather</h3><div class="scroll"><table class="mini" id="bestTab"><thead><tr><th>Vintage</th><th>Actual</th><th>Model</th><th>Gap</th><th>Stud. r</th><th>h</th><th>Cook's D</th></tr></thead><tbody></tbody></table></div></div>
+      <div><h3>Fell short of the weather</h3><div class="scroll"><table class="mini" id="worstTab"><thead><tr><th>Vintage</th><th>Actual</th><th>Model</th><th>Gap</th><th>Stud. r</th><th>h</th><th>Cook's D</th></tr></thead><tbody></tbody></table></div></div>
+    </div>
+    <p class="hint">Gap = actual / model − 1. Leverage h above 2p/n flags unusual weather; Cook's D near 1 would mean one vintage drives the fit. Click a row to load that vintage into the tool.</p>
+  </section>
+
+  <section class="card" aria-labelledby="oosH">
+    <div class="chead">
+      <span class="eyebrow">Out of sample</span>
+      <h2 id="oosH">Does the equation predict vintages it has not seen?</h2>
+      <p class="intro">In-sample fit flatters a model. Here each prediction comes from a fit that never saw the vintage being predicted, so the errors are honest. The 95% prediction intervals use the training fit's own residual spread.</p>
+    </div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Validation scheme" style="flex:0 1 380px">
+        <button id="vLoo" aria-pressed="false">Leave one out</button>
+        <button id="vTime" aria-pressed="true">Fit early, predict later</button>
+      </div>
+      <div class="slider" id="cutBox"><div class="top"><label for="cut">Train on vintages up to</label><output id="oCut" for="cut"></output></div><input type="range" id="cut" min="1964" max="1976" step="1" value="1970"></div>
+    </div>
+    <div class="plotbox">
+      <canvas id="cvOos" aria-label="Out-of-sample predictions with 95% intervals against actual prices"></canvas>
+      <div class="legend">
+        <span><i class="sw"></i>Training vintage</span>
+        <span><i class="sw hol"></i>Held-out vintage (actual)</span>
+        <span><i class="sw sq"></i>Prediction, 95% interval</span>
+      </div>
+    </div>
+    <div class="kpis" id="oosKpis"></div>
+    <p class="hint" id="oosNote"></p>
+  </section>
+
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Log-linear regression in four steps</span>
+      <h2>Weather adds on the log scale and multiplies the price</h2>
+      <p class="hint" style="font-size:14px;max-width:86ch">Four weather numbers and the wine's age explain 83% of the variation in log mature prices. Summer heat and a dry harvest dominate. September temperature, the experts' favourite indicator, adds nothing once the whole summer is in the model.</p>
+      <div class="demo">
+        <button class="primary" id="demo86">Load 1986 at age 31</button>
+        <button id="demo19">Load 2019 at age 31</button>
+        <button id="demoNoSep">Drop September and compare</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Model the log</h3><p>A good vintage is worth several times a bad one, so price differences are ratios. On the log scale the model in levels (R² 0.75) becomes a better fitting additive model (R² 0.83), and every coefficient reads as a percent effect.</p></div></li>
+      <li><div><h3>Read β as a multiplier</h3><p>Summer has β = 0.607, so one more degree multiplies the price by e<sup>0.607</sup> ≈ 1.84, an 84% rise. Harvest rain has β = −0.0037 per mm, so 10 mm more cuts the price by about 4%. Each year of age adds about 2.5%, the return to cellaring.</p></div></li>
+      <li><div><h3>Predict on the log scale, then exponentiate</h3><p>The prediction interval is ŷ ± t<sub>0.975,21</sub> · s<sub>pred</sub> in logs. Exponentiating gives an interval for the price that is lopsided: wider above than below. e<sup>ŷ</sup> is the median price; the mean is larger by e<sup>s²/2</sup> ≈ 1.04.</p></div></li>
+      <li><div><h3>Check it on vintages it has not seen</h3><p>The in-sample residual SE is 0.29. Leaving each vintage out in turn gives a prediction error of about 0.34 on the log scale. Fitting on early vintages and predicting later ones keeps most actual prices inside the 95% intervals.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">The case study's model</div><div class="m">log Price = β₀ + β₁ Summer + β₂ HarvRain</div><div class="m">          + β₃ Sept + β₄ WinRain + β₅ Age + ε</div></div>
+      <div class="eq"><div class="cap">Percent effect of a change Δ in one input</div><div class="m">Price ratio = e<sup>β Δ</sup>,  % change = 100 (e<sup>β Δ</sup> − 1)</div><div class="m">Summer +1 °C: e<sup>0.607</sup> = 1.84  (+84%)</div><div class="m">Harvest rain +10 mm: e<sup>−0.037</sup> = 0.96  (−4%)</div></div>
+      <div class="eq"><div class="cap">95% prediction interval for a new vintage x₀</div><div class="m">s<sub>pred</sub>² = s² (1 + x₀ᵀ(XᵀX)⁻¹x₀)</div><div class="m">exp(x₀ᵀβ̂ ± t<sub>0.975, n−p</sub> s<sub>pred</sub>)</div></div>
+      <div class="eq"><div class="cap">Is September more relevant than summer?</div><div class="m">t = (β̂<sub>Sept</sub> − β̂<sub>Summer</sub>) / SE = −3.90,  p = 0.001</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> A regression fitted to past vintages can price a new one from public weather data the day the harvest ends. The equation called 1986 the weakest vintage of the decade and 1989 and 1990 the classics. Out-of-range weather, like the 19 to 21 °C summers of 2017 to 2019, is where its forecasts deserve the least trust.</p></div>
+  </section>
+
+  <section class="notes" aria-label="Story and caveats">
+    <div class="note">
+      <h2>Ashenfelter vs the critics</h2>
+      <p>Wine critics judge a young Bordeaux by tasting it from the barrel, months before it is bottled, and the market prices it on their verdicts. Orley Ashenfelter, an economist, argued that the weather already contains most of that information: hot summers ripen the grapes, a dry harvest concentrates them, and a wet winter feeds the vines early.</p>
+      <p>The critics did not welcome an equation that claimed to rate wine without tasting it. The data in this lab is the test of who was right.</p>
+    </div>
+    <div class="note">
+      <h2>What the numbers are</h2>
+      <p>Price is an index of mature-wine auction prices with 1961 = 100. Summer is average growing-season temperature in °C, September is September's average temperature, harvest and winter rain are in mm, and age is years since the vintage. The 1981–1991 rows have weather and age but no price. The 2017–2019 weather values come from the case study's script.</p>
+      <p>All coefficients and statistics on this page are fitted live in your browser from these rows.</p>
+    </div>
+    <div class="note">
+      <h2>Where the equation can fail</h2>
+      <p>The training summers run from 15.0 to 17.6 °C. A log-linear heat effect cannot continue forever: past some point heat and drought hurt quality. Predictions for 19 to 21 °C summers are extrapolations, so trust the ranking more than the magnitudes.</p>
+      <p>Prices also reflect fashion, scarcity and critics' scores, which the weather cannot see. That is what the residuals measure.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Before showing anything, ask students to rank 1983, 1986 and 1990 from the weather alone, using the tooltips on the vintage chart. Then reveal the 1980s bar chart. (1990 ≈ 116, 1983 ≈ 70, 1986 ≈ 21 at age 31.)</li>
+      <li>Load 1961 and raise summer temperature by exactly 1 °C. Ask the class to predict the new price before you move the slider. It should rise by e<sup>0.607</sup> ≈ 1.84 times. Then add 100 mm of harvest rain and ask for the combined effect.</li>
+      <li>Switch to "Drop September". Adjusted R² rises from 0.79 to 0.80 and the other coefficients barely move. Ask why September looks significant on its own (t = 2.47) but not next to summer. Hint: the two temperatures correlate at 0.44.</li>
+      <li>In the out-of-sample panel, slide the training cutoff from 1964 to 1976. Which cutoffs give the worst forecasts, and why do the intervals get wider when the training set is small?</li>
+      <li>Load 2019 at age 31. The interval runs from about 150 to 1,400. Ask which part of the prediction interval formula makes it so wide, and whether the model should be trusted at 21 °C.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  // ---------- data (bordeaux_data.csv, as supplied with the case study) ----------
+  const RAW = `1952,37,17.1,160,14.3,600,40
+1953,63,16.7,80,17.3,690,39
+1955,45,17.1,130,16.8,502,37
+1957,22,16.1,110,16.2,420,35
+1958,18,16.4,187,19.1,582,34
+1959,66,17.5,187,18.7,485,33
+1960,14,16.4,290,15.8,763,32
+1961,100,17.3,38,20.4,830,31
+1962,33,16.3,52,17.2,697,30
+1963,17,15.7,155,16.2,608,29
+1964,31,17.3,96,18.8,402,28
+1965,11,15.4,267,14.8,602,27
+1966,47,16.5,86,18.4,819,26
+1967,19,16.2,118,16.5,714,25
+1968,11,16.2,292,16.4,610,24
+1969,12,16.5,244,16.6,575,23
+1970,40,16.7,89,18,622,22
+1971,27,16.8,112,16.9,551,21
+1972,10,15,158,14.6,536,20
+1973,16,17.1,123,17.9,376,19
+1974,11,16.3,184,16.2,574,18
+1975,30,16.9,171,17.2,572,17
+1976,25,17.6,247,16.1,418,16
+1977,11,15.6,87,16.8,821,15
+1978,27,15.8,51,17.4,763,14
+1979,21,16.2,122,17.3,717,13
+1980,14,16,74,18.4,578,12
+1981,,17,111,18,535,11
+1982,,17.4,162,18.5,712,10
+1983,,17.4,119,17.9,845,9
+1984,,16.5,119,16,591,8
+1985,,16.8,38,18.9,744,7
+1986,,16.3,171,17.5,563,6
+1987,,17,115,18.9,452,5
+1988,,17.1,59,16.8,808,4
+1989,,18.6,82,18.4,443,3
+1990,,18.7,80,19.3,468,2
+1991,,17.7,183,20.4,570,1`;
+  const D = RAW.split('\n').map(l => { const a = l.split(','); return { year: +a[0], price: a[1] === '' ? null : +a[1], sum: +a[2], har: +a[3], sep: +a[4], win: +a[5], age: +a[6] }; });
+  const TR = D.filter(d => d.price !== null), TE = D.filter(d => d.price === null);
+  const BY = Object.fromEntries(D.map(d => [d.year, d]));
+  const NEW = [
+    { key: 'n2017', label: '2017 at age 31', x: { sum: 19, har: 86.2, sep: 19, win: 521, age: 31 } },
+    { key: 'n2018', label: '2018 at age 31', x: { sum: 20, har: 84.9, sep: 22, win: 593, age: 31 } },
+    { key: 'n2019', label: '2019 at age 31', x: { sum: 21, har: 110, sep: 19, win: 550, age: 31 } }
+  ];
+  const HYP = [
+    { key: 'hHot', label: 'Hot, dry year (hypothetical)', x: { sum: 18.5, har: 40, sep: 19.5, win: 650, age: 31 } },
+    { key: 'hWet', label: 'Cool, wet year (hypothetical)', x: { sum: 15.5, har: 260, sep: 15.5, win: 520, age: 31 } }
+  ];
+  const VARS = {
+    sum: { name: 'Summer temperature', short: 'Summer', sym: 'Summer', unit: '°C', d: 1, step: 1, stepTxt: '+1 °C', id: 'Sum' },
+    har: { name: 'Harvest rain', short: 'Harvest rain', sym: 'HarvRain', unit: 'mm', d: 0, step: 10, stepTxt: '+10 mm', id: 'Har' },
+    sep: { name: 'September temperature', short: 'September', sym: 'Sept', unit: '°C', d: 1, step: 1, stepTxt: '+1 °C', id: 'Sep' },
+    win: { name: 'Winter rain', short: 'Winter rain', sym: 'WinRain', unit: 'mm', d: 0, step: 100, stepTxt: '+100 mm', id: 'Win' },
+    age: { name: 'Age', short: 'Age', sym: 'Age', unit: 'yr', d: 0, step: 1, stepTxt: '+1 year', id: 'Age' }
+  };
+  const ALL = ['sum', 'har', 'sep', 'win', 'age'];
+  const MODELS = { full: ['sum', 'har', 'sep', 'win', 'age'], nosep: ['sum', 'har', 'win', 'age'] };
+  const RANGE = {}; for (const c of ALL) { const v = TR.map(d => d[c]); RANGE[c] = [Math.min(...v), Math.max(...v)]; }
+  const MEAN = {}; for (const c of ALL) MEAN[c] = TR.reduce((s, d) => s + d[c], 0) / TR.length;
+  // case-study reported values (bordeaux_summary)
+  const CASE = {
+    coef: { '(Intercept)': ['−7.820', '−4.60'], sum: ['0.607', '5.26'], har: ['−0.0037', '−3.94'], sep: ['0.010', '0.18'], win: ['0.0012', '2.37'], age: ['0.025', '3.38'] },
+    adj: { full: '0.79', nosep: '0.80', nosum: '0.54' }
+  };
+
+  // ---------- numerics ----------
+  function lgamma(x) {
+    const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * x))) - lgamma(1 - x);
+    x -= 1; let a = c[0]; const t = x + 7.5; for (let i = 1; i < 9; i++) a += c[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  function betacf(a, b, x) {
+    const T = 1e-300, qab = a + b, qap = a + 1, qam = a - 1; let c = 1, d = 1 - qab * x / qap; if (Math.abs(d) < T) d = T; d = 1 / d; let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m; let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < T) d = T; c = 1 + aa / c; if (Math.abs(c) < T) c = T; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < T) d = T; c = 1 + aa / c; if (Math.abs(c) < T) c = T; d = 1 / d; const del = d * c; h *= del;
+      if (Math.abs(del - 1) < 1e-14) break;
+    }
+    return h;
+  }
+  function ibeta(x, a, b) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+    return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+  }
+  const tTwo = (t, df) => ibeta(df / (df + t * t), df / 2, 0.5);           // two-sided p
+  const fSf = (F, d1, d2) => ibeta(d2 / (d2 + d1 * F), d2 / 2, d1 / 2);    // upper tail
+  function tQuant(df) { let lo = 0, hi = 60; for (let i = 0; i < 90; i++) { const m = (lo + hi) / 2; if (tTwo(m, df) > 0.05) lo = m; else hi = m; } return (lo + hi) / 2; }
+  function qnorm(p) { // Acklam
+    const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+    const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+    const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+    const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+    const pl = 0.02425;
+    if (p < pl) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    if (p > 1 - pl) return -qnorm(1 - p);
+    const q = p - 0.5, r = q * q;
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  }
+  function inv(A) { // Gauss-Jordan with partial pivoting
+    const k = A.length, M = A.map((r, i) => [...r, ...Array.from({ length: k }, (_, j) => +(i === j))]);
+    for (let c = 0; c < k; c++) {
+      let p = c; for (let r = c + 1; r < k; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+      [M[c], M[p]] = [M[p], M[c]];
+      const v = M[c][c]; for (let j = 0; j < 2 * k; j++) M[c][j] /= v;
+      for (let r = 0; r < k; r++) if (r !== c) { const f = M[r][c]; if (f) for (let j = 0; j < 2 * k; j++) M[r][j] -= f * M[c][j]; }
+    }
+    return M.map(r => r.slice(k));
+  }
+  const quad = (A, v) => { let s = 0; for (let i = 0; i < v.length; i++) for (let j = 0; j < v.length; j++) s += v[i] * A[i][j] * v[j]; return s; };
+  function ols(rows, cols, levels = false) {
+    const n = rows.length, k = cols.length + 1, df = n - k;
+    const X = rows.map(r => [1, ...cols.map(c => r[c])]), y = rows.map(r => levels ? r.price : Math.log(r.price));
+    const XtX = Array.from({ length: k }, (_, i) => Array.from({ length: k }, (_, j) => X.reduce((s, x) => s + x[i] * x[j], 0)));
+    const Xty = Array.from({ length: k }, (_, i) => X.reduce((s, x, r) => s + x[i] * y[r], 0));
+    const Ai = inv(XtX), b = Ai.map(r => r.reduce((s, v, j) => s + v * Xty[j], 0));
+    const fit = X.map(x => x.reduce((s, v, j) => s + v * b[j], 0)), e = y.map((v, i) => v - fit[i]);
+    const sse = e.reduce((s, v) => s + v * v, 0), yb = y.reduce((s, v) => s + v, 0) / n, sst = y.reduce((s, v) => s + (v - yb) ** 2, 0);
+    const s2 = sse / df, R2 = 1 - sse / sst, adj = 1 - (1 - R2) * (n - 1) / df, F = (R2 / (k - 1)) / ((1 - R2) / df);
+    const se = b.map((_, j) => Math.sqrt(s2 * Ai[j][j])), t = b.map((v, j) => v / se[j]), p = t.map(v => tTwo(v, df));
+    const h = X.map(x => quad(Ai, x));
+    const stud = e.map((v, i) => { const s2i = (sse - v * v / (1 - h[i])) / (df - 1); return v / Math.sqrt(s2i * (1 - h[i])); });
+    const cook = e.map((v, i) => v * v / (k * s2) * h[i] / (1 - h[i]) ** 2);
+    return { rows, cols, n, k, df, b, se, t, p, Ai, fit, e, y, sse, s2, s: Math.sqrt(s2), R2, adj, F, pF: fSf(F, k - 1, df), h, stud, cook, tq: tQuant(df) };
+  }
+  function pred(M, x) {
+    const v = [1, ...M.cols.map(c => x[c])], mu = v.reduce((s, z, j) => s + z * M.b[j], 0), sp = Math.sqrt(M.s2 * (1 + quad(M.Ai, v)));
+    return { mu, sp, med: Math.exp(mu), lo: Math.exp(mu - M.tq * sp), hi: Math.exp(mu + M.tq * sp) };
+  }
+
+  // ---------- formatting ----------
+  const minus = s => String(s).replace(/^-/, '−');
+  const fmt = (v, d = 2) => !isFinite(v) ? '–' : minus(v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }));
+  const sgn = (v, d = 2) => (v > 0 ? '+' : '') + fmt(v, d);
+  const pct = (r, d = 0) => sgn((r - 1) * 100, d) + '%';
+  const idx = v => v >= 100 ? Math.round(v).toLocaleString('en-US') : v >= 10 ? Math.round(v).toString() : v.toFixed(1);
+  const pfmt = p => p < 0.001 ? (p < 1e-6 ? '< 10⁻⁶' : '< 0.001') : p.toFixed(3);
+  const valTxt = (c, v) => fmt(v, VARS[c].d === 0 && Math.abs(v - Math.round(v)) > 1e-9 ? 1 : VARS[c].d) + ' ' + VARS[c].unit;
+
+  // ---------- state ----------
+  const S = { model: 'full', x: { ...BY[1961] }, preset: 'y1961', log: false, vmode: 'time', cut: 1970, hl: 1961 };
+  let M = null, Mlev = null, OOS = null;
+  function refit() {
+    const cols = MODELS[S.model];
+    M = ols(TR, cols); Mlev = ols(TR, cols, true);
+    M.byYear = {}; TR.forEach((r, i) => M.byYear[r.year] = i);
+    computeOOS();
+  }
+  function computeOOS() {
+    const cols = MODELS[S.model], out = [];
+    if (S.vmode === 'loo') {
+      TR.forEach((r, i) => { const m = ols(TR.filter((_, j) => j !== i), cols), p = pred(m, r); out.push({ r, p, test: true }); });
+      OOS = { pts: out, train: null };
+    } else {
+      const tr = TR.filter(r => r.year <= S.cut), te = TR.filter(r => r.year > S.cut), m = ols(tr, cols);
+      te.forEach(r => out.push({ r, p: pred(m, r), test: true }));
+      OOS = { pts: out, train: tr, m };
+    }
+    const err = OOS.pts.map(o => Math.log(o.r.price) - o.p.mu);
+    OOS.rmse = Math.sqrt(err.reduce((s, v) => s + v * v, 0) / err.length);
+    OOS.cover = OOS.pts.filter(o => o.r.price >= o.p.lo && o.r.price <= o.p.hi).length;
+    OOS.mape = err.reduce((s, v) => s + Math.abs(Math.exp(v) - 1), 0) / err.length;
+    const rank = a => { const o = a.map((v, i) => [v, i]).sort((p, q) => p[0] - q[0]), r = []; o.forEach((p, k) => r[p[1]] = k); return r; };
+    const ra = rank(OOS.pts.map(o => o.r.price)), rp = rank(OOS.pts.map(o => o.p.mu)), n = ra.length;
+    OOS.spear = 1 - 6 * ra.reduce((s, v, i) => s + (v - rp[i]) ** 2, 0) / (n * (n * n - 1));
+  }
+
+  // ---------- canvases ----------
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'fit', 'ball', 'board', 'surface', 'peg', 'coinB']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  const CV = {};
+  function mkCanvas(id, aspect, minH, maxH) {
+    const cv = $(id), o = { cv, ctx: cv.getContext('2d'), W: 0, H: 0, hits: [] };
+    o.resize = () => {
+      const w = cv.clientWidth || cv.parentElement.clientWidth, h = Math.round(Math.min(Math.max(w * aspect, minH), maxH)), d = window.devicePixelRatio || 1;
+      cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+      o.ctx.setTransform(d, 0, 0, d, 0, 0); o.W = w; o.H = h;
+    };
+    const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; cv.parentElement.appendChild(tip); o.tip = tip;
+    const near = ev => {
+      const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      let best = null, bd = 16 * 16;
+      for (const h of o.hits) { const d = h.box ? (mx >= h.box[0] && mx <= h.box[2] && my >= h.box[1] && my <= h.box[3] ? 0 : 1e9) : (h.x - mx) ** 2 + (h.y - my) ** 2; if (d < bd) { bd = d; best = h; } }
+      return { best, mx, my };
+    };
+    cv.addEventListener('pointermove', ev => {
+      const { best, mx, my } = near(ev);
+      cv.style.cursor = best && best.year ? 'pointer' : 'default';
+      if (!best) { tip.hidden = true; return; }
+      tip.innerHTML = best.html(); tip.hidden = false;
+      const pw = cv.parentElement.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
+      let left = mx + cv.offsetLeft + 14; if (left + tw > pw - 6) left = mx + cv.offsetLeft - tw - 14;
+      tip.style.left = Math.max(6, left) + 'px';
+      tip.style.top = Math.max(6, my + cv.offsetTop - th - 10) + 'px';
+    });
+    cv.addEventListener('pointerleave', () => { tip.hidden = true; });
+    cv.addEventListener('click', ev => { const { best } = near(ev); if (best && best.year) loadYear(best.year); });
+    CV[id] = o; return o;
+  }
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function ticks(lo, hi, n) { const s = niceStep(hi - lo, n), t = []; for (let v = Math.ceil(lo / s - 1e-9) * s; v <= hi + 1e-9; v += s) t.push(Math.abs(v) < s * 1e-6 ? 0 : v); return { t, d: Math.max(0, -Math.floor(Math.log10(s) + 1e-9)) }; }
+  function frame(o, m, xd, yd, opt = {}) {
+    const { ctx, W, H } = o;
+    const PX = x => m.l + (x - xd[0]) / (xd[1] - xd[0]) * (W - m.l - m.r);
+    const PY = y => m.t + (yd[1] - y) / (yd[1] - yd[0]) * (H - m.t - m.b);
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1;
+    const yt = opt.yticks || ticks(yd[0], yd[1], opt.yn || 5).t.map(v => [v, null]);
+    const yd0 = opt.yticks ? 0 : ticks(yd[0], yd[1], opt.yn || 5).d;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const [v, lab] of yt) { const py = Math.round(PY(v)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(m.l, py); ctx.lineTo(W - m.r, py); ctx.stroke(); ctx.fillStyle = C.muted; ctx.fillText(lab ?? fmt(v, yd0), m.l - 6, py); }
+    const xt = ticks(xd[0], xd[1], opt.xn || Math.max(2, Math.floor((W - m.l - m.r) / 60)));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const v of xt.t) { const px = Math.round(PX(v)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(px, m.t); ctx.lineTo(px, H - m.b); ctx.stroke(); ctx.fillStyle = C.muted; ctx.fillText(opt.xyear ? String(v) : fmt(v, xt.d), px, H - m.b + 6); }
+    ctx.strokeStyle = C.line; ctx.strokeRect(m.l + .5, m.t + .5, W - m.l - m.r - 1, H - m.t - m.b - 1);
+    ctx.fillStyle = C.muted;
+    if (opt.xlab) { ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlab, W - m.r, H - 1); }
+    if (opt.ylab) { ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.ylab, m.l, m.t - 5); }
+    return { PX, PY };
+  }
+  function dot(ctx, x, y, r, fill, stroke, lw = 1.5) { ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } }
+  function whisker(ctx, x, y1, y2, col) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.moveTo(x - 4, y1); ctx.lineTo(x + 4, y1); ctx.moveTo(x - 4, y2); ctx.lineTo(x + 4, y2); ctx.stroke(); }
+  function square(ctx, x, y, r, col) { ctx.fillStyle = col; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); }
+  const LOGT = [[5, '5'], [10, '10'], [20, '20'], [50, '50'], [100, '100'], [200, '200']];
+
+  function vintageTip(year) {
+    const r = BY[year], p = pred(M, r), i = M.byYear[year];
+    let s = `<b>${year}</b><br>Summer ${fmt(r.sum, 1)} °C · Sept ${fmt(r.sep, 1)} °C<br>Harvest rain ${r.har} mm · Winter ${r.win} mm<br>Age ${r.age} yr<br>`;
+    if (r.price !== null) {
+      const gap = r.price / p.med;
+      s += `Actual ${r.price} · Model ${idx(p.med)}<br>Gap ${pct(gap)} · stud. r ${fmt(M.stud[i], 2)}`;
+    } else s += `<span class="mu">No price in data</span><br>Predicted ${idx(p.med)} (95%: ${idx(p.lo)} to ${idx(p.hi)})`;
+    return s + `<br><span class="mu">Click to load into the tool</span>`;
+  }
+
+  function drawMain() {
+    const o = CV.cvMain, { ctx, W } = o; o.hits = [];
+    const log = S.log, Y = v => log ? Math.log(v) : v;
+    const teP = TE.map(r => ({ r, p: pred(M, r) }));
+    const top = Math.max(180, ...teP.map(q => q.p.hi + 5));
+    const yd = log ? [Math.log(5), Math.log(260)] : [0, top];
+    const m = { l: 44, r: 12, t: 20, b: 26 };
+    const f = frame(o, m, [1950, 1993], yd, { xyear: true, xn: W < 500 ? 4 : 8, yticks: log ? LOGT.map(([v, l]) => [Math.log(v), l]) : null, ylab: log ? 'price index (log scale)' : 'price index' });
+    const { PX, PY } = f;
+    // 1961 = 100 reference
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = C.curve; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(m.l, PY(Y(100))); ctx.lineTo(W - m.r, PY(Y(100))); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = C.curve; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.font = '11px "JetBrains Mono", monospace'; ctx.fillText('1961 = 100', m.l + 6, PY(Y(100)) - 3);
+    // fitted line
+    ctx.strokeStyle = C.fit; ctx.lineWidth = 2.2; ctx.beginPath();
+    TR.forEach((r, i) => { const x = PX(r.year), y = PY(Y(Math.exp(M.fit[i]))); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+    // predictions
+    for (const { r, p } of teP) {
+      const x = PX(r.year); whisker(ctx, x, PY(Y(p.lo)), PY(Y(p.hi)), C.coinB); square(ctx, x, PY(Y(p.med)), 4.5, C.coinB);
+      o.hits.push({ x, y: PY(Y(p.med)), year: r.year, html: () => vintageTip(r.year) });
+    }
+    // actual
+    TR.forEach(r => { const x = PX(r.year), y = PY(Y(r.price)); dot(ctx, x, y, 5, C.accent, C.board, 1.5); o.hits.push({ x, y, year: r.year, html: () => vintageTip(r.year) }); });
+    if (S.hl && BY[S.hl]) {
+      const r = BY[S.hl], v = r.price ?? pred(M, r).med; dot(ctx, PX(r.year), PY(Y(v)), 9, null, C.ball, 2.5);
+    }
+  }
+
+  function drawPartial() {
+    const cols = MODELS[S.model];
+    for (const c of ALL) {
+      const box = $('pe_' + c).parentElement; box.hidden = !cols.includes(c);
+      if (box.hidden) continue;
+      const o = CV['pe_' + c], { ctx } = o; o.hits = [];
+      const j = cols.indexOf(c) + 1, b = M.b[j];
+      const xs = TR.map(r => r[c]), ys = TR.map((r, i) => b * (r[c] - MEAN[c]) + M.e[i]);
+      let x0 = Math.min(...xs, S.x[c]), x1 = Math.max(...xs, S.x[c]); const px = (x1 - x0) * 0.06; x0 -= px; x1 += px;
+      const ylo = Math.min(...ys, b * (x0 - MEAN[c]), b * (x1 - MEAN[c])), yhi = Math.max(...ys, b * (x0 - MEAN[c]), b * (x1 - MEAN[c])), py = (yhi - ylo) * 0.08;
+      const { PX, PY } = frame(o, { l: 40, r: 10, t: 18, b: 36 }, [x0, x1], [ylo - py, yhi + py], { yn: 4, xlab: VARS[c].short.toLowerCase() + ' (' + VARS[c].unit + ')', ylab: 'partial log price' });
+      ctx.strokeStyle = C.fit; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(PX(x0), PY(b * (x0 - MEAN[c]))); ctx.lineTo(PX(x1), PY(b * (x1 - MEAN[c]))); ctx.stroke();
+      ctx.strokeStyle = C.ball; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(PX(S.x[c]), 18); ctx.lineTo(PX(S.x[c]), o.H - 36); ctx.stroke();
+      TR.forEach((r, i) => { const x = PX(xs[i]), y = PY(ys[i]); dot(ctx, x, y, 4, r.year === S.hl ? C.ball : C.accent, C.board, 1); o.hits.push({ x, y, year: r.year, html: () => `<b>${r.year}</b><br>${VARS[c].short} ${valTxt(c, r[c])}<br>partial ${sgn(ys[i], 3)}<br><span class="mu">Click to load</span>` }); });
+      const step = VARS[c].step, ratio = Math.exp(b * step);
+      $('peE_' + c).innerHTML = `${VARS[c].stepTxt} ⇒ price ×${fmt(ratio, 3)} (${pct(ratio, 1)}) · t = ${fmt(M.t[j], 2)}`;
+    }
+  }
+
+  function drawDiag() {
+    const stud = M.stud, e = M.e;
+    // residual vs fitted
+    { const o = CV.dgFit, { ctx } = o; o.hits = [];
+      const xs = M.fit, lim = Math.max(...e.map(Math.abs)) * 1.15;
+      let x0 = Math.min(...xs), x1 = Math.max(...xs); const p = (x1 - x0) * .07;
+      const { PX, PY } = frame(o, { l: 40, r: 10, t: 18, b: 36 }, [x0 - p, x1 + p], [-lim, lim], { yn: 4, xlab: 'fitted log price', ylab: 'residual' });
+      ctx.strokeStyle = C.muted; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(PX(x0 - p), PY(0)); ctx.lineTo(PX(x1 + p), PY(0)); ctx.stroke(); ctx.setLineDash([]);
+      TR.forEach((r, i) => { const x = PX(xs[i]), y = PY(e[i]); dot(ctx, x, y, 4, Math.abs(stud[i]) > 2 ? C.ball : C.accent, C.board, 1); o.hits.push({ x, y, year: r.year, html: () => `<b>${r.year}</b><br>fitted ${fmt(xs[i], 3)}<br>residual ${sgn(e[i], 3)}<br>gap ${pct(Math.exp(e[i]))}` }); });
+    }
+    // residual by year
+    { const o = CV.dgYear, { ctx } = o; o.hits = [];
+      const lim = Math.max(...e.map(Math.abs)) * 1.15;
+      const { PX, PY } = frame(o, { l: 40, r: 10, t: 18, b: 24 }, [1950, 1982], [-lim, lim], { yn: 4, xyear: true, ylab: 'residual' });
+      ctx.strokeStyle = C.muted; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(PX(1950), PY(0)); ctx.lineTo(PX(1982), PY(0)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); TR.forEach((r, i) => i ? ctx.lineTo(PX(r.year), PY(e[i])) : ctx.moveTo(PX(r.year), PY(e[i]))); ctx.stroke();
+      TR.forEach((r, i) => { const x = PX(r.year), y = PY(e[i]); dot(ctx, x, y, 4, Math.abs(stud[i]) > 2 ? C.ball : C.accent, C.board, 1); o.hits.push({ x, y, year: r.year, html: () => `<b>${r.year}</b><br>residual ${sgn(e[i], 3)}<br>gap ${pct(Math.exp(e[i]))}` }); });
+    }
+    // QQ
+    { const o = CV.dgQQ, { ctx } = o; o.hits = [];
+      const n = stud.length, ord = stud.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
+      const q = ord.map((_, k) => qnorm((k + 1 - 0.375) / (n + 0.25)));
+      const lim = Math.max(2.6, ...stud.map(Math.abs)) * 1.08;
+      const { PX, PY } = frame(o, { l: 40, r: 10, t: 18, b: 36 }, [-lim, lim], [-lim, lim], { yn: 4, xlab: 'normal quantile', ylab: 'studentized residual' });
+      ctx.strokeStyle = C.curve; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(PX(-lim), PY(-lim)); ctx.lineTo(PX(lim), PY(lim)); ctx.stroke();
+      ord.forEach(([v, i], k) => { const x = PX(q[k]), y = PY(v), r = TR[i]; dot(ctx, x, y, 4, Math.abs(v) > 2 ? C.ball : C.accent, C.board, 1); o.hits.push({ x, y, year: r.year, html: () => `<b>${r.year}</b><br>stud. r ${fmt(v, 2)}<br>normal q ${fmt(q[k], 2)}` }); });
+    }
+  }
+
+  function drawOos() {
+    const o = CV.cvOos, { ctx, W } = o; o.hits = [];
+    const Y = Math.log, all = OOS.pts.flatMap(q => [q.p.lo, q.p.hi]);
+    const top = Math.max(150, ...all), bot = Math.min(8, ...all);
+    const tks = [[2, '2'], [5, '5'], [10, '10'], [20, '20'], [50, '50'], [100, '100'], [200, '200'], [500, '500'], [1000, '1,000']].filter(([v]) => v >= bot * 0.9 && v <= top * 1.1);
+    const m = { l: 44, r: 12, t: 20, b: 26 };
+    const { PX, PY } = frame(o, m, [1950, 1982], [Math.log(bot * 0.85), Math.log(top * 1.1)], { xyear: true, xn: W < 500 ? 4 : 8, yticks: tks.map(([v, l]) => [Math.log(v), l]), ylab: 'price index (log scale)' });
+    if (OOS.train) {
+      const xc = PX(S.cut + 0.5);
+      ctx.fillStyle = C.grid; ctx.globalAlpha = 0.6; ctx.fillRect(m.l + 1, m.t + 1, xc - m.l - 1, o.H - m.t - m.b - 2); ctx.globalAlpha = 1;
+      ctx.strokeStyle = C.muted; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(xc, m.t); ctx.lineTo(xc, o.H - m.b); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C.muted; ctx.font = '11px "JetBrains Mono", monospace'; ctx.textBaseline = 'top';
+      ctx.textAlign = 'right'; ctx.fillText('train', xc - 6, m.t + 6); ctx.textAlign = 'left'; ctx.fillText('predict', xc + 6, m.t + 6);
+      ctx.strokeStyle = C.fit; ctx.lineWidth = 2; ctx.beginPath();
+      OOS.train.forEach((r, i) => { const x = PX(r.year), y = PY(pred(OOS.m, r).mu); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      OOS.train.forEach(r => { const x = PX(r.year), y = PY(Y(r.price)); dot(ctx, x, y, 4.5, C.accent, C.board, 1.5); o.hits.push({ x, y, year: r.year, html: () => `<b>${r.year}</b> <span class="mu">training</span><br>actual ${r.price}` }); });
+    }
+    for (const { r, p } of OOS.pts) {
+      const x = PX(r.year) + (OOS.train ? 0 : 0);
+      whisker(ctx, x, PY(Math.log(p.lo)), PY(Math.log(p.hi)), C.coinB); square(ctx, x, PY(p.mu), 4, C.coinB);
+      const inside = r.price >= p.lo && r.price <= p.hi;
+      dot(ctx, x, PY(Y(r.price)), 4.5, OOS.train ? null : C.accent, inside ? C.accent : C.ball, 2);
+      o.hits.push({ x, y: PY(Y(r.price)), year: r.year, html: () => `<b>${r.year}</b> <span class="mu">held out</span><br>actual ${r.price}<br>predicted ${idx(p.med)}<br>95%: ${idx(p.lo)} to ${idx(p.hi)}<br>${inside ? 'inside' : 'outside'} the interval` });
+    }
+  }
+
+  function draw80() {
+    const o = CV.cv80, { ctx, W, H } = o; o.hits = [];
+    const vals = TE.map(r => ({ r, p: pred(M, { ...r, age: 31 }) }));
+    const top = Math.max(130, ...vals.map(v => v.p.med)) * 1.12;
+    const m = { l: 40, r: 10, t: 20, b: 26 };
+    const { PY } = frame(o, m, [0, 1], [0, top], { xn: 1, yn: 5, ylab: 'quality index at age 31' });
+    // remove the x tick labels drawn by frame: redraw area below plot
+    ctx.fillStyle = C.board; ctx.fillRect(0, H - m.b + 1, W, m.b);
+    const n = vals.length, bw = (W - m.l - m.r) / n;
+    vals.forEach(({ r, p }, i) => {
+      const x = m.l + i * bw + bw * 0.16, w = bw * 0.68, y = PY(p.med);
+      const col = r.year === 1986 ? C.ball : [1983, 1989, 1990].includes(r.year) ? C.accent : C.peg;
+      ctx.globalAlpha = col === C.peg ? 0.45 : 1; ctx.fillStyle = col; ctx.fillRect(x, y, w, PY(0) - y); ctx.globalAlpha = 1;
+      if (r.year === S.hl) { ctx.strokeStyle = C.ball; ctx.lineWidth = 2.5; ctx.strokeRect(x - 2, y - 2, w + 4, PY(0) - y + 4); }
+      ctx.fillStyle = C.ink; ctx.font = '11px "JetBrains Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(Math.round(p.med), x + w / 2, y - 3);
+      ctx.fillStyle = C.muted; ctx.textBaseline = 'top'; ctx.fillText(W < 520 ? "'" + String(r.year).slice(2) : String(r.year), x + w / 2, H - m.b + 6);
+      o.hits.push({ box: [x, m.t, x + w, H - m.b], year: r.year, html: () => `<b>${r.year}</b><br>at age 31: ${idx(p.med)}<br>95%: ${idx(p.lo)} to ${idx(p.hi)}<br>Summer ${fmt(r.sum, 1)} °C, harvest ${r.har} mm<br><span class="mu">Click to load</span>` });
+    });
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = C.curve; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(m.l, PY(100)); ctx.lineTo(W - m.r, PY(100)); ctx.stroke(); ctx.setLineDash([]);
+    const q = Object.fromEntries(vals.map(v => [v.r.year, v.p.med]));
+    const sorted = vals.slice().sort((a, b) => a.p.med - b.p.med);
+    $('c80Note').textContent = `With this model, 1986 scores ${Math.round(q[1986])} at age 31, ${sorted[0].r.year === 1986 ? 'the lowest of the decade' : 'rank ' + (sorted.findIndex(v => v.r.year === 1986) + 1) + ' from the bottom'}: heavy harvest rain (171 mm), a cool summer and a dry winter. 1989 (${Math.round(q[1989])}) and 1990 (${Math.round(q[1990])}) match or beat 1961, the two hottest summers in the data with dry harvests. 1983 (${Math.round(q[1983])}) is the best of the early 1980s. Case study: 1986 = 21, 1989 = 104, 1990 = 116, 1983 = 70.`;
+  }
+
+  let dirty = true;
+  function drawAll() { if (!M) return; dirty = false; drawMain(); drawPartial(); drawDiag(); drawOos(); draw80(); }
+  function loop() { if (dirty) drawAll(); requestAnimationFrame(loop); }
+
+  // ---------- text / tables ----------
+  function updateCoef() {
+    const cols = MODELS[S.model], names = ['(Intercept)', ...cols];
+    $('eqnLine').innerHTML = 'log Price = ' + M.b.map((b, j) => { const v = Math.abs(b) < 0.01 ? b.toFixed(4) : b.toFixed(3); return j === 0 ? minus(v) : (b < 0 ? ' − ' : ' + ') + v.replace('-', '') + ' ' + VARS[cols[j - 1]].sym; }).join('');
+    $('coefTab').tBodies[0].innerHTML = names.map((nm, j) => {
+      const v = VARS[nm], b = M.b[j], dec = Math.abs(b) < 0.01 ? 4 : 3;
+      const cs = S.model === 'full' ? CASE.coef[nm].join(' · t ') : '–';
+      let words = 'Log price when every input is zero. Not meaningful on its own.';
+      if (v) {
+        const r = Math.exp(b * v.step);
+        words = `${v.stepTxt} ⇒ price ×${fmt(r, 3)}, ${pct(r, 1)}` + (M.p[j] > 0.1 ? '. Not distinguishable from zero.' : '.');
+      }
+      return `<tr><td>${v ? v.name : 'Intercept'}</td><td class="est">${fmt(b, dec)}</td><td>${fmt(M.se[j], dec)}</td><td>${fmt(M.t[j], 2)}</td><td>${pfmt(M.p[j])}</td><td class="cs">${cs}</td><td class="w">${words}</td></tr>`;
+    }).join('');
+    const e = M.e, n = e.length, m2 = e.reduce((s, v) => s + v * v, 0) / n, m3 = e.reduce((s, v) => s + v ** 3, 0) / n, m4 = e.reduce((s, v) => s + v ** 4, 0) / n;
+    const JB = n / 6 * ((m3 / m2 ** 1.5) ** 2 + (m4 / m2 ** 2 - 3) ** 2 / 4), DW = e.slice(1).reduce((s, v, i) => s + (v - e[i]) ** 2, 0) / e.reduce((s, v) => s + v * v, 0);
+    M.JBp = Math.exp(-JB / 2); M.DW = DW;
+    const full = S.model === 'full';
+    const rows = [
+      ['R²', fmt(M.R2, 3), full ? '0.83' : '–'], ['Adjusted R²', fmt(M.adj, 3), CASE.adj[S.model]],
+      ['R² of the same model in levels', fmt(Mlev.R2, 3), full ? '0.75' : '–'],
+      [`Overall F (${M.k - 1}, ${M.df})`, fmt(M.F, 1), full ? '20.7' : '–'], ['p-value of F', M.pF < 1e-6 ? '< 10⁻⁶' : M.pF.toExponential(1), full ? '< 10⁻⁶' : '–'],
+      ['Residual SE s (log scale)', fmt(M.s, 3), full ? '0.29' : '–'], ['Residual df', String(M.df), full ? '21' : '–'],
+      ['t quantile for 95% intervals', fmt(M.tq, 3), '–']
+    ];
+    $('fitTab').tBodies[0].innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td class="est">${r[1]}</td><td class="cs">${r[2]}</td></tr>`).join('');
+    const cmp = [['Case study (all five)', MODELS.full, 'full'], ['Drop September', MODELS.nosep, 'nosep'], ['Drop summer (keep September)', ['sep', 'har', 'win', 'age'], 'nosum']];
+    $('cmpTab').tBodies[0].innerHTML = cmp.map(([nm, c, k]) => { const m = ols(TR, c); return `<tr${k === S.model ? ' class="sel"' : ''}><td>${nm}</td><td>${fmt(m.R2, 3)}</td><td class="est">${fmt(m.adj, 3)}</td><td>${fmt(m.s, 3)}</td><td class="cs">${CASE.adj[k]}</td></tr>`; }).join('');
+    // sep vs sum contrast in the full model, and sep alone
+    const F5 = S.model === 'full' ? M : ols(TR, MODELS.full), L = [0, -1, 0, 1, 0, 0];
+    const est = L.reduce((s, v, j) => s + v * F5.b[j], 0), se = Math.sqrt(F5.s2 * quad(F5.Ai, L)), tt = est / se;
+    const ms = ols(TR, ['sep', 'har', 'win', 'age']);
+    const r = (() => { const a = TR.map(d => d.sum), b = TR.map(d => d.sep), ma = MEAN.sum, mb = MEAN.sep; let sab = 0, saa = 0, sbb = 0; for (let i = 0; i < a.length; i++) { sab += (a[i] - ma) * (b[i] - mb); saa += (a[i] - ma) ** 2; sbb += (b[i] - mb) ** 2; } return sab / Math.sqrt(saa * sbb); })();
+    $('sepTest').innerHTML = `<b>Is September more relevant than summer?</b> In the five-input model summer has t = ${fmt(F5.t[1], 2)} and September t = ${fmt(F5.t[3], 2)}. Testing β<sub>Sept</sub> = β<sub>Summer</sub> gives t = ${fmt(tt, 2)}, p = ${tTwo(tt, F5.df).toFixed(3)}, so equality is rejected in favour of summer. Without summer, September looks significant (t = ${fmt(ms.t[1], 2)}): it is a proxy, correlated ${fmt(r, 2)} with summer heat. Case study: t = −3.90, p = 0.001; September alone t = 2.47; correlation 0.44.`;
+  }
+
+  function updateDiag() {
+    const i1 = M.stud.reduce((b, v, i) => Math.abs(v) > Math.abs(M.stud[b]) ? i : b, 0), ih = M.h.reduce((b, v, i) => v > M.h[b] ? i : b, 0), ic = M.cook.reduce((b, v, i) => v > M.cook[b] ? i : b, 0);
+    const k = [
+      ['Largest |studentized r|', fmt(M.stud[i1], 2), `${TR[i1].year} · case study 2.12 (1959)`],
+      ['Highest leverage h', fmt(M.h[ih], 2), `${TR[ih].year} · rule 2p/n = ${fmt(2 * M.k / M.n, 2)}`],
+      ["Largest Cook's D", fmt(M.cook[ic], 2), `${TR[ic].year} · case study 0.18 (1959)`],
+      ['Jarque–Bera p', fmt(M.JBp, 2), 'normality · case study 0.52'],
+      ['Durbin–Watson', fmt(M.DW, 2), 'time pattern · case study 2.8']
+    ];
+    $('dgKpis').innerHTML = k.map(([a, b, c]) => `<div class="kpi"><div class="k">${a}</div><div class="v">${b}</div><div class="c">${c}</div></div>`).join('');
+    $('dgIntro').textContent = `A positive residual means the vintage sold for more than its weather and age imply. On the log scale a residual of ${fmt(M.s, 2)} (one residual SE) is a gap of about ${pct(Math.exp(M.s))}. Points in amber have a studentized residual above 2 in size.`;
+    const ord = TR.map((r, i) => i).sort((a, b) => M.e[b] - M.e[a]);
+    const row = i => { const r = TR[i], f = Math.exp(M.fit[i]); return `<tr data-year="${r.year}" tabindex="0"${r.year === S.hl ? ' class="sel"' : ''}><td>${r.year}</td><td>${r.price}</td><td>${idx(f)}</td><td class="${M.e[i] > 0 ? 'up' : 'down'}">${pct(r.price / f)}</td><td>${fmt(M.stud[i], 2)}</td><td>${fmt(M.h[i], 2)}</td><td>${fmt(M.cook[i], 3)}</td></tr>`; };
+    $('bestTab').tBodies[0].innerHTML = ord.slice(0, 5).map(row).join('');
+    $('worstTab').tBodies[0].innerHTML = ord.slice(-5).reverse().map(row).join('');
+  }
+
+  function updateOos() {
+    const loo = S.vmode === 'loo';
+    $('vLoo').setAttribute('aria-pressed', loo); $('vTime').setAttribute('aria-pressed', !loo);
+    $('cutBox').hidden = loo; $('oCut').textContent = S.cut;
+    const n = OOS.pts.length;
+    const inS = loo ? M.s : OOS.m.s;
+    const k = [
+      [loo ? 'Vintages predicted' : 'Train / predict', loo ? String(n) : `${OOS.train.length} / ${n}`, loo ? 'each from the other 26' : `${OOS.m.df} residual df in training`],
+      ['Out-of-sample RMSE', fmt(OOS.rmse, 3), `log scale · in-sample s = ${fmt(inS, 3)}`],
+      ['Typical miss', fmt(OOS.mape * 100, 0) + '%', 'mean |actual / predicted − 1|'],
+      ['Inside 95% interval', `${OOS.cover} of ${n}`, `${fmt(OOS.cover / n * 100, 0)}% of held-out vintages`],
+      ['Rank correlation', fmt(OOS.spear, 2), 'predicted vs actual order']
+    ];
+    $('oosKpis').innerHTML = k.map(([a, b, c]) => `<div class="kpi"><div class="k">${a}</div><div class="v">${b}</div><div class="c">${c}</div></div>`).join('');
+    $('oosNote').textContent = loo
+      ? 'Leave one out refits the model 27 times, each time without the vintage being predicted. The out-of-sample error is larger than the in-sample s because a vintage can no longer pull the fit towards itself.'
+      : `Trained only on 1952–${S.cut}, the equation forecasts ${S.cut + 1}–1980 from weather and age alone. Rings in amber fall outside their 95% interval. With few training vintages the intervals widen and the t quantile grows (${fmt(OOS.m.tq, 2)} on ${OOS.m.df} df).`;
+  }
+
+  function updateTool() {
+    const cols = MODELS[S.model];
+    for (const c of ALL) {
+      const v = VARS[c], inp = $('x' + v.id);
+      inp.value = S.x[c]; $('o' + v.id).textContent = valTxt(c, S.x[c]);
+      if (c !== 'age') $('r' + v.id).textContent = `1952–1980 range: ${fmt(RANGE[c][0], v.d)} to ${fmt(RANGE[c][1], v.d)} ${v.unit}`;
+    }
+    const off = !cols.includes('sep'); $('sSep').classList.toggle('off', off); $('xSep').disabled = off;
+    $('rSep').textContent = off ? 'Not in this model.' : `1952–1980 range: ${fmt(RANGE.sep[0], 1)} to ${fmt(RANGE.sep[1], 1)} °C`;
+    const p = pred(M, S.x);
+    $('predBig').textContent = idx(p.med);
+    $('predK').textContent = `Predicted price index at age ${S.x.age} (1961 = 100)`;
+    let sub = `95% prediction interval: <b>${idx(p.lo)}</b> to <b>${idx(p.hi)}</b><br>log scale: ${fmt(p.mu, 3)} ± ${fmt(M.tq, 3)} × ${fmt(p.sp, 3)}`;
+    if (S.x.age !== 31) sub += `<br>Same weather at age 31: ${idx(pred(M, { ...S.x, age: 31 }).med)}`;
+    const yr = S.preset[0] === 'y' ? +S.preset.slice(1) : null;
+    if (yr && BY[yr].price !== null && S.x.age === BY[yr].age && sameAs(BY[yr])) sub += `<br>Actual ${yr} price: ${BY[yr].price} (${pct(BY[yr].price / p.med)} vs model)`;
+    $('predSub').innerHTML = sub;
+    // PI bar on log scale 3..3000
+    const L = v => Math.max(0, Math.min(100, (Math.log(v) - Math.log(3)) / (Math.log(3000) - Math.log(3)) * 100));
+    $('pibar').innerHTML = `<div class="trk"></div><div class="rng" style="left:${L(p.lo)}%;width:${L(p.hi) - L(p.lo)}%"></div><div class="ref" style="left:${L(100)}%"></div><div class="pt" style="left:${L(p.med)}%"></div>` +
+      [3, 10, 30, 100, 300, 1000, 3000].map(v => `<span class="tk" style="left:${L(v)}%">${v.toLocaleString('en-US')}</span>`).join('');
+    const out = cols.filter(c => c !== 'age' && (S.x[c] < RANGE[c][0] - 1e-9 || S.x[c] > RANGE[c][1] + 1e-9));
+    if (S.x.age > RANGE.age[1] || S.x.age < 1) out.push('age');
+    $('extrap').hidden = !out.length;
+    if (out.length) $('extrap').textContent = 'Extrapolation: ' + out.map(c => `${VARS[c].short.toLowerCase()} ${valTxt(c, S.x[c])} is outside the 1952–1980 range (${fmt(RANGE[c][0], VARS[c].d)} to ${fmt(RANGE[c][1], VARS[c].d)})`).join('; ') + '. The interval widens, and the straight-line effect may not hold this far out.';
+    // vs 1961
+    const r61 = BY[1961]; let tot = 1;
+    const rows = cols.map(c => { const j = cols.indexOf(c) + 1, d = S.x[c] - r61[c], f = Math.exp(M.b[j] * d); tot *= f;
+      return `<tr><td>${VARS[c].short}</td><td>${Math.abs(d) < 1e-9 ? 'same' : sgn(d, VARS[c].d === 0 && Math.abs(d - Math.round(d)) > 1e-9 ? 1 : VARS[c].d) + ' ' + VARS[c].unit}</td><td class="${f > 1.0005 ? 'up' : f < 0.9995 ? 'down' : ''}">×${fmt(f, 2)}</td></tr>`; });
+    const f61 = pred(M, r61).med;
+    rows.push(`<tr class="tot"><td>All inputs</td><td>model 1961 = ${idx(f61)}</td><td>×${fmt(tot, 2)}</td></tr>`);
+    $('vs61').tBodies[0].innerHTML = rows.join('');
+    $('fit61').textContent = idx(f61);
+    $('preset').value = S.preset;
+    $('modelHint').textContent = S.model === 'full'
+      ? 'Summer, harvest rain, September temperature, winter rain and age, as in the case study.'
+      : 'Summer, harvest rain, winter rain and age. September is redundant once summer is in.';
+    $('mFull').setAttribute('aria-pressed', S.model === 'full'); $('mNoSep').setAttribute('aria-pressed', S.model === 'nosep');
+  }
+  const sameAs = r => ALL.every(c => Math.abs(S.x[c] - r[c]) < 1e-9);
+
+  function all() { updateCoef(); updateDiag(); updateOos(); updateTool(); dirty = true; }
+
+  // ---------- controls ----------
+  function buildPresets() {
+    const sel = $('preset');
+    const og = (label, items) => `<optgroup label="${label}">${items.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</optgroup>`;
+    sel.innerHTML = '<option value="custom">Custom weather</option>' +
+      og('Vintages with prices, 1952–1980', TR.map(r => [`y${r.year}`, `${r.year}${r.year === 1961 ? ' (index = 100)' : ''}`])) +
+      og('Vintages to forecast, 1981–1991', TE.map(r => [`y${r.year}`, String(r.year)])) +
+      og('Recent vintages in the case study', NEW.map(n => [n.key, n.label])) +
+      og('Hypothetical years', [...HYP.map(h => [h.key, h.label]), ['hAvg', 'Average 1952–1980 weather, age 31']]);
+  }
+  function setPreset(key) {
+    S.preset = key;
+    if (key[0] === 'y') { const r = BY[+key.slice(1)]; for (const c of ALL) S.x[c] = r[c]; S.hl = r.year; }
+    else if (key === 'hAvg') { for (const c of ALL) S.x[c] = c === 'age' ? 31 : +MEAN[c].toFixed(1); S.hl = null; }
+    else { const it = [...NEW, ...HYP].find(n => n.key === key); if (it) { Object.assign(S.x, it.x); S.hl = null; } }
+    updateTool(); updateDiag(); dirty = true;
+  }
+  function loadYear(y) { setPreset('y' + y); }
+  $('preset').addEventListener('change', e => { if (e.target.value !== 'custom') setPreset(e.target.value); });
+  for (const c of ALL) $('x' + VARS[c].id).addEventListener('input', e => {
+    S.x[c] = +e.target.value;
+    const yr = S.preset[0] === 'y' ? +S.preset.slice(1) : null;
+    S.preset = 'custom'; if (!(yr && sameAs(BY[yr]))) { /* keep highlight on the starting vintage */ }
+    updateTool(); dirty = true;
+  });
+  $('age31').onclick = () => { S.x.age = 31; if (S.preset[0] === 'y') S.preset = 'custom'; updateTool(); dirty = true; };
+  $('age1').onclick = () => { S.x.age = 1; if (S.preset[0] === 'y') S.preset = 'custom'; updateTool(); dirty = true; };
+  const setModel = k => { S.model = k; refit(); all(); };
+  $('mFull').onclick = () => setModel('full');
+  $('mNoSep').onclick = () => setModel('nosep');
+  $('logY').addEventListener('change', e => { S.log = e.target.checked; dirty = true; });
+  $('vLoo').onclick = () => { S.vmode = 'loo'; computeOOS(); updateOos(); dirty = true; };
+  $('vTime').onclick = () => { S.vmode = 'time'; computeOOS(); updateOos(); dirty = true; };
+  $('cut').addEventListener('input', e => { S.cut = +e.target.value; computeOOS(); updateOos(); dirty = true; });
+  for (const id of ['bestTab', 'worstTab']) {
+    $(id).addEventListener('click', e => { const tr = e.target.closest('tr[data-year]'); if (tr) loadYear(+tr.dataset.year); });
+    $(id).addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const tr = e.target.closest('tr[data-year]'); if (tr) { e.preventDefault(); loadYear(+tr.dataset.year); } } });
+  }
+  const toTool = () => $('preset').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+  $('demo86').onclick = () => { if (S.model !== 'full') setModel('full'); setPreset('y1986'); S.x.age = 31; S.preset = 'custom'; updateTool(); dirty = true; toTool(); };
+  $('demo19').onclick = () => { if (S.model !== 'full') setModel('full'); setPreset('n2019'); toTool(); };
+  $('demoNoSep').onclick = () => { setModel('nosep'); $('coefH').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); };
+
+  // partial-effect plot boxes
+  $('pePlots').innerHTML = ALL.map(c => `<div class="plotbox"><h3>${VARS[c].name}</h3><div class="eff" id="peE_${c}"></div><canvas id="pe_${c}" aria-label="Partial effect of ${VARS[c].name.toLowerCase()}"></canvas></div>`).join('');
+
+  // ---------- init ----------
+  mkCanvas('cvMain', 0.6, 300, 520);
+  for (const c of ALL) mkCanvas('pe_' + c, 0.72, 190, 260);
+  mkCanvas('dgFit', 0.72, 190, 260); mkCanvas('dgYear', 0.72, 190, 260); mkCanvas('dgQQ', 0.72, 190, 260);
+  mkCanvas('cvOos', 0.42, 260, 420); mkCanvas('cv80', 0.34, 220, 340);
+  buildPresets(); readColors(); refit(); all();
+  const recolor = () => { readColors(); dirty = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  for (const o of Object.values(CV)) { o.resize(); new ResizeObserver(() => { o.resize(); drawAll(); }).observe(o.cv.parentElement); }
+  requestAnimationFrame(loop);
+
+})();
+</script>
+
+</body></html>

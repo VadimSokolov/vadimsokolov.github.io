@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Election Forecast Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: data and sign-flip scatter with rail; variables; model ladder and coefficient check; track record; 2024 forecast; 2028 scenario surface with rail; model vs market; lesson, caveats, class exercises. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --dem: #2257b0;
+  --rep: #c23a2e;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2; --dem: #6b9ff0; --rep: #ff7466;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2; --dem: #6b9ff0; --rep: #ff7466;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+header { display: flex; flex-direction: column; gap: 6px; max-width: 76ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible, .src a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 84ch; }
+.src a { color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.board canvas, .plotbox canvas { display: block; width: 100%; touch-action: pan-y; }
+.bhead { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; padding: 2px 4px 0; }
+.bhead h2 { font-family: var(--font-display); font-size: clamp(19px, 2.4vw, 22px); line-height: 1.15; margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.dot { width: 10px; border-radius: 50%; }
+.sw.line { height: 0; border-top: 2.5px solid var(--fit); border-radius: 0; background: none; }
+.sw.dash { height: 0; border-top: 2px dashed var(--muted); border-radius: 0; background: none; }
+.sw.ring { width: 11px; height: 11px; border-radius: 50%; background: none; border: 2px solid var(--ball); }
+.sw.x { background: none; width: 10px; height: 10px; position: relative; }
+.sw.x::before, .sw.x::after { content: ""; position: absolute; left: 4px; top: -1px; width: 2px; height: 12px; background: var(--coinB); transform: rotate(45deg); }
+.sw.x::after { transform: rotate(-45deg); }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+.tip b { font-family: var(--font-display); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, tr[tabindex]:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button[aria-pressed="true"]:not(.primary) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; box-shadow: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; max-width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.hint.wide { font-size: 14px; max-width: 92ch; }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 14px; }
+.stats td:first-child { font-family: var(--font-body); padding-right: 8px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.ob { color: var(--accent); }
+.big { font-family: var(--font-display); font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; max-width: 100%; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 22px); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(20px, 2.6vw, 24px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.card h3 { font-family: var(--font-display); font-size: 17px; margin: 0; }
+.split { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.plotbox { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.callout { background: var(--board); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.callout b { font-variant-numeric: tabular-nums; }
+.split > .group + .group { border-top: 0; padding-top: 0; }
+.row2 { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
+.row2 > * { flex: 1 1 220px; min-width: 0; }
+
+.mini { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+.mini th, .mini td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.mini th:first-child, .mini td:first-child { text-align: left; padding-left: 0; }
+.mini thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.mini td { font-family: var(--font-mono); }
+.mini td.txt { font-family: var(--font-body); white-space: normal; text-align: left; }
+.mini tr:last-child td { border-bottom: 0; }
+.mini tr.cur td { background: var(--board); }
+.mini tr.cur td:first-child { box-shadow: inset 3px 0 0 var(--accent); padding-left: 8px; }
+.mini tr[tabindex] { cursor: pointer; }
+.mini tr[tabindex]:hover td { background: var(--board); }
+.mini td.best { font-weight: 600; color: var(--accent); }
+.mini td.ok { color: var(--fit); }
+.mini td.bad { color: var(--curve); }
+.mini td.r { color: var(--muted); }
+.vars td:first-child { font-weight: 700; font-family: var(--font-mono); white-space: nowrap; }
+.vars td.txt { min-width: 260px; }
+@media (max-width: 640px) { .vars td.txt { min-width: 0; } .vars td:last-child { white-space: normal; } }
+
+.terms { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.terms label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font-family: var(--font-mono); font-size: 13.5px; }
+
+.dtrack { position: relative; height: 14px; min-width: 110px; }
+.dtrack .z { position: absolute; top: -2px; bottom: -2px; border-left: 1px solid var(--muted); }
+.dtrack .b { position: absolute; top: 2px; height: 10px; border-radius: 2px; }
+.dtrack .b.up { background: var(--fit); } .dtrack .b.down { background: var(--ball); }
+
+.readout { display: flex; flex-direction: column; gap: 4px; }
+.readout .k { font-size: 13px; color: var(--muted); }
+.readout .sub { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; line-height: 1.6; }
+.fixed { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
+
+.mkt { display: flex; flex-direction: column; gap: 10px; }
+.mrow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.mrow .mlab { font-size: 13.5px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.mrow .mlab span:last-child { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13px; }
+.mbar { display: flex; height: 16px; gap: 2px; border-radius: 4px; overflow: hidden; background: var(--board); }
+.mbar i { display: block; height: 100%; }
+.mbar .d { background: var(--dem); } .mbar .r { background: var(--rep); } .mbar .o { background: var(--line); }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula + .formula { margin-top: 6px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 86ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Regression forecasting</span>
+    <h1>Election Forecast Lab</h1>
+    <p class="lead">Fit Ray Fair's vote equation to 27 US presidential elections, 1916 to 2020, and see why the economy only predicts the vote once its sign flips with the party in power. Climb from a naive regression to the final model, check its track record, replay the 2024 forecast, then set growth, inflation and good-news quarters for 2028 and compare the forecast with a prediction market.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on the case study “Predicting the 2024 US Presidential Election: A Fair Style Vote Equation” by N. Polson (2026). Data: the case study's file of 27 elections, 1916 to 2020, with the variables of Ray Fair's presidential vote equation; 2024 and 2028 economic inputs and the Polymarket prices (18 October 2026) as quoted in the case study. See also Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/12-regression.html">Chapter 12</a>.</p>
+  </header>
+
+  <!-- 1. Data and the sign flip -->
+  <main class="grid">
+    <section class="board" aria-labelledby="scatH">
+      <div class="bhead"><h2 id="scatH">Step 1 · The economy is a referendum on the incumbent</h2></div>
+      <canvas id="scat" role="img" aria-label="Scatter plot of vote share against the selected economic variable, coloured by incumbent party"></canvas>
+      <div class="legend">
+        <span><i class="sw dot" style="background:var(--dem)"></i>Democratic incumbent (I = 1)</span>
+        <span><i class="sw dot" style="background:var(--rep)"></i>Republican incumbent (I = −1)</span>
+        <span><i class="sw line" style="border-top-color:var(--muted)"></i>Pooled least-squares line</span>
+        <span id="lgParty"><i class="sw dash" style="border-top-color:var(--ink)"></i>Line within each party</span>
+      </div>
+      <div class="tip" id="tipScat" hidden></div>
+    </section>
+    <aside class="panel" aria-label="Scatter controls">
+      <div class="group">
+        <span class="label">Economic variable</span>
+        <div class="seg" role="group" aria-label="Economic variable">
+          <button id="xG" aria-pressed="true">Growth G</button>
+          <button id="xP" aria-pressed="false">Inflation P</button>
+          <button id="xZ" aria-pressed="false">Good news Z</button>
+        </div>
+        <span class="label">Vertical axis</span>
+        <div class="seg" role="group" aria-label="Vertical axis">
+          <button id="yVP" aria-pressed="true">Democratic share</button>
+          <button id="yInc" aria-pressed="false">Incumbent share</button>
+        </div>
+        <div class="checks"><label for="cParty"><input type="checkbox" id="cParty" checked> Fit a line within each party</label></div>
+      </div>
+      <div class="group">
+        <span class="label">What the picture says</span>
+        <table class="stats" id="scatStats"><tbody></tbody></table>
+        <p class="hint" id="scatHint"></p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card" aria-labelledby="varH">
+    <span class="eyebrow">The variables</span>
+    <h2 id="varH">What goes into the vote equation</h2>
+    <p class="hint wide">The response is VP, the Democratic share of the two-party vote. I says which party holds the White House. Multiplying an economic variable by I makes growth count <i>for</i> the Democrats when they hold office and <i>against</i> them when the Republicans do, so one coefficient means “growth helps whoever is in power”.</p>
+    <div class="scroll"><table class="mini vars">
+      <thead><tr><th>Name</th><th style="text-align:left">Definition</th><th>Range 1916–2020</th></tr></thead>
+      <tbody>
+        <tr><td>VP</td><td class="txt">Democratic share of the two-party presidential vote (%)</td><td>36.1 to 62.2</td></tr>
+        <tr><td>I</td><td class="txt">1 if a Democrat holds the White House at election time, −1 if a Republican does</td><td>−1, 1</td></tr>
+        <tr><td>DPER</td><td class="txt">1 if the Democratic president is running again, −1 if the Republican president is, 0 otherwise</td><td>−1, 0, 1</td></tr>
+        <tr><td>DUR</td><td class="txt">0 after one term in office; ±1 after two consecutive terms, ±1.25 after three, ±1.5 after four (+ Democratic, − Republican)</td><td>−1.25 to 1.75</td></tr>
+        <tr><td>WAR</td><td class="txt">1 for the wartime elections of 1920, 1944 and 1948</td><td>0, 1</td></tr>
+        <tr><td>G</td><td class="txt">Growth of real per-capita GDP in the first three quarters of the election year (annual rate, %)</td><td>−14.4 to 11.7</td></tr>
+        <tr><td>P</td><td class="txt">Inflation: growth of the GDP deflator over the first 15 quarters of the term (annual rate, %); 0 in war years</td><td>0 to 7.8</td></tr>
+        <tr><td>Z</td><td class="txt">Good-news quarters: of the first 15 quarters, how many had per-capita growth above 3.2% (annual rate); 0 in war years</td><td>0 to 10</td></tr>
+      </tbody>
+    </table></div>
+    <div class="formula">G·I = G × I:  +G for the Democrats when I = 1, −G for the Democrats (that is, +G for the Republicans) when I = −1</div>
+  </section>
+
+  <!-- 2. Model ladder -->
+  <section class="card" aria-labelledby="ladH">
+    <span class="eyebrow">Step 2 · From naive to final · exact least squares in your browser</span>
+    <h2 id="ladH">Climb the model ladder</h2>
+    <p class="hint wide">Each row is fitted by ordinary least squares on the 27 elections. Click a row to use that model in the charts below. The best value in each column is highlighted. Leave-one-out (LOO) RMSE uses the exact shortcut e<sub>t</sub> / (1 − h<sub>tt</sub>), so it needs no refitting.</p>
+    <div class="scroll"><table class="mini" id="ladder">
+      <thead><tr><th>Model</th><th style="text-align:left">Regressors</th><th>k</th><th>R²</th><th>Adj. R²</th><th>σ̂</th><th>AIC</th><th>BIC</th><th>LOO RMSE</th><th>LOO MAE</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div class="field">
+      <span class="label">Your model: tick regressors (an intercept is always included)</span>
+      <div class="terms" id="terms"></div>
+    </div>
+    <div class="callout" id="ftest"></div>
+    <h3 id="coefH">Coefficients</h3>
+    <div class="scroll"><table class="mini" id="coefTab">
+      <thead><tr><th>Term</th><th>Estimate</th><th>Std. error</th><th>t</th><th>p-value</th><th>R output</th><th>Match</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="hint" id="coefNote"></p>
+  </section>
+
+  <!-- 3. Track record -->
+  <section class="card" aria-labelledby="trH">
+    <span class="eyebrow">Step 3 · How well has it worked?</span>
+    <h2 id="trH">Fitted against actual, election by election</h2>
+    <div class="split">
+      <div class="plotbox">
+        <div class="seg" role="group" aria-label="Chart view" style="max-width:380px">
+          <button id="vFit" aria-pressed="true">Fitted vs actual</button>
+          <button id="vRes" aria-pressed="false">Residuals by year</button>
+        </div>
+        <canvas id="fitc" role="img" aria-label="Actual and fitted Democratic share by election year"></canvas>
+        <div class="legend" id="lgFit">
+          <span><i class="sw dot" style="background:var(--point)"></i>Actual</span>
+          <span><i class="sw line"></i>Fitted</span>
+          <span><i class="sw x"></i>Leave-one-out forecast</span>
+          <span><i class="sw dot" style="background:var(--fit);border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%)"></i>2024 forecast, 95% interval</span>
+          <span><i class="sw ring"></i>2024 actual, 49.25</span>
+        </div>
+        <div class="legend" id="lgRes" hidden>
+          <span><i class="sw dot" style="background:var(--point)"></i>Residual = actual − fitted</span>
+          <span><i class="sw ring"></i>Winner called wrongly (leave-one-out)</span>
+          <span><i class="sw dash"></i>± 2σ̂</span>
+        </div>
+        <div class="tip" id="tipFit" hidden></div>
+      </div>
+      <div class="group">
+        <table class="mini" id="trackTab">
+          <thead><tr><th>Test</th><th>RMSE</th><th>Winner called</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="callout" id="trackNote"></div>
+        <p class="hint">Real time: for each election from 1960 on, fit the model only to earlier elections and forecast. This is the test a forecaster actually faces, so its error is the honest one to quote.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 2024 -->
+  <section class="card" aria-labelledby="f24H">
+    <span class="eyebrow">Step 4 · Forecast, interval, probability</span>
+    <h2 id="f24H">The 2024 forecast, before and after the facts</h2>
+    <div class="split">
+      <div class="plotbox">
+        <canvas id="pred24" role="img" aria-label="Predictive density of the 2024 Democratic share with the 50% line and the realised share"></canvas>
+        <div class="legend">
+          <span><i class="sw line" style="border-top-color:var(--accent)"></i>Predictive t density</span>
+          <span><i class="sw" style="background:var(--dem);opacity:.35"></i>Democratic win area</span>
+          <span><i class="sw" style="background:var(--muted);opacity:.3;height:6px"></i>95% prediction interval</span>
+          <span><i class="sw ring"></i>Realised 49.25</span>
+        </div>
+      </div>
+      <div class="group">
+        <span class="label">2024 inputs (I = 1, DUR = 0, WAR = 0)</span>
+        <div class="seg" role="group" aria-label="2024 inputs">
+          <button id="in24c" aria-pressed="true">Case study: P = 8.3</button>
+          <button id="in24f" aria-pressed="false">Fair's actual inputs</button>
+        </div>
+        <p class="hint" id="in24txt"></p>
+        <div class="checks"><label for="cDper"><input type="checkbox" id="cDper"> Treat Harris as a sitting president (DPER = 1)</label></div>
+        <div class="readout">
+          <span class="k" id="f24k">Forecast Democratic share</span>
+          <span class="big" id="f24big">–</span>
+          <span class="sub" id="f24sub"></span>
+        </div>
+        <table class="stats" id="f24Tab"><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="split">
+      <div class="group">
+        <h3>Where the forecast comes from</h3>
+        <div class="scroll"><table class="mini" id="contrib">
+          <thead><tr><th>Term</th><th>Coefficient</th><th>Input</th><th>Contribution</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+      <div class="group">
+        <h3>Same inputs, other models</h3>
+        <div class="scroll"><table class="mini" id="robust24">
+          <thead><tr><th>Model</th><th>Forecast</th><th>95% interval</th><th>P(Dem &gt; 50)</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 2028 -->
+  <main class="grid" aria-labelledby="s28H">
+    <section class="board">
+      <div class="bhead"><h2 id="s28H">Step 5 · Your 2028 scenario</h2>
+        <div class="seg" role="group" aria-label="Surface view" style="min-width:220px">
+          <button id="vHeat" aria-pressed="true">Heat map</button>
+          <button id="vSlice" aria-pressed="false">Slices</button>
+        </div>
+      </div>
+      <canvas id="surf" tabindex="0" role="img" aria-label="Probability of a Democratic popular-vote win over growth and inflation; click to set the scenario"></canvas>
+      <div class="legend" id="lgHeat">
+        <span><i class="sw" style="background:var(--rep)"></i>Republican favoured</span>
+        <span><i class="sw" style="background:var(--dem)"></i>Democratic favoured</span>
+        <span><i class="sw line" style="border-top-color:var(--ink)"></i>P(Dem) = 0.5, with 0.2 and 0.8 contours</span>
+        <span><i class="sw ring" style="border-color:var(--ink)"></i>Your scenario (click the map to move it)</span>
+      </div>
+      <div class="legend" id="lgSlice" hidden>
+        <span><i class="sw line" style="border-top-color:var(--fit)"></i>P = 2.5</span>
+        <span><i class="sw line" style="border-top-color:var(--coinB)"></i>P = 3.5</span>
+        <span><i class="sw line" style="border-top-color:var(--ball)"></i>P = 4.5</span>
+        <span><i class="sw ring" style="border-color:var(--ink)"></i>Your scenario</span>
+      </div>
+      <canvas id="pred28" role="img" aria-label="Predictive distribution of the 2028 Democratic share"></canvas>
+      <div class="legend">
+        <span><i class="sw line" style="border-top-color:var(--accent)"></i>Your scenario, t density</span>
+        <span><i class="sw" style="background:var(--peg);opacity:.35"></i>Simulated with the economy uncertain</span>
+        <span><i class="sw dash"></i>50%</span>
+      </div>
+      <div class="tip" id="tipSurf" hidden></div>
+    </section>
+    <aside class="panel" aria-label="2028 scenario controls">
+      <div class="group">
+        <span class="label">Case-study scenarios</span>
+        <div class="btns">
+          <button id="scStrong">Strong</button>
+          <button id="scBase" aria-pressed="true">Baseline</button>
+          <button id="scStag">Stagflation</button>
+          <button id="scRec">Recession</button>
+        </div>
+      </div>
+      <div class="group">
+        <span class="label">Economy up to the 2028 election</span>
+        <div class="slider"><div class="top"><label for="g28">Growth G, 2028 Q1–Q3</label><output id="g28o" for="g28">2.0%</output></div>
+          <input type="range" id="g28" min="-4" max="6" step="0.1" value="2"></div>
+        <div class="slider"><div class="top"><label for="p28">Inflation P, 15 quarters</label><output id="p28o" for="p28">3.5%</output></div>
+          <input type="range" id="p28" min="0" max="9" step="0.1" value="3.5"></div>
+        <div class="slider"><div class="top"><label for="z28">Good-news quarters Z</label><output id="z28o" for="z28">3</output></div>
+          <input type="range" id="z28" min="2" max="11" step="1" value="3"></div>
+        <p class="fixed">Fixed as in the case study: I = −1 (Republican White House), DPER = 0 (no sitting president runs), DUR = 0 (one Republican term), WAR = 0. Z starts at 2: two good-news quarters are already banked.</p>
+        <div class="field"><label for="m28">Model (refit on 28 elections, 1916–2024)</label><select id="m28"></select></div>
+      </div>
+      <div class="group">
+        <div class="readout">
+          <span class="k">Forecast Democratic share</span>
+          <span class="big" id="f28big">–</span>
+          <span class="sub" id="f28sub"></span>
+        </div>
+        <table class="stats" id="f28Tab"><tbody></tbody></table>
+        <div class="formula" id="f28eq" style="white-space:normal"></div>
+      </div>
+      <div class="group">
+        <span class="label">Uncertain economy (simulation)</span>
+        <div class="slider"><div class="top"><label for="mcG">G mean, sd</label><output id="mcGo" for="mcG mcGs">2.0, 2.0</output></div>
+          <input type="range" id="mcG" min="-2" max="5" step="0.1" value="2" aria-label="Mean of G">
+          <input type="range" id="mcGs" min="0" max="4" step="0.1" value="2" aria-label="Standard deviation of G"></div>
+        <div class="slider"><div class="top"><label for="mcP">P mean, sd</label><output id="mcPo" for="mcP mcPs">3.5, 0.7</output></div>
+          <input type="range" id="mcP" min="1" max="7" step="0.1" value="3.5" aria-label="Mean of P">
+          <input type="range" id="mcPs" min="0" max="2" step="0.05" value="0.7" aria-label="Standard deviation of P"></div>
+        <div class="slider"><div class="top"><label for="mcQ">Chance each remaining quarter is good news</label><output id="mcQo" for="mcQ">0.22</output></div>
+          <input type="range" id="mcQ" min="0" max="0.6" step="0.01" value="0.22"></div>
+        <p class="hint">G ~ N(mean, sd²), P ~ N(mean, sd²) floored at 0, Z = 2 + Binomial(9, q), plus parameter and outcome uncertainty. 100,000 simulated elections, fixed seed.</p>
+        <table class="stats" id="mcTab"><tbody></tbody></table>
+        <button id="mcReset">Back to case-study assumptions</button>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card" aria-labelledby="mktH">
+    <span class="eyebrow">Model uncertainty and the market</span>
+    <h2 id="mktH">Five models, one market, one 2028</h2>
+    <div class="split">
+      <div class="group">
+        <h3>Your scenario under each model</h3>
+        <div class="scroll"><table class="mini" id="robust28">
+          <thead><tr><th>Model</th><th>Forecast</th><th>95% interval</th><th>P(Dem &gt; 50)</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="hint">Models that keep I (M1, M2, M3, M5) add or subtract a fixed amount for the party in power. M5 drops DUR, so its I coefficient (−3.6) does DUR's job and hands an open-seat Democratic challenger about 3.6 points. Specification choice moves the 2028 answer as much as a point of inflation does.</p>
+      </div>
+      <div class="group">
+        <h3>Model against Polymarket</h3>
+        <div class="mkt" id="mkt"></div>
+        <div class="callout" id="mktNote"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">The forecasting cycle</span>
+      <h2>Specify, select, validate, forecast with an interval, then check</h2>
+      <p class="hint wide">The naive regression of VP on G, P and Z explains 4% of the variation. The same three variables, multiplied by I, explain 68%. Adding DPER and DUR gets to 84%. The 2024 forecast of 46.1 missed the realised 49.25 by 3.1 points, 0.8 predictive standard deviations, and called the winner.</p>
+      <div class="demo">
+        <button class="primary" id="demoNaive">Show the naive model fail</button>
+        <button id="demo24">Replay 2024 with Fair's inputs</button>
+        <button id="demoStag">2028 stagflation</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Specify with the sign flip</h3><p>Voters reward or punish the party in power. Multiply G, P and Z by I so one coefficient covers both parties. Without it, Johnson's 1964 boom and Reagan's 1984 boom cancel.</p></div></li>
+      <li><div><h3>Select with out-of-sample error</h3><p>R² always rises with more regressors. Adjusted R², AIC, BIC and leave-one-out RMSE all charge for them. All four pick M4: DPER, DUR, G·I, P·I, Z·I. I and WAR add nothing once DPER and DUR are in (joint F = 0.87, p = 0.43).</p></div></li>
+      <li><div><h3>Forecast with an interval</h3><p>The prediction standard error adds the uncertainty in the line to the scatter around it. For 2024: √(2.41² + 2.96²) = 3.82, so the 95% interval is 46.14 ± 2.08 × 3.82 = [38.2, 54.1].</p></div></li>
+      <li><div><h3>Turn the interval into a probability</h3><p>P(VP &gt; 50) = 1 − F<sub>t,21</sub>((50 − 46.14) / 3.82) = 0.16. The realised 49.25 sat inside the interval, 0.8 standard deviations above the forecast.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">Final model (M4), 1916–2020, σ̂ = 2.96 on 21 df</div><div class="m">VP̂ = 48.52 + 2.82 DPER − 2.78 DUR</div><div class="m">      + 0.69 G·I − 0.73 P·I + 0.67 Z·I</div></div>
+      <div class="eq"><div class="cap">Least squares and leverage</div><div class="m">β̂ = (XᵀX)⁻¹Xᵀy,   h₀ = x₀ᵀ(XᵀX)⁻¹x₀</div></div>
+      <div class="eq"><div class="cap">Prediction interval and win probability</div><div class="m">s<sub>pred</sub> = σ̂ √(1 + h₀)</div><div class="m">VP̂ ± t<sub>0.975, n−k</sub> · s<sub>pred</sub></div><div class="m">P(Dem) = 1 − F<sub>t, n−k</sub>((50 − VP̂) / s<sub>pred</sub>)</div></div>
+      <div class="eq"><div class="cap">Information criteria (k coefficients plus σ)</div><div class="m">AIC = n log(RSS/n) + n(1 + log 2π) + 2(k + 1)</div><div class="m">BIC: replace 2(k + 1) by log(n)(k + 1)</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> A regression forecast is a number, an interval and a probability. With 27 observations the interval is wide (about ±8 points), so a model can be right about the economy and still miss an election by four points. Judge it by calibration over many elections, not by one call.</p></div>
+  </section>
+
+  <section class="notes" aria-label="Interpretation and caveats">
+    <div class="note">
+      <h2>Twenty-seven elections</h2>
+      <p>Six coefficients from 27 data points leaves 21 degrees of freedom. Each election is one observation, so the 1932 Depression or the 1992 Perot race can move a coefficient noticeably. Leave-one-out and real-time errors (3.4 and 3.7) are larger than the in-sample 2.6, which is the price of fitting and testing on the same small sample.</p>
+    </div>
+    <div class="note">
+      <h2>Popular vote, not the Electoral College</h2>
+      <p>VP is the national two-party popular vote. The presidency is decided state by state. In 2016 the Democrats won the popular vote (51.2%) and lost the election. A model probability of VP &gt; 50 is not the probability of winning the White House, and in recent elections the Electoral College has leaned Republican relative to the popular vote.</p>
+    </div>
+    <div class="note">
+      <h2>Model uncertainty</h2>
+      <p>The intervals assume the chosen model is right. Picking M4 after looking at six candidates on the same data makes it look a little better than it is. Across M1 to M5 the 2024 win probability ranges from 0.07 to 0.34, and for the 2028 baseline from 0.21 to 0.54.</p>
+    </div>
+    <div class="note">
+      <h2>2028 inputs are mostly unknown</h2>
+      <p>As of October 2026, 6 of the 15 quarters for P and Z are in (Z = 2 so far, P about 3.6) and G, growth in the first three quarters of 2028, has not happened. The scenario tool asks “what if”. The simulation spreads the forecast over guesses about the economy, and those guesses are assumptions, not data.</p>
+    </div>
+    <div class="note">
+      <h2>Extrapolation in 2024</h2>
+      <p>The case-study inflation value P = 8.3 lies beyond every past election (maximum 7.8 in 1980). Its leverage h₀ = 0.665 exceeds every in-sample leverage (maximum 0.467), which widens the interval. Fair's actual input, P = 4.54, sits inside the data, and the forecast moves to 49.23 against the realised 49.25.</p>
+    </div>
+    <div class="note">
+      <h2>About the data</h2>
+      <p>The economic variables follow Fair's definitions and are revised over time, so published values differ slightly between vintages. The data file's President column labels 1944 with Truman and 1972 with Ford; Roosevelt and Nixon won those elections (corrected in the tooltips here). The project description also lists a House-vote variable VC that the file does not contain. Neither affects the fit.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Before showing Step 1, ask: does strong growth help the Democrats? Show Growth against Democratic share (correlation 0.20), then flip to incumbent share (0.73). Ask students to find 1964 and 1984 and explain why they cancel.</li>
+      <li>In the ladder, click M2 (Fair's full equation) and M4. R² falls from 0.853 to 0.839 but every other column improves. Ask which column you would trust for forecasting and why.</li>
+      <li>Build your own model: start from M4 and tick I (this is M3), then WAR (this is M2). LOO RMSE rises from 3.41 to 3.66 to 4.21 while R² barely moves. Then click M5, which swaps DUR for I, and see AIC rise by 5.7.</li>
+      <li>In Step 4, switch to Fair's actual inputs. Ask: was the case-study forecast wrong, or were its inputs wrong? Compute the error in predictive standard deviations for both (0.81 and about 0.01).</li>
+      <li>In Step 5, find the inflation level at which the baseline (G = 2, Z = 3) becomes a toss-up. Then compare the model's chance of a Democratic popular-vote win (about 0.20) with the market's 64% for a Democratic president, and list three reasons the two could differ.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  // ---------- data: election2024.csv, 27 elections ----------
+  const RAW = [
+    ['Wilson',1916,51.682,1,1,0,0,2.229,4.252,3], ['Harding',1920,36.148,1,0,1,1,-11.463,0,0],
+    ['Coolidge',1924,41.737,-1,-1,0,0,-3.872,5.161,10], ['Hoover',1928,41.244,-1,0,-1,0,4.623,0.183,7],
+    ['Roosevelt',1932,59.149,-1,-1,-1.25,0,-14.35,6.928,4], ['Roosevelt',1936,62.226,1,1,0,0,11.682,2.498,9],
+    ['Roosevelt',1940,54.983,1,1,1,0,3.913,0.051,8], ['Roosevelt',1944,53.778,1,1,1.25,1,4.122,0,0],
+    ['Truman',1948,52.319,1,1,1.5,1,3.214,0,0], ['Eisenhower',1952,44.71,1,0,1.75,0,0.997,2.353,7],
+    ['Eisenhower',1956,42.906,-1,-1,0,0,-1.252,1.907,5], ['Kennedy',1960,50.087,-1,0,-1,0,0.674,1.98,5],
+    ['Johnson',1964,61.203,1,1,0,0,5.03,1.241,9], ['Nixon',1968,49.425,1,0,1,0,5.045,3.086,7],
+    ['Nixon',1972,38.209,-1,-1,0,0,5.834,4.813,4], ['Carter',1976,51.049,-1,0,-1,0,3.817,7.463,5],
+    ['Reagan',1980,44.842,1,1,0,0,-3.583,7.795,5], ['Reagan',1984,40.877,-1,-1,0,0,5.55,5.21,8],
+    ['Bush',1988,46.168,-1,0,-1,0,2.403,2.871,5], ['Clinton',1992,53.621,-1,-1,-1.25,0,3.035,3.193,3],
+    ['Clinton',1996,54.737,1,1,0,0,3.315,2.031,4], ['Bush',2000,50.262,1,0,1,0,2.031,1.683,7],
+    ['Bush',2004,48.767,-1,-1,0,0,2.086,2.141,2], ['Obama',2008,53.689,-1,0,-1,0,-1.787,2.745,2],
+    ['Obama',2012,52.01,1,1,0,0,1.422,1.47,1], ['Trump',2016,51.163,1,0,1,0,1.208,1.411,2],
+    ['Biden',2020,52.24,-1,-1,0,0,-5.07,1.80,3]
+  ];
+  // Winner's name shown in tooltips (the file's President column; 1944 corrected to Roosevelt, 1972 to Nixon).
+  const D = RAW.map(r => ({ pres: r[0], t: r[1], VP: r[2], I: r[3], DPER: r[4], DUR: r[5], WAR: r[6], G: r[7], P: r[8], Z: r[9] }));
+  const ROW2024 = { pres: 'Trump', t: 2024, VP: 49.25, I: 1, DPER: 0, DUR: 0, WAR: 0, G: 1.97, P: 4.54, Z: 4 };
+  const D28 = D.concat([ROW2024]);
+  const ACT24 = 49.25;
+  const IN24 = { c: { G: 1.5, P: 8.3, Z: 4 }, f: { G: 1.97, P: 4.54, Z: 4 } };
+  const MARKET = { dem: 0.64, rep: 0.35, date: '18 October 2026' };
+
+  const TERM = { I: 'I', DPER: 'DPER', DUR: 'DUR', WAR: 'WAR', G: 'G', P: 'P', Z: 'Z', GI: 'G·I', PI: 'P·I', ZI: 'Z·I' };
+  const ALLTERMS = ['I', 'DPER', 'DUR', 'WAR', 'G', 'P', 'Z', 'GI', 'PI', 'ZI'];
+  const MODELS = {
+    M0: { name: 'M0', desc: 'G, P, Z (naive)', cols: ['G', 'P', 'Z'] },
+    M1: { name: 'M1', desc: 'I, G·I, P·I, Z·I', cols: ['I', 'GI', 'PI', 'ZI'] },
+    M2: { name: 'M2', desc: 'Fair full: I, DPER, DUR, WAR, G·I, P·I, Z·I', cols: ['I', 'DPER', 'DUR', 'WAR', 'GI', 'PI', 'ZI'] },
+    M3: { name: 'M3', desc: 'drop WAR', cols: ['I', 'DPER', 'DUR', 'GI', 'PI', 'ZI'] },
+    M4: { name: 'M4', desc: 'final: drop I, WAR', cols: ['DPER', 'DUR', 'GI', 'PI', 'ZI'] },
+    M5: { name: 'M5', desc: 'drop DUR, WAR', cols: ['I', 'DPER', 'GI', 'PI', 'ZI'] }
+  };
+  // Coefficient estimates and standard errors exactly as printed by R (code/output.txt)
+  const RREF = {
+    M0: [['50.03774', '2.78418'], ['0.24872', '0.28164'], ['-0.13949', '0.65378'], ['-0.07282', '0.51974']],
+    M1: [['48.5824', '0.8432'], ['-0.9366', '1.6839'], ['0.7712', '0.1669'], ['-0.4283', '0.4037'], ['0.6757', '0.3057']],
+    M2: [['48.2851', '0.6472'], ['-0.5934', '2.2544'], ['2.1884', '1.5576'], ['-3.4809', '1.3704'], ['3.5964', '2.7262'], ['0.7130', '0.1251'], ['-0.6122', '0.3187'], ['0.8170', '0.2569']],
+    M3: [['48.51994', '0.63362'], ['0.07887', '2.23635'], ['2.78118', '1.51878'], ['-2.81223', '1.29657'], ['0.69090', '0.12624'], ['-0.73642', '0.31005'], ['0.66398', '0.23342']],
+    M4: [['48.5211', '0.6175'], ['2.8188', '1.0545'], ['-2.7773', '0.8159'], ['0.6910', '0.1232'], ['-0.7332', '0.2894'], ['0.6681', '0.1979']],
+    M5: [['48.4172', '0.6853'], ['-3.6288', '1.5640'], ['4.7117', '1.3348'], ['0.7201', '0.1361'], ['-0.6402', '0.3328'], ['0.7562', '0.2489']]
+  };
+
+  // ---------- math ----------
+  function lgamma(x) {
+    const c = [676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * x))) - lgamma(1 - x);
+    x -= 1; let a = 0.99999999999980993; const t = x + 7.5;
+    for (let i = 0; i < 8; i++) a += c[i] / (x + i + 1);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  function betacf(a, b, x) {
+    const FP = 1e-300; let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < FP) d = FP; d = 1 / d; let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m; let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FP) d = FP; c = 1 + aa / c; if (Math.abs(c) < FP) c = FP; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FP) d = FP; c = 1 + aa / c; if (Math.abs(c) < FP) c = FP; d = 1 / d;
+      const del = d * c; h *= del; if (Math.abs(del - 1) < 1e-14) break;
+    }
+    return h;
+  }
+  function ibeta(x, a, b) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+    return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+  }
+  function tcdf(t, df) { const x = df / (df + t * t), ib = 0.5 * ibeta(x, df / 2, 0.5); return t > 0 ? 1 - ib : ib; }
+  function tpdf(t, df) { return Math.exp(lgamma((df + 1) / 2) - lgamma(df / 2) - 0.5 * Math.log(df * Math.PI) - (df + 1) / 2 * Math.log(1 + t * t / df)); }
+  const tqCache = {};
+  function tinv(p, df) {
+    const key = p + '|' + df; if (tqCache[key] !== undefined) return tqCache[key];
+    let lo = -80, hi = 80; for (let i = 0; i < 120; i++) { const m = (lo + hi) / 2; if (tcdf(m, df) < p) lo = m; else hi = m; }
+    return (tqCache[key] = (lo + hi) / 2);
+  }
+  function invert(A) {
+    const n = A.length, M = A.map((r, i) => r.concat(Array.from({ length: n }, (_, j) => i === j ? 1 : 0)));
+    let scale = 0; for (let i = 0; i < n; i++) scale = Math.max(scale, Math.abs(A[i][i]));
+    for (let c = 0; c < n; c++) {
+      let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+      if (Math.abs(M[p][c]) < 1e-11 * scale) return null;
+      [M[c], M[p]] = [M[p], M[c]];
+      const v = M[c][c]; for (let j = 0; j < 2 * n; j++) M[c][j] /= v;
+      for (let r = 0; r < n; r++) if (r !== c && M[r][c] !== 0) { const f = M[r][c]; for (let j = 0; j < 2 * n; j++) M[r][j] -= f * M[c][j]; }
+    }
+    return M.map(r => r.slice(n));
+  }
+  function val(r, c) { return c === 'GI' ? r.G * r.I : c === 'PI' ? r.P * r.I : c === 'ZI' ? r.Z * r.I : r[c]; }
+  function xrow(r, cols) { return [1].concat(cols.map(c => val(r, c))); }
+  function quad(x, A) { let s = 0; for (let i = 0; i < x.length; i++) for (let j = 0; j < x.length; j++) s += x[i] * A[i][j] * x[j]; return s; }
+  const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+
+  function fitOLS(cols, rows) {
+    const X = rows.map(r => xrow(r, cols)), y = rows.map(r => r.VP), n = rows.length, k = cols.length + 1;
+    if (n <= k) return null;
+    const XtX = Array.from({ length: k }, (_, i) => Array.from({ length: k }, (_, j) => X.reduce((s, x) => s + x[i] * x[j], 0)));
+    const Xty = Array.from({ length: k }, (_, i) => X.reduce((s, x, t) => s + x[i] * y[t], 0));
+    const Ai = invert(XtX); if (!Ai) return null;
+    const b = Ai.map(r => dot(r, Xty));
+    const fitted = X.map(x => dot(x, b)), e = y.map((v, t) => v - fitted[t]);
+    const rss = e.reduce((s, v) => s + v * v, 0), df = n - k, s2 = rss / df, s = Math.sqrt(s2);
+    const ybar = y.reduce((a, v) => a + v, 0) / n, tss = y.reduce((a, v) => a + (v - ybar) ** 2, 0);
+    const R2 = 1 - rss / tss, adj = 1 - (1 - R2) * (n - 1) / df;
+    const ll = -n / 2 * (Math.log(2 * Math.PI) + Math.log(rss / n) + 1);
+    const aic = -2 * ll + 2 * (k + 1), bic = -2 * ll + Math.log(n) * (k + 1);
+    const h = X.map(x => quad(x, Ai)), looE = e.map((v, t) => v / (1 - h[t])), loo = y.map((v, t) => v - looE[t]);
+    const cv = Math.sqrt(looE.reduce((a, v) => a + v * v, 0) / n), mae = looE.reduce((a, v) => a + Math.abs(v), 0) / n;
+    const se = Ai.map((r, i) => s * Math.sqrt(r[i])), tv = b.map((v, i) => v / se[i]), pv = tv.map(t => 2 * (1 - tcdf(Math.abs(t), df)));
+    let dw = 0; for (let t = 1; t < n; t++) dw += (e[t] - e[t - 1]) ** 2; dw /= rss;
+    return { cols, n, k, b, se, tv, pv, s, df, rss, R2, adj, aic, bic, h, e, fitted, loo, looE, cv, mae, Ai, dw, rmse: Math.sqrt(rss / n) };
+  }
+  function predict(f, r, level = 0.95) {
+    const x = xrow(r, f.cols), m = dot(x, f.b), h0 = quad(x, f.Ai), sef = f.s * Math.sqrt(h0), sp = f.s * Math.sqrt(1 + h0);
+    const q = tinv(0.5 + level / 2, f.df);
+    return { x, m, h0, sef, sp, lo: m - q * sp, hi: m + q * sp, q, pDem: 1 - tcdf((50 - m) / sp, f.df) };
+  }
+  function rolling(cols) {
+    const out = [];
+    for (let yr = 1960; yr <= 2020; yr += 4) {
+      const f = fitOLS(cols, D.filter(r => r.t < yr)), te = D.find(r => r.t === yr);
+      if (!f) { out.push(null); continue; }
+      const p = predict(f, te); out.push({ yr, a: te.VP, m: p.m, lo: p.lo, hi: p.hi });
+    }
+    return out;
+  }
+  function corr(a, b) {
+    const n = a.length, ma = a.reduce((s, v) => s + v, 0) / n, mb = b.reduce((s, v) => s + v, 0) / n;
+    let sab = 0, saa = 0, sbb = 0; for (let i = 0; i < n; i++) { sab += (a[i] - ma) * (b[i] - mb); saa += (a[i] - ma) ** 2; sbb += (b[i] - mb) ** 2; }
+    return sab / Math.sqrt(saa * sbb);
+  }
+  function line(xs, ys) {
+    const n = xs.length, mx = xs.reduce((s, v) => s + v, 0) / n, my = ys.reduce((s, v) => s + v, 0) / n;
+    let sxy = 0, sxx = 0; for (let i = 0; i < n; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; }
+    const b = sxy / sxx; return { a: my - b * mx, b };
+  }
+  function cholesky(A) {
+    const n = A.length, L = Array.from({ length: n }, () => new Array(n).fill(0));
+    for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) {
+      let s = A[i][j]; for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k];
+      L[i][j] = i === j ? Math.sqrt(Math.max(s, 0)) : s / L[j][j];
+    }
+    return L;
+  }
+  function mulberry32(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function normals(rng) { let spare = null; return () => { if (spare !== null) { const v = spare; spare = null; return v; } let u = 0; while (u === 0) u = rng(); const v = rng(), r = Math.sqrt(-2 * Math.log(u)); spare = r * Math.sin(2 * Math.PI * v); return r * Math.cos(2 * Math.PI * v); }; }
+
+  // ---------- formatting ----------
+  const minus = s => s.replace(/^-/, '−');
+  function fmt(v, d = 2) { if (!isFinite(v)) return '–'; return minus(v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })); }
+  const pct = (p, d = 0) => fmt(100 * p, d) + '%';
+  const termName = c => c === '(Intercept)' ? 'Intercept' : TERM[c];
+
+  // ---------- state ----------
+  const S = {
+    xVar: 'G', yMode: 'vp', party: true,
+    model: 'M4', custom: ['DPER', 'DUR', 'GI', 'PI', 'ZI'],
+    fitView: 'fit', in24: 'c', dper24: 0,
+    g28: 2, p28: 3.5, z28: 3, m28: 'M4', surfView: 'heat',
+    mc: { gm: 2, gs: 2, pm: 3.5, ps: 0.7, q: 0.22 }
+  };
+  const colsOf = m => m === 'MY' ? S.custom : MODELS[m].cols;
+  const nameOf = m => m === 'MY' ? 'Yours' : m;
+  const FIT = {}, FIT28 = {};
+  for (const m in MODELS) { FIT[m] = fitOLS(MODELS[m].cols, D); FIT28[m] = fitOLS(MODELS[m].cols, D28); }
+  function refitCustom() { FIT.MY = fitOLS(S.custom, D); FIT28.MY = fitOLS(S.custom, D28); }
+  refitCustom();
+
+  // ---------- canvas helpers ----------
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'point', 'curve', 'fit', 'ball', 'board', 'surface', 'peg', 'coinB', 'dem', 'rep'])
+      C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  function mkCanvas(id, aspect, minH, maxH) {
+    const cv = $(id), o = { cv, ctx: cv.getContext('2d'), W: 0, H: 0 };
+    o.resize = () => {
+      const w = cv.clientWidth || cv.parentElement.clientWidth, h = Math.round(Math.min(Math.max(w * aspect, minH), maxH)), d = window.devicePixelRatio || 1;
+      cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+      o.ctx.setTransform(d, 0, 0, d, 0, 0); o.W = w; o.H = h;
+    };
+    return o;
+  }
+  const CV = { scat: mkCanvas('scat', 0.62, 300, 520), fit: mkCanvas('fitc', 0.6, 260, 420), p24: mkCanvas('pred24', 0.55, 220, 340),
+    surf: mkCanvas('surf', 0.62, 280, 480), p28: mkCanvas('pred28', 0.34, 170, 240) };
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function tickTxt(v, step) { const d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9)); return fmt(Math.abs(v) < step * 1e-6 ? 0 : v, d); }
+  function frame(o, m, xd, yd, opt = {}) {
+    const { ctx, W, H } = o;
+    const PX = x => m.l + (x - xd[0]) / (xd[1] - xd[0]) * (W - m.l - m.r);
+    const PY = y => m.t + (yd[1] - y) / (yd[1] - yd[0]) * (H - m.t - m.b);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1;
+    const xs = opt.xs || niceStep(xd[1] - xd[0], opt.xt || 6), ys = opt.ys || niceStep(yd[1] - yd[0], opt.yt || 5);
+    if (!opt.noY) {
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (let v = Math.ceil(yd[0] / ys - 1e-9) * ys; v <= yd[1] + 1e-9; v += ys) {
+        const y = PY(v); if (!opt.noGrid) { ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(W - m.r, y); ctx.stroke(); }
+        ctx.fillStyle = C.muted; ctx.fillText(opt.yfmt ? opt.yfmt(v) : tickTxt(v, ys), m.l - 6, y);
+      }
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    let lastX = -1e9;
+    for (let v = Math.ceil(xd[0] / xs - 1e-9) * xs; v <= xd[1] + 1e-9; v += xs) {
+      const x = PX(v); if (!opt.noGrid) { ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, H - m.b); ctx.stroke(); }
+      const s = opt.xfmt ? opt.xfmt(v) : tickTxt(v, xs), w = ctx.measureText(s).width;
+      if (x - w / 2 > lastX + 4) { ctx.fillStyle = C.muted; ctx.fillText(s, x, H - m.b + 6); lastX = x + w / 2; }
+    }
+    ctx.strokeStyle = C.line; ctx.strokeRect(m.l + 0.5, m.t + 0.5, W - m.l - m.r - 1, H - m.t - m.b - 1);
+    ctx.font = '12px "Atkinson Hyperlegible", system-ui, sans-serif'; ctx.fillStyle = C.muted;
+    if (opt.xlab) { ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlab, m.l + (W - m.l - m.r) / 2, H - 2); }
+    if (opt.ylab) { ctx.save(); ctx.translate(12, m.t + (H - m.t - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(opt.ylab, 0, 0); ctx.restore(); }
+    return { PX, PY };
+  }
+  function dotAt(ctx, x, y, r, fill, ring) { ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fillStyle = fill; ctx.fill(); if (ring) { ctx.lineWidth = 1.5; ctx.strokeStyle = ring; ctx.stroke(); } }
+  function hline(ctx, m, W, y, color, dash) { ctx.save(); ctx.setLineDash(dash || [4, 4]); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(W - m.r, y); ctx.stroke(); ctx.restore(); }
+  function vline(ctx, m, H, x, color, dash, w) { ctx.save(); ctx.setLineDash(dash || [4, 4]); ctx.strokeStyle = color; ctx.lineWidth = w || 1; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, H - m.b); ctx.stroke(); ctx.restore(); }
+  function showTip(tip, host, x, y, html) {
+    tip.innerHTML = html; tip.hidden = false;
+    const hw = host.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
+    let lx = x + 14, ly = y - th - 10; if (lx + tw > hw - 4) lx = x - tw - 14; if (lx < 4) lx = 4; if (ly < 4) ly = y + 16;
+    tip.style.left = lx + 'px'; tip.style.top = ly + 'px';
+  }
+  function hexRGB(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
+
+  // ---------- Step 1: scatter ----------
+  const XL = { G: 'Growth G (%, election year)', P: 'Inflation P (%, over the term)', Z: 'Good-news quarters Z' };
+  let scatPts = [];
+  function scatY(r) { return S.yMode === 'vp' ? r.VP : (r.I === 1 ? r.VP : 100 - r.VP); }
+  function drawScat() {
+    const o = CV.scat, { ctx, W, H } = o; ctx.clearRect(0, 0, W, H);
+    const xs = D.map(r => r[S.xVar]), ys = D.map(scatY);
+    const xd = S.xVar === 'G' ? [-16, 14] : S.xVar === 'P' ? [-0.5, 8.5] : [-0.5, 10.5], yd = [34, 66];
+    const m = { l: 48, r: 14, t: 12, b: 42 };
+    const { PX, PY } = frame(o, m, xd, yd, { xlab: XL[S.xVar], ylab: S.yMode === 'vp' ? 'Democratic share (%)' : 'Incumbent party share (%)', xs: S.xVar === 'Z' ? 2 : undefined });
+    hline(ctx, m, W, PY(50), C.muted);
+    ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, W - m.l - m.r, H - m.t - m.b); ctx.clip();
+    const drawLine = (L, color, dash, w, x0, x1) => { ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(PX(x0), PY(L.a + L.b * x0)); ctx.lineTo(PX(x1), PY(L.a + L.b * x1)); ctx.stroke(); ctx.restore(); };
+    drawLine(line(xs, ys), C.muted, [], 2, xd[0], xd[1]);
+    if (S.party) for (const [I, col] of [[1, C.dem], [-1, C.rep]]) {
+      const ix = D.map((r, i) => i).filter(i => D[i].I === I), px = ix.map(i => xs[i]), py = ix.map(i => ys[i]);
+      drawLine(line(px, py), col, [6, 4], 2, Math.min(...px), Math.max(...px));
+    }
+    ctx.restore();
+    scatPts = D.map((r, i) => ({ r, x: PX(xs[i]), y: PY(ys[i]) }));
+    for (const p of scatPts) dotAt(ctx, p.x, p.y, 5, p.r.I === 1 ? C.dem : C.rep, C.board);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.ink; ctx.textBaseline = 'middle';
+    for (const p of scatPts) if ([1932, 1964, 1984, 2020].includes(p.r.t)) { ctx.textAlign = p.x > W - 70 ? 'right' : 'left'; ctx.fillText(p.r.t, p.x + (ctx.textAlign === 'right' ? -8 : 8), p.y - 9); }
+  }
+  function updScatStats() {
+    const xs = D.map(r => r[S.xVar]), vp = D.map(r => r.VP), vi = D.map(r => r.I === 1 ? r.VP : 100 - r.VP), ys = D.map(scatY);
+    const sl = I => { const ix = D.map((r, i) => i).filter(i => D[i].I === I); return line(ix.map(i => xs[i]), ix.map(i => ys[i])).b; };
+    const nm = { G: 'growth', P: 'inflation', Z: 'good news' }[S.xVar];
+    $('scatStats').tBodies[0].innerHTML = [
+      ['Corr with Democratic share', fmt(corr(xs, vp), 3)], ['Corr with incumbent share', fmt(corr(xs, vi), 3)],
+      ['Slope, Democratic incumbents', fmt(sl(1), 2)], ['Slope, Republican incumbents', fmt(sl(-1), 2)], ['Pooled slope', fmt(line(xs, ys).b, 2)]
+    ].map(([a, b]) => `<tr><td>${a}</td><td class="ob">${b}</td></tr>`).join('');
+    $('scatHint').textContent = S.yMode === 'vp'
+      ? `On the Democratic share the two parties' lines point in opposite directions for ${nm}, so the pooled line is nearly flat. Switch to incumbent share to see one relationship.`
+      : `Measured as the incumbent party's share, both parties line up along one slope for ${nm}. This is what multiplying by I does inside the regression.`;
+    $('lgParty').hidden = !S.party;
+  }
+  function scatHover(e) {
+    const rect = CV.scat.cv.getBoundingClientRect(), mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    let best = null, bd = 18 * 18; for (const p of scatPts) { const d = (p.x - mx) ** 2 + (p.y - my) ** 2; if (d < bd) { bd = d; best = p; } }
+    const tip = $('tipScat'); if (!best) { tip.hidden = true; return; }
+    const r = best.r, host = CV.scat.cv.parentElement, ox = CV.scat.cv.offsetLeft, oy = CV.scat.cv.offsetTop;
+    showTip(tip, host, best.x + ox, best.y + oy, `<b>${r.t} · ${r.pres}</b><br>${r.I === 1 ? 'Democratic' : 'Republican'} White House<br>VP ${fmt(r.VP, 1)} · incumbent share ${fmt(r.I === 1 ? r.VP : 100 - r.VP, 1)}<br>G ${fmt(r.G, 1)} · P ${fmt(r.P, 1)} · Z ${r.Z}`);
+  }
+
+  // ---------- Step 2: ladder ----------
+  function buildTerms() {
+    $('terms').innerHTML = ALLTERMS.map(c => `<label for="t_${c}"><input type="checkbox" id="t_${c}" ${S.custom.includes(c) ? 'checked' : ''}> ${TERM[c]}</label>`).join('');
+    for (const c of ALLTERMS) $('t_' + c).addEventListener('change', () => {
+      S.custom = ALLTERMS.filter(t => $('t_' + t).checked); refitCustom(); S.model = 'MY'; dirtyAll();
+    });
+  }
+  function updLadder() {
+    const keys = Object.keys(MODELS).concat(['MY']), fits = keys.map(k => FIT[k]);
+    const best = {}; for (const [c, dir] of [['adj', 1], ['aic', -1], ['bic', -1], ['cv', -1], ['mae', -1]]) best[c] = Math.max(...fits.filter(Boolean).map(f => dir * f[c])) * dir;
+    const cell = (f, c, d) => `<td class="${Math.abs(f[c] - best[c]) < 1e-9 ? 'best' : ''}">${fmt(f[c], d)}</td>`;
+    $('ladder').tBodies[0].innerHTML = keys.map(k => {
+      const f = FIT[k], cur = k === S.model ? ' class="cur"' : '', desc = k === 'MY' ? (S.custom.length ? S.custom.map(c => TERM[c]).join(', ') : 'intercept only') : MODELS[k].desc;
+      if (!f) return `<tr tabindex="0" data-m="${k}"${cur}><td>Yours</td><td class="txt">${desc}</td><td colspan="8" class="txt">Cannot be estimated: regressors are collinear.</td></tr>`;
+      return `<tr tabindex="0" data-m="${k}" aria-selected="${k === S.model}"${cur}><td>${nameOf(k)}</td><td class="txt">${desc}</td><td>${f.k}</td><td>${fmt(f.R2, 3)}</td>${cell(f, 'adj', 3)}<td>${fmt(f.s, 2)}</td>${cell(f, 'aic', 1)}${cell(f, 'bic', 1)}${cell(f, 'cv', 2)}${cell(f, 'mae', 2)}</tr>`;
+    }).join('');
+    // F test against Fair's full model, when nested
+    const f = FIT[S.model], full = FIT.M2, cols = colsOf(S.model);
+    let txt;
+    if (!f) txt = 'Your model cannot be estimated: two or more regressors carry the same information. Untick one.';
+    else if (S.model === 'M2') txt = `Fair's full equation M2: R² = <b>${fmt(f.R2, 3)}</b>. Adding DPER, DUR and WAR to M1 gives F<sub>3,19</sub> = <b>${fmt(Ftest(FIT.M1, f).F, 2)}</b>, p = <b>${fmt(Ftest(FIT.M1, f).p, 3)}</b>.`;
+    else if (cols.every(c => full.cols.includes(c)) && cols.length < full.cols.length) {
+      const t = Ftest(f, full), drop = full.cols.filter(c => !cols.includes(c)).map(c => TERM[c]).join(', ');
+      txt = `${nameOf(S.model)} against Fair's full model M2: dropping ${drop} gives F<sub>${t.d1},${t.d2}</sub> = <b>${fmt(t.F, 2)}</b>, p = <b>${fmt(t.p, 3)}</b>. ${t.p > 0.05 ? 'The data do not need the dropped terms.' : 'The dropped terms matter.'}`;
+    } else txt = `${nameOf(S.model)} is not nested in Fair's full model M2, so compare it by adjusted R², AIC, BIC and LOO error instead of an F test.`;
+    $('ftest').innerHTML = txt;
+    // coefficient table
+    $('coefH').textContent = `Coefficients of ${S.model === 'MY' ? 'your model' : S.model} (fit on 1916–2020)`;
+    if (!f) { $('coefTab').tBodies[0].innerHTML = ''; $('coefNote').textContent = ''; return; }
+    const ref = RREF[S.model]; let allOk = true;
+    $('coefTab').tBodies[0].innerHTML = f.b.map((b, i) => {
+      let rcell = '<td class="r">–</td>', mcell = '<td class="r">–</td>';
+      if (ref) {
+        const [re, rs] = ref[i], dec = s => (s.split('.')[1] || '').length, ok = Math.abs(b - +re) <= 0.51 * 10 ** -dec(re) && Math.abs(f.se[i] - +rs) <= 0.51 * 10 ** -dec(rs);
+        allOk = allOk && ok; rcell = `<td class="r">${fmt(+re, dec(re))} (${fmt(+rs, dec(rs))})</td>`; mcell = `<td class="${ok ? 'ok' : 'bad'}">${ok ? 'yes' : 'no'}</td>`;
+      }
+      const name = i === 0 ? 'Intercept' : TERM[f.cols[i - 1]];
+      return `<tr><td>${name}</td><td>${fmt(b, 4)}</td><td>${fmt(f.se[i], 4)}</td><td>${fmt(f.tv[i], 2)}</td><td>${f.pv[i] < 0.0001 ? '&lt; 0.0001' : fmt(f.pv[i], 4)}</td>${rcell}${mcell}</tr>`;
+    }).join('');
+    $('coefNote').textContent = ref
+      ? (allOk ? `Every estimate and standard error matches R's lm() output to the digits R printed. R² = ${fmt(f.R2, 4)}, σ̂ = ${fmt(f.s, 3)} on ${f.df} degrees of freedom.` : 'Some values differ from the R output.')
+      : `Your model: R² = ${fmt(f.R2, 4)}, σ̂ = ${fmt(f.s, 3)} on ${f.df} degrees of freedom. There is no R output to compare with for a custom model.`;
+  }
+  function Ftest(small, big) {
+    const d1 = small.df - big.df, d2 = big.df, F = ((small.rss - big.rss) / d1) / (big.rss / d2);
+    return { F, d1, d2, p: 1 - fcdf(F, d1, d2) };
+  }
+  function fcdf(F, d1, d2) { return ibeta(d1 * F / (d1 * F + d2), d1 / 2, d2 / 2); }
+
+  // ---------- Step 3: track record ----------
+  let fitPts = [];
+  function drawFit() {
+    const o = CV.fit, { ctx, W, H } = o; ctx.clearRect(0, 0, W, H);
+    const f = FIT[S.model]; fitPts = [];
+    const m = { l: 46, r: 14, t: 14, b: 40 };
+    if (!f) { frame(o, m, [1912, 2028], [34, 66], { xlab: 'Election year', xs: 16, xfmt: v => String(Math.round(v)) }); return; }
+    if (S.fitView === 'fit') {
+      const { PX, PY } = frame(o, m, [1912, 2028], [34, 66], { xlab: 'Election year', ylab: 'Democratic share (%)', xs: 16, xfmt: v => String(Math.round(v)) });
+      hline(ctx, m, W, PY(50), C.muted);
+      ctx.strokeStyle = C.fit; ctx.lineWidth = 2; ctx.beginPath(); D.forEach((r, i) => { const x = PX(r.t), y = PY(f.fitted[i]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      D.forEach((r, i) => {
+        const x = PX(r.t), yl = PY(f.loo[i]); ctx.strokeStyle = C.coinB; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x - 4, yl - 4); ctx.lineTo(x + 4, yl + 4); ctx.moveTo(x + 4, yl - 4); ctx.lineTo(x - 4, yl + 4); ctx.stroke();
+        dotAt(ctx, x, PY(r.VP), 4.5, C.point, C.board); fitPts.push({ i, x, y: PY(r.VP) });
+      });
+      const p = predict(f, row24()), x = PX(2024);
+      ctx.strokeStyle = C.fit; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, PY(p.lo)); ctx.lineTo(x, PY(p.hi)); ctx.moveTo(x - 5, PY(p.lo)); ctx.lineTo(x + 5, PY(p.lo)); ctx.moveTo(x - 5, PY(p.hi)); ctx.lineTo(x + 5, PY(p.hi)); ctx.stroke();
+      ctx.fillStyle = C.fit; ctx.beginPath(); ctx.moveTo(x, PY(p.m) - 6); ctx.lineTo(x + 6, PY(p.m) + 5); ctx.lineTo(x - 6, PY(p.m) + 5); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = C.ball; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, PY(ACT24), 7, 0, 2 * Math.PI); ctx.stroke();
+      fitPts.push({ i: 'f24', x, y: PY(p.m), p });
+    } else {
+      const lim = Math.max(10, Math.ceil(Math.max(...f.e.map(Math.abs), 2.2 * f.s) + 1));
+      const { PX, PY } = frame(o, m, [1912, 2024], [-lim, lim], { xlab: 'Election year', ylab: 'Residual (points)', xs: 16, xfmt: v => String(Math.round(v)) });
+      hline(ctx, m, W, PY(0), C.muted, []); hline(ctx, m, W, PY(2 * f.s), C.muted); hline(ctx, m, W, PY(-2 * f.s), C.muted);
+      const order = f.e.map((e, i) => i).sort((a, b) => Math.abs(f.e[b]) - Math.abs(f.e[a])).slice(0, 4);
+      D.forEach((r, i) => {
+        const x = PX(r.t), y = PY(f.e[i]); ctx.strokeStyle = C.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, PY(0)); ctx.lineTo(x, y); ctx.stroke();
+        const miss = Math.sign(r.VP - 50) !== Math.sign(f.loo[i] - 50);
+        dotAt(ctx, x, y, 4.5, C.point, C.board);
+        if (miss) { ctx.strokeStyle = C.ball; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 8, 0, 2 * Math.PI); ctx.stroke(); }
+        fitPts.push({ i, x, y });
+      });
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.ink; ctx.textAlign = 'center';
+      for (const i of order) { const up = f.e[i] > 0; ctx.textBaseline = up ? 'bottom' : 'top'; ctx.fillText(`${D[i].t} ${f.e[i] > 0 ? '+' : '−'}${fmt(Math.abs(f.e[i]), 1)}`, PX(D[i].t), PY(f.e[i]) + (up ? -10 : 10)); }
+    }
+  }
+  function fitHover(e) {
+    const rect = CV.fit.cv.getBoundingClientRect(), mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    let best = null, bd = 1e9; for (const p of fitPts) { const d = Math.abs(p.x - mx) + 0.2 * Math.abs(p.y - my); if (d < bd) { bd = d; best = p; } }
+    const tip = $('tipFit'); if (!best || bd > 20) { tip.hidden = true; return; }
+    const f = FIT[S.model], host = CV.fit.cv.parentElement, ox = CV.fit.cv.offsetLeft, oy = CV.fit.cv.offsetTop;
+    let html;
+    if (best.i === 'f24') html = `<b>2024 forecast</b><br>${fmt(best.p.m, 2)}, 95% [${fmt(best.p.lo, 1)}, ${fmt(best.p.hi, 1)}]<br>Actual ${fmt(ACT24, 2)}`;
+    else { const r = D[best.i]; html = `<b>${r.t} · ${r.pres}</b><br>Actual ${fmt(r.VP, 2)} · fitted ${fmt(f.fitted[best.i], 2)}<br>Residual ${fmt(f.e[best.i], 2)} · LOO ${fmt(f.loo[best.i], 2)}`; }
+    showTip(tip, host, best.x + ox, best.y + oy, html);
+  }
+  function updTrack() {
+    const f = FIT[S.model]; if (!f) { $('trackTab').tBodies[0].innerHTML = ''; $('trackNote').textContent = ''; return; }
+    const win = (a, p) => Math.sign(a - 50) === Math.sign(p - 50);
+    const insOk = D.filter((r, i) => win(r.VP, f.fitted[i])).length, looOk = D.filter((r, i) => win(r.VP, f.loo[i])).length;
+    const misses = D.filter((r, i) => !win(r.VP, f.loo[i])).map(r => r.t);
+    const roll = rolling(colsOf(S.model)).filter(Boolean), nR = roll.length;
+    const rr = Math.sqrt(roll.reduce((s, q) => s + (q.a - q.m) ** 2, 0) / nR), cov = roll.filter(q => q.a > q.lo && q.a < q.hi).length, rw = roll.filter(q => win(q.a, q.m)).length;
+    $('trackTab').tBodies[0].innerHTML = [
+      ['In sample', fmt(f.rmse, 2), `${insOk} of 27`], ['Leave one out', fmt(f.cv, 2), `${looOk} of 27`], [`Real time, 1960–2020`, fmt(rr, 2), `${rw} of ${nR}`]
+    ].map(r => `<tr><td class="txt">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+    const worst = roll.reduce((a, q) => Math.abs(q.a - q.m) > Math.abs(a.a - a.m) ? q : a, roll[0]);
+    $('trackNote').innerHTML = `Leave-one-out misses: <b>${misses.join(', ') || 'none'}</b>. Real-time 95% intervals covered <b>${cov} of ${nR}</b> outcomes; the largest real-time error is <b>${worst.yr}</b> (${fmt(worst.a - worst.m, 1)} points). Durbin–Watson ${fmt(f.dw, 2)}.`;
+  }
+
+  // ---------- Step 4: 2024 ----------
+  function row24() { const v = IN24[S.in24]; return { I: 1, DPER: S.dper24, DUR: 0, WAR: 0, G: v.G, P: v.P, Z: v.Z }; }
+  function drawDensity(o, p, df, opt) {
+    const { ctx, W, H } = o; ctx.clearRect(0, 0, W, H);
+    const xd = opt.xd, m = { l: 14, r: 14, t: 14, b: 40 };
+    let ymax = tpdf(0, df) / p.sp * 1.12;
+    if (opt.hist) ymax = Math.max(ymax, opt.hist.max * 1.08);
+    const { PX, PY } = frame(o, m, xd, [0, ymax], { xlab: opt.xlab, noY: true, xs: 5 });
+    const dens = x => tpdf((x - p.m) / p.sp, df) / p.sp;
+    if (opt.hist) { const hgt = opt.hist; ctx.fillStyle = C.peg; ctx.globalAlpha = 0.3; for (let j = 0; j < hgt.n.length; j++) { const x0 = hgt.lo + j * hgt.w; if (x0 < xd[0] || x0 + hgt.w > xd[1]) continue; const yv = hgt.n[j]; if (!yv) continue; ctx.fillRect(PX(x0) + 0.5, PY(yv), Math.max(PX(x0 + hgt.w) - PX(x0) - 1, 1), PY(0) - PY(yv)); } ctx.globalAlpha = 1; }
+    // win area
+    ctx.fillStyle = C.dem; ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.moveTo(PX(50), PY(0));
+    for (let x = 50; x <= xd[1]; x += 0.05) ctx.lineTo(PX(x), PY(dens(x))); ctx.lineTo(PX(xd[1]), PY(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    // PI band
+    if (opt.band) { ctx.fillStyle = C.muted; ctx.globalAlpha = 0.25; ctx.fillRect(PX(p.lo), H - m.b - 7, PX(p.hi) - PX(p.lo), 6); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.beginPath();
+    for (let x = xd[0], first = true; x <= xd[1]; x += 0.05, first = false) { const y = PY(dens(x)); first ? ctx.moveTo(PX(x), y) : ctx.lineTo(PX(x), y); } ctx.stroke();
+    vline(ctx, m, H, PX(50), C.muted);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('50%', PX(50) + 4, m.t + 2);
+    if (opt.actual !== undefined) {
+      vline(ctx, m, H, PX(opt.actual), C.ball, [2, 3], 1.5);
+      ctx.strokeStyle = C.ball; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(PX(opt.actual), PY(dens(opt.actual)), 6, 0, 2 * Math.PI); ctx.stroke();
+    }
+    ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(fmt(p.m, 1), PX(p.m), PY(dens(p.m)) - 4);
+  }
+  function updF24() {
+    const f = FIT[S.model], v = IN24[S.in24];
+    $('in24txt').textContent = S.in24 === 'c' ? 'G = 1.5, P = 8.3, Z = 4: the values given with the project, before the election.' : 'G = 1.97, P = 4.54, Z = 4: Fair\'s own inputs once the data were in.';
+    if (!f) return;
+    const r = row24(), p = predict(f, r), p80 = predict(f, r, 0.8), z = (ACT24 - p.m) / p.sp;
+    $('f24k').textContent = `Forecast Democratic share, ${nameOf(S.model)}`;
+    $('f24big').textContent = fmt(p.m, 2) + '%';
+    $('f24sub').innerHTML = `95% interval [${fmt(p.lo, 1)}, ${fmt(p.hi, 1)}] · <b>P(Dem &gt; 50) = ${fmt(p.pDem, 3)}</b>`;
+    const maxh = Math.max(...f.h);
+    $('f24Tab').tBodies[0].innerHTML = [
+      ['SE of the fit', fmt(p.sef, 2)], ['SE of prediction s<sub>pred</sub>', fmt(p.sp, 2)], [`t<sub>0.975, ${f.df}</sub>`, fmt(p.q, 3)],
+      ['80% interval', `[${fmt(p80.lo, 1)}, ${fmt(p80.hi, 1)}]`],
+      ['Leverage h₀ (max in sample)', `${fmt(p.h0, 3)} (${fmt(maxh, 3)})`],
+      ['Realised 49.25: error', `${fmt(ACT24 - p.m, 2)}`], ['Error in predictive SDs', fmt(z, 2)]
+    ].map(([a, b]) => `<tr><td>${a}</td><td class="ob">${b}</td></tr>`).join('');
+    drawDensity(CV.p24, p, f.df, { xd: [30, 66], xlab: 'Democratic share in 2024 (%)', actual: ACT24, band: true });
+    // contributions
+    const xs = p.x, contrib = f.b.map((b, i) => b * xs[i] + 0), mx = Math.max(...contrib.slice(1).map(Math.abs), 1);
+    const rows = f.b.map((b, i) => ({ name: i === 0 ? 'Intercept' : TERM[f.cols[i - 1]], b, x: xs[i], c: contrib[i], i }));
+    $('contrib').tBodies[0].innerHTML = rows.map(q => {
+      const bar = q.i === 0 ? '' : `<div class="dtrack"><i class="z" style="left:50%"></i><i class="b ${q.c >= 0 ? 'up' : 'down'}" style="left:${q.c >= 0 ? 50 : 50 - 50 * Math.abs(q.c) / mx}%;width:${50 * Math.abs(q.c) / mx}%"></i></div>`;
+      return `<tr><td>${q.name}</td><td>${fmt(q.b, 3)}</td><td>${fmt(q.x, 2)}</td><td>${q.c > 0 && q.i ? '+' : ''}${fmt(Math.abs(q.c) < 5e-3 ? 0 : q.c, 2)}</td><td class="txt" style="width:40%">${bar}</td></tr>`;
+    }).join('') + `<tr><td><b>Forecast</b></td><td></td><td></td><td><b>${fmt(p.m, 2)}</b></td><td></td></tr>`;
+    // robustness
+    $('robust24').tBodies[0].innerHTML = ['M1', 'M2', 'M3', 'M4', 'M5', 'MY'].map(k => {
+      const g = FIT[k]; if (!g) return ''; const q = predict(g, r);
+      return `<tr${k === S.model ? ' class="cur"' : ''}><td>${nameOf(k)}</td><td>${fmt(q.m, 2)}</td><td>[${fmt(q.lo, 1)}, ${fmt(q.hi, 1)}]</td><td>${fmt(q.pDem, 3)}</td></tr>`;
+    }).join('');
+  }
+
+  // ---------- Step 5: 2028 ----------
+  function row28(G, P, Z) { return { I: -1, DPER: 0, DUR: 0, WAR: 0, G, P, Z }; }
+  const SCEN = { scStrong: [3.5, 2.8, 5], scBase: [2.0, 3.5, 3], scStag: [0.5, 4.5, 2], scRec: [-2.0, 4.0, 2] };
+  const GX = [-4, 6], PY_ = [0, 9];
+  let heatCache = null, surfMap = null;
+  function heatImage(f, Z) {
+    const nx = 120, ny = 108, img = new ImageData(nx, ny), d0 = hexRGB(C.rep), d1 = hexRGB(C.dem), mid = hexRGB(C.surface), grid = [];
+    for (let j = 0; j < ny; j++) {
+      const P = PY_[1] - (j + 0.5) / ny * (PY_[1] - PY_[0]); grid.push([]);
+      for (let i = 0; i < nx; i++) {
+        const G = GX[0] + (i + 0.5) / nx * (GX[1] - GX[0]), pd = predict(f, row28(G, P, Z)).pDem; grid[j].push(pd);
+        const t = Math.abs(pd - 0.5) * 2, a = pd < 0.5 ? d0 : d1, k = (j * nx + i) * 4, w = Math.pow(t, 0.8) * 0.85;
+        img.data[k] = mid[0] + (a[0] - mid[0]) * w; img.data[k + 1] = mid[1] + (a[1] - mid[1]) * w; img.data[k + 2] = mid[2] + (a[2] - mid[2]) * w; img.data[k + 3] = 255;
+      }
+    }
+    const cvs = document.createElement('canvas'); cvs.width = nx; cvs.height = ny; cvs.getContext('2d').putImageData(img, 0, 0);
+    return { cvs, grid, nx, ny };
+  }
+  function contour(ctx, grid, nx, ny, level, PX, PY) {
+    // marching squares on cell centres
+    const gx = i => GX[0] + (i + 0.5) / nx * (GX[1] - GX[0]), gy = j => PY_[1] - (j + 0.5) / ny * (PY_[1] - PY_[0]);
+    ctx.beginPath();
+    for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+      const v = [grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]], pts = [];
+      const cs = [[gx(i), gy(j)], [gx(i + 1), gy(j)], [gx(i + 1), gy(j + 1)], [gx(i), gy(j + 1)]];
+      for (let e = 0; e < 4; e++) { const a = v[e], b = v[(e + 1) % 4]; if ((a - level) * (b - level) < 0) { const t = (level - a) / (b - a), p0 = cs[e], p1 = cs[(e + 1) % 4]; pts.push([p0[0] + t * (p1[0] - p0[0]), p0[1] + t * (p1[1] - p0[1])]); } }
+      if (pts.length >= 2) { ctx.moveTo(PX(pts[0][0]), PY(pts[0][1])); ctx.lineTo(PX(pts[1][0]), PY(pts[1][1])); }
+      if (pts.length === 4) { ctx.moveTo(PX(pts[2][0]), PY(pts[2][1])); ctx.lineTo(PX(pts[3][0]), PY(pts[3][1])); }
+    }
+    ctx.stroke();
+  }
+  function drawSurf() {
+    const o = CV.surf, { ctx, W, H } = o; ctx.clearRect(0, 0, W, H);
+    const f = FIT28[S.m28], m = { l: 46, r: 14, t: 12, b: 42 };
+    if (!f) { frame(o, m, GX, [0, 1], {}); return; }
+    if (S.surfView === 'heat') {
+      const key = S.m28 + '|' + S.z28 + '|' + C.dem + C.surface + '|' + S.custom.join();
+      if (!heatCache || heatCache.key !== key) { heatCache = heatImage(f, S.z28); heatCache.key = key; }
+      const pw = W - m.l - m.r, ph = H - m.t - m.b;
+      ctx.imageSmoothingEnabled = true; ctx.drawImage(heatCache.cvs, m.l, m.t, pw, ph);
+      const { PX, PY } = frame(o, m, GX, PY_, { xlab: 'Growth G in 2028 Q1–Q3 (%)', ylab: 'Inflation P over the term (%)', noGrid: true, xs: 1 });
+      ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, pw, ph); ctx.clip();
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 2; contour(ctx, heatCache.grid, heatCache.nx, heatCache.ny, 0.5, PX, PY);
+      ctx.lineWidth = 1; ctx.setLineDash([4, 4]); contour(ctx, heatCache.grid, heatCache.nx, heatCache.ny, 0.2, PX, PY); contour(ctx, heatCache.grid, heatCache.nx, heatCache.ny, 0.8, PX, PY); ctx.setLineDash([]);
+      // scenario markers
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline = 'middle';
+      for (const [id, [G, P, Z]] of Object.entries(SCEN)) {
+        if (Z !== S.z28) continue; const x = PX(G), y = PY(P); dotAt(ctx, x, y, 3, C.ink);
+        ctx.fillStyle = C.ink; ctx.textAlign = x > W - 110 ? 'right' : 'left'; ctx.fillText($(id).textContent, x + (ctx.textAlign === 'right' ? -6 : 6), y);
+      }
+      const x = PX(S.g28), y = PY(S.p28); ctx.strokeStyle = C.surface; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, 8, 0, 2 * Math.PI); ctx.stroke();
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 8, 0, 2 * Math.PI); ctx.stroke();
+      ctx.restore();
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText(`Z = ${S.z28}`, W - m.r - 6, m.t + 6);
+      surfMap = { PX, PY, m, W, H, inv: (mx, my) => ({ G: GX[0] + (mx - m.l) / pw * (GX[1] - GX[0]), P: PY_[1] - (my - m.t) / ph * (PY_[1] - PY_[0]) }) };
+    } else {
+      const { PX, PY } = frame(o, m, GX, [0, 1], { xlab: 'Growth G in 2028 Q1–Q3 (%)', ylab: 'P(Democratic popular-vote win)', xs: 1, ys: 0.2 });
+      hline(ctx, m, W, PY(0.5), C.muted); vline(ctx, m, H, PX(2), C.muted);
+      [[2.5, C.fit], [3.5, C.coinB], [4.5, C.ball]].forEach(([P, col]) => {
+        ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+        for (let G = GX[0], first = true; G <= GX[1] + 1e-9; G += 0.05, first = false) { const y = PY(predict(f, row28(G, P, S.z28)).pDem); first ? ctx.moveTo(PX(G), y) : ctx.lineTo(PX(G), y); }
+        ctx.stroke();
+      });
+      const pd = predict(f, row28(S.g28, S.p28, S.z28)).pDem, x = PX(S.g28), y = PY(pd);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.stroke();
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText(`Z = ${S.z28}`, W - m.r - 6, m.t + 6);
+      surfMap = { PX, PY, m, W, H, inv: null };
+    }
+  }
+  function surfHover(e) {
+    const tip = $('tipSurf'); if (!surfMap) return;
+    const rect = CV.surf.cv.getBoundingClientRect(), mx = e.clientX - rect.left, my = e.clientY - rect.top, { m, W, H } = surfMap;
+    if (mx < m.l || mx > W - m.r || my < m.t || my > H - m.b) { tip.hidden = true; return; }
+    const f = FIT28[S.m28]; if (!f) return;
+    const pw = W - m.l - m.r, G = GX[0] + (mx - m.l) / pw * (GX[1] - GX[0]);
+    let P, html;
+    if (S.surfView === 'heat') { P = surfMap.inv(mx, my).P; const p = predict(f, row28(G, P, S.z28)); html = `<b>G ${fmt(G, 1)} · P ${fmt(P, 1)} · Z ${S.z28}</b><br>Forecast ${fmt(p.m, 1)}%<br>P(Dem) ${fmt(p.pDem, 2)} · P(Rep) ${fmt(1 - p.pDem, 2)}<br><span style="color:var(--muted)">Click to use this scenario</span>`; }
+    else html = `<b>G ${fmt(G, 1)} · Z ${S.z28}</b><br>` + [2.5, 3.5, 4.5].map(Pv => `P = ${fmt(Pv, 1)}: P(Dem) ${fmt(predict(f, row28(G, Pv, S.z28)).pDem, 2)}`).join('<br>');
+    showTip(tip, CV.surf.cv.parentElement, mx + CV.surf.cv.offsetLeft, my + CV.surf.cv.offsetTop, html);
+  }
+  function surfClick(e) {
+    if (S.surfView !== 'heat' || !surfMap || !surfMap.inv) return;
+    const rect = CV.surf.cv.getBoundingClientRect(), q = surfMap.inv(e.clientX - rect.left, e.clientY - rect.top);
+    if (q.G < GX[0] || q.G > GX[1] || q.P < PY_[0] || q.P > PY_[1]) return;
+    setScenario(Math.round(q.G * 10) / 10, Math.round(q.P * 10) / 10, S.z28);
+  }
+  function setScenario(G, P, Z) {
+    S.g28 = G; S.p28 = P; S.z28 = Z; $('g28').value = G; $('p28').value = P; $('z28').value = Z; dirty28 = true;
+  }
+
+  // Monte Carlo over the economy
+  const NSIM = 100000;
+  let MCR = null, mcOut = null;
+  function mcDraws() {
+    if (MCR) return MCR;
+    const rng = mulberry32(20281107), rn = normals(rng), KMAX = 11;
+    const zB = new Float64Array(NSIM * KMAX), zG = new Float64Array(NSIM), zP = new Float64Array(NSIM), zE = new Float64Array(NSIM), uZ = new Float64Array(NSIM);
+    for (let i = 0; i < NSIM; i++) { zG[i] = rn(); zP[i] = rn(); zE[i] = rn(); uZ[i] = rng(); for (let j = 0; j < KMAX; j++) zB[i * KMAX + j] = rn(); }
+    MCR = { zB, zG, zP, zE, uZ, KMAX, chi: {} }; return MCR;
+  }
+  function chisq(df) {
+    const R = mcDraws(); if (R.chi[df]) return R.chi[df];
+    const rng = mulberry32(777 + df), rn = normals(rng), a = df / 2, d = a - 1 / 3, c = 1 / Math.sqrt(9 * d), out = new Float64Array(NSIM);
+    for (let i = 0; i < NSIM; i++) { for (;;) { const x = rn(), v0 = 1 + c * x; if (v0 <= 0) continue; const v = v0 * v0 * v0, u = rng(); if (Math.log(u) < 0.5 * x * x + d - d * v + d * Math.log(v)) { out[i] = 2 * d * v; break; } } }
+    return (R.chi[df] = out);
+  }
+  function runMC() {
+    const f = FIT28[S.m28]; if (!f) { mcOut = null; return; }
+    const R = mcDraws(), k = f.k, V = f.Ai.map(r => r.map(v => v * f.s * f.s)), L = cholesky(V), chi = chisq(f.df), { gm, gs, pm, ps, q } = S.mc;
+    const cdf = []; let acc = 0; const lc = (n, r) => lgamma(n + 1) - lgamma(r + 1) - lgamma(n - r + 1);
+    for (let r = 0; r <= 9; r++) { acc += Math.exp(lc(9, r) + r * Math.log(Math.max(q, 1e-12)) + (9 - r) * Math.log(Math.max(1 - q, 1e-12))); cdf.push(acc); }
+    const vp = new Float64Array(NSIM), x = new Array(k), w = new Array(k);
+    let sum = 0, dem = 0; const lo = 25, wdt = 0.5, nb = 100, hist = new Float64Array(nb);
+    for (let i = 0; i < NSIM; i++) {
+      const G = gm + gs * R.zG[i], P = Math.max(pm + ps * R.zP[i], 0); let Z = 2; const u = R.uZ[i]; for (let r = 0; r <= 9; r++) { if (u < cdf[r]) { Z = 2 + r; break; } if (r === 9) Z = 11; }
+      const xr = xrow(row28(G, P, Z), f.cols);
+      let mu = 0; for (let a = 0; a < k; a++) { mu += xr[a] * f.b[a]; }
+      for (let b2 = 0; b2 < k; b2++) { let s = 0; for (let a = b2; a < k; a++) s += xr[a] * L[a][b2]; mu += s * R.zB[i * R.KMAX + b2]; }
+      const v = mu + f.s * Math.sqrt(f.df / chi[i]) * R.zE[i]; vp[i] = v; sum += v; if (v > 50) dem++;
+      const bi = Math.floor((v - lo) / wdt); if (bi >= 0 && bi < nb) hist[bi]++;
+    }
+    const sorted = Float64Array.from(vp).sort(), qn = p => sorted[Math.min(NSIM - 1, Math.floor(p * NSIM))];
+    let hmax = 0; for (let j = 0; j < nb; j++) { hist[j] /= NSIM * wdt; hmax = Math.max(hmax, hist[j]); }
+    mcOut = { mean: sum / NSIM, med: (sorted[NSIM / 2 - 1] + sorted[NSIM / 2]) / 2, lo: qn(0.025), hi: qn(0.975), pDem: dem / NSIM, hist: { n: hist, lo, w: wdt, max: hmax } };
+  }
+  function updF28() {
+    $('g28o').textContent = fmt(S.g28, 1) + '%'; $('p28o').textContent = fmt(S.p28, 1) + '%'; $('z28o').textContent = S.z28;
+    for (const id in SCEN) { const [G, P, Z] = SCEN[id]; $(id).setAttribute('aria-pressed', String(Math.abs(G - S.g28) < 1e-9 && Math.abs(P - S.p28) < 1e-9 && Z === S.z28)); }
+    const { gm, gs, pm, ps, q } = S.mc;
+    $('mcGo').textContent = `${fmt(gm, 1)}, ${fmt(gs, 1)}`; $('mcPo').textContent = `${fmt(pm, 1)}, ${fmt(ps, 2)}`; $('mcQo').textContent = fmt(q, 2);
+    const f = FIT28[S.m28]; if (!f) { $('f28big').textContent = '–'; return; }
+    const p = predict(f, row28(S.g28, S.p28, S.z28));
+    $('f28big').textContent = fmt(p.m, 1) + '%';
+    $('f28sub').innerHTML = `95% interval [${fmt(p.lo, 1)}, ${fmt(p.hi, 1)}]`;
+    $('f28Tab').tBodies[0].innerHTML = [
+      ['P(Democratic share &gt; 50)', fmt(p.pDem, 3)], ['P(Republican share &gt; 50)', fmt(1 - p.pDem, 3)], ['SE of prediction', fmt(p.sp, 2)]
+    ].map(([a, b]) => `<tr><td>${a}</td><td class="ob">${b}</td></tr>`).join('');
+    const terms = f.b.map((b, i) => ({ b, x: p.x[i], n: i ? TERM[f.cols[i - 1]] : '' })).filter((t, i) => i === 0 || t.x !== 0);
+    $('f28eq').innerHTML = terms.map((t, i) => i === 0 ? fmt(t.b, 2) : `${t.b * t.x >= 0 ? ' + ' : ' − '}${fmt(Math.abs(t.b), 2)}×${fmt(Math.abs(t.x), t.n === 'Z·I' || t.n === 'I' || t.n === 'Z' ? 0 : 1)}`).join('') + ` = ${fmt(p.m, 2)}`;
+    if (mcOut) $('mcTab').tBodies[0].innerHTML = [
+      ['Mean (median)', `${fmt(mcOut.mean, 2)} (${fmt(mcOut.med, 2)})`], ['95% interval', `[${fmt(mcOut.lo, 2)}, ${fmt(mcOut.hi, 2)}]`],
+      ['P(Dem &gt; 50)', fmt(mcOut.pDem, 3)], ['P(Rep &gt; 50)', fmt(1 - mcOut.pDem, 3)]
+    ].map(([a, b]) => `<tr><td>${a}</td><td class="ob">${b}</td></tr>`).join('');
+    drawDensity(CV.p28, p, f.df, { xd: [30, 68], xlab: 'Democratic share in 2028 (%)', hist: mcOut ? mcOut.hist : null });
+    // robustness
+    $('robust28').tBodies[0].innerHTML = ['M1', 'M2', 'M3', 'M4', 'M5', 'MY'].map(k => {
+      const g = FIT28[k]; if (!g) return ''; const qq = predict(g, row28(S.g28, S.p28, S.z28));
+      return `<tr${k === S.m28 ? ' class="cur"' : ''}><td>${nameOf(k)}</td><td>${fmt(qq.m, 2)}</td><td>[${fmt(qq.lo, 1)}, ${fmt(qq.hi, 1)}]</td><td>${fmt(qq.pDem, 3)}</td></tr>`;
+    }).join('');
+    // market
+    const bar = (d, r) => `<div class="mbar" aria-hidden="true"><i class="d" style="width:${100 * d}%"></i>${d + r < 0.999 ? `<i class="o" style="width:${100 * (1 - d - r)}%"></i>` : ''}<i class="r" style="width:${100 * r}%"></i></div>`;
+    const mc = mcOut ? mcOut.pDem : NaN;
+    $('mkt').innerHTML =
+      `<div class="mrow"><div class="mlab"><span>Polymarket, ${MARKET.date}: who wins the presidency</span><span>D ${pct(MARKET.dem)} · R ${pct(MARKET.rep)}</span></div>${bar(MARKET.dem, MARKET.rep)}</div>` +
+      `<div class="mrow"><div class="mlab"><span>Model, economy uncertain: popular vote &gt; 50%</span><span>D ${pct(mc)} · R ${pct(1 - mc)}</span></div>${bar(mc, 1 - mc)}</div>` +
+      `<div class="mrow"><div class="mlab"><span>Model, your scenario (G ${fmt(S.g28, 1)}, P ${fmt(S.p28, 1)}, Z ${S.z28})</span><span>D ${pct(p.pDem)} · R ${pct(1 - p.pDem)}</span></div>${bar(p.pDem, 1 - p.pDem)}</div>`;
+    const gap = Math.round(100 * (MARKET.dem - mc));
+    $('mktNote').innerHTML = `The market gives the Democrats <b>${pct(MARKET.dem)}</b>; the model, averaging over the economy, gives <b>${pct(mc)}</b>, a gap of <b>${gap} points</b>. They answer different questions with different information. The market prices the Electoral College, the candidates and everything known in October 2026. The model sees only incumbency and an economy that is mostly still to come. The two market prices add to 99% because of rounding and trading costs.`;
+  }
+
+  // ---------- wiring ----------
+  let dirty1 = true, dirty2 = true, dirty28 = true, mcDirty = true;
+  function dirtyAll() { dirty1 = dirty2 = dirty28 = true; heatCache = null; mcDirty = true; }
+  function seg(ids, key, valOf, after) {
+    for (const id of ids) $(id).addEventListener('click', () => { S[key] = valOf(id); for (const j of ids) $(j).setAttribute('aria-pressed', String(j === id)); after(); });
+  }
+  seg(['xG', 'xP', 'xZ'], 'xVar', id => id.slice(1), () => dirty1 = true);
+  seg(['yVP', 'yInc'], 'yMode', id => id === 'yVP' ? 'vp' : 'inc', () => dirty1 = true);
+  $('cParty').addEventListener('change', e => { S.party = e.target.checked; dirty1 = true; });
+  seg(['vFit', 'vRes'], 'fitView', id => id === 'vFit' ? 'fit' : 'res', () => { $('lgFit').hidden = S.fitView !== 'fit'; $('lgRes').hidden = S.fitView === 'fit'; dirty2 = true; });
+  seg(['in24c', 'in24f'], 'in24', id => id === 'in24c' ? 'c' : 'f', () => dirty2 = true);
+  $('cDper').addEventListener('change', e => { S.dper24 = e.target.checked ? 1 : 0; dirty2 = true; });
+  seg(['vHeat', 'vSlice'], 'surfView', id => id === 'vHeat' ? 'heat' : 'slice', () => { $('lgHeat').hidden = S.surfView !== 'heat'; $('lgSlice').hidden = S.surfView === 'heat'; dirty28 = true; });
+  function selectModel(m) { S.model = m; dirty2 = true; }
+  $('ladder').addEventListener('click', e => { const tr = e.target.closest('tr[data-m]'); if (tr) selectModel(tr.dataset.m); });
+  $('ladder').addEventListener('keydown', e => {
+    const tr = e.target.closest('tr[data-m]'); if (!tr) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectModel(tr.dataset.m); }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const sib = e.key === 'ArrowDown' ? tr.nextElementSibling : tr.previousElementSibling; if (sib) sib.focus(); }
+  });
+  $('m28').innerHTML = ['M1', 'M2', 'M3', 'M4', 'M5', 'MY'].map(k => `<option value="${k}"${k === 'M4' ? ' selected' : ''}>${k === 'MY' ? 'Your model (from Step 2)' : k + ': ' + MODELS[k].desc}</option>`).join('');
+  $('m28').addEventListener('change', e => { S.m28 = e.target.value; heatCache = null; mcDirty = true; dirty28 = true; });
+  for (const [id, key] of [['g28', 'g28'], ['p28', 'p28'], ['z28', 'z28']]) $(id).addEventListener('input', e => { S[key] = +e.target.value; dirty28 = true; });
+  for (const id in SCEN) $(id).addEventListener('click', () => setScenario(...SCEN[id]));
+  for (const [id, key] of [['mcG', 'gm'], ['mcGs', 'gs'], ['mcP', 'pm'], ['mcPs', 'ps'], ['mcQ', 'q']]) $(id).addEventListener('input', e => { S.mc[key] = +e.target.value; mcDirty = true; dirty28 = true; });
+  $('mcReset').addEventListener('click', () => { S.mc = { gm: 2, gs: 2, pm: 3.5, ps: 0.7, q: 0.22 }; $('mcG').value = 2; $('mcGs').value = 2; $('mcP').value = 3.5; $('mcPs').value = 0.7; $('mcQ').value = 0.22; mcDirty = true; dirty28 = true; });
+
+  CV.scat.cv.addEventListener('pointermove', scatHover); CV.scat.cv.addEventListener('pointerleave', () => $('tipScat').hidden = true);
+  CV.fit.cv.addEventListener('pointermove', fitHover); CV.fit.cv.addEventListener('pointerleave', () => $('tipFit').hidden = true);
+  CV.surf.cv.addEventListener('pointermove', surfHover); CV.surf.cv.addEventListener('pointerleave', () => $('tipSurf').hidden = true);
+  CV.surf.cv.addEventListener('click', surfClick);
+  CV.surf.cv.addEventListener('keydown', e => {
+    const step = { ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, 0.1], ArrowDown: [0, -0.1] }[e.key]; if (!step) return;
+    e.preventDefault(); setScenario(Math.round(Math.min(6, Math.max(-4, S.g28 + step[0])) * 10) / 10, Math.round(Math.min(9, Math.max(0, S.p28 + step[1])) * 10) / 10, S.z28);
+  });
+
+  const scrollTo = id => $(id).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  $('demoNaive').addEventListener('click', () => { selectModel('M0'); S.fitView = 'fit'; $('vFit').click(); scrollTo('ladH'); });
+  $('demo24').addEventListener('click', () => { selectModel('M4'); $('in24f').click(); $('cDper').checked = false; S.dper24 = 0; dirty2 = true; scrollTo('f24H'); });
+  $('demoStag').addEventListener('click', () => { S.m28 = 'M4'; $('m28').value = 'M4'; heatCache = null; mcDirty = true; setScenario(...SCEN.scStag); $('vHeat').click(); scrollTo('s28H'); });
+
+  function loop() {
+    if (dirty1) { dirty1 = false; drawScat(); updScatStats(); }
+    if (dirty2) { dirty2 = false; updLadder(); drawFit(); updTrack(); updF24(); }
+    if (dirty28) { dirty28 = false; if (mcDirty) { mcDirty = false; runMC(); } drawSurf(); updF28(); }
+    requestAnimationFrame(loop);
+  }
+  readColors();
+  const recolor = () => { readColors(); heatCache = null; dirty1 = dirty2 = dirty28 = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  const rsz = { scat: () => dirty1 = true, fit: () => dirty2 = true, p24: () => dirty2 = true, surf: () => dirty28 = true, p28: () => dirty28 = true };
+  for (const k in CV) { new ResizeObserver(() => { CV[k].resize(); rsz[k](); }).observe(CV[k].cv.parentElement); CV[k].resize(); }
+  buildTerms();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>

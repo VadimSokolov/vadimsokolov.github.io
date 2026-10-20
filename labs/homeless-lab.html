@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Rent Control Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: data explorer (scatter/strip + group means), model builder (exact OLS table + pinned specifications), specification curve, diagnostics with a Miami what-if, permutation test, mechanism and confounding, then lesson, notes and class exercises. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 76ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 80ch; }
+.src a { color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; }
+.sw.rc { background: var(--ball); }
+.sw.peg { background: var(--peg); }
+.sw.pur { background: var(--coinB); }
+.sw.ring { background: transparent; border: 2px solid var(--curve); }
+.sw.line { width: 16px; height: 0; border-radius: 0; border-top: 2px dashed var(--curve); background: transparent; }
+.sw.bar { width: 12px; height: 10px; border-radius: 2px; background: var(--accent); opacity: .8; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 3; max-width: 290px; }
+.tip b { font-family: var(--font-display); font-size: 13.5px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.small { font-size: 12.5px; padding: 6px 9px; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 12.5px; padding: 7px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+select { font: inherit; font-size: 14px; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--board); color: var(--ink); width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field > label { font-weight: 700; font-size: 14px; }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ball); }
+input[type=range] { width: 100%; accent-color: var(--ball); }
+.checks { display: flex; flex-direction: column; gap: 5px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+.checks label.off { opacity: .45; cursor: not-allowed; }
+.checks label small { color: var(--muted); font-size: 12px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.warn { border-left: 3px solid var(--curve); }
+
+table.stats, table.mini { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-right: 8px; }
+.stats thead th, .mini thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13.5px; }
+.stats td:first-child { font-family: var(--font-body); font-size: 14px; }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.rc, .mini td.rc { color: var(--ball); }
+.stats td.no, .mini td.no { color: var(--accent); }
+.mini th, .mini td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: 13.5px; }
+.mini th:first-child, .mini td:first-child { text-align: left; padding-left: 0; white-space: normal; }
+.mini td { font-family: var(--font-mono); }
+.mini td:first-child { font-family: var(--font-body); }
+.mini tr:last-child td { border-bottom: 0; }
+@media (max-width: 640px) { .mini th, .mini td { padding: 4px 4px; font-size: 12px; } .mini thead th { font-size: 10px; letter-spacing: .03em; } }
+.mini tr.hl td { background: color-mix(in srgb, var(--ball) 12%, transparent); }
+.mini tr.hl td:first-child { font-weight: 700; }
+.mini td.sig { font-weight: 600; }
+.mini td.na { color: var(--muted); }
+.tablewrap { overflow-x: auto; min-width: 0; max-width: 100%; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(16px, 2.5vw, 24px); min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.card > .head { display: flex; flex-direction: column; gap: 6px; }
+.card h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.card .intro { margin: 0; color: var(--muted); max-width: 86ch; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+.split.even { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .split, .split.even { grid-template-columns: minmax(0, 1fr); } }
+.sub { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 10px; position: relative; }
+.sub h3 { font-family: var(--font-display); font-size: 16px; margin: 0; }
+.fitline { display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.fitline b { color: var(--ink); font-weight: 600; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ball); }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* forest rows */
+.forest { --fl: 190px; --fv: 128px; display: grid; grid-template-columns: var(--fl) minmax(0, 1fr) var(--fv); font-size: 13px; }
+@media (max-width: 640px) { .forest { --fl: 112px; --fv: 92px; font-size: 12px; } }
+.forest .lab { padding: 5px 8px 5px 0; line-height: 1.25; align-self: center; overflow-wrap: anywhere; }
+.forest .lab small { display: block; color: var(--muted); font-size: 11px; font-family: var(--font-mono); }
+.forest .val { padding: 5px 0 5px 8px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; align-self: center; font-size: 12px; line-height: 1.25; }
+.forest .val small { display: block; color: var(--muted); font-size: 11px; }
+.forest .trk { position: relative; height: 30px; border-bottom: 1px solid var(--grid); }
+.forest .ci { position: absolute; top: 14px; height: 3px; border-radius: 2px; background: var(--accent); }
+.forest .pt { position: absolute; top: 9px; width: 13px; height: 13px; margin-left: -6.5px; border-radius: 50%; background: var(--accent); border: 2px solid var(--board); }
+.forest .cur .ci, .forest .cur .pt { background: var(--ball); }
+.forest .zero { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--muted); opacity: .6; }
+.forest .ax { position: relative; height: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.forest .ax span { position: absolute; transform: translateX(-50%); top: 1px; white-space: nowrap; }
+.forest .x { background: none; border: 0; padding: 0 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 400; cursor: pointer; }
+.forest .x:hover { color: var(--curve); }
+
+.dplots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 900px) { .dplots { grid-template-columns: minmax(0, 1fr); } }
+.sub p { margin: 0; font-size: 13px; color: var(--muted); }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; font-size: 13.5px; }
+.kv span:nth-child(even) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.kv .hl { color: var(--ball); font-weight: 600; }
+svg.path { width: 100%; height: auto; display: block; }
+svg.path text { font-family: var(--font-body); fill: var(--ink); }
+svg.path .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg.path .box.rcb { stroke: var(--ball); }
+svg.path .box.conf { stroke: var(--muted); stroke-dasharray: 5 4; fill: var(--board); }
+svg.path .arr { stroke: var(--ink); stroke-width: 2; fill: none; }
+svg.path .arr.dash { stroke: var(--muted); stroke-dasharray: 5 4; }
+svg.path .num { font-family: var(--font-mono); font-size: 13px; fill: var(--ball); font-weight: 600; }
+svg.path .sm { font-size: 12px; fill: var(--muted); }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head><body>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Regression and causality</span>
+    <h1>Rent Control Lab</h1>
+    <p class="lead">Fifty US cities, one question: why do some have far more homeless people than others? Explore the data, build regressions by ticking predictors, and watch the rent-control estimate move across hundreds of specifications. Then check the outliers, run a permutation test in your browser, and ask whether vacancy is the channel.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Case study by N. Polson (2026). Data: William Tucker's 50-city homelessness dataset, as described in the case-study materials (homeless per 1000 residents, poverty, unemployment, public housing, population, temperatures, rental vacancy rate, precipitation and rent control). See also Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/12-regression.html">Chapter 12</a>.</p>
+  </header>
+
+  <!-- 1. Explore -->
+  <main class="grid">
+    <section class="board" aria-label="Scatter or strip plot of homeless per 1000 against a chosen variable, cities colored by rent control">
+      <canvas id="cvE" aria-label="Homeless per 1000 by city"></canvas>
+      <div class="legend">
+        <span><i class="sw rc"></i>Rent control (9 cities)</span>
+        <span><i class="sw"></i>No rent control (41 cities)</span>
+        <span id="lgE"></span>
+      </div>
+      <div class="tip" id="tipE" hidden></div>
+    </section>
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Explore the data</span>
+        <div class="field">
+          <label for="xVar">Horizontal axis</label>
+          <select id="xVar"></select>
+        </div>
+        <div class="checks">
+          <label for="eLines"><input type="checkbox" id="eLines" checked>Fit a line within each group</label>
+          <label for="eLabels"><input type="checkbox" id="eLabels" checked>Label key cities</label>
+        </div>
+        <p class="msg" id="eMsg" aria-live="polite"></p>
+      </div>
+      <div class="group">
+        <span class="label">Group means</span>
+        <table class="stats">
+          <thead><tr><th></th><th>Rent ctrl</th><th>None</th></tr></thead>
+          <tbody id="gTab"></tbody>
+        </table>
+        <p class="hint">Hover a point to see the city. Rent-control cities are tight housing markets: 2.2% vacancy versus 8.4%.</p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- 2. Model builder -->
+  <section class="card" id="builder">
+    <div class="head">
+      <span class="eyebrow">Step 2 · Model builder</span>
+      <h2>Tick predictors and fit the regression exactly</h2>
+      <p class="intro">Every fit is ordinary least squares computed in your browser: b = (XᵀX)⁻¹Xᵀy, with t-based p-values. The rent-control row is highlighted. Pin a model to add it to the comparison under the table.</p>
+    </div>
+    <div class="split">
+      <div class="sub" style="background:var(--surface)">
+        <div class="fitline" id="fitLine" aria-live="polite"></div>
+        <div class="tablewrap">
+          <table class="mini" id="coefTab"></table>
+        </div>
+        <p class="msg" id="bMsg"></p>
+    <div class="sub" style="padding:12px 0 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent">
+      <h3>Rent-control effect across named specifications</h3>
+      <p>Dot = estimate, bar = 95% interval (t-based; normal for HC3). The amber row is the model in the builder. Click a row label to load it.</p>
+      <div class="forest" id="forest"></div>
+        </div>
+      </div>
+      <aside class="panel" style="background:var(--board)">
+        <div class="group">
+          <span class="label">Presets</span>
+          <div class="presets" id="presets"></div>
+        </div>
+        <div class="group">
+          <span class="label">Predictors</span>
+          <div class="checks" id="predBox"></div>
+        </div>
+        <div class="group">
+          <span class="label">Response</span>
+          <div class="seg" style="--n:2" id="segResp">
+            <button id="respLev" aria-pressed="true">Homeless per 1000</button>
+            <button id="respLog" aria-pressed="false">log(homeless)</button>
+          </div>
+          <span class="label">Sample</span>
+          <div class="seg" id="segSamp">
+            <button id="sampAll" aria-pressed="true">All 50</button>
+            <button id="sampDrop2" aria-pressed="false">Drop St. Louis, Worcester</button>
+            <button id="sampNoMia" aria-pressed="false">Drop Miami</button>
+          </div>
+          <span class="label">Standard errors</span>
+          <div class="seg" style="--n:2" id="segSE">
+            <button id="seCl" aria-pressed="true">Classical</button>
+            <button id="seHC3" aria-pressed="false">Robust (HC3)</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="btns">
+            <button class="primary" id="pinBtn">Pin this model</button>
+            <button id="clearPins">Clear pins</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 3. Specification curve -->
+  <section class="card">
+    <div class="head">
+      <span class="eyebrow">Step 3 · Specification curve</span>
+      <h2>The rent-control estimate in every combination of controls</h2>
+      <p class="intro">Each column is one regression that keeps rent control and adds any subset of seven controls (poverty, vacancy, unemployment, public housing, population, average temperature, wet climate), with January handled three ways: no January variable, the January-above-60°F dummy, or continuous January temperature. Models are sorted by the estimate. The builder's response and sample apply here too. Hover a column for its controls; click to load it.</p>
+    </div>
+    <div class="sub">
+      <canvas id="cvS" aria-label="Specification curve of the rent-control coefficient"></canvas>
+      <div class="legend">
+        <span><i class="sw peg"></i>No January variable</span>
+        <span><i class="sw"></i>Jan above 60°F dummy</span>
+        <span><i class="sw pur"></i>Continuous January temperature</span>
+        <span><i class="sw ring"></i>Model in the builder</span>
+      </div>
+      <div class="tip" id="tipS" hidden></div>
+      <p class="msg" id="sMsg" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- 4. Diagnostics -->
+  <section class="card">
+    <div class="head">
+      <span class="eyebrow">Step 4 · Diagnostics</span>
+      <h2>Outliers, leverage and the city with its own dummy</h2>
+      <p class="intro">Diagnostics for the model in the builder. Studentized residuals use the error variance estimated without that city; the red lines are the Bonferroni cutoff for 50 tests at the 5% level. Leverage h<sub>ii</sub> measures how far a city's predictors sit from the rest. Bubble area is proportional to Cook's distance.</p>
+    </div>
+    <div class="dplots">
+      <div class="sub">
+        <h3>Studentized residual against leverage</h3>
+        <canvas id="cvL" aria-label="Studentized residuals versus leverage"></canvas>
+        <div class="tip" id="tipL" hidden></div>
+        <div class="legend"><span><i class="sw rc"></i>Rent control</span><span><i class="sw"></i>No rent control</span><span><i class="sw line"></i>Bonferroni cutoff</span></div>
+      </div>
+      <div class="sub">
+        <h3>Actual against fitted</h3>
+        <canvas id="cvA" aria-label="Actual versus fitted values"></canvas>
+        <div class="tip" id="tipA" hidden></div>
+        <div class="legend"><span>Points above the dashed 45° line are underpredicted.</span></div>
+      </div>
+    </div>
+    <div class="split even">
+      <div class="sub" style="background:var(--surface)">
+        <h3>Most unusual cities in this model</h3>
+        <div class="tablewrap"><table class="mini" id="inflTab"></table></div>
+        <p id="dMsg"></p>
+      </div>
+      <div class="sub">
+        <h3>What-if: change Miami's homeless rate</h3>
+        <p>Miami is the only city with January above 60°F, so that dummy's column is (0, …, 0, 1, 0, …, 0). OLS can set Miami's fitted value to anything without touching the other 49 cities, so it fits Miami exactly: residual 0, leverage 1. Move the slider and compare the model with and without the dummy.</p>
+        <div class="slider">
+          <div class="top"><label for="miaY">Miami, homeless per 1000</label><output id="miaYo">15.9</output></div>
+          <input type="range" id="miaY" min="0" max="25" step="0.1" value="15.9">
+        </div>
+        <div class="kv" id="miaKv"></div>
+        <div class="btns">
+          <button id="miaReset">Reset to 15.9</button>
+          <button id="miaToggle">Toggle Miami dummy</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Permutation test -->
+  <section class="card">
+    <div class="head">
+      <span class="eyebrow">Step 5 · Permutation test</span>
+      <h2>Shuffle the rent-control label and refit</h2>
+      <p class="intro">If rent control had nothing to do with homelessness, any 9 of the cities could have carried the label. Shuffle the label across cities, refit the same model and record the rent-control estimate. The p-value is the share of shuffles that beat the real estimate. No normal or t assumption is needed.</p>
+    </div>
+    <div class="split">
+      <div class="sub">
+        <canvas id="cvP" aria-label="Histogram of rent-control estimates under shuffled labels"></canvas>
+        <div class="legend"><span><i class="sw bar"></i>Estimates from shuffled labels</span><span><i class="sw line"></i>Observed estimate</span></div>
+        <p class="msg" id="pLast"></p>
+      </div>
+      <aside class="panel" style="background:var(--board)">
+        <div class="group">
+          <span class="label">Model to refit</span>
+          <div class="seg" style="--n:2" id="segPM">
+            <button id="pmTwo" aria-pressed="true">Rent control + Miami dummy</button>
+            <button id="pmCur" aria-pressed="false">Model in the builder</button>
+          </div>
+          <div class="btns">
+            <button id="pOne">Shuffle once</button>
+            <button class="primary" id="p1k">Run 1,000</button>
+            <button class="primary" id="p5k">Run 5,000</button>
+            <button id="pReset">Reset</button>
+          </div>
+        </div>
+        <div class="group">
+          <table class="stats">
+            <tbody id="pTab"></tbody>
+          </table>
+          <p class="hint" id="pHint"></p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 6. Mechanism -->
+  <section class="card">
+    <div class="head">
+      <span class="eyebrow">Step 6 · Mechanism and confounding</span>
+      <h2>Is vacancy the channel?</h2>
+      <p class="intro">Rent-control cities have far fewer empty rental units. If rent control raises homelessness, it would most plausibly do it by tightening the housing market. Compare the models with and without vacancy. The identity c = c′ + a·b splits the total association into a part through vacancy and a part that is left over.</p>
+    </div>
+    <div class="split even">
+      <div class="sub">
+        <svg class="path" id="pathSvg" viewBox="0 0 560 300" role="img" aria-label="Path diagram: rent control to vacancy to homelessness, with a direct path and an unmeasured confounder"></svg>
+        <div class="seg" style="--n:2" id="segMC">
+          <button id="mcMia" aria-pressed="true">Control: Miami dummy</button>
+          <button id="mcAll" aria-pressed="false">Control: all Tucker variables</button>
+        </div>
+      </div>
+      <div class="sub" style="background:var(--surface)">
+        <h3>Mediation-style comparison</h3>
+        <div class="tablewrap"><table class="mini" id="medTab"></table></div>
+        <p id="medMsg"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Lesson -->
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">The full cycle in six steps</span>
+      <h2>A strong, stable association that the data alone cannot call causal</h2>
+      <p class="hint" style="font-size:14px;max-width:86ch">Rent-control cities average 8.4 homeless per 1000 against 3.7 elsewhere. Every reasonable regression keeps a gap of roughly 3 to 5 per 1000. The question for the class is what that number means.</p>
+      <div class="demo">
+        <button class="primary" id="demoT">Load the Tucker model</button>
+        <button id="demoJ">Swap the dummy for January temperature</button>
+        <button id="demoV">Two-variable model plus vacancy</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>Look before you fit</h3><p>The raw gap is 8.38 − 3.74 = 4.64 per 1000. Miami (15.9) tops the list without rent control; St. Louis and Worcester are close behind.</p></div></li>
+      <li><div><h3>Adjust for the usual suspects</h3><p>With nine predictors (Tucker's model), R² = 0.567 and rent control is 4.17 (se 1.31, p = 0.003). Poverty, unemployment, public housing and population are all insignificant.</p></div></li>
+      <li><div><h3>Read the dummy honestly</h3><p>The January-above-60°F coefficient of 11.37 is Miami's residual from the other variables. Drop Miami and the dummy, and every other coefficient is unchanged. Rent control plus the dummy alone has adjusted R² 0.510, above the full model's 0.469.</p></div></li>
+      <li><div><h3>Vary the specification</h3><p>The estimate stays between 4 and 5 in the named models. Across all 384 combinations it runs from about 2.6 to 5.2. The low end comes from continuous January temperature (2.87, p = 0.058 in Tucker's set), because Los Angeles, San Francisco and Santa Monica are warm and rent-controlled.</p></div></li>
+      <li><div><h3>Test without distributional assumptions</h3><p>No shuffle of the label among 50 cities reproduces 4.94 in the two-variable model; with 5,000 shuffles the p-value is below 1/5,000.</p></div></li>
+      <li><div><h3>Ask about the channel</h3><p>Vacancy alone predicts homelessness (−0.32 per point), but with rent control in the model it adds nothing (−0.07, p = 0.51). Rent control lowers vacancy by 6.3 points. With nine treated cities we cannot separate the two.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">Least squares and its standard errors</div><div class="m">b = (XᵀX)⁻¹Xᵀy,  s² = Σe²/(n − p)</div><div class="m">se(b<sub>j</sub>) = s·√[(XᵀX)⁻¹]<sub>jj</sub>,  t = b<sub>j</sub>/se</div></div>
+      <div class="eq"><div class="cap">Adjusted R² penalises extra predictors</div><div class="m">R̄² = 1 − (1 − R²)(n − 1)/(n − p)</div><div class="m">0.567 with p = 10 → 0.469;  0.530 with p = 3 → 0.510</div></div>
+      <div class="eq"><div class="cap">Leverage, and why a one-city dummy gives h = 1</div><div class="m">h<sub>ii</sub> = x<sub>i</sub>ᵀ(XᵀX)⁻¹x<sub>i</sub> = ∂ŷ<sub>i</sub>/∂y<sub>i</sub></div><div class="m">dummy d = e<sub>Miami</sub> ⇒ ŷ<sub>Miami</sub> = y<sub>Miami</sub>, h = 1, e = 0</div></div>
+      <div class="eq"><div class="cap">Outlier and influence measures</div><div class="m">t<sub>i</sub> = e<sub>i</sub> / (s<sub>(i)</sub>√(1 − h<sub>i</sub>)),  cutoff t<sub>0.025/50, 39</sub> = 3.56</div><div class="m">D<sub>i</sub> = e<sub>i</sub>² h<sub>i</sub> / (p s² (1 − h<sub>i</sub>)²)</div></div>
+      <div class="eq"><div class="cap">Mediation identity (same controls in every model)</div><div class="m">total c = direct c′ + a·b</div><div class="m">a: vacancy ~ RC,  b: vacancy slope given RC</div></div>
+    </div>
+    <div class="takeaway"><p><b>Takeaway for students.</b> Robustness across specifications, a permutation test and clean diagnostics make an association credible. They do not make it causal. Cities chose rent control, and the cities that chose it (old, coastal, expensive, tight markets) may have had more homelessness for the same underlying reasons.</p></div>
+  </section>
+
+  <section class="notes" aria-label="Interpretation and caveats">
+    <div class="note">
+      <h2>Correlation is not causation</h2>
+      <p>The regression compares rent-control cities with other cities that look similar on the measured variables. Rent control was not assigned at random. Cities with booming demand and scarce housing are the ones that adopt it, and those same conditions push people out of housing.</p>
+      <p>Reverse causation is possible too: high rents and visible homelessness can create political pressure for rent control.</p>
+    </div>
+    <div class="note">
+      <h2>Mediators are not controls</h2>
+      <p>If rent control lowers vacancy and low vacancy raises homelessness, then vacancy sits on the causal path. Adding it to the regression removes part of the effect you want to measure. The drop from 4.94 to 4.50 is the part that runs through vacancy, under strong assumptions.</p>
+      <p>That vacancy adds nothing given rent control does not prove vacancy is irrelevant. The two are strongly correlated (r = −0.59), and nine cities carry all the information on rent control.</p>
+    </div>
+    <div class="note">
+      <h2>What the data cannot tell us</h2>
+      <ul>
+        <li>One cross-section of 50 cities, observed once. No before and after.</li>
+        <li>Nine rent-control cities, almost all on the coasts and expensive.</li>
+        <li>Homeless counts depend on how each city counts.</li>
+        <li>Missing variables: median rent or rent-to-income, housing permits, deindustrialisation, deinstitutionalisation, shelter capacity.</li>
+        <li>St. Louis and Worcester (old manufacturing centres) are underpredicted by about 7 per 1000.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Before fitting anything, ask the class to guess the rent-control coefficient in Tucker's nine-variable model from the raw gap of 4.64. Load the Tucker model and reveal 4.17. Which variables moved it, and in which direction?</li>
+      <li>In the diagnostics, drag Miami's homeless rate from 15.9 to 2. With the dummy in, nothing else changes. Toggle the dummy off and repeat: now the rent-control estimate moves. Ask why a coefficient with t = 3.95 can carry no information about climate.</li>
+      <li>Have each student build the "best" model they can defend and pin it. Compare the pinned forest with the specification curve. How many of the 384 models give p above 0.05, and what do they have in common? (All use continuous January temperature.)</li>
+      <li>Run 5,000 shuffles for the two-variable model, then for the model with continuous January temperature. Compare the permutation p-value with the t-test p-value in each case.</li>
+      <li>Switch the mechanism panel to all Tucker controls. Does c = c′ + a·b still hold exactly? Discuss: if you were a city council member, would you put vacancy in the model or leave it out, and what question does each choice answer?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // City, homeless per 1000, homeless count, poverty, unemployment, public housing, population (000s),
+  // average temp, vacancy rate, January temp, August temp, precipitation, rent control
+  const RAW = [
+    ["Miami, FL",15.9,5950,24.5,7.5,29.8,372,74,7,67.6,82.6,1267,0],
+    ["St. Louis, MO",11.6,5000,21.8,8.4,14,429,55,8.5,30.6,77,957,0],
+    ["San Francisco, CA",11.5,8250,13.7,6,10.2,712,57,1.6,50.7,61.9,537,1],
+    ["Worcester, MA",10.6,1700,14.4,3.7,14.1,160,52,3,23,68.4,1172,0],
+    ["Los Angeles, CA",10.5,32600,16.4,7.9,2.8,3097,66,2.2,57,74.5,396,1],
+    ["Santa Monica, CA",10.2,900,9.9,7,0.8,88,66,1.8,57.4,70.3,355,1],
+    ["Newark, NJ",9.5,3000,32.8,5.9,41.7,314,54,2.3,29.8,74.3,1175,1],
+    ["Hartford, CT",8.8,1200,25.5,7.1,20,136,49,2.6,26.1,70.7,1157,1],
+    ["Washington, DC",7.5,4700,18.6,8.4,19.8,623,58,2,33.4,75.9,1023,1],
+    ["Detroit, MI",6.8,7500,21.9,9.1,9.7,1088,50,5.4,24.1,71.1,825,0],
+    ["Yonkers, NY",6.8,1300,9.8,4.9,10.7,191,54,2.1,22.3,73.6,1166,1],
+    ["Chicago, IL",6.6,19800,20.3,8.3,13,2992,49,6,23,72.7,918,0],
+    ["Seattle, WA",6.5,3200,11.2,6.6,14.6,488,55,5.5,39.7,64.6,969,0],
+    ["Las Vegas, NV",6,1100,10.5,8.9,14.2,183,59,9,44.8,87.3,101,0],
+    ["Boston, MA",5.6,3200,20.2,4.6,25.3,571,52,2.6,26.8,70.5,1122,1],
+    ["Richmond, VA",5.3,1175,19.3,5.3,20.5,219,61,5.5,36.1,75.9,1092,0],
+    ["New York, NY",5,36000,20,7.4,21.5,7165,55,2.2,30.9,74.8,1144,1],
+    ["Dallas, TX",5,7000,14.1,4.7,5.9,1388,67,16,44.4,84.7,919,0],
+    ["Denver, CO",4.9,2500,13.7,5,9,504,52,14,30.2,71.2,400,0],
+    ["Charleston, WV",4.7,300,12.6,10.7,22.9,63,56,5.9,32.5,74.1,1097,0],
+    ["Atlanta, GA",4.6,2000,27.5,5,35.5,426,61,9,41.2,77.7,1303,0],
+    ["Fort Wayne, IN",4.3,725,11,6.3,5,165,52,9.2,23.4,70.9,918,0],
+    ["Portland, OR",4.2,1550,13,7.4,5,366,57,5.5,39.7,67.8,1001,0],
+    ["Houston, TX",3.7,6400,12.7,8.4,1.9,1706,67,17,52.3,83.3,1145,0],
+    ["San Diego, CA",3.1,3000,12.4,5.3,1.1,960,68,5.3,56.1,71.4,266,0],
+    ["Salt Lake City, UT",3.1,525,14.2,6.3,6.5,165,57,14.5,27.9,73.4,453,0],
+    ["Little Rock, AR",2.9,500,14.1,5.8,16.8,170,62,6.5,39.7,80.2,1266,0],
+    ["New Orleans, LA",2.8,1600,26.4,11,25.2,599,67,18,52.2,81.9,1546,0],
+    ["Charleston, SC",2.8,200,14.1,4.4,30.6,69,63,9,48,80.6,1232,0],
+    ["Albuquerque, NM",2.8,1000,12.4,6.3,3.1,351,63,9.7,35.2,75.9,217,0],
+    ["Tucson, AZ",2.7,1000,14.7,5.3,2.4,365,73,12,52.2,85.3,301,0],
+    ["Burlington, VT",2.7,100,11.3,3.4,9.1,37,45,6,17.6,67.5,850,0],
+    ["Baltimore, MD",2.4,1900,22.9,7,23.2,763,55,5.4,33.4,76.8,1088,0],
+    ["Cincinnati, OH",2.3,875,19.7,7.2,20.1,370,53,8.6,28.9,74.1,1052,0],
+    ["Syracuse, NY",2.3,380,18.4,6.7,14.9,164,47,9.5,22.6,69.1,1005,0],
+    ["Tampa, FL",2.3,650,18.7,5,17.1,275,67,14.7,59.9,82.2,1159,0],
+    ["Pittsburgh, PA",2.2,900,16.5,9.4,24.5,403,54,5.8,27.5,71.2,943,0],
+    ["Philadelphia, PA",2.1,3600,20.6,7,14.3,1646,55,4,31.6,75.4,1113,0],
+    ["Birmingham, AL",2,584,22,7.2,24.3,280,66,7.1,41.7,79.3,1406,0],
+    ["Louisville, KY",1.9,575,19.3,6.7,21.3,290,55,7.3,32.2,75.4,1130,0],
+    ["Grand Rapids, MI",1.9,350,13.5,8.6,5.1,183,47,7.5,22.6,68.9,890,0],
+    ["Minneapolis, MN",1.6,1000,12.4,4.5,17.9,624,42,6.1,12.4,70.2,739,0],
+    ["Milwaukee, WI",1.6,1000,13.8,6.4,7.5,621,45,6,19.9,70.2,810,0],
+    ["Providence, RI",1.6,250,20.4,4.9,15.5,156,51,5,27,70,1198,0],
+    ["Cleveland, OH",1.4,800,22.1,12.4,22.5,547,50,6.5,25.7,70.7,932,0],
+    ["Phoenix, AZ",1.2,1050,11.1,5.1,2.4,853,72,12.2,52.5,89.1,211,0],
+    ["Kansas City, MO",0.9,400,13.2,4.6,6,443,55,7.2,28.4,77.2,964,0],
+    ["Charlotte, NC",0.8,275,12.4,3.7,12.7,331,59,8.8,39.9,77.5,1146,0],
+    ["Lincoln, NE",0.7,135,8.9,3.6,1.4,180,50,6.5,22.3,75.2,754,0],
+    ["Rochester, NY",0.6,150,17.5,7,10.4,243,48,9,23.7,68.9,814,0]
+  ];
+  const N = RAW.length;
+  const short = r => r[0].split(',')[0];
+  const IDX = name => RAW.findIndex(r => short(r) === name);
+  const MIA = IDX('Miami'), STL = IDX('St. Louis'), WOR = IDX('Worcester');
+  const KEYCITIES = ['Miami', 'St. Louis', 'Worcester', 'San Francisco', 'New York', 'Los Angeles', 'Houston', 'New Orleans', 'Dallas'];
+
+  // ---------- statistics ----------
+  function lgamma(x) {
+    const g = [676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * x))) - lgamma(1 - x);
+    x -= 1; let a = 0.99999999999980993; const t = x + 7.5;
+    for (let i = 0; i < 8; i++) a += g[i] / (x + i + 1);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  function betacf(a, b, x) {
+    const FPMIN = 1e-300; let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < FPMIN) d = FPMIN; d = 1 / d; let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m; let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d;
+      const del = d * c; h *= del; if (Math.abs(del - 1) < 1e-15) break;
+    }
+    return h;
+  }
+  function ibeta(x, a, b) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+    return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+  }
+  const pT2 = (t, df) => ibeta(df / (df + t * t), df / 2, 0.5);             // two-sided t p-value
+  const pF = (F, d1, d2) => ibeta(d2 / (d2 + d1 * F), d2 / 2, d1 / 2);       // upper tail of F
+  function erfc(x) { // Numerical Recipes erfcc, |rel err| < 1.2e-7
+    const z = Math.abs(x), t = 1 / (1 + 0.5 * z);
+    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? r : 2 - r;
+  }
+  const pZ2 = z => erfc(Math.abs(z) / Math.SQRT2);
+  function tInv(q, df) { // upper quantile: P(T > t) = q
+    let lo = 0, hi = 100;
+    for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; (pT2(m, df) / 2 > q) ? lo = m : hi = m; }
+    return (lo + hi) / 2;
+  }
+  function invert(A) {
+    const p = A.length, M = A.map((r, i) => [...r, ...Array.from({ length: p }, (_, j) => +(i === j))]);
+    const scale = Math.max(...A.map((r, i) => Math.abs(r[i]))) || 1;
+    for (let c = 0; c < p; c++) {
+      let piv = c; for (let r = c + 1; r < p; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+      if (Math.abs(M[piv][c]) < 1e-11 * scale) return null;
+      [M[c], M[piv]] = [M[piv], M[c]];
+      const v = M[c][c]; for (let j = 0; j < 2 * p; j++) M[c][j] /= v;
+      for (let r = 0; r < p; r++) if (r !== c) { const f = M[r][c]; if (f) for (let j = 0; j < 2 * p; j++) M[r][j] -= f * M[c][j]; }
+    }
+    return M.map(r => r.slice(p));
+  }
+  // full OLS: X rows (with intercept), y array
+  function ols(X, y, hc3) {
+    const n = X.length, p = X[0].length;
+    const XtX = Array.from({ length: p }, () => new Array(p).fill(0)), Xty = new Array(p).fill(0);
+    for (let i = 0; i < n; i++) { const x = X[i]; for (let a = 0; a < p; a++) { Xty[a] += x[a] * y[i]; for (let b = a; b < p; b++) XtX[a][b] += x[a] * x[b]; } }
+    for (let a = 0; a < p; a++) for (let b = 0; b < a; b++) XtX[a][b] = XtX[b][a];
+    const V = invert(XtX); if (!V) return null;
+    const b = V.map(r => r.reduce((s, v, j) => s + v * Xty[j], 0));
+    const fit = X.map(x => x.reduce((s, v, j) => s + v * b[j], 0)), e = y.map((v, i) => v - fit[i]);
+    const sse = e.reduce((s, v) => s + v * v, 0), df = n - p, s2 = sse / df;
+    const ybar = y.reduce((s, v) => s + v, 0) / n, tss = y.reduce((s, v) => s + (v - ybar) ** 2, 0);
+    const h = X.map(x => { let s = 0; for (let a = 0; a < p; a++) { let t = 0; for (let c = 0; c < p; c++) t += V[a][c] * x[c]; s += x[a] * t; } return s; });
+    const exact = h.map(v => v > 1 - 1e-8);
+    for (let i = 0; i < n; i++) if (exact[i]) e[i] = 0;
+    let se = V.map((r, j) => Math.sqrt(r[j] * s2));
+    let pv, useZ = false;
+    if (hc3) {
+      useZ = true;
+      const M = Array.from({ length: p }, () => new Array(p).fill(0));
+      for (let i = 0; i < n; i++) { if (exact[i]) continue; const w = e[i] * e[i] / (1 - h[i]) ** 2, x = X[i]; for (let a = 0; a < p; a++) for (let c = 0; c < p; c++) M[a][c] += w * x[a] * x[c]; }
+      se = [];
+      for (let j = 0; j < p; j++) {
+        // a column nonzero only on exactly fitted rows has no usable HC3 variance
+        let only = true; for (let i = 0; i < n; i++) if (X[i][j] !== 0 && !exact[i]) { only = false; break; }
+        if (only && j > 0) { se.push(NaN); continue; }
+        let v = 0; for (let a = 0; a < p; a++) for (let c = 0; c < p; c++) v += V[j][a] * M[a][c] * V[c][j];
+        se.push(Math.sqrt(v));
+      }
+    }
+    const t = b.map((v, j) => v / se[j]);
+    pv = t.map(v => isFinite(v) ? (useZ ? pZ2(v) : pT2(v, df)) : NaN);
+    const crit = useZ ? 1.959964 : tInv(0.025, df);
+    const r2 = 1 - sse / tss, adj = 1 - (1 - r2) * (n - 1) / df;
+    const F = p > 1 ? (r2 / (p - 1)) / ((1 - r2) / df) : NaN;
+    const rs = e.map((v, i) => exact[i] ? NaN : v / Math.sqrt(((sse - v * v / (1 - h[i])) / (df - 1)) * (1 - h[i])));
+    const cook = e.map((v, i) => exact[i] ? NaN : v * v * h[i] / (p * s2 * (1 - h[i]) ** 2));
+    return { b, se, t, p: pv, crit, n, k: p, df, s: Math.sqrt(s2), r2, adj, F, Fp: p > 1 ? pF(F, p - 1, df) : NaN, fit, e, h, rs, cook, exact, useZ };
+  }
+  // fast coefficient-only fit for permutations / spec curve
+  function olsLite(X, y, j) {
+    const n = X.length, p = X[0].length;
+    const XtX = Array.from({ length: p }, () => new Array(p).fill(0)), Xty = new Array(p).fill(0);
+    for (let i = 0; i < n; i++) { const x = X[i]; for (let a = 0; a < p; a++) { Xty[a] += x[a] * y[i]; for (let c = a; c < p; c++) XtX[a][c] += x[a] * x[c]; } }
+    for (let a = 0; a < p; a++) for (let c = 0; c < a; c++) XtX[a][c] = XtX[c][a];
+    const V = invert(XtX); if (!V) return null;
+    const b = V.map(r => r.reduce((s, v, k) => s + v * Xty[k], 0));
+    let sse = 0; for (let i = 0; i < n; i++) { let f = 0; for (let a = 0; a < p; a++) f += X[i][a] * b[a]; sse += (y[i] - f) ** 2; }
+    const df = n - p, se = Math.sqrt(V[j][j] * sse / df);
+    return { b: b[j], se, df, p: pT2(b[j] / se, df) };
+  }
+
+  // ---------- variables ----------
+  let miamiY = 15.9;
+  const yOf = i => i === MIA ? miamiY : RAW[i][1];
+  const PRED = [
+    { k: 'rc', lab: 'Rent control', f: r => r[12] },
+    { k: 'pov', lab: 'Poverty (%)', f: r => r[3] },
+    { k: 'vac', lab: 'Vacancy rate (%)', f: r => r[8] },
+    { k: 'unemp', lab: 'Unemployment (%)', f: r => r[4] },
+    { k: 'ph', lab: 'Public housing', f: r => r[5] },
+    { k: 'pop', lab: 'Population (000s)', f: r => r[6] },
+    { k: 'avet', lab: 'Average temperature (°F)', f: r => r[7] },
+    { k: 'jan60', lab: 'January above 60°F', note: 'dummy, Miami only', f: r => r[9] > 60 ? 1 : 0 },
+    { k: 'jan', lab: 'January temperature (°F)', note: 'continuous', f: r => r[9] },
+    { k: 'wet', lab: 'Precipitation above 800 mm', note: 'dummy', f: r => r[11] > 800 ? 1 : 0 }
+  ];
+  const PK = Object.fromEntries(PRED.map(v => [v.k, v]));
+  const TUCKER = ['pov', 'vac', 'unemp', 'ph', 'pop', 'avet', 'jan60', 'wet', 'rc'];
+  const sampleRows = s => RAW.map((_, i) => i).filter(i => s === 'drop2' ? (i !== STL && i !== WOR) : s === 'nomiami' ? i !== MIA : true);
+  const orderKeys = keys => PRED.map(v => v.k).filter(k => keys.includes(k));
+  function design(keys, rows, rcOverride) {
+    return rows.map(i => [1, ...keys.map(k => k === 'rc' && rcOverride ? rcOverride[i] : PK[k].f(RAW[i]))]);
+  }
+  const respOf = (rows, resp) => rows.map(i => resp === 'log' ? Math.log(Math.max(yOf(i), 0.05)) : yOf(i));
+  function validKeys(keys, samp) { return samp === 'nomiami' ? keys.filter(k => k !== 'jan60') : keys; }
+  function fitSpec(sp) {
+    const keys = orderKeys(validKeys(sp.keys, sp.sample)), rows = sampleRows(sp.sample);
+    const m = ols(design(keys, rows), respOf(rows, sp.resp), sp.se === 'hc3');
+    if (m) { m.keys = keys; m.rows = rows; }
+    return m;
+  }
+
+  // ---------- formatting ----------
+  const f2 = (v, d = 2) => !isFinite(v) ? '—' : (v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
+  const fp = p => !isFinite(p) ? '—' : p < 0.0001 ? '<0.0001' : p.toFixed(p < 0.01 ? 4 : 3);
+  function fcoef(v) { const a = Math.abs(v); return f2(v, a !== 0 && a < 0.01 ? 4 : a < 1 ? 3 : 2); }
+
+  // ---------- colors / canvas ----------
+  let C = {};
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'ball', 'fit', 'board', 'peg', 'surface', 'coinB']) C[k] = cs.getPropertyValue('--' + k).trim();
+  }
+  function sizeCanvas(cv, ratio, minH, maxH) {
+    const w = cv.parentElement.clientWidth - 0, dpr = window.devicePixelRatio || 1;
+    const cw = Math.max(240, cv.clientWidth || w), h = Math.round(Math.min(maxH, Math.max(minH, cw * ratio)));
+    if (cv._w !== cw || cv._h !== h || cv._d !== dpr) { cv.width = Math.round(cw * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px'; cv._w = cw; cv._h = h; cv._d = dpr; }
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cw, h); ctx._stamp = (ctx._stamp || 0) + 1;
+    return { ctx, W: cw, H: h };
+  }
+  function niceStep(range, target) {
+    const raw = range / Math.max(1, target), mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+    return (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag;
+  }
+  function ticks(lo, hi, target) { const st = niceStep(hi - lo, target), out = []; for (let v = Math.ceil(lo / st - 1e-9) * st; v <= hi + 1e-9; v += st) out.push(+v.toFixed(10)); return out; }
+  function niceRange(lo, hi, target) { const st = niceStep(hi - lo, target); return [Math.floor(lo / st) * st, Math.ceil(hi / st) * st]; }
+  function axes(ctx, o) { // o: {L,R,T,B,W,H,xs,ys,X,Y,xl,yl,xfmt,yfmt}
+    ctx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--font-mono');
+    ctx.lineWidth = 1;
+    for (const v of o.ys) { const y = o.Y(v); ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(o.L, y); ctx.lineTo(o.W - o.R, y); ctx.stroke(); ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText((o.yfmt || String)(v), o.L - 6, y); }
+    for (const v of o.xs) { const x = o.X(v); ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(x, o.T); ctx.lineTo(x, o.H - o.B); ctx.stroke(); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText((o.xfmt || String)(v), x, o.H - o.B + 5); }
+    ctx.strokeStyle = C.line; ctx.beginPath(); ctx.moveTo(o.L, o.T); ctx.lineTo(o.L, o.H - o.B); ctx.lineTo(o.W - o.R, o.H - o.B); ctx.stroke();
+    ctx.font = '12px ' + getComputedStyle(document.body).getPropertyValue('--font-body'); ctx.fillStyle = C.muted;
+    if (o.xl) { ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(o.xl, (o.L + o.W - o.R) / 2, o.H - 2); }
+    if (o.yl) { ctx.save(); ctx.translate(12, (o.T + o.H - o.B) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(o.yl, 0, 0); ctx.restore(); }
+  }
+  const fmtTick = v => (v < 0 ? '−' : '') + (Math.abs(v) >= 1000 ? Math.abs(v).toLocaleString() : String(+Math.abs(v).toFixed(4)));
+  function dot(ctx, x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); } }
+  const placed = new WeakMap();
+  function label(ctx, txt, x, y, W, color) {
+    ctx.font = '11.5px ' + getComputedStyle(document.body).getPropertyValue('--font-body');
+    const w = ctx.measureText(txt).width; let tx = x + 7, al = 'left';
+    if (tx + w > W - 4) { tx = x - 7; al = 'right'; }
+    if (!placed.has(ctx) || placed.get(ctx).stamp !== ctx._stamp) placed.set(ctx, { stamp: ctx._stamp, boxes: [] });
+    const boxes = placed.get(ctx).boxes, x0 = al === 'left' ? tx : tx - w;
+    const hit = yy => boxes.some(b => x0 < b.x1 && x0 + w > b.x0 && Math.abs(yy - b.y) < 13);
+    for (const d of [0, -13, 13, -26, 26]) if (!hit(y + d)) { y += d; break; }
+    boxes.push({ x0, x1: x0 + w, y });
+    ctx.textAlign = al; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = C.board; ctx.strokeText(txt, tx, y); ctx.fillStyle = color || C.ink; ctx.fillText(txt, tx, y);
+  }
+  function hover(cv, tip, getPts, html) {
+    const board = tip.parentElement;
+    cv.addEventListener('pointermove', ev => {
+      const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      let best = null, bd = 14 * 14;
+      for (const p of getPts()) { const d = (p.x - mx) ** 2 + (p.y - my) ** 2 * (p.colOnly ? 0 : 1); if (d < bd) { bd = d; best = p; } }
+      if (!best) { tip.hidden = true; cv.style.cursor = ''; return; }
+      tip.innerHTML = html(best); tip.hidden = false; cv.style.cursor = best.click ? 'pointer' : '';
+      const br = board.getBoundingClientRect(), ox = r.left - br.left, oy = r.top - br.top;
+      let tx = ox + best.x + 12, ty = oy + best.y + 12;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      if (tx + tw > board.clientWidth - 4) tx = ox + best.x - tw - 12;
+      if (tx < 4) tx = 4;
+      if (ty + th > board.clientHeight - 4) ty = oy + best.y - th - 12;
+      tip.style.left = tx + 'px'; tip.style.top = Math.max(4, ty) + 'px';
+      cv._hot = best;
+    });
+    cv.addEventListener('pointerleave', () => { tip.hidden = true; cv._hot = null; });
+  }
+
+  // =========================================================
+  // 1. Explore
+  // =========================================================
+  const XV = [
+    { k: 'rc', lab: 'Rent control (strip plot)', f: r => r[12] },
+    { k: 'vac', lab: 'Vacancy rate (%)', f: r => r[8] },
+    { k: 'pov', lab: 'Poverty (%)', f: r => r[3] },
+    { k: 'unemp', lab: 'Unemployment (%)', f: r => r[4] },
+    { k: 'ph', lab: 'Public housing', f: r => r[5] },
+    { k: 'pop', lab: 'Population (000s, log scale)', f: r => r[6], log: true },
+    { k: 'avet', lab: 'Average temperature (°F)', f: r => r[7] },
+    { k: 'jan', lab: 'January temperature (°F)', f: r => r[9] },
+    { k: 'aug', lab: 'August temperature (°F)', f: r => r[10] },
+    { k: 'precip', lab: 'Precipitation (mm)', f: r => r[11] }
+  ];
+  $('xVar').innerHTML = XV.map(v => `<option value="${v.k}">${v.lab}</option>`).join('');
+  $('xVar').value = 'rc';
+  const jit = i => { const v = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return v - Math.floor(v) - 0.5; };
+  let ePts = [];
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  function corr(a, b) { const ma = mean(a), mb = mean(b); let sab = 0, sa = 0, sb = 0; for (let i = 0; i < a.length; i++) { sab += (a[i] - ma) * (b[i] - mb); sa += (a[i] - ma) ** 2; sb += (b[i] - mb) ** 2; } return sab / Math.sqrt(sa * sb); }
+  function line2(xs, ys) { const mx = mean(xs), my = mean(ys); let sxy = 0, sxx = 0; for (let i = 0; i < xs.length; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; } const b = sxy / sxx; return { a: my - b * mx, b }; }
+  function drawExplore() {
+    const cv = $('cvE'), { ctx, W, H } = sizeCanvas(cv, 0.62, 300, 520);
+    const v = XV.find(o => o.k === $('xVar').value);
+    const L = 50, R = 14, T = 12, B = 40;
+    const ys = RAW.map((_, i) => yOf(i)), yMax = Math.max(17, ...ys) + 0.5;
+    const Y = y => T + (1 - y / yMax) * (H - T - B);
+    const yt = ticks(0, yMax, 6).filter(t => t <= yMax);
+    ePts = [];
+    const showLab = $('eLabels').checked;
+    let lg = '';
+    if (v.k === 'rc') {
+      const X = g => L + (W - L - R) * (g === 0 ? 0.3 : 0.72);
+      axes(ctx, { L, R, T, B, W, H, xs: [], ys: yt, X, Y, yl: 'Homeless per 1000', yfmt: fmtTick });
+      ctx.font = '12.5px ' + getComputedStyle(document.body).getPropertyValue('--font-body'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillStyle = C.ink; ctx.fillText('No rent control (41)', X(0), H - B + 6); ctx.fillText('Rent control (9)', X(1), H - B + 6);
+      const span = (W - L - R) * 0.2;
+      for (const g of [0, 1]) {
+        const idx = RAW.map((_, i) => i).filter(i => RAW[i][12] === g), m = mean(idx.map(yOf));
+        ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(g) - span * 0.75, Y(m)); ctx.lineTo(X(g) + span * 0.75, Y(m)); ctx.stroke();
+        ctx.fillStyle = C.curve; ctx.font = '600 12px ' + getComputedStyle(document.body).getPropertyValue('--font-mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText('mean ' + m.toFixed(2), X(g) + span * 0.75, Y(m) + 3);
+      }
+      for (let i = 0; i < N; i++) {
+        const g = RAW[i][12], x = X(g) + jit(i) * span, y = Y(yOf(i));
+        dot(ctx, x, y, 5.5, g ? C.ball : C.accent, C.board);
+        ePts.push({ x, y, i });
+      }
+      if (showLab) for (const p of ePts) if (KEYCITIES.includes(short(RAW[p.i])) && (yOf(p.i) > 9 || short(RAW[p.i]) === 'New York')) label(ctx, short(RAW[p.i]), p.x, p.y, W);
+      lg = '<i class="sw line" style="border-top-style:solid"></i>Group mean';
+      const g1 = mean(RAW.map((_, i) => i).filter(i => RAW[i][12]).map(yOf)), g0 = mean(RAW.map((_, i) => i).filter(i => !RAW[i][12]).map(yOf));
+      $('eMsg').innerHTML = `Raw gap: <b>${(g1 - g0).toFixed(2)}</b> per 1000 (${g1.toFixed(2)} vs ${g0.toFixed(2)}). This is the coefficient in the one-predictor regression on rent control.`;
+    } else {
+      const xs = RAW.map(r => v.f(r)), tx = v.log ? xs.map(Math.log10) : xs;
+      let lo = Math.min(...tx), hi = Math.max(...tx), pad = (hi - lo) * 0.05; lo -= pad; hi += pad;
+      let xt;
+      if (v.log) { xt = [30, 100, 300, 1000, 3000, 10000].filter(t => Math.log10(t) >= lo && Math.log10(t) <= hi); }
+      else { [lo, hi] = niceRange(lo, hi, 6); xt = ticks(lo, hi, W < 500 ? 4 : 7); }
+      const X = val => L + ((v.log ? Math.log10(val) : val) - lo) / (hi - lo) * (W - L - R);
+      axes(ctx, { L, R, T, B, W, H, xs: xt, ys: yt, X, Y, xl: v.lab, yl: 'Homeless per 1000', yfmt: fmtTick, xfmt: fmtTick });
+      if ($('eLines').checked) {
+        for (const g of [0, 1]) {
+          const idx = RAW.map((_, i) => i).filter(i => RAW[i][12] === g);
+          const xx = idx.map(i => v.log ? Math.log10(xs[i]) : xs[i]), yy = idx.map(yOf), ln = line2(xx, yy);
+          const a0 = Math.min(...xx), a1 = Math.max(...xx);
+          ctx.strokeStyle = g ? C.ball : C.accent; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath();
+          const PX = u => L + (u - lo) / (hi - lo) * (W - L - R);
+          ctx.moveTo(PX(a0), Y(ln.a + ln.b * a0)); ctx.lineTo(PX(a1), Y(ln.a + ln.b * a1)); ctx.stroke(); ctx.setLineDash([]);
+        }
+        lg = '<i class="sw line" style="border-top-color:var(--muted)"></i>Least-squares line within each group';
+      }
+      for (const g of [0, 1]) for (let i = 0; i < N; i++) if (RAW[i][12] === g) {
+        const x = X(xs[i]), y = Y(yOf(i)); dot(ctx, x, y, 5.5, g ? C.ball : C.accent, C.board); ePts.push({ x, y, i });
+      }
+      if (showLab) for (const p of ePts) if (KEYCITIES.includes(short(RAW[p.i]))) label(ctx, short(RAW[p.i]), p.x, p.y, W);
+      const r = corr(tx, RAW.map((_, i) => yOf(i))), rv = corr(tx, RAW.map(r => r[12]));
+      $('eMsg').innerHTML = `Correlation with homeless per 1000: <b>${f2(r)}</b>. Correlation with rent control: <b>${f2(rv)}</b>.${v.k === 'vac' ? ' Low vacancy goes with high homelessness, and rent-control cities sit at the low-vacancy end.' : v.k === 'jan' ? ' Miami is the only city above 60°F in January.' : ''}`;
+    }
+    $('lgE').innerHTML = lg;
+  }
+  function groupTable() {
+    const rows = [['Homeless per 1000', i => yOf(i), 2], ['Vacancy rate (%)', i => RAW[i][8], 2], ['Poverty (%)', i => RAW[i][3], 2], ['Unemployment (%)', i => RAW[i][4], 2], ['Public housing', i => RAW[i][5], 2], ['Population (000s)', i => RAW[i][6], 0], ['January temp (°F)', i => RAW[i][9], 1]];
+    const g1 = RAW.map((_, i) => i).filter(i => RAW[i][12]), g0 = RAW.map((_, i) => i).filter(i => !RAW[i][12]);
+    $('gTab').innerHTML = rows.map(([l, f, d]) => `<tr><td>${l}</td><td class="rc">${mean(g1.map(f)).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}</td><td class="no">${mean(g0.map(f)).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}</td></tr>`).join('');
+  }
+  const cityTip = i => { const r = RAW[i]; return `<b>${r[0]}</b><br>homeless ${yOf(i).toFixed(1)} per 1000 (${r[2].toLocaleString()})<br>rent control ${r[12] ? 'yes' : 'no'} · vacancy ${r[8]}%<br>poverty ${r[3]}% · unemp ${r[4]}%<br>Jan ${r[9]}°F · pop ${r[6].toLocaleString()}k`; };
+  hover($('cvE'), $('tipE'), () => ePts, p => cityTip(p.i));
+  for (const id of ['xVar', 'eLines', 'eLabels']) $(id).addEventListener('change', drawExplore);
+
+  // =========================================================
+  // 2. Builder
+  // =========================================================
+  const S = { keys: TUCKER.slice(), resp: 'lev', sample: 'all', se: 'cl' };
+  const PRESETS = [
+    { lab: 'Tucker model', keys: TUCKER },
+    { lab: 'Rent control only', keys: ['rc'] },
+    { lab: 'Two-variable', keys: ['rc', 'jan60'] },
+    { lab: 'Jan temp continuous', keys: TUCKER.map(k => k === 'jan60' ? 'jan' : k) },
+    { lab: 'Vacancy, no rent control', keys: ['vac', 'jan60'] },
+    { lab: 'Vacancy + rent control', keys: ['vac', 'jan60', 'rc'] }
+  ];
+  $('presets').innerHTML = PRESETS.map((p, i) => `<button class="small" id="pre${i}">${p.lab}</button>`).join('');
+  PRESETS.forEach((p, i) => $('pre' + i).addEventListener('click', () => { S.keys = p.keys.slice(); syncChecks(); update(); }));
+  $('predBox').innerHTML = PRED.map(v => `<label for="ck_${v.k}" id="lb_${v.k}"><input type="checkbox" id="ck_${v.k}"><span>${v.lab}${v.note ? ` <small>${v.note}</small>` : ''}</span></label>`).join('');
+  PRED.forEach(v => $('ck_' + v.k).addEventListener('change', e => {
+    S.keys = e.target.checked ? [...S.keys, v.k] : S.keys.filter(k => k !== v.k); update();
+  }));
+  function syncChecks() {
+    PRED.forEach(v => {
+      const off = S.sample === 'nomiami' && v.k === 'jan60';
+      $('ck_' + v.k).checked = S.keys.includes(v.k) && !off; $('ck_' + v.k).disabled = off; $('lb_' + v.k).classList.toggle('off', off);
+    });
+    const segs = [['respLev', S.resp === 'lev'], ['respLog', S.resp === 'log'], ['sampAll', S.sample === 'all'], ['sampDrop2', S.sample === 'drop2'], ['sampNoMia', S.sample === 'nomiami'], ['seCl', S.se === 'cl'], ['seHC3', S.se === 'hc3']];
+    for (const [id, on] of segs) $(id).setAttribute('aria-pressed', on);
+  }
+  const bindSeg = (id, fn) => $(id).addEventListener('click', () => { fn(); syncChecks(); update(); });
+  bindSeg('respLev', () => S.resp = 'lev'); bindSeg('respLog', () => S.resp = 'log');
+  bindSeg('sampAll', () => S.sample = 'all'); bindSeg('sampDrop2', () => S.sample = 'drop2'); bindSeg('sampNoMia', () => S.sample = 'nomiami');
+  bindSeg('seCl', () => S.se = 'cl'); bindSeg('seHC3', () => S.se = 'hc3');
+
+  let M = null;
+  function renderBuilder() {
+    M = fitSpec(S);
+    const tab = $('coefTab');
+    if (!S.keys.length || !M) {
+      tab.innerHTML = ''; $('fitLine').innerHTML = '';
+      $('bMsg').textContent = !S.keys.length ? 'Tick at least one predictor.' : 'These predictors are perfectly collinear in this sample, so XᵀX cannot be inverted. Untick one.';
+      $('bMsg').classList.add('warn'); return;
+    }
+    $('bMsg').classList.remove('warn');
+    const names = ['Intercept', ...M.keys.map(k => PK[k].lab)];
+    const order = [0, ...M.keys.map((k, j) => j + 1)];
+    let h = `<thead><tr><th></th><th>Estimate</th><th>Std. error</th><th>${M.useZ ? 'z' : 't'}</th><th>p value</th></tr></thead><tbody>`;
+    for (const j of order) {
+      const k = j ? M.keys[j - 1] : '';
+      h += `<tr class="${k === 'rc' ? 'hl' : ''}"><td>${names[j]}</td><td>${fcoef(M.b[j])}</td><td class="${isFinite(M.se[j]) ? '' : 'na'}">${isFinite(M.se[j]) ? fcoef(M.se[j]) : '—'}</td><td>${f2(M.t[j])}</td><td class="${M.p[j] < 0.05 ? 'sig' : ''}">${fp(M.p[j])}</td></tr>`;
+    }
+    tab.innerHTML = h + '</tbody>';
+    $('fitLine').innerHTML = `<span>n = <b>${M.n}</b></span><span>R² = <b>${M.r2.toFixed(3)}</b></span><span>adj. R² = <b>${M.adj.toFixed(3)}</b></span><span>s = <b>${M.s.toFixed(3)}</b></span><span>F = <b>${M.F.toFixed(2)}</b> on ${M.k - 1}, ${M.df} df, p = <b>${fp(M.Fp)}</b></span>`;
+    const j = M.keys.indexOf('rc') + 1;
+    let msg = '';
+    if (j > 0) {
+      const lo = M.b[j] - M.crit * M.se[j], hi = M.b[j] + M.crit * M.se[j];
+      msg = `Rent control: <b>${f2(M.b[j])}</b>${S.resp === 'log' ? ' on the log scale, a factor of e<sup>b</sup> = <b>' + Math.exp(M.b[j]).toFixed(2) + '</b>' : ' homeless per 1000'}, 95% interval ${f2(lo)} to ${f2(hi)}.`;
+    } else msg = 'Rent control is not in this model.';
+    if (M.exact.some(Boolean)) {
+      const who = M.rows.filter((_, i) => M.exact[i]).map(i => short(RAW[i])).join(', ');
+      msg += ` ${who} is fitted exactly (leverage 1, residual 0).${S.se === 'hc3' ? ' HC3 has no usable variance for its dummy, shown as —.' : ''}`;
+    }
+    if (S.sample === 'nomiami' && S.keys.includes('jan60')) msg += ' The January dummy is all zeros without Miami, so it is left out.';
+    if (miamiY !== 15.9) msg += ` What-if active: Miami set to ${miamiY.toFixed(1)}.`;
+    $('bMsg').innerHTML = msg;
+  }
+
+  // pinned specifications
+  const ALLK = ['pov', 'vac', 'unemp', 'ph', 'pop', 'avet', 'jan60', 'wet', 'rc'];
+  let pins = [
+    { label: 'Rent control only', keys: ['rc'], resp: 'lev', sample: 'all', se: 'cl' },
+    { label: 'Tucker model', keys: TUCKER, resp: 'lev', sample: 'all', se: 'cl' },
+    { label: 'Tucker model, HC3 errors', keys: TUCKER, resp: 'lev', sample: 'all', se: 'hc3' },
+    { label: 'Two-variable model', keys: ['rc', 'jan60'], resp: 'lev', sample: 'all', se: 'cl' },
+    { label: 'Add vacancy rate', keys: ['vac', 'jan60', 'rc'], resp: 'lev', sample: 'all', se: 'cl' },
+    { label: 'January temp continuous', keys: TUCKER.map(k => k === 'jan60' ? 'jan' : k), resp: 'lev', sample: 'all', se: 'cl' },
+    { label: 'Drop St. Louis, Worcester', keys: TUCKER, resp: 'lev', sample: 'drop2', se: 'cl' }
+  ];
+  const specKey = sp => [orderKeys(validKeys(sp.keys, sp.sample)).join(','), sp.resp, sp.sample, sp.se].join('|');
+  function describe(sp) {
+    const k = orderKeys(validKeys(sp.keys, sp.sample)).filter(x => x !== 'rc');
+    const s = k.length ? k.length + ' control' + (k.length > 1 ? 's' : '') : 'no controls';
+    return [s, sp.resp === 'log' ? 'log y' : '', sp.sample === 'drop2' ? 'n = 48' : sp.sample === 'nomiami' ? 'no Miami' : '', sp.se === 'hc3' ? 'HC3' : ''].filter(Boolean).join(' · ');
+  }
+  function renderForest() {
+    const cur = { ...S, keys: S.keys.slice(), label: 'Model in the builder' };
+    const curKey = specKey(cur);
+    const list = pins.map(p => ({ ...p, cur: specKey(p) === curKey }));
+    if (!list.some(p => p.cur)) list.push({ ...cur, cur: true, tmp: true });
+    const rows = list.map(sp => {
+      const m = sp.keys.includes('rc') ? fitSpec(sp) : null, j = m ? m.keys.indexOf('rc') + 1 : 0;
+      return { sp, b: m ? m.b[j] : NaN, lo: m ? m.b[j] - m.crit * m.se[j] : NaN, hi: m ? m.b[j] + m.crit * m.se[j] : NaN, p: m ? m.p[j] : NaN };
+    });
+    const ok = rows.filter(r => isFinite(r.b));
+    let lo = Math.min(-0.5, ...ok.map(r => r.lo)), hi = Math.max(8.5, ...ok.map(r => r.hi));
+    if (S.resp === 'log' && ok.every(r => r.sp.resp === 'log')) { lo = Math.min(-0.5, ...ok.map(r => r.lo)); hi = Math.max(2, ...ok.map(r => r.hi)); }
+    [lo, hi] = niceRange(lo, hi, 6);
+    const X = v => ((v - lo) / (hi - lo) * 100).toFixed(2) + '%';
+    let h = '';
+    rows.forEach((r, i) => {
+      const lab = r.sp.tmp ? 'Model in the builder' : r.sp.label;
+      const rm = !r.sp.tmp && i >= 7 ? `<button class="x" data-rm="${i}" aria-label="Remove ${lab}">×</button>` : '';
+      h += `<div class="lab"><a href="#builder" data-load="${i}" style="color:inherit">${lab}</a>${rm}<small>${describe(r.sp)}</small></div>`;
+      h += `<div class="trk ${r.sp.cur ? 'cur' : ''}"><i class="zero" style="left:${X(0)}"></i>` + (isFinite(r.b) ? `<i class="ci" style="left:${X(Math.max(lo, r.lo))};width:calc(${X(Math.min(hi, r.hi))} - ${X(Math.max(lo, r.lo))})"></i><i class="pt" style="left:${X(r.b)}"></i>` : '') + `</div>`;
+      h += `<div class="val">${isFinite(r.b) ? f2(r.b) + `<small>p ${fp(r.p)}</small>` : '<small>no rent control</small>'}</div>`;
+    });
+    h += `<div></div><div class="ax">${ticks(lo, hi, 6).map(t => `<span style="left:${X(t)}">${fmtTick(t)}</span>`).join('')}</div><div></div>`;
+    $('forest').innerHTML = h;
+    $('forest').querySelectorAll('[data-load]').forEach(a => a.addEventListener('click', ev => {
+      const sp = rows[+a.dataset.load].sp; Object.assign(S, { keys: sp.keys.slice(), resp: sp.resp, sample: sp.sample, se: sp.se }); syncChecks(); update();
+    }));
+    $('forest').querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { pins.splice(+b.dataset.rm, 1); renderForest(); }));
+  }
+  let pinCount = 0;
+  $('pinBtn').addEventListener('click', () => {
+    if (!S.keys.includes('rc')) { $('bMsg').innerHTML = 'Add rent control before pinning: the comparison tracks its coefficient.'; return; }
+    if (pins.some(p => specKey(p) === specKey(S))) return;
+    pins.push({ label: 'Your model ' + (++pinCount), keys: S.keys.slice(), resp: S.resp, sample: S.sample, se: S.se }); renderForest();
+  });
+  $('clearPins').addEventListener('click', () => { pins = pins.slice(0, 7); pinCount = 0; renderForest(); });
+
+  // =========================================================
+  // 3. Specification curve
+  // =========================================================
+  const CTR = ['pov', 'vac', 'unemp', 'ph', 'pop', 'avet', 'wet'];
+  const JOPT = [null, 'jan60', 'jan'];
+  let specs = [], sPts = [];
+  function computeSpecs() {
+    const rows = sampleRows(S.sample), y = respOf(rows, S.resp);
+    specs = [];
+    for (const J of JOPT) {
+      if (J === 'jan60' && S.sample === 'nomiami') continue;
+      for (let mask = 0; mask < 128; mask++) {
+        const keys = ['rc', ...CTR.filter((_, b) => mask >> b & 1), ...(J ? [J] : [])];
+        const ok = orderKeys(keys), m = olsLite(design(ok, rows), y, ok.indexOf('rc') + 1);
+        if (m) specs.push({ keys: ok, J, b: m.b, se: m.se, p: m.p, crit: tInv(0.025, m.df) });
+      }
+    }
+    specs.sort((a, b) => a.b - b.b);
+  }
+  function drawSpec() {
+    const cv = $('cvS'), { ctx, W, H } = sizeCanvas(cv, 0.36, 260, 400);
+    const L = 50, R = 12, T = 12, B = 34, n = specs.length;
+    const lo0 = Math.min(0, ...specs.map(s => s.b - s.crit * s.se)), hi0 = Math.max(...specs.map(s => s.b + s.crit * s.se));
+    const [lo, hi] = niceRange(lo0, hi0, 6);
+    const Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B), X = i => L + (i + 0.5) / n * (W - L - R);
+    axes(ctx, { L, R, T, B, W, H, xs: [], ys: ticks(lo, hi, 6), X, Y, yl: S.resp === 'log' ? 'Rent control (log scale)' : 'Rent-control effect', yfmt: fmtTick });
+    ctx.font = '12px ' + getComputedStyle(document.body).getPropertyValue('--font-body'); ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`${n} models, sorted by estimate`, (L + W - R) / 2, H - 4);
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(W - R, Y(0)); ctx.stroke();
+    const col = J => J === 'jan60' ? C.accent : J === 'jan' ? C.coinB : C.peg;
+    const curKey = S.keys.includes('rc') ? orderKeys(validKeys(S.keys, S.sample)).join(',') : '';
+    sPts = []; let curI = -1;
+    const bw = Math.max(1, (W - L - R) / n * 0.7);
+    specs.forEach((s, i) => {
+      const x = X(i);
+      ctx.globalAlpha = 0.28; ctx.fillStyle = col(s.J); ctx.fillRect(x - bw / 2, Y(s.b + s.crit * s.se), bw, Y(s.b - s.crit * s.se) - Y(s.b + s.crit * s.se));
+      ctx.globalAlpha = 1; dot(ctx, x, Y(s.b), Math.max(1.6, Math.min(3, bw)), col(s.J));
+      sPts.push({ x, y: Y(s.b), s, colOnly: true, click: true });
+      if (s.keys.join(',') === curKey) curI = i;
+    });
+    if (curI >= 0) { const s = specs[curI]; dot(ctx, X(curI), Y(s.b), 7, null, C.curve); ctx.lineWidth = 2; }
+    const sig = specs.filter(s => s.p < 0.05).length, inr = specs.filter(s => s.b >= 4 && s.b <= 5).length;
+    const byJ = J => specs.filter(s => s.J === J), med = a => { const v = a.map(s => s.b).sort((p, q) => p - q); return v.length ? (v[(v.length - 1) >> 1] + v[v.length >> 1]) / 2 : NaN; };
+    $('sMsg').innerHTML = `Range <b>${f2(specs[0].b)}</b> to <b>${f2(specs[n - 1].b)}</b>. Significant at 5%: <b>${sig}</b> of ${n}. Between 4 and 5: ${inr}. Median by January treatment: none ${f2(med(byJ(null)))}, dummy ${f2(med(byJ('jan60')))}, continuous ${f2(med(byJ('jan')))}.` + (curI < 0 ? ' The builder model is not on this curve (it needs rent control and at most one January variable).' : '');
+  }
+  hover($('cvS'), $('tipS'), () => sPts, p => {
+    const s = p.s, c = s.keys.filter(k => k !== 'rc' && k !== 'jan60' && k !== 'jan').map(k => PK[k].lab.replace(/ \(.*\)/, ''));
+    return `<b>${f2(s.b)}</b> [${f2(s.b - s.crit * s.se)}, ${f2(s.b + s.crit * s.se)}] · p ${fp(s.p)}<br>January: ${s.J === 'jan60' ? 'dummy' : s.J === 'jan' ? 'continuous' : 'none'}<br>Controls: ${c.length ? c.join(', ') : 'none'}`;
+  });
+  $('cvS').addEventListener('click', () => { const h = $('cvS')._hot; if (h && h.s) { S.keys = h.s.keys.slice(); syncChecks(); update(); } });
+
+  // =========================================================
+  // 4. Diagnostics
+  // =========================================================
+  let lPts = [], aPts = [];
+  const bonf = () => M ? tInv(0.025 / M.n, M.df - 1) : 3.56;
+  function drawDiag() {
+    for (const id of ['cvL', 'cvA']) if (!M) sizeCanvas($(id), 0.75, 240, 380);
+    if (!M) { $('inflTab').innerHTML = ''; $('dMsg').textContent = ''; return; }
+    const cut = bonf(), rows = M.rows;
+    { // leverage plot
+      const cv = $('cvL'), { ctx, W, H } = sizeCanvas(cv, 0.75, 240, 380);
+      const L = 44, R = 12, T = 12, B = 38;
+      const rsF = M.rs.filter(isFinite), ymax = Math.max(4, ...rsF.map(Math.abs)) + 0.3;
+      const Y = v => T + (1 - (v + ymax) / (2 * ymax)) * (H - T - B), X = v => L + v * (W - L - R);
+      axes(ctx, { L, R, T, B, W, H, xs: [0, 0.2, 0.4, 0.6, 0.8, 1], ys: ticks(-ymax, ymax, 6), X, Y, xl: 'Leverage h', yl: 'Studentized residual', yfmt: fmtTick, xfmt: v => v.toFixed(1) });
+      ctx.setLineDash([6, 4]); ctx.strokeStyle = C.curve; ctx.lineWidth = 1.5;
+      for (const c of [cut, -cut]) { ctx.beginPath(); ctx.moveTo(L, Y(c)); ctx.lineTo(W - R, Y(c)); ctx.stroke(); }
+      const hb = 2 * M.k / M.n; ctx.strokeStyle = C.muted; ctx.beginPath(); ctx.moveTo(X(hb), T); ctx.lineTo(X(hb), H - B); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C.muted; ctx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--font-mono'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('2p/n', X(hb) + 4, T + 2);
+      ctx.fillStyle = C.curve; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('±' + cut.toFixed(2), W - R - 2, Y(cut) - 2);
+      lPts = [];
+      const maxCook = Math.max(0.05, ...M.cook.filter(isFinite));
+      rows.forEach((ri, i) => {
+        const x = X(Math.min(1, M.h[i]));
+        if (M.exact[i]) { const y = Y(0); dot(ctx, x - 6, y, 7, null, C.curve); lPts.push({ x: x - 6, y, i, ri }); label(ctx, short(RAW[ri]) + ': h = 1, e = 0', x - 14, y - 14, W - 0, C.curve); return; }
+        const y = Y(M.rs[i]), r = 3.5 + 9 * Math.sqrt(M.cook[i] / maxCook);
+        ctx.globalAlpha = 0.85; dot(ctx, x, y, r, RAW[ri][12] ? C.ball : C.accent, C.board); ctx.globalAlpha = 1;
+        lPts.push({ x, y, i, ri });
+      });
+      for (const p of lPts) if (!M.exact[p.i] && (Math.abs(M.rs[p.i]) > 2.5 || M.h[p.i] > 0.5)) label(ctx, short(RAW[p.ri]), p.x, p.y, W);
+    }
+    { // actual vs fitted
+      const cv = $('cvA'), { ctx, W, H } = sizeCanvas(cv, 0.75, 240, 380);
+      const L = 44, R = 12, T = 12, B = 38, y = respOf(rows, S.resp);
+      let lo = Math.min(0, ...M.fit, ...y), hi = Math.max(...M.fit, ...y);
+      [lo, hi] = niceRange(lo, hi, 6);
+      const X = v => L + (v - lo) / (hi - lo) * (W - L - R), Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+      axes(ctx, { L, R, T, B, W, H, xs: ticks(lo, hi, 5), ys: ticks(lo, hi, 5), X, Y, xl: 'Fitted', yl: 'Actual', xfmt: fmtTick, yfmt: fmtTick });
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = C.muted; ctx.beginPath(); ctx.moveTo(X(lo), Y(lo)); ctx.lineTo(X(hi), Y(hi)); ctx.stroke(); ctx.setLineDash([]);
+      aPts = [];
+      rows.forEach((ri, i) => { const px = X(M.fit[i]), py = Y(y[i]); dot(ctx, px, py, 5, RAW[ri][12] ? C.ball : C.accent, C.board); aPts.push({ x: px, y: py, i, ri }); });
+      for (const p of aPts) if (M.exact[p.i] || Math.abs(M.rs[p.i]) > 2.5 || ['Chicago', 'Seattle', 'San Francisco'].includes(short(RAW[p.ri]))) label(ctx, short(RAW[p.ri]), p.x, p.y, W);
+    }
+    // table
+    const ord = rows.map((ri, i) => i).sort((a, b) => (isFinite(M.rs[b]) ? Math.abs(M.rs[b]) : -1) - (isFinite(M.rs[a]) ? Math.abs(M.rs[a]) : -1));
+    const top = ord.slice(0, 6); const hiLev = rows.map((_, i) => i).filter(i => M.h[i] > 0.5 && !top.includes(i)); const show = [...top, ...hiLev];
+    const y = respOf(rows, S.resp);
+    $('inflTab').innerHTML = `<thead><tr><th>City</th><th>Actual</th><th>Fitted</th><th>Stud. resid</th><th>Leverage</th><th>Cook's D</th></tr></thead><tbody>` +
+      show.map(i => `<tr class="${Math.abs(M.rs[i]) > cut || M.exact[i] ? 'hl' : ''}"><td>${RAW[rows[i]][0]}</td><td>${y[i].toFixed(2)}</td><td>${M.fit[i].toFixed(2)}</td><td>${isFinite(M.rs[i]) ? f2(M.rs[i]) : '—'}</td><td>${M.h[i].toFixed(2)}</td><td>${isFinite(M.cook[i]) ? M.cook[i].toFixed(3) : '—'}</td></tr>`).join('') + '</tbody>';
+    const nOut = M.rs.filter(v => Math.abs(v) > cut).length, mx = M.rs.filter(isFinite).reduce((a, b) => Math.abs(b) > Math.abs(a) ? b : a, 0);
+    $('dMsg').innerHTML = `Bonferroni cutoff t(0.025/${M.n}, ${M.df - 1}) = ${cut.toFixed(2)}. Largest studentized residual ${f2(mx)}; ${nOut ? nOut + ' cit' + (nOut > 1 ? 'ies exceed' : 'y exceeds') + ' it' : 'none exceeds it, so no city is a formal outlier, though the top two come close'}. Average leverage is p/n = ${(M.k / M.n).toFixed(2)}.` + (M.exact.some(Boolean) ? ' A city with h = 1 has an undefined studentized residual and Cook\'s distance (shown as —).' : '');
+  }
+  const diagTip = p => { const i = p.i; return `<b>${RAW[p.ri][0]}</b><br>actual ${respOf([p.ri], S.resp)[0].toFixed(2)} · fitted ${M.fit[i].toFixed(2)}<br>stud. resid ${isFinite(M.rs[i]) ? f2(M.rs[i]) : '— (h = 1)'}<br>leverage ${M.h[i].toFixed(3)} · Cook's D ${isFinite(M.cook[i]) ? M.cook[i].toFixed(3) : '—'}`; };
+  hover($('cvL'), $('tipL'), () => lPts, diagTip);
+  hover($('cvA'), $('tipA'), () => aPts, diagTip);
+
+  function renderMiami() {
+    $('miaYo').textContent = miamiY.toFixed(1);
+    const base = { resp: 'lev', sample: 'all', se: 'cl' };
+    const ctrl = S.keys.filter(k => k !== 'jan60');
+    const kA = orderKeys([...new Set([...ctrl, 'rc', 'jan60'])]), kB = orderKeys([...new Set([...ctrl, 'rc'])]);
+    const mA = fitSpec({ ...base, keys: kA }), mB = fitSpec({ ...base, keys: kB });
+    const rcA = mA ? mA.b[mA.keys.indexOf('rc') + 1] : NaN, rcB = mB ? mB.b[mB.keys.indexOf('rc') + 1] : NaN;
+    const iA = mA ? mA.rows.indexOf(MIA) : -1, iB = mB ? mB.rows.indexOf(MIA) : -1;
+    const dA = mA ? mA.b[mA.keys.indexOf('jan60') + 1] : NaN;
+    $('miaKv').innerHTML = `<span><b>With the dummy</b> (${kA.length} predictors)</span><span></span>
+      <span>Miami fitted / residual</span><span>${mA ? mA.fit[iA].toFixed(2) + ' / ' + f2(mA.e[iA]) : '—'}</span>
+      <span>Miami leverage</span><span>${mA ? mA.h[iA].toFixed(3) : '—'}</span>
+      <span>Dummy coefficient</span><span>${f2(dA)}</span>
+      <span>Rent control</span><span class="hl">${f2(rcA)}</span>
+      <span><b>Without the dummy</b></span><span></span>
+      <span>Miami fitted / residual</span><span>${mB ? mB.fit[iB].toFixed(2) + ' / ' + f2(mB.e[iB]) : '—'}</span>
+      <span>Miami leverage</span><span>${mB ? mB.h[iB].toFixed(3) : '—'}</span>
+      <span>Rent control</span><span class="hl">${f2(rcB)}</span>`;
+  }
+  $('miaY').addEventListener('input', e => { miamiY = +e.target.value; update(); });
+  $('miaReset').addEventListener('click', () => { miamiY = 15.9; $('miaY').value = 15.9; update(); });
+  $('miaToggle').addEventListener('click', () => {
+    if (S.sample === 'nomiami') S.sample = 'all';
+    S.keys = S.keys.includes('jan60') ? S.keys.filter(k => k !== 'jan60') : [...S.keys, 'jan60']; syncChecks(); update();
+  });
+
+  // =========================================================
+  // 5. Permutation test
+  // =========================================================
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const P = { model: 'two', perms: [], obs: NaN, rng: mulberry32(1), running: 0, last: null, sig: '' };
+  function permSetup() {
+    let keys, rows, resp = 'lev';
+    if (P.model === 'cur' && S.keys.includes('rc') && M) { keys = M.keys; rows = M.rows; resp = S.resp; }
+    else { keys = ['rc', 'jan60']; rows = sampleRows('all'); }
+    const y = respOf(rows, resp), j = keys.indexOf('rc') + 1;
+    const X = design(keys, rows);
+    const m = olsLite(X, y, j);
+    return { keys, rows, y, j, X, obs: m ? m.b : NaN, tp: m ? m.p : NaN, label: keys.map(k => PK[k].lab).join(' + ') + (resp === 'log' ? ' (log y)' : '') + ` · n = ${rows.length}` };
+  }
+  function permOne(cfg) {
+    const lab = cfg.rows.map(i => RAW[i][12]);
+    for (let i = lab.length - 1; i > 0; i--) { const k = Math.floor(P.rng() * (i + 1)); [lab[i], lab[k]] = [lab[k], lab[i]]; }
+    const X = cfg.X.map((r, i) => { const c = r.slice(); c[cfg.j] = lab[i]; return c; });
+    const m = olsLite(X, cfg.y, cfg.j);
+    return { b: m ? m.b : NaN, lab };
+  }
+  let PC = null;
+  function permReset() {
+    PC = permSetup(); P.perms = []; P.rng = mulberry32(1); P.last = null; P.running = 0;
+    P.sig = specKey(S) + miamiY + P.model;
+  }
+  function permRun(nRuns) {
+    if (P.running) return;
+    P.running = nRuns;
+    const step = () => {
+      const k = RM.matches ? P.running : Math.min(P.running, 200);
+      for (let t = 0; t < k; t++) { const r = permOne(PC); if (isFinite(r.b)) P.perms.push(r.b); }
+      P.running -= k; drawPerm();
+      if (P.running > 0) requestAnimationFrame(step);
+    };
+    step();
+  }
+  function drawPerm() {
+    const cv = $('cvP'), { ctx, W, H } = sizeCanvas(cv, 0.5, 260, 400);
+    const L = 50, R = 12, T = 14, B = 38, v = P.perms, obs = PC.obs;
+    const ext = Math.max(Math.abs(obs) * 1.15, ...v.map(Math.abs), 1);
+    const [lo, hi] = niceRange(-ext, ext, 8);
+    const nb = 48, bw = (hi - lo) / nb, cnt = new Array(nb).fill(0);
+    for (const b of v) { const k = Math.min(nb - 1, Math.max(0, Math.floor((b - lo) / bw))); cnt[k]++; }
+    const cmax = Math.max(5, ...cnt);
+    const [, ch] = niceRange(0, cmax, 4);
+    const X = x => L + (x - lo) / (hi - lo) * (W - L - R), Y = c => T + (1 - c / ch) * (H - T - B);
+    axes(ctx, { L, R, T, B, W, H, xs: ticks(lo, hi, W < 500 ? 5 : 8), ys: ticks(0, ch, 4), X, Y, xl: 'Rent-control estimate after shuffling', yl: 'Count', xfmt: fmtTick, yfmt: fmtTick });
+    ctx.fillStyle = C.accent; ctx.globalAlpha = 0.8;
+    cnt.forEach((c, k) => { if (c) ctx.fillRect(X(lo + k * bw) + 0.5, Y(c), Math.max(1, X(lo + (k + 1) * bw) - X(lo + k * bw) - 1), Y(0) - Y(c)); });
+    ctx.globalAlpha = 1;
+    if (P.last && isFinite(P.last.b)) { dot(ctx, X(P.last.b), Y(0) - 6, 5, C.ball, C.board); }
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(obs), T); ctx.lineTo(X(obs), H - B); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = C.curve; ctx.font = '600 12px ' + getComputedStyle(document.body).getPropertyValue('--font-mono'); ctx.textBaseline = 'top';
+    const txt = 'observed ' + f2(obs); ctx.textAlign = X(obs) + ctx.measureText(txt).width + 6 > W - R ? 'right' : 'left';
+    ctx.fillText(txt, X(obs) + (ctx.textAlign === 'left' ? 5 : -5), T + 2);
+    const B_ = v.length, ge = v.filter(b => b >= obs - 1e-12).length, ab = v.filter(b => Math.abs(b) >= Math.abs(obs) - 1e-12).length;
+    const sd = B_ > 1 ? Math.sqrt(v.reduce((s, b) => s + (b - mean(v)) ** 2, 0) / (B_ - 1)) : NaN;
+    $('pTab').innerHTML = `<tr><td>Observed estimate</td><td>${f2(obs)}</td></tr>
+      <tr><td>Shuffles run</td><td>${B_.toLocaleString()}</td></tr>
+      <tr><td>Shuffles ≥ observed</td><td>${ge.toLocaleString()}</td></tr>
+      <tr><td>One-sided p</td><td>${B_ ? (ge ? (ge / B_).toFixed(4) : '< ' + (1 / B_).toFixed(4)) : '—'}</td></tr>
+      <tr><td>Two-sided p (|b| ≥ |obs|)</td><td>${B_ ? (ab ? (ab / B_).toFixed(4) : '< ' + (1 / B_).toFixed(4)) : '—'}</td></tr>
+      <tr><td>SD of shuffled estimates</td><td>${f2(sd)}</td></tr>
+      <tr><td>t-test p (two-sided)</td><td>${fp(PC.tp)}</td></tr>`;
+    $('pHint').textContent = 'Model: ' + PC.label + '. Seeded shuffles, so Reset gives the same sequence.';
+    if (P.last) {
+      const names = PC.rows.filter((_, i) => P.last.lab[i]).map(i => short(RAW[i]));
+      $('pLast').innerHTML = `Last shuffle gave the label to: ${names.join(', ')}. Estimate <b>${f2(P.last.b)}</b> (amber dot).`;
+    } else $('pLast').innerHTML = `Under shuffling, estimates centre on zero with SD about ${f2(sd)}. The observed ${f2(obs)} is ${isFinite(sd) ? (obs / sd).toFixed(1) : '—'} SDs out.`;
+  }
+  const bindP = (id, fn) => $(id).addEventListener('click', fn);
+  bindP('pOne', () => { if (P.running) return; P.last = permOne(PC); if (isFinite(P.last.b)) P.perms.push(P.last.b); drawPerm(); });
+  bindP('p1k', () => { P.last = null; permRun(1000); });
+  bindP('p5k', () => { P.last = null; permRun(5000); });
+  bindP('pReset', () => { permReset(); drawPerm(); });
+  bindP('pmTwo', () => { P.model = 'two'; $('pmTwo').setAttribute('aria-pressed', true); $('pmCur').setAttribute('aria-pressed', false); permReset(); permRun(1000); });
+  bindP('pmCur', () => { P.model = 'cur'; $('pmTwo').setAttribute('aria-pressed', false); $('pmCur').setAttribute('aria-pressed', true); permReset(); permRun(1000); });
+
+  // =========================================================
+  // 6. Mechanism
+  // =========================================================
+  let mc = 'mia';
+  function renderMech() {
+    const ctrl = mc === 'mia' ? ['jan60'] : ['pov', 'unemp', 'ph', 'pop', 'avet', 'jan60', 'wet'];
+    const rows = sampleRows('all'), y = respOf(rows, 'lev');
+    const fitK = (keys, yy) => { const k = orderKeys(keys); const m = ols(design(k, rows), yy, false); return { m, at: key => k.indexOf(key) + 1 }; };
+    const tot = fitK([...ctrl, 'rc'], y), dir = fitK([...ctrl, 'rc', 'vac'], y), vo = fitK([...ctrl, 'vac'], y);
+    const vac = rows.map(i => RAW[i][8]), aM = fitK([...ctrl, 'rc'], vac), aRaw = fitK(['rc'], vac);
+    const c = tot.m.b[tot.at('rc')], cp = dir.m.b[dir.at('rc')], b = dir.m.b[dir.at('vac')], a = aM.m.b[aM.at('rc')];
+    const cell = (fk, key) => { const j = fk.at(key); return `${f2(fk.m.b[j])} <span style="color:var(--muted)">(${fp(fk.m.p[j])})</span>`; };
+    const cname = mc === 'mia' ? 'Miami dummy' : 'Tucker controls';
+    $('medTab').innerHTML = `<thead><tr><th>Model (all with ${cname})</th><th>Rent control</th><th>Vacancy</th><th>adj. R²</th></tr></thead><tbody>
+      <tr class="hl"><td>Total: homeless ~ RC</td><td>${cell(tot, 'rc')}</td><td class="na">—</td><td>${tot.m.adj.toFixed(3)}</td></tr>
+      <tr><td>Vacancy alone: homeless ~ vacancy</td><td class="na">—</td><td>${cell(vo, 'vac')}</td><td>${vo.m.adj.toFixed(3)}</td></tr>
+      <tr><td>Both: homeless ~ RC + vacancy</td><td>${cell(dir, 'rc')}</td><td>${cell(dir, 'vac')}</td><td>${dir.m.adj.toFixed(3)}</td></tr>
+      <tr><td>Path a: vacancy ~ RC</td><td>${cell(aM, 'rc')}</td><td class="na">—</td><td>${aM.m.adj.toFixed(3)}</td></tr>
+    </tbody>`;
+    $('medMsg').innerHTML = `Identity check: c′ + a·b = ${f2(cp)} + (${f2(a)})(${f2(b)}) = <b>${f2(cp + a * b)}</b>, equal to the total c = <b>${f2(c)}</b>. The part through vacancy is ${f2(a * b)} (${(100 * a * b / c).toFixed(0)}% of the total). Without any controls, vacancy on rent control gives ${f2(aRaw.m.b[1])} points (8.41% vs 2.16%), correlation ${f2(corr(vac, rows.map(i => RAW[i][12])))}. Values in parentheses are p values.`;
+    // path diagram
+    const box = (x, y, w, h, t1, t2, cls) => `<rect class="box ${cls || ''}" x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/><text x="${x + w / 2}" y="${y + h / 2 - (t2 ? 6 : -5)}" text-anchor="middle" font-size="15" font-weight="700">${t1}</text>` + (t2 ? `<text class="sm" x="${x + w / 2}" y="${y + h / 2 + 13}" text-anchor="middle">${t2}</text>` : '');
+    $('pathSvg').innerHTML = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+      <g style="color:var(--ink)">
+      ${box(10, 200, 150, 58, 'Rent control', '9 of 50 cities', 'rcb')}
+      ${box(205, 96, 150, 58, 'Vacancy rate', '2.2% vs 8.4%')}
+      ${box(400, 200, 150, 58, 'Homelessness', 'per 1000')}
+      ${box(140, 6, 280, 52, 'Tight, costly coastal markets', 'unmeasured: selection', 'conf')}
+      <path class="arr" d="M110 198 L232 158" marker-end="url(#ah)"/>
+      <path class="arr" d="M330 158 L450 198" marker-end="url(#ah)"/>
+      <path class="arr" d="M162 236 L396 236" marker-end="url(#ah)"/>
+      <path class="arr dash" d="M180 60 L50 196" marker-end="url(#ah)" style="color:var(--muted)"/>
+      <path class="arr dash" d="M380 60 L510 196" marker-end="url(#ah)" style="color:var(--muted)"/>
+      </g>
+      <text class="num" x="176" y="205">a = ${f2(a)}</text>
+      <text class="num" x="384" y="205" text-anchor="end">b = ${f2(b)}</text>
+      <text class="num" x="279" y="228" text-anchor="middle">direct c′ = ${f2(cp)}</text>
+      <text class="sm" x="279" y="276" text-anchor="middle">total c = ${f2(c)} = c′ + a·b</text>`;
+  }
+  $('mcMia').addEventListener('click', () => { mc = 'mia'; $('mcMia').setAttribute('aria-pressed', true); $('mcAll').setAttribute('aria-pressed', false); renderMech(); });
+  $('mcAll').addEventListener('click', () => { mc = 'all'; $('mcMia').setAttribute('aria-pressed', false); $('mcAll').setAttribute('aria-pressed', true); renderMech(); });
+
+  // demos
+  const scrollB = () => $('builder').scrollIntoView({ behavior: RM.matches ? 'auto' : 'smooth', block: 'start' });
+  $('demoT').addEventListener('click', () => { Object.assign(S, { keys: TUCKER.slice(), resp: 'lev', sample: 'all', se: 'cl' }); syncChecks(); update(); scrollB(); });
+  $('demoJ').addEventListener('click', () => { Object.assign(S, { keys: TUCKER.map(k => k === 'jan60' ? 'jan' : k), resp: 'lev', sample: 'all', se: 'cl' }); syncChecks(); update(); scrollB(); });
+  $('demoV').addEventListener('click', () => { Object.assign(S, { keys: ['rc', 'jan60', 'vac'], resp: 'lev', sample: 'all', se: 'cl' }); syncChecks(); update(); scrollB(); });
+
+  // ---------- update loop ----------
+  function update() {
+    renderBuilder(); renderForest(); computeSpecs(); drawSpec(); drawDiag(); renderMiami(); drawExplore(); groupTable(); renderMech();
+    if (PC) { // refit the permutation test only when its model or data changed
+      const nc = permSetup();
+      if (nc.obs !== PC.obs || nc.label !== PC.label) { P.running = 0; permReset(); permRun(1000); }
+    }
+  }
+  function redrawAll() { drawExplore(); drawSpec(); drawDiag(); if (PC) drawPerm(); }
+  readColors(); syncChecks();
+  permReset();
+  update();
+  permRun(1000);
+  const recolor = () => { readColors(); redrawAll(); };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  let rT = 0;
+  const ro = new ResizeObserver(() => { cancelAnimationFrame(rT); rT = requestAnimationFrame(redrawAll); });
+  for (const id of ['cvE', 'cvS', 'cvL', 'cvA', 'cvP']) ro.observe($(id).parentElement);
+})();
+</script>
+
+</body></html>

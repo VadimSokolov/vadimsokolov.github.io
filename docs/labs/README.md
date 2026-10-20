@@ -4,7 +4,7 @@ Interactive statistics labs based on Polson and Sokolov,
 *Bayes, Artificial Intelligence, and Deep Learning* (https://vsokolov.org/html/_book/).
 
 Every page is a self-contained HTML file (no build step, no dependencies besides Google Fonts).
-`index.html` is the hub; it links to the 28 lab pages in this folder.
+`index.html` is the hub; it links to the 31 lab pages in this folder.
 
 ## Publish on GitHub Pages
 
