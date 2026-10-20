@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
+
+[![Clinical Trials in Practice: From Foundations to AI Agents](https://vsokolov.org/books/clinical_trials_in_practice/cover.jpg)](https://vsokolov.org/books/clinical_trials_in_practice/) Alexandra Sokolova and Vadim Sokolov. 2026. Edition 1.
+
+Clinical trials as science and as regulated operations: design and statistics, the daily work of a Phase III study from site selection to the trial master file, regulatory submission, and what AI agents may and may not do in regulated research.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice/releases/download/v1.1.0/clinical_trials_in_practice.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/clinical_trials_in_practice/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice "Source on GitHub") [![DOI 10.5281/zenodo.23509692](https://zenodo.org/badge/DOI/10.5281/zenodo.23509692.svg)](https://doi.org/10.5281/zenodo.23509692)
+
 ## [On Statistical Methods for Genetics](https://vsokolov.org/books/statistical_methods_genetics/) <small>Fisher, Ewens and the Bayesian Programme</small>
 
 [![On Statistical Methods for Genetics: Fisher, Ewens and the Bayesian Programme](https://vsokolov.org/books/statistical_methods_genetics/cover.jpg)](https://vsokolov.org/books/statistical_methods_genetics/) Nicholas G. Polson. 2026. Edition 1.
@@ -41,11 +49,3 @@ Hilbert's sixth problem from Kolmogorov's axioms and the Boltzmann equation to t
 Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, the reciprocal zeta function and Lee Yang theory.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.1.0/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23400373](https://zenodo.org/badge/DOI/10.5281/zenodo.23400373.svg)](https://doi.org/10.5281/zenodo.23400373) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
-
-## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
-
-[![Clinical Trials in Practice: From Foundations to AI Agents](https://vsokolov.org/books/clinical_trials_in_practice/cover.jpg)](https://vsokolov.org/books/clinical_trials_in_practice/) Alexandra Sokolova and Vadim Sokolov. 2026. Edition 1.
-
-A practical guide to clinical trials as science and as regulated operations: the phases, statistics and design, the daily work of a Phase III study, regulatory submission, and where AI agents belong in clinical development.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice/releases/download/v1.0.0/clinical_trials_in_practice.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/clinical_trials_in_practice/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice "Source on GitHub") [![DOI 10.5281/zenodo.23330460](https://zenodo.org/badge/DOI/10.5281/zenodo.23330460.svg)](https://doi.org/10.5281/zenodo.23330460)
