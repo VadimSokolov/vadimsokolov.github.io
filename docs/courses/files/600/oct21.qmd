@@ -1,0 +1,101 @@
+---
+title: "21 October: from the odds to a bet"
+subtitle: "AII 600. One race, then a decision."
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    theme: cosmo
+    embed-resources: true
+    html-math-method: mathjax
+---
+
+Wednesday 21 October, 7:20 to 10:00. The night is one path. Hong Kong win odds become a probability, a model corrects that probability, a cutoff turns it into a bet, and the Kelly fraction sizes the stake. The book is Chapter 13, Horse Race Betting, and Chapter 4 for the Kelly fraction.
+
+Two labs, then a notebook.
+
+- [Benter betting lab](https://vsokolov.org/labs/benter-lab.html). The odds, the correction, the softmax over the field, the stake, and the track's cut.
+- [Logistic regression lab](https://vsokolov.org/labs/logistic-roc-lab.html). The same cutoff, drawn as an ROC curve, on the NBA spread model from Chapter 13.
+- [Notebook](oct21.ipynb). One field through the softmax, the cutoff from the two costs, and the two Kelly fractions. Predict each number before you run the cell.
+
+The lab's $\alpha$ is the weight on the public log-odds. The cutoff in this note is $t$. The book uses $\alpha$ for that cutoff. They are different objects.
+
+## The odds are a forecast
+
+A quoted win dividend $O$ is the amount a \$1 winning ticket returns, stake included. Two conversions:
+
+$$
+\frac{1}{O+1} \qquad\text{and}\qquad \frac{1}{O}.
+$$
+
+The lab normalizes either one inside the race so the field sums to 1. The take on the panel is $1 - 1/\sum(1/O)$. Hong Kong keeps about 17.5% of the pool. Read the panel and see which conversion that sentence belongs to.
+
+Favorites win about 4 to 5 percentage points more often than the public odds imply, at both Happy Valley and Sha Tin. A point on the 45° line would mean the crowd is calibrated.
+
+In the lab, section 1. Before touching the control, write the implied probability of a horse quoted at 3.5 under both formulas. Then switch the conversion, and compare the favorite's bias, the fitted $\alpha$, and the overround.
+
+## One number corrects the crowd
+
+The public-only model rescales the log-odds inside the race and renormalizes:
+
+$$
+c_i = \frac{\exp(\alpha \,\mathrm{logit}\, p_i)}{\sum_{k \in \mathrm{race}} \exp(\alpha \,\mathrm{logit}\, p_k)}.
+$$
+
+$\alpha>1$ stretches the gaps and moves probability from longshots toward favorites. The value of $\alpha$ is the one that minimizes the negative log-likelihood of the horses that won. The case study reports $\alpha=1.06$. Read the maximum likelihood estimate off the panel, and the gain in log-likelihood per race. The horizontal line at 1.92 is the edge of a 95% likelihood interval. Compare it with $\hat\alpha \pm 1.96\,\mathrm{SE}$.
+
+## The field is one softmax
+
+A race with $K$ horses is one winner, not $K$ separate yes-or-no questions. The full model adds four factors to the public log-odds. Each is known before the race: the jockey's past win rate, the trainer's past win rate, the starting gate relative to the field, and the horse's rating relative to the field, per 10 points.
+
+$$
+\eta_i = \alpha\,\mathrm{logit}(p_i) + \beta_J \,\mathrm{jockey}_i + \beta_T \,\mathrm{trainer}_i + \beta_D \,\mathrm{draw}_i + \beta_R \,\mathrm{rating}_i/10,
+$$
+
+$$
+c_i = \frac{e^{\eta_i}}{\sum_{k \in \mathrm{race}} e^{\eta_k}}.
+$$
+
+The loss is $-\log c$ for the horse that won. Two horses, and no extra factors, bring this back to the sigmoid. In the notebook, pass one field of four through this formula before you look at the lab's example race.
+
+In section 3 of the lab, which coefficients have $|z|>2$? Say, in one sentence, what a negative jockey coefficient means once the public log-odds are already in the model. Switch the evaluation to later races and see whether the full model still beats the public-only model.
+
+## The cutoff comes from the two costs
+
+Bet \$1 on the favorite when the model's probability clears a cutoff $t$. At decimal odds 2.5 the book pays $+1.5$ if the horse wins and $-1$ if it loses. Not betting pays 0 either way.
+
+A false positive costs the stake, $c_{FP}=1$. A false negative is the profit you do not take, $c_{FN}=1.5$. Betting has positive expected payoff when
+
+$$
+t = \frac{c_{FP}}{c_{FP}+c_{FN}} = \frac{1}{2.5}.
+$$
+
+Equal costs put the cutoff at $1/2$. A missed event that costs five times a false alarm, the week-7 case, puts it at $1/6$. The model supplies $p$. The costs supply $t$.
+
+In the notebook, compute the expected payoff of a \$1 bet at $p=0.30$, $0.40$, and $0.50$, then replace $1.5$ with $5$ and recompute $t$.
+
+## The ROC curve is every cutoff
+
+One cutoff is one point. Sensitivity is the share of winners you bet. Specificity is the share of losers you refuse, so the horizontal coordinate is the share of losers you bet. Lowering $t$ moves up and to the right: more winners kept, more losing bets taken. The diagonal is a score with nothing in it. The costs choose the point. The curve says whether any point is worth having.
+
+Chapter 13 writes the expected profit per race of the rule "bet \$1 on the favorite when $p>t$" as
+
+$$
+\mathrm{E}(\mathrm{profit}\mid t) = P(\mathrm{win})\cdot \mathrm{sensitivity}(t)\cdot 1.5 - P(\mathrm{lose})\cdot \bigl(1-\mathrm{specificity}(t)\bigr)\cdot 1.
+$$
+
+Open the logistic regression lab. At a cutoff of $0.5$ the NBA model predicts that every favorite wins, so specificity is $0\%$. Write down why, from $p=\sigma(0.156\times \mathrm{spread})$, before you move the slider. Then set the cutoff to $0.75$ and read the new sensitivity and specificity off the matrix and off the curve.
+
+## The stake, then the take
+
+An edge is model probability times the dividend, minus one. For a bet that pays $b$ to $1$ and wins with probability $p$, the Kelly fraction of the bankroll is
+
+$$
+f^\star = \frac{bp - (1-p)}{b}.
+$$
+
+The growth per bet is $g(f)= p\log(1+bf) + (1-p)\log(1-f)$. Past $f^\star$, growth falls.
+
+In section 4, load the two case-study bets, $4/1$ at $p=1/4$ and $12/1$ at $p=1/10$. Compute both edges and both fractions in the notebook before you read them off the panel. Then set the stake to $2f^\star$ and predict the median growth before you run the paths.
+
+In section 6 the model is refit on the early races and bet on the later ones. Start from the actual odds and lower the take until flat staking breaks even. Compare that take with the $17.5\%$ the track deducts. The closing sentence is what else would have to go right for a real bettor: the edge has to beat the take, survive the price impact of your own money, and still be there in the races the model did not fit.
