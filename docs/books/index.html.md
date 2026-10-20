@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [On Statistical Methods for Genetics](https://vsokolov.org/books/statistical_methods_genetics/) <small>Fisher, Ewens and the Bayesian Programme</small>
+
+[![On Statistical Methods for Genetics: Fisher, Ewens and the Bayesian Programme](https://vsokolov.org/books/statistical_methods_genetics/cover.jpg)](https://vsokolov.org/books/statistical_methods_genetics/) Nicholas G. Polson. 2026. Edition 1.
+
+Statistical theory of population genetics: an exact form of Fisher's Fundamental Theorem, shrinkage estimates of the rate of adaptation, the Ewens sampling formula and its rigidity, rational conjugacy, and sufficiency for learned coalescent inference.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/statistical_methods_genetics/releases/download/v1.0.1/statistical_methods_genetics.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/statistical_methods_genetics "Source on GitHub") [![DOI 10.5281/zenodo.23509850](https://zenodo.org/badge/DOI/10.5281/zenodo.23509850.svg)](https://doi.org/10.5281/zenodo.23509850)
+
 ## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
 
 [![On Langlands Conjectures: Probabilistic Methods](https://vsokolov.org/books/langlands/cover.jpg)](https://vsokolov.org/books/langlands/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
