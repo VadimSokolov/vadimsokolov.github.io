@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>CNN Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: three parts, each a board (visual) plus a right-hand panel. Part 1 is the instructor's 5x5 convolution sheet cell for cell; Part 2 the sheet's 28x28 two-layer example; Part 3 trains a small CNN and a dense net in the browser. Lesson cards and class exercises at the end. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --board: #f7f8fa;
+  --ink: #17212c;
+  --muted: #5a6674;
+  --line: #d3d9e0;
+  --grid: #e3e7ec;
+  --accent: #2257b0;
+  --on-accent: #ffffff;
+  --ball: #c9811a;
+  --curve: #c23a2e;
+  --peg: #3a4654;
+  --point: #3a4654;
+  --fit: #0e7f73;
+  --coinA: #0e7f73;
+  --coinB: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+    --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+    --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1;
+  --line: #2a3440; --grid: #1f2831; --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --peg: #b8c3cf;
+  --point: #b8c3cf; --fit: #3cc7b4; --coinA: #3cc7b4; --coinB: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+a.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+a.back:hover { text-decoration: underline; }
+a.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 80ch; }
+.src a { color: var(--accent); }
+
+.part { display: flex; flex-direction: column; gap: 14px; }
+.phead { display: flex; flex-direction: column; gap: 4px; max-width: 80ch; }
+.phead h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.phead p { margin: 0; color: var(--muted); }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.btns.b5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.btns.b4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.btns.b2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.btns .wide { grid-column: 1 / -1; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 8px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: background .15s, border-color .15s; line-height: 1.25; min-width: 0; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary[aria-pressed="true"] { background: var(--curve); border-color: var(--curve); }
+button[aria-pressed="true"]:not(.primary) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+button.mono { font-family: var(--font-mono); font-size: 15px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 7px 4px; box-shadow: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; width: 100%; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-weight: 700; font-size: 14px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.hint b { color: var(--ink); }
+.ok { color: var(--fit); font-weight: 700; }
+.warn { color: var(--curve); font-weight: 700; }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13.5px; padding-left: 6px; }
+.stats td:first-child { font-family: var(--font-body); padding-left: 0; padding-right: 6px; }
+.stats tr:last-child td { border-bottom: 0; }
+#tab1 th + th, #tab1 td + td { width: 32%; }
+.stats td.sv { color: var(--curve); }
+.stats td.pg { color: var(--accent); }
+.stats td.cn { color: var(--accent); }
+.stats td.dn { color: var(--fit); }
+.stats small { color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.big { font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.cap { font-size: 12.5px; color: var(--muted); margin: 0; }
+.ref { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: .02em; }
+.sh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.sh b { font-family: var(--font-display); font-size: 15px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-size: 12.5px; line-height: 1.4; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 5; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; flex: none; }
+.sw.cn { background: var(--accent); } .sw.dn { background: var(--fit); }
+.sw.ln { height: 0; border-top: 2.5px solid var(--accent); border-radius: 0; background: none; }
+.sw.ln.dn { border-top-color: var(--fit); }
+.sw.ln.dash { border-top-style: dashed; }
+.sw.pos { background: var(--accent); } .sw.neg { background: var(--curve); } .sw.hl { background: transparent; border: 2px solid var(--ball); }
+
+/* Part 1: spreadsheet cells */
+.flow { display: flex; flex-wrap: wrap; gap: 16px 22px; align-items: flex-start; }
+.stage { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.stage .pair { display: flex; flex-direction: column; gap: 10px; }
+.cells { display: grid; gap: 3px; width: max-content; }
+.cells.c5 { grid-template-columns: repeat(5, 40px); }
+.cells.c3 { grid-template-columns: repeat(3, 40px); }
+.cells.c1 { grid-template-columns: 52px; }
+.cell { position: relative; height: 40px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); display: grid; place-items: center; font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; color: var(--ink); padding: 0; font-weight: 600; }
+.cell i { position: absolute; top: 1px; left: 3px; font-style: normal; font-size: 8.5px; font-weight: 400; color: var(--muted); line-height: 1; pointer-events: none; }
+.cell.dk { color: var(--surface); } .cell.dk i { color: var(--surface); opacity: .8; }
+button.cell { width: 40px; cursor: pointer; }
+button.cell:hover { border-color: var(--accent); }
+.cell.win { outline: 2.5px solid var(--ball); outline-offset: -1px; z-index: 1; }
+.cell.cur { outline: 2.5px solid var(--ball); outline-offset: -1px; }
+.cell input { width: 100%; height: 100%; border: 0; background: transparent; text-align: center; font: inherit; color: inherit; padding: 6px 0 0; -moz-appearance: textfield; appearance: textfield; }
+.cell input::-webkit-outer-spin-button, .cell input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cell:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fc { display: grid; grid-template-columns: auto auto auto auto auto auto; gap: 4px 5px; align-items: center; font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.fc .w { width: 46px; height: 30px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); text-align: center; font: inherit; color: var(--ink); -moz-appearance: textfield; appearance: textfield; }
+.fc .w::-webkit-outer-spin-button, .fc .w::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.fc .v { font-weight: 600; color: var(--accent); min-width: 34px; text-align: right; }
+.fc .m { color: var(--muted); }
+.smx { display: grid; grid-template-columns: auto minmax(60px, 120px) auto; gap: 6px 8px; align-items: center; font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.smx .bar { height: 14px; background: var(--grid); border-radius: 3px; position: relative; overflow: hidden; }
+.smx .bar span { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 3px; }
+.smx .bar span.win { background: var(--ball); }
+.dot { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; line-height: 1.7; }
+.dot .t { color: var(--ball); font-weight: 600; } .dot .m { color: var(--muted); } .dot .a { color: var(--accent); font-weight: 600; }
+
+/* Part 2 and 3: pixel maps */
+canvas { display: block; }
+canvas.pix { width: 100%; height: auto; aspect-ratio: 1 / 1; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+canvas.draw { touch-action: none; cursor: crosshair; }
+.p2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px; align-items: start; }
+@media (max-width: 640px) { .p2 { grid-template-columns: minmax(0, 1fr); } }
+.stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mp { display: grid; grid-template-columns: 92px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; }
+.mp .lab { font-size: 12.5px; line-height: 1.25; }
+.mp .lab b { font-family: var(--font-display); font-size: 14px; display: block; }
+.mp .lab span { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); display: block; }
+.mp canvas.pix { max-width: 150px; }
+.en4 { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.en4 .big { color: var(--accent); }
+.en4 .eqn { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.k3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; font-family: var(--font-mono); font-size: 11.5px; font-variant-numeric: tabular-nums; max-width: 170px; }
+.k3 span { background: var(--board); border: 1px solid var(--line); border-radius: 3px; text-align: center; padding: 1px 0; }
+.kpair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.kpair .ref { display: block; margin-bottom: 3px; }
+.readout { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.5em; }
+
+/* Part 3 */
+.charts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 640px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+.plot { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.plot canvas { width: 100%; }
+.plot .sh { justify-content: space-between; }
+.plot .seg { width: 150px; }
+.filters { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 640px) { .filters { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.filters .f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.filters .f span { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); text-align: center; }
+.samples { width: 100%; image-rendering: pixelated; border-radius: 4px; border: 1px solid var(--line); }
+.padrow { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 10px; align-items: start; }
+.padrow .seen { display: flex; flex-direction: column; gap: 4px; }
+.probs { display: grid; grid-template-columns: 16px minmax(0, 1fr) 62px; gap: 2px 8px; align-items: center; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.probs .bars { display: flex; flex-direction: column; gap: 2px; }
+.probs .bars i { display: block; width: 0; height: 6px; border-radius: 2px; min-width: 1px; }
+.probs .bars i.cn { background: var(--accent); } .probs .bars i.dn { background: var(--fit); }
+.probs .d { font-weight: 600; }
+.probs .d.top { color: var(--ball); }
+.probs .pv { text-align: right; color: var(--muted); font-size: 11px; line-height: 1.15; }
+.status { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.verdict { font-size: 14px; }
+.verdict b { font-family: var(--font-display); font-size: 18px; }
+
+/* Lesson, notes, try */
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cap { margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eq .m + .m { margin-top: 2px; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.formula { font-family: var(--font-mono); font-size: 13px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.formula + .formula { margin-top: 6px; }
+.pooltab { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 4px 0 8px; }
+.pooltab .cells.c4 { grid-template-columns: repeat(4, 34px); }
+.pooltab .cells.c2 { grid-template-columns: repeat(2, 40px); }
+.pooltab .cell { height: 32px; font-size: 12.5px; }
+.try { background: transparent; border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 84ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+@media (max-width: 420px) {
+  .cells.c5 { grid-template-columns: repeat(5, 36px); } .cells.c3 { grid-template-columns: repeat(3, 36px); }
+  .cell { height: 36px; } button.cell { width: 36px; }
+  .mp { grid-template-columns: 74px minmax(0, 1fr) minmax(0, 1fr); }
+}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Convolutional networks</span>
+    <h1>CNN Lab</h1>
+    <p class="lead">Start with the instructor's spreadsheet: a 5×5 X, two 3×3 filters, max pooling, a small dense layer and a softmax, with every number live and every cell labelled. Then run the same steps on a 28×28 digit you can draw on, and finally train a small convolutional network in your browser and race it against a plain dense network.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Starts from the instructor’s convolution spreadsheet. See Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/22-cnn.html">Chapter 22</a> (convolutional neural networks).</p>
+  </header>
+
+  <!-- PART 1 -->
+  <section class="part" aria-labelledby="p1h">
+    <div class="phead">
+      <span class="eyebrow">Part 1 · The spreadsheet, live</span>
+      <h2 id="p1h">An X, two diagonal filters and a softmax</h2>
+      <p>The small labels are the sheet's cell names. Click input pixels, type new filter or dense weights, and watch the 3×3 window move across the image one dot product at a time.</p>
+    </div>
+    <div class="grid">
+      <section class="board" id="b1" aria-label="The 5 by 5 convolution example from the spreadsheet">
+        <div class="flow">
+          <div class="stage">
+            <div class="sh"><b>Input</b><span class="ref">A3:E7</span></div>
+            <div class="cells c5" id="inGrid" role="group" aria-label="Input pixels, click to flip"></div>
+            <p class="cap">Click a pixel to flip it.</p>
+          </div>
+          <div class="stage">
+            <div class="sh"><b>Filters</b></div>
+            <div class="pair">
+              <div><span class="ref">Filter 1 · H2:J4</span><div class="cells c3" id="f1Grid" role="group" aria-label="Filter 1 weights"></div></div>
+              <div><span class="ref">Filter 2 · H6:J8</span><div class="cells c3" id="f2Grid" role="group" aria-label="Filter 2 weights"></div></div>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="sh"><b>Feature maps</b></div>
+            <div class="pair">
+              <div><span class="ref">Output 1 · M2:O4</span><div class="cells c3" id="o1Grid"></div></div>
+              <div><span class="ref">Output 2 · M6:O8</span><div class="cells c3" id="o2Grid"></div></div>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="sh"><b>Max pool</b></div>
+            <div class="pair">
+              <div><span class="ref">=MAX(M2:O4)</span><div class="cells c1" id="q3Cell"></div></div>
+              <div><span class="ref">=MAX(M6:O8)</span><div class="cells c1" id="q7Cell"></div></div>
+            </div>
+          </div>
+          <div class="stage">
+            <div class="sh"><b>Fully connected</b><span class="ref">S4:S6</span></div>
+            <div class="fc" id="fcGrid"></div>
+          </div>
+          <div class="stage">
+            <div class="sh"><b>Softmax</b><span class="ref">V4:V6</span></div>
+            <div class="smx" id="smxGrid"></div>
+          </div>
+        </div>
+        <div class="dot" id="dot" aria-live="polite"></div>
+        <div class="legend"><span><i class="sw hl"></i>current 3×3 window and the cell it fills</span><span><i class="sw pos"></i>larger value</span></div>
+      </section>
+      <aside class="panel" aria-label="Part 1 controls">
+        <div class="group">
+          <span class="label">Input pattern</span>
+          <div class="btns b5">
+            <button id="pX" class="mono" aria-pressed="true" title="The sheet's input, A3:E7">X</button>
+            <button id="pO" class="mono" title="A ring">O</button>
+            <button id="pPlus" class="mono" title="The sheet's + shape, Y14:AC18">+</button>
+            <button id="pSlash" class="mono" title="The sheet's rdiag, M14:Q18">/</button>
+            <button id="pBack" class="mono" title="The sheet's ldiag, G14:K18">\</button>
+          </div>
+          <div class="btns">
+            <button id="pRand">Randomise</button>
+            <button id="pNoise" title="Adds RANDBETWEEN(0,300)/1000 to each pixel, like the sheet's noise block A14:E18">Add noise</button>
+            <button id="pReset" title="Restore the sheet's input, filters and dense weights">Reset sheet</button>
+          </div>
+        </div>
+        <div class="group">
+          <span class="label">Moving window</span>
+          <div class="btns">
+            <button id="play1" class="primary" aria-pressed="false">Pause</button>
+            <button id="prev1">Back</button>
+            <button id="next1">Step</button>
+          </div>
+          <div class="slider">
+            <div class="top"><label for="speed1">Time per step</label><output id="speed1o" for="speed1">0.9 s</output></div>
+            <input type="range" id="speed1" min="0.3" max="2" step="0.1" value="0.9">
+          </div>
+          <p class="hint">Click any feature-map cell to jump the window there.</p>
+        </div>
+        <div class="group">
+          <span class="label">Page vs sheet</span>
+          <table class="stats" id="tab1">
+            <thead><tr><th>Cell</th><th>Page</th><th>Sheet</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p class="hint" id="match1"></p>
+          <p class="hint">The sheet's softmax cells use Q3 and Q7 where S4 and S5 belong, for example V4 = EXP(Q3)/(EXP(Q3)+EXP(Q7)+EXP(S6)). With the sheet's dense weights S4 = Q3 and S5 = Q7, so the numbers agree. The page uses S4:S6, so it stays right when you change the weights.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- PART 2 -->
+  <section class="part" aria-labelledby="p2h">
+    <div class="phead">
+      <span class="eyebrow">Part 2 · A real-sized image</span>
+      <h2 id="p2h">Two convolution layers, pooling and one dense unit on a 28×28 digit</h2>
+      <p>The sheet's second half stacks a second convolution on top of the first, pools 2×2, and multiplies the pooled maps by dense weights to get one activation, EN4. Draw on the digit or swap the first-layer filters and every map updates.</p>
+    </div>
+    <div class="grid">
+      <section class="board" id="b2" aria-label="Feature maps for the 28 by 28 image">
+        <div class="p2">
+          <div class="stack">
+            <div class="sh"><b>Input image</b><span class="ref">28 × 28, drawn by hand</span></div>
+            <canvas id="img2" class="pix draw" width="28" height="28" tabindex="0" aria-label="28 by 28 input image. Draw with mouse, pen or finger."></canvas>
+            <p class="cap">Draw with mouse, pen or finger. Values run from 0 (blank) to 1 (ink).</p>
+          </div>
+          <div class="stack" id="maps2">
+            <div class="mp"><span></span><span class="ref">map A</span><span class="ref">map B</span></div>
+            <div class="mp"><div class="lab"><b>Conv 1</b><span>2 filters<br>26×26</span></div><canvas class="pix" id="c1a" width="26" height="26" aria-label="Conv 1, filter A"></canvas><canvas class="pix" id="c1b" width="26" height="26" aria-label="Conv 1, filter B"></canvas></div>
+            <div class="mp"><div class="lab"><b>Conv 2</b><span>BM4:CJ27<br>BM33:CJ56<br>24×24</span></div><canvas class="pix" id="c2a" width="24" height="24" aria-label="Conv 2, filter A"></canvas><canvas class="pix" id="c2b" width="24" height="24" aria-label="Conv 2, filter B"></canvas></div>
+            <div class="mp"><div class="lab"><b>Max pool 2×2</b><span>CM4:DI26<br>CM33:DI55<br>12×12</span></div><canvas class="pix" id="pla" width="12" height="12" aria-label="Pooled map A"></canvas><canvas class="pix" id="plb" width="12" height="12" aria-label="Pooled map B"></canvas></div>
+            <div class="mp"><div class="lab"><b>Dense weights</b><span>DN4:EJ26<br>DN33:EJ55</span></div><canvas class="pix" id="dwa" width="12" height="12" aria-label="Dense weights A"></canvas><canvas class="pix" id="dwb" width="12" height="12" aria-label="Dense weights B"></canvas></div>
+          </div>
+        </div>
+        <div class="en4">
+          <span class="ref">Dense activation EN4</span>
+          <span class="big" id="en4v">0</span>
+          <span class="eqn" id="en4e"></span>
+        </div>
+        <div class="readout" id="hov2" aria-live="polite">Hover or touch a map to read a value.</div>
+        <div class="legend"><span><i class="sw pos"></i>positive</span><span><i class="sw neg"></i>negative</span><span>each map is scaled to its own largest absolute value</span></div>
+      </section>
+      <aside class="panel" aria-label="Part 2 controls">
+        <div class="group">
+          <span class="label">Draw</span>
+          <div class="seg" role="group" aria-label="Brush">
+            <button id="brushInk" aria-pressed="true">Ink</button>
+            <button id="brushErase" aria-pressed="false">Erase</button>
+          </div>
+          <div class="btns">
+            <button id="d2Sheet">Sheet digit</button>
+            <button id="d2Clear">Clear</button>
+            <button id="d2Right" title="Move the image one pixel right">Shift →</button>
+          </div>
+        </div>
+        <div class="group">
+          <span class="label">Conv 1 filters</span>
+          <div class="field"><label for="k2a">Filter A</label><select id="k2a"></select></div>
+          <div class="field"><label for="k2b">Filter B</label><select id="k2b"></select></div>
+          <div class="kpair"><div><span class="ref">A</span><div class="k3" id="k2aV"></div></div><div><span class="ref">B</span><div class="k3" id="k2bV"></div></div></div>
+          <div class="checks"><label for="relu2"><input type="checkbox" id="relu2" checked> ReLU after each convolution</label></div>
+          <p class="hint">The sheet's formulas have no ReLU. With its all-positive filters nothing goes negative, so the switch only matters for edge detectors and sharpen.</p>
+        </div>
+        <div class="group">
+          <span class="label">Conv 2 filters (2 channels each)</span>
+          <div class="kpair"><div><span class="ref">B on map A · BI38:BK40</span><div class="k3" id="c2b1V"></div></div><div><span class="ref">B on map B · BI42:BK44</span><div class="k3" id="c2b2V"></div></div></div>
+          <p class="hint">Conv 2 filter B is the sheet's "filter 2/2". Filter A's formulas point at S3:T5 and U7:W9, which no longer hold weights, so the page uses a stand-in that adds the two maps (centre weight 1, others 0).</p>
+        </div>
+        <div class="group">
+          <span class="label">Weights needed</span>
+          <table class="stats" id="tab2">
+            <thead><tr><th>Layer</th><th>Weights</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p class="hint">Weight sharing: one 3×3 filter is reused at all 676 positions. A dense layer that produced the same two 26×26 maps would need a separate weight for every pixel and every output.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- PART 3 -->
+  <section class="part" aria-labelledby="p3h">
+    <div class="phead">
+      <span class="eyebrow">Part 3 · Train a small CNN</span>
+      <h2 id="p3h">8 filters, ReLU, max pooling, softmax, trained here</h2>
+      <p>The CNN has 8 learned 3×3 filters, ReLU, 2×2 max pooling and a dense softmax layer. The comparison is a dense network with one hidden layer of 17 units and about the same number of weights. Both learn from simulated digits rendered from your computer's fonts, with random rotation, stroke width, size and noise.</p>
+    </div>
+    <div class="grid">
+      <section class="board" id="b3" aria-label="Training curves, confusion matrix, shift test and learned filters">
+        <div class="stack">
+          <div class="sh"><b>Simulated training digits</b><span class="ref" id="dataInfo">generating…</span></div>
+          <canvas id="samples" class="samples" width="560" height="56" aria-label="Twenty example training images"></canvas>
+        </div>
+        <div class="charts">
+          <div class="plot"><div class="sh"><b>Training loss</b><span class="ref">cross-entropy</span></div><canvas id="lossC" aria-label="Training loss by epoch"></canvas></div>
+          <div class="plot"><div class="sh"><b>Test accuracy</b><span class="ref">1,000 held-out digits</span></div><canvas id="accC" aria-label="Test accuracy by epoch"></canvas></div>
+          <div class="plot">
+            <div class="sh"><b>Confusion matrix</b>
+              <div class="seg" role="group" aria-label="Model for the confusion matrix"><button id="cmCnn" aria-pressed="true">CNN</button><button id="cmMlp" aria-pressed="false">Dense</button></div>
+            </div>
+            <canvas id="cmC" aria-label="Confusion matrix on the test digits"></canvas>
+            <p class="cap">Rows: true digit. Columns: predicted. Off-diagonal cells are mistakes.</p>
+          </div>
+          <div class="plot"><div class="sh"><b>Shift the test digits</b><span class="ref">250 digits</span></div><canvas id="shiftC" aria-label="Test accuracy when the digits are shifted sideways"></canvas>
+            <p class="cap">Accuracy when every test digit is moved left or right by that many pixels.</p></div>
+        </div>
+        <div class="legend"><span><i class="sw ln"></i>CNN</span><span><i class="sw ln dn"></i>Dense network</span></div>
+        <div class="stack">
+          <div class="sh"><b>Learned filters and what they see</b><span class="ref">top: 3×3 weights · bottom: 26×26 feature map of your digit after ReLU</span></div>
+          <div class="filters" id="filt3"></div>
+        </div>
+      </section>
+      <aside class="panel" aria-label="Part 3 controls">
+        <div class="group">
+          <span class="label">Training</span>
+          <div class="btns b2">
+            <button id="train3" class="primary" aria-pressed="false">Train</button>
+            <button id="reset3">Reset weights</button>
+          </div>
+          <div class="checks"><label for="aug3"><input type="checkbox" id="aug3"> Random shifts up to ±4 px while training</label></div>
+          <div class="status" id="stat3" aria-live="polite">Generating data…</div>
+        </div>
+        <div class="group">
+          <span class="label">Draw a digit</span>
+          <div class="padrow">
+            <canvas id="pad3" class="pix draw" width="28" height="28" tabindex="0" aria-label="Drawing pad, 28 by 28. Draw a digit."></canvas>
+            <div class="seen"><span class="ref">network sees</span><canvas id="seen3" class="pix" width="28" height="28" aria-label="The 28 by 28 input the networks classify"></canvas></div>
+          </div>
+          <div class="btns">
+            <button id="pClear">Clear</button>
+            <button id="pTest">Test digit</button>
+            <button id="pCentre" aria-pressed="true" title="Scale and centre the drawing as MNIST does">Centre</button>
+          </div>
+          <div class="btns b4">
+            <button id="sL" class="mono" aria-label="Shift left">←</button>
+            <button id="sR" class="mono" aria-label="Shift right">→</button>
+            <button id="sU" class="mono" aria-label="Shift up">↑</button>
+            <button id="sD" class="mono" aria-label="Shift down">↓</button>
+          </div>
+          <p class="hint" id="shiftInfo">Shift: 0, 0 px</p>
+        </div>
+        <div class="group">
+          <span class="label">Softmax output</span>
+          <div class="verdict" id="verdict3"></div>
+          <div class="probs" id="probs3"></div>
+          <div class="legend"><span><i class="sw cn"></i>CNN</span><span><i class="sw dn"></i>Dense</span></div>
+        </div>
+        <div class="group">
+          <span class="label">Scoreboard</span>
+          <table class="stats" id="tab3">
+            <thead><tr><th>Model</th><th>Weights</th><th>Test</th><th>±3 px</th></tr></thead>
+            <tbody>
+              <tr><td>CNN</td><td class="cn" id="wC">0</td><td class="cn" id="aC">–</td><td class="cn" id="sC">–</td></tr>
+              <tr><td>Dense</td><td class="dn" id="wM">0</td><td class="dn" id="aM">–</td><td class="dn" id="sM">–</td></tr>
+            </tbody>
+          </table>
+          <p class="hint">Test accuracy uses 1,000 simulated digits never used in training. The ±3 px column moves them three pixels left or right.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- LESSON -->
+  <section class="lesson" aria-labelledby="lh">
+    <div class="head">
+      <span class="eyebrow">How a convolutional layer works</span>
+      <h2 id="lh">A convolution is one small dot product, repeated at every position</h2>
+      <div class="demo">
+        <button id="demoM2">Show M2 in Part 1</button>
+        <button id="demoShift">Shift the X one pixel</button>
+        <button id="demoSobel">Sobel edges in Part 2</button>
+      </div>
+    </div>
+    <ol class="steps">
+      <li><div><h3>A moving dot product</h3><p>Cell M2 multiplies the 3×3 block A3:C5 by the filter H2:J4 cell by cell and adds the nine products. N2 does the same with B3:D5, one column to the right. The X gives 3 on the diagonal because all three diagonal pixels line up with the filter's three ones.</p></div></li>
+      <li><div><h3>Locality and weight sharing</h3><p>Each output looks only at a 3×3 neighbourhood (locality), and every output uses the same nine weights (sharing). The filter is a pattern detector that is checked everywhere, so a diagonal stroke is found wherever it sits.</p></div></li>
+      <li><div><h3>Pooling tolerates small shifts</h3><p>A max pool keeps the largest value in each block. Q3 = MAX(M2:O4) pools the whole map, so it reports "a diagonal is somewhere" and ignores where. A 2×2 pool, as in Part 2 and Part 3, forgives moves of about one pixel; the dense layer after it still cares about position.</p></div></li>
+      <li><div><h3>Dense layer, then softmax</h3><p>S4:S6 are weighted sums of the pooled values, one per class. Softmax turns those scores into probabilities that add to 1. With the sheet's weights the X scores 3, 3 and 3.6, so the "both diagonals" row wins with 0.477.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cap">Convolution (as the sheet computes it, no kernel flip)</div><div class="m">Y[i,j] = Σₐ Σ_b X[i+a, j+b] · K[a,b] + b₀</div><div class="m">M2 = SUM(A3:C5 * $H$2:$J$4) = 3</div></div>
+      <div class="eq"><div class="cap">Output size for an n×n image, k×k filter, stride s</div><div class="m">(n − k)/s + 1:  5 → 3,  28 → 26 → 24</div></div>
+      <div class="eq"><div class="cap">Max pooling 2×2, stride 2</div><div class="m">P[i,j] = max of Y[2i..2i+1, 2j..2j+1]:  24 → 12</div></div>
+      <div class="eq"><div class="cap">Softmax (V4:V6)</div><div class="m">pₖ = exp(sₖ) / Σⱼ exp(sⱼ)</div><div class="m">V6 = e^3.6 / (e^3 + e^3 + e^3.6) = 0.477</div></div>
+      <div class="eq"><div class="cap">Weights in a layer</div><div class="m">conv: F · (k² · C_in + 1)   dense: n_in · n_out + n_out</div><div class="m">Part 3 CNN: 8·(9+1) + 10·(8·13·13+1) = 13,610</div></div>
+    </div>
+  </section>
+
+  <section class="notes" aria-label="Notes on the spreadsheet and the data">
+    <div class="note">
+      <h2>Pooling in the sheet</h2>
+      <p>The sheet's 4×4 block A58:D61 shows both kinds of 2×2 pooling.</p>
+      <div class="pooltab" aria-label="Pooling example from the sheet">
+        <div class="cells c4" id="poolIn"></div>
+        <div><span class="ref">Max · F57:G58</span><div class="cells c2" id="poolMax"></div></div>
+        <div><span class="ref">Average · F61:G62</span><div class="cells c2" id="poolAvg"></div></div>
+      </div>
+      <div class="formula">F57 = MAX(A58:B59) = 20</div>
+      <div class="formula">F61 = AVERAGE(A58:B59) = 13</div>
+    </div>
+    <div class="note">
+      <h2>What the sheet's second half was meant to do</h2>
+      <p>Its formulas describe image → conv 1 (two maps) → conv 2, where each output adds a 3×3 filter over map 1 and another over map 2 → 2×2 max pool → EN4 = SUMPRODUCT of weights and pooled values over both channels.</p>
+      <p>In the file the image and the conv 1 maps are gone, and most Conv2 cells show #N/A, so EN4 shows #N/A too. Part 2 rebuilds that pipeline with a hand-drawn 7, the sheet's Part 1 filters for conv 1, its "filter 2/2" weights and its dense weights. The sheet's weight blocks are 12×13; a 24×24 map pools to 12×12, so the last column (EL) has no partner and is left out.</p>
+    </div>
+    <div class="note">
+      <h2>What the training data is</h2>
+      <p>The digits in Part 3 are simulated: each is a font character drawn on a hidden canvas with random font, weight, size, rotation, stroke width, a small shift and some noise, then scaled and centred the way MNIST digits are. They are cleaner and more regular than handwriting, so accuracy here is not an MNIST result. Your own drawings are harder.</p>
+      <div class="formula">6,000 training + 1,000 test digits, 28×28</div>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>In Part 1, ask the class to predict Output 1 before you press Step. Then click the centre pixel C5 off. Both Q3 and Q7 drop from 3 to 2. Why does the softmax for row 6 fall?</li>
+      <li>Load the / shape, then the \ shape. Which dense row wins each time? Change S6's weights from 0.6 to 0.4 and explain why the X stops winning.</li>
+      <li>Press "Shift the X one pixel". The feature maps change but Q3 and Q7 stay at 3. That is translation tolerance from max pooling.</li>
+      <li>In Part 2, set filter A to vertical Sobel and filter B to horizontal Sobel. Draw a vertical line, then a horizontal one. Which map lights up, and where are the negative values?</li>
+      <li>In Part 3, train both networks, then draw a digit and press → three times. Which network changes its mind first? Tick the random-shift box, reset, retrain and repeat. Compare the ±3 px column.</li>
+    </ol>
+  </section>
+</div>
+<script>
+const DENSE_A = [[0.5837521573679082,0.5935772184128043,0.7707707830702542,0.02371240735213964,0.18993960973294088,0.8118087074528398,0.8041874014904687,0.9323612365101268,0.946131021006892,0.5727151460078551,0.2827432887589376,0.4074667990679487,0.4560162112617683],[0.11055883060908467,0.7841705171958427,0.9612306622223731,0.4235037578247294,0.7003071998798847,0.09393557110117445,0.7435428520022209,0.2263133947317184,0.629134753771461,0.9300856063576759,0.7407985699685697,0.2784756803743378,0.9978845262407242],[0.9607853349814611,0.5093817601873503,0.38913687054589075,0.3116344563923744,0.28210443450472555,0.6075627728114004,0.9025165982222161,0.1288273511744048,0.5074899612545021,0.600383483921319,0.3191987413211361,0.09100228131905275,0.12151386777108597],[0.139464355046518,0.12699746332816886,0.4226049882879812,0.025264009475689853,0.5673582625830194,0.8412349167200168,0.8587461414289337,0.9124462529171002,0.4297262548233334,0.8008932792335464,0.9663606782649398,0.5440022605183565,0.29766403805957964],[0.1522990326425563,0.1771917015622415,0.5949998098033132,0.6284270651501902,0.18136714663712394,0.9250043989129921,0.43251299300644463,0.8979236309469372,0.5320385794519708,0.4083886976189909,0.17042330582923526,0.5044244108397263,0.11076347635583872],[0.31364204434193366,0.48758625561082114,0.48403390080149733,0.04246913431782928,0.7815709605476419,0.029494715000552008,0.8799736759087964,0.01999225433781282,0.7349233543740582,0.16320872417262078,0.18598334761672863,0.17373455265365545,0.023605439822707686],[0.32165237461251606,0.23775123496417172,0.03231237848641799,0.20400724732789843,0.9331430094616275,0.496930864192509,0.010525356064842728,0.9626974478697636,0.47286373540142357,0.39244621553859493,0.3113136834270741,0.043058060217683214,0.2545382137449389],[0.3468208312846144,0.3019158405942848,0.7758200397394718,0.6926771355183889,0.24353514248337527,0.4869677927015721,0.2781044254086664,0.006162257568655294,0.5788994989446298,0.24173084835122194,0.9696367813694925,0.9327051717097239,0.7853924012925958],[0.9807308834370942,0.32817347666986085,0.7880460798878353,0.7577239620133444,0.6844958301908107,0.7281281083358561,0.3470209198681957,0.015960857384115346,0.8927351712577108,0.9787296387381468,0.4534883058448509,0.665803341738032,0.7013700432318951],[0.8223638660046353,0.8280827456779681,0.3312317662516878,0.1638637204597031,0.8404778843863057,0.902331575950587,0.8074955043881669,0.3682697860215206,0.7372839292076294,0.950643291213283,0.4062129707063462,0.2539641578703251,0.14069301372140253],[0.9549627228135107,0.32233146151537484,0.16307642574796755,0.49446079040847624,0.07675738821313571,0.6328101949848152,0.5637027727436772,0.3680847116964878,0.45406819419430133,0.1645299637414086,0.687019113600085,0.38469911663613543,0.27364551997092634],[0.7786267287586277,0.3151672697196559,0.9716491947776866,0.6632522722911782,0.6092136624628712,0.38562646242733833,0.09753420815806568,0.010784944018047748,0.0033840035885299713,0.1932976221499343,0.7183710674930707,0.6491527743025927,0.4113727402201557]];
+const DENSE_B = [[0.001128354151341493,0.1492872178631146,0.01382544285697973,0.0580934978174894,0.8971872812849225,0.8517939912703474,0.7680001854442952,0.4182380356814416,0.8874453391570412,0.7718733115945259,0.8900264379977458,0.9132513915330897,0.1241867801795783],[0.7032471756453089,0.3728793875803673,0.3576480588606439,0.9151391070648659,0.29370902799127396,0.4073246533416848,0.3279653165782056,0.6799179965919474,0.06672013267809573,0.27986479565124645,0.6369868471593179,0.4353240088545791,0.0645841700537525],[0.8602651502526187,0.9595181984260562,0.9899366810358582,0.23176888059634415,0.7385269012060155,0.20939559444157163,0.5694904702949839,0.3025320057808748,0.2445264134715811,0.5199281080976755,0.8167600402540045,0.05568103738049912,0.9257179186330543],[0.2650819350273905,0.07160292903639065,0.5029671337187399,0.9879244386650745,0.11105024750618397,0.6012599695050428,0.376478510952448,0.022903487797969913,0.9458644106305742,0.7050475823826934,0.1000271238851641,0.2308591644342649,0.3934349664904643],[0.765375405130307,0.0067913044281753265,0.27851867011925835,0.14272794016978196,0.9847494222031228,0.7745315869747792,0.618460631285477,0.11216165054088167,0.41302752638300555,0.49745554367929035,0.3127062560475471,0.22865534185813852,0.027567833346226478],[0.5065073907348825,0.8127953798564878,0.5256098992689122,0.031009282058962473,0.24762234409150985,0.6720461645282735,0.6162440216263182,0.7174182286045883,0.8232628173335469,0.030053395950482398,0.36161330892203525,0.6149818425069823,0.6088111615733827],[0.9506755277408989,0.8160906086660147,0.6298361337088602,0.2468340022949287,0.9863141651388486,0.3524372813256802,0.9715396010762176,0.9949002666582485,0.003671581118451228,0.20353961351428596,0.7212589880568063,0.22348484303550786,0.8667853720190662],[0.23119629182279788,0.3943210302878918,0.9781703773452368,0.9170129579140877,0.5708552129692822,0.9786676319247748,0.013060150590342934,0.6115449525017003,0.24089192402435722,0.23608705521859685,0.8235734155489409,0.5734460472870069,0.4757472817415962],[0.9611175328269518,0.4319556617927671,0.9543674134784953,0.8925651897153831,0.6466473121675197,0.22478272554312828,0.5994408064597108,0.8976932129416151,0.7854787173543109,0.8091024503031523,0.6967160065633266,0.47000067757653485,0.5730154870515782],[0.45318144310652686,0.7549756946850955,0.6138557367035492,0.7187719286036085,0.3946012385214481,0.5063894763140642,0.33547637125151875,0.65941495736426,0.7619439158374948,0.15584722749730895,0.5854818876359912,0.07741368917276414,0.4708484299001692],[0.31619475956427956,0.21466890931588933,0.557653018231523,0.972356938083149,0.1533838339337006,0.34909107889705004,0.8669380143731008,0.9958594376929623,0.23577480402097406,0.9433534803893509,0.9641427082183069,0.3797248049555234,0.33449439821404614],[0.9063529535260902,0.52326504879196,0.7108125496866274,0.31386502263634153,0.6912278547597795,0.360250855015234,0.4864273561912601,0.2588136503216435,0.31217169269405687,0.9304163899718232,0.02925286186074294,0.23087015583751236,0.8684239143477792]];
+const C2B_1 = [[0.017247060502670997,0.25759183270746266,0.43600889196146697],[0.5549116818157422,0.1952829094446502,0.17379934976695732],[0.9599470086569191,0.4435781553757081,0.6338434363423152]];
+const C2B_2 = [[0.7940993508215073,0.18390909380694842,0.6884805633648237],[0.8742402815432287,0.39833991555724646,0.5384298798696958],[0.23449883303628183,0.1581847146451717,0.8370243686334017]];
+const DIGIT7 = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0.1,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.32,0,0,0,0,0,0],[0,0,0,0,0,0.78,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.32,0,0,0,0,0],[0,0,0,0,0,0.78,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.32,0,0,0,0,0],[0,0,0,0,0,0.1,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,1,1,0.77,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.82,1,1,0.31,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.39,1,1,0.74,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.85,1,1,0.28,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.42,1,1,0.71,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0.1,0.4,0.4,0.4,0.4,0.4,0.4,0.88,1,1,0.26,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0.78,1,1,1,1,1,1,1,1,1,0.78,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0.78,1,1,1,1,1,1,1,1,1,0.78,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0.1,0.4,0.4,0.4,0.4,0.47,1,1,0.66,0.4,0.1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0.04,0.93,1,1,0.2,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0.5,1,1,0.63,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0.07,0.96,1,1,0.18,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0.53,1,1,0.61,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0.1,0.98,1,1,0.15,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0.55,1,1,0.58,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0.9,1,1,0.12,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0.49,0.9,0.49,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
+/* CORE START: pure math, no DOM (tested outside the page) */
+const SHEET_X = [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1]];
+const SHEET_F1 = [[1,0,0],[0,1,0],[0,0,1]];
+const SHEET_F2 = [[0,0,1],[0,1,0],[1,0,0]];
+const SHEET_FC = [[1,0],[0,1],[0.6,0.6]];
+/* Valid 2-D correlation (what the sheet's =SUM(A3:C5*$H$2:$J$4) does), stride 1, no flip. */
+function conv2d(img, H, W, k) {
+  const kh = k.length, kw = k[0].length, oh = H - kh + 1, ow = W - kw + 1;
+  const out = new Float64Array(oh * ow);
+  for (let i = 0; i < oh; i++) for (let j = 0; j < ow; j++) {
+    let s = 0;
+    for (let a = 0; a < kh; a++) for (let b = 0; b < kw; b++) s += img[(i + a) * W + j + b] * k[a][b];
+    out[i * ow + j] = s;
+  }
+  return out;
+}
+function maxpool2(m, H, W) {
+  const oh = Math.floor(H / 2), ow = Math.floor(W / 2), out = new Float64Array(oh * ow);
+  for (let i = 0; i < oh; i++) for (let j = 0; j < ow; j++) {
+    const p = 2 * i * W + 2 * j;
+    out[i * ow + j] = Math.max(m[p], m[p + 1], m[p + W], m[p + W + 1]);
+  }
+  return out;
+}
+function softmax(z) { const m = Math.max(...z); const e = z.map(v => Math.exp(v - m)); const s = e.reduce((a, b) => a + b, 0); return e.map(v => v / s); }
+/* Part 1: the 5x5 example, cell for cell. */
+function smallForward(inp, f1, f2, fc) {
+  const x = inp.flat();
+  const o1 = conv2d(x, 5, 5, f1), o2 = conv2d(x, 5, 5, f2);
+  const q3 = Math.max(...o1), q7 = Math.max(...o2);
+  const s = fc.map(w => w[0] * q3 + w[1] * q7);
+  return { o1, o2, q3, q7, s, v: softmax(s) };
+}
+/* Part 2: image -> conv1 (2 filters) -> [ReLU] -> conv2 (2 filters x 2 channels) -> [ReLU] -> 2x2 max pool -> dense (EN4). */
+function bigForward(img, kA, kB, relu, c2A, c2B, dA, dB) {
+  const R = relu ? (m => m.map(v => v > 0 ? v : 0)) : (m => m);
+  const c1a = R(conv2d(img, 28, 28, kA)), c1b = R(conv2d(img, 28, 28, kB));
+  const add = (p, q) => p.map((v, i) => v + q[i]);
+  const c2a = R(add(conv2d(c1a, 26, 26, c2A[0]), conv2d(c1b, 26, 26, c2A[1])));
+  const c2b = R(add(conv2d(c1a, 26, 26, c2B[0]), conv2d(c1b, 26, 26, c2B[1])));
+  const pa = maxpool2(c2a, 24, 24), pb = maxpool2(c2b, 24, 24);
+  let sa = 0, sb = 0;
+  for (let i = 0; i < 12; i++) for (let j = 0; j < 12; j++) { sa += dA[i][j] * pa[i * 12 + j]; sb += dB[i][j] * pb[i * 12 + j]; }
+  return { c1a, c1b, c2a, c2b, pa, pb, sa, sb, en4: sa + sb };
+}
+/* Seeded RNG and normals */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(rng) { let u = 0; while (u === 0) u = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng()); }
+/* Part 3 models. Images are 28x28 in [0,1], 10 classes. */
+const IMG = 28, NC = 10;
+function makeCNN(F, seed) {
+  const CO = IMG - 2, PO = CO >> 1, D = F * PO * PO;
+  const nW1 = F * 9, nB1 = F, nW2 = NC * D, nB2 = NC;
+  const n = nW1 + nB1 + nW2 + nB2;
+  const m = { kind: 'cnn', F, CO, PO, D, n, oW1: 0, oB1: nW1, oW2: nW1 + nB1, oB2: nW1 + nB1 + nW2,
+    p: new Float64Array(n), g: new Float64Array(n), m1: new Float64Array(n), m2: new Float64Array(n), t: 0,
+    z: new Float64Array(F * CO * CO), pool: new Float64Array(D), arg: new Int32Array(D), logit: new Float64Array(NC), prob: new Float64Array(NC), dp: new Float64Array(D) };
+  const rng = mulberry32(seed);
+  for (let i = 0; i < nW1; i++) m.p[i] = gauss(rng) * Math.sqrt(2 / 9);
+  for (let i = 0; i < nW2; i++) m.p[m.oW2 + i] = gauss(rng) * Math.sqrt(1 / D);
+  return m;
+}
+function makeMLP(H, seed) {
+  const nW1 = H * IMG * IMG, nB1 = H, nW2 = NC * H, nB2 = NC, n = nW1 + nB1 + nW2 + nB2;
+  const m = { kind: 'mlp', H, n, oW1: 0, oB1: nW1, oW2: nW1 + nB1, oB2: nW1 + nB1 + nW2,
+    p: new Float64Array(n), g: new Float64Array(n), m1: new Float64Array(n), m2: new Float64Array(n), t: 0,
+    h: new Float64Array(H), logit: new Float64Array(NC), prob: new Float64Array(NC), dh: new Float64Array(H) };
+  const rng = mulberry32(seed);
+  for (let i = 0; i < nW1; i++) m.p[i] = gauss(rng) * Math.sqrt(2 / (IMG * IMG));
+  for (let i = 0; i < nW2; i++) m.p[m.oW2 + i] = gauss(rng) * Math.sqrt(1 / H);
+  return m;
+}
+function finishSoftmax(m) {
+  let mx = -Infinity; for (let k = 0; k < NC; k++) if (m.logit[k] > mx) mx = m.logit[k];
+  let s = 0; for (let k = 0; k < NC; k++) { m.prob[k] = Math.exp(m.logit[k] - mx); s += m.prob[k]; }
+  for (let k = 0; k < NC; k++) m.prob[k] /= s;
+}
+/* Forward pass; leaves activations in the model for backward and for display. Returns probabilities. */
+function forward(m, x) {
+  const p = m.p;
+  if (m.kind === 'cnn') {
+    const { F, CO, PO } = m, z = m.z, pool = m.pool, arg = m.arg;
+    for (let f = 0; f < F; f++) {
+      const w = f * 9, b = p[m.oB1 + f], zo = f * CO * CO;
+      const k0 = p[w], k1 = p[w + 1], k2 = p[w + 2], k3 = p[w + 3], k4 = p[w + 4], k5 = p[w + 5], k6 = p[w + 6], k7 = p[w + 7], k8 = p[w + 8];
+      for (let i = 0; i < CO; i++) {
+        const r0 = i * IMG, r1 = r0 + IMG, r2 = r1 + IMG, zr = zo + i * CO;
+        for (let j = 0; j < CO; j++) {
+          z[zr + j] = b + k0 * x[r0 + j] + k1 * x[r0 + j + 1] + k2 * x[r0 + j + 2] + k3 * x[r1 + j] + k4 * x[r1 + j + 1] + k5 * x[r1 + j + 2] + k6 * x[r2 + j] + k7 * x[r2 + j + 1] + k8 * x[r2 + j + 2];
+        }
+      }
+      /* ReLU then 2x2 max pool; max(relu(.)) = relu(max(.)) so pool the pre-activations and clip once */
+      for (let i = 0; i < PO; i++) for (let j = 0; j < PO; j++) {
+        const a = zo + 2 * i * CO + 2 * j;
+        let best = a, v = z[a];
+        if (z[a + 1] > v) { v = z[a + 1]; best = a + 1; }
+        if (z[a + CO] > v) { v = z[a + CO]; best = a + CO; }
+        if (z[a + CO + 1] > v) { v = z[a + CO + 1]; best = a + CO + 1; }
+        const q = f * PO * PO + i * PO + j;
+        pool[q] = v > 0 ? v : 0; arg[q] = best;
+      }
+    }
+    const D = m.D;
+    for (let k = 0; k < NC; k++) {
+      let s = p[m.oB2 + k]; const o = m.oW2 + k * D;
+      for (let q = 0; q < D; q++) s += p[o + q] * pool[q];
+      m.logit[k] = s;
+    }
+  } else {
+    const H = m.H, N = IMG * IMG, h = m.h;
+    for (let u = 0; u < H; u++) {
+      let s = p[m.oB1 + u]; const o = u * N;
+      for (let q = 0; q < N; q++) s += p[o + q] * x[q];
+      h[u] = s > 0 ? s : 0;
+    }
+    for (let k = 0; k < NC; k++) {
+      let s = p[m.oB2 + k]; const o = m.oW2 + k * H;
+      for (let u = 0; u < H; u++) s += p[o + u] * h[u];
+      m.logit[k] = s;
+    }
+  }
+  finishSoftmax(m);
+  return m.prob;
+}
+/* Backward for one example (after forward). Adds d(-log p_y)/d(params) into m.g. Returns the loss. */
+function backward(m, x, y) {
+  const p = m.p, g = m.g, loss = -Math.log(Math.max(m.prob[y], 1e-12));
+  if (m.kind === 'cnn') {
+    const D = m.D, CO = m.CO, PO = m.PO, pool = m.pool, dp = m.dp, arg = m.arg;
+    dp.fill(0);
+    for (let k = 0; k < NC; k++) {
+      const d = m.prob[k] - (k === y ? 1 : 0), o = m.oW2 + k * D;
+      g[m.oB2 + k] += d;
+      for (let q = 0; q < D; q++) { g[o + q] += d * pool[q]; dp[q] += d * p[o + q]; }
+    }
+    for (let q = 0; q < D; q++) {
+      if (pool[q] <= 0) continue; /* ReLU gate */
+      const d = dp[q], a = arg[q], f = (q / (PO * PO)) | 0, loc = a - f * CO * CO;
+      const i = (loc / CO) | 0, j = loc - i * CO, w = f * 9;
+      g[m.oB1 + f] += d;
+      for (let r = 0; r < 3; r++) { const xr = (i + r) * IMG + j; g[w + r * 3] += d * x[xr]; g[w + r * 3 + 1] += d * x[xr + 1]; g[w + r * 3 + 2] += d * x[xr + 2]; }
+    }
+  } else {
+    const H = m.H, N = IMG * IMG;
+    m.dh.fill(0);
+    for (let k = 0; k < NC; k++) {
+      const d = m.prob[k] - (k === y ? 1 : 0), o = m.oW2 + k * H;
+      g[m.oB2 + k] += d;
+      for (let u = 0; u < H; u++) { g[o + u] += d * m.h[u]; m.dh[u] += d * p[o + u]; }
+    }
+    for (let u = 0; u < H; u++) {
+      if (m.h[u] <= 0) continue;
+      const d = m.dh[u], o = u * N;
+      g[m.oB1 + u] += d;
+      if (d !== 0) for (let q = 0; q < N; q++) g[o + q] += d * x[q];
+    }
+  }
+  return loss;
+}
+/* Adam on the averaged minibatch gradient, then clear the gradient. */
+function adamStep(m, lr, bs) {
+  const b1 = 0.9, b2 = 0.999, eps = 1e-8; m.t++;
+  const c1 = 1 - Math.pow(b1, m.t), c2 = 1 - Math.pow(b2, m.t);
+  const P = m.p, G = m.g, M1 = m.m1, M2 = m.m2, n = m.n, a = lr / c1;
+  for (let i = 0; i < n; i++) {
+    const gi = G[i] / bs;
+    const u = M1[i] = b1 * M1[i] + (1 - b1) * gi;
+    const v = M2[i] = b2 * M2[i] + (1 - b2) * gi * gi;
+    P[i] -= a * u / (Math.sqrt(v / c2) + eps);
+    G[i] = 0;
+  }
+}
+function argmax(a) { let b = 0; for (let i = 1; i < a.length; i++) if (a[i] > a[b]) b = i; return b; }
+/* Shift an image by (dx, dy) whole pixels, filling with 0. */
+function shiftImg(x, dx, dy) {
+  const o = new Float64Array(IMG * IMG);
+  for (let i = 0; i < IMG; i++) { const si = i - dy; if (si < 0 || si >= IMG) continue;
+    for (let j = 0; j < IMG; j++) { const sj = j - dx; if (sj >= 0 && sj < IMG) o[i * IMG + j] = x[si * IMG + sj]; } }
+  return o;
+}
+/* Recentre (ignoring faint noise): scale the ink's bounding box into a 20x20 box, then move its centre of mass to (14, 14), as MNIST does. */
+function centreImg(x) {
+  let r0 = IMG, r1 = -1, c0 = IMG, c1 = -1;
+  for (let i = 0; i < IMG; i++) for (let j = 0; j < IMG; j++) if (x[i * IMG + j] > 0.3) { if (i < r0) r0 = i; if (i > r1) r1 = i; if (j < c0) c0 = j; if (j > c1) c1 = j; }
+  if (r1 < 0) return Float64Array.from(x);
+  const h = r1 - r0 + 1, w = c1 - c0 + 1, sc = Math.min(20 / h, 20 / w, 2.5);
+  const tmp = new Float64Array(IMG * IMG);
+  const oy = 14 - h * sc / 2, ox = 14 - w * sc / 2;
+  const at = (i, j) => (i < 0 || j < 0 || i >= IMG || j >= IMG) ? 0 : x[i * IMG + j];
+  for (let i = 0; i < IMG; i++) for (let j = 0; j < IMG; j++) {
+    const sy = r0 + (i + 0.5 - oy) / sc - 0.5, sx = c0 + (j + 0.5 - ox) / sc - 0.5;
+    const y0 = Math.floor(sy), x0 = Math.floor(sx), fy = sy - y0, fx = sx - x0;
+    tmp[i * IMG + j] = (1 - fy) * ((1 - fx) * at(y0, x0) + fx * at(y0, x0 + 1)) + fy * ((1 - fx) * at(y0 + 1, x0) + fx * at(y0 + 1, x0 + 1));
+  }
+  let s = 0, my = 0, mx = 0;
+  for (let i = 0; i < IMG; i++) for (let j = 0; j < IMG; j++) { const v = tmp[i * IMG + j] > 0.2 ? tmp[i * IMG + j] : 0; s += v; my += v * i; mx += v * j; }
+  if (s <= 0) return tmp;
+  return shiftImg(tmp, Math.round(13.5 - mx / s), Math.round(13.5 - my / s));
+}
+/* CORE END */
+/* ---------------- page code ---------------- */
+const $ = id => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = (v, d = 2) => Number.isInteger(v) ? String(v) : v.toFixed(d);
+const fmtN = v => Math.round(v).toLocaleString('en-US');
+const colName = n => { let s = ''; n++; while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; }; /* 0 -> A */
+const colIdx = s => { let n = 0; for (const ch of s) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; };
+
+/* colours from tokens */
+const COL = {}, RGB = {};
+function hexRGB(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['bg', 'surface', 'board', 'ink', 'muted', 'line', 'grid', 'accent', 'curve', 'fit', 'coinB', 'ball']) {
+    COL[k] = cs.getPropertyValue('--' + k).trim() || '#888888';
+    try { RGB[k] = hexRGB(COL[k]); } catch (e) { RGB[k] = [128, 128, 128]; }
+  }
+}
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+/* paint an n x m map into a pixelated canvas. mode: ink | signed | weight */
+function paint(cv, data, w, h, mode, scale) {
+  const ctx = cv.getContext('2d'), im = ctx.createImageData(w, h), d = im.data;
+  let mx = scale || 0;
+  if (!mx) { for (let i = 0; i < w * h; i++) mx = Math.max(mx, Math.abs(data[i])); if (mx === 0) mx = 1; }
+  const base = RGB.surface;
+  for (let i = 0; i < w * h; i++) {
+    const v = data[i]; let c;
+    if (mode === 'ink') c = mix(base, RGB.ink, Math.max(0, Math.min(1, v)));
+    else if (mode === 'weight') c = mix(base, RGB.coinB, Math.max(0, Math.min(1, v / mx)));
+    else c = v >= 0 ? mix(base, RGB.accent, Math.min(1, v / mx)) : mix(base, RGB.curve, Math.min(1, -v / mx));
+    d[4 * i] = c[0]; d[4 * i + 1] = c[1]; d[4 * i + 2] = c[2]; d[4 * i + 3] = 255;
+  }
+  ctx.putImageData(im, 0, 0);
+}
+function sizeCanvas(cv, ratio, minH, maxH) {
+  const dpr = window.devicePixelRatio || 1, w = Math.max(120, cv.clientWidth || cv.parentElement.clientWidth);
+  const h = Math.round(Math.max(minH, Math.min(maxH, w * ratio)));
+  cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+/* ================= PART 1 ================= */
+const SHEET_CACHE = { o1: [3, 0, 1, 0, 3, 0, 1, 0, 3], o2: [1, 0, 3, 0, 3, 0, 3, 0, 1], q3: 3, q7: 3, s: [3, 3, 3.5999999999999996], v: [0.26163498630598014, 0.26163498630598014, 0.4767300273880396] };
+const PRESETS = {
+  pX: SHEET_X,
+  pO: [[0, 1, 1, 1, 0], [1, 0, 0, 0, 1], [1, 0, 0, 0, 1], [1, 0, 0, 0, 1], [0, 1, 1, 1, 0]],
+  pPlus: [[0, 0, 1, 0, 0], [0, 0, 1, 0, 0], [1, 1, 1, 1, 1], [0, 0, 1, 0, 0], [0, 0, 1, 0, 0]],
+  pSlash: [[0, 0, 0, 0, 1], [0, 0, 0, 1, 0], [0, 0, 1, 0, 0], [0, 1, 0, 0, 0], [1, 0, 0, 0, 0]],
+  pBack: [[1, 0, 0, 0, 0], [0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 1, 0], [0, 0, 0, 0, 1]]
+};
+const clone = a => a.map(r => r.slice());
+const S1 = { inp: clone(SHEET_X), f1: clone(SHEET_F1), f2: clone(SHEET_F2), fc: clone(SHEET_FC), step: 0, playing: !reduce, speed: 0.9, last: 0, preset: 'pX', res: null };
+const CLASS = ['\\ only', '/ only', 'both (X)'];
+const inCells = [], fCells = [[], []], oCells = [[], []];
+let qCells = [];
+function mkCell(tag, ref) { const el = document.createElement(tag); el.className = 'cell'; const i = document.createElement('i'); i.textContent = ref; el.appendChild(i); const s = document.createElement('span'); el.appendChild(s); el._v = s; return el; }
+function build1() {
+  const ig = $('inGrid');
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+    const ref = colName(c) + (3 + r), b = mkCell('button', ref);
+    b.type = 'button'; b.id = 'in' + r + c; b.setAttribute('aria-label', 'Input ' + ref);
+    b.addEventListener('click', () => { S1.inp[r][c] = S1.inp[r][c] >= 0.5 ? 0 : 1; S1.preset = null; render1(); });
+    ig.appendChild(b); inCells.push(b);
+  }
+  [['f1Grid', 2], ['f2Grid', 6]].forEach(([gid, row0], k) => {
+    const g = $(gid);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      const ref = colName(7 + c) + (row0 + r), d = document.createElement('div');
+      d.className = 'cell'; d.innerHTML = '<i>' + ref + '</i>';
+      const inp = document.createElement('input'); inp.type = 'number'; inp.step = '0.1'; inp.id = 'f' + (k + 1) + r + c; inp.setAttribute('aria-label', 'Filter ' + (k + 1) + ' cell ' + ref);
+      inp.addEventListener('input', () => { const v = parseFloat(inp.value); (k ? S1.f2 : S1.f1)[r][c] = isFinite(v) ? v : 0; render1(true); });
+      d.appendChild(inp); g.appendChild(d); fCells[k].push(d);
+    }
+  });
+  [['o1Grid', 1], ['o2Grid', 5]].forEach(([gid, row0], k) => {
+    const g = $(gid);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      const ref = colName(12 + c) + (row0 + 1 + r), b = mkCell('button', ref);
+      b.type = 'button'; b.style.width = '40px'; b.setAttribute('aria-label', 'Output ' + (k + 1) + ' cell ' + ref + ', show its window');
+      b.addEventListener('click', () => { S1.step = k * 9 + r * 3 + c; S1.playing = false; render1(); });
+      g.appendChild(b); oCells[k].push(b);
+    }
+  });
+  qCells = [mkCell('div', 'Q3'), mkCell('div', 'Q7')];
+  $('q3Cell').appendChild(qCells[0]); $('q7Cell').appendChild(qCells[1]);
+  const fc = $('fcGrid');
+  for (let r = 0; r < 3; r++) {
+    const ref = 'S' + (4 + r);
+    fc.insertAdjacentHTML('beforeend', `<span class="ref">${ref} =</span><input class="w" type="number" step="0.1" id="fc${r}0" aria-label="${ref} weight on Q3"><span class="m">×Q3 +</span><input class="w" type="number" step="0.1" id="fc${r}1" aria-label="${ref} weight on Q7"><span class="m">×Q7 =</span><span class="v" id="s${r}v">0</span>`);
+  }
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 2; c++) $('fc' + r + c).addEventListener('input', e => { const v = parseFloat(e.target.value); S1.fc[r][c] = isFinite(v) ? v : 0; render1(true); });
+  const sm = $('smxGrid');
+  for (let r = 0; r < 3; r++) sm.insertAdjacentHTML('beforeend', `<span><span class="ref">V${4 + r}</span> ${CLASS[r]}</span><span class="bar"><span id="sb${r}"></span></span><span id="sv${r}">0</span>`);
+  const tb = $('tab1').tBodies[0];
+  const rows = [['Q3', 'max of Output 1'], ['Q7', 'max of Output 2'], ['S4', ''], ['S5', ''], ['S6', ''], ['V4', ''], ['V5', ''], ['V6', '']];
+  for (const [r] of rows) tb.insertAdjacentHTML('beforeend', `<tr><td>${r}</td><td class="pg" id="t1p${r}"></td><td class="sv" id="t1s${r}"></td></tr>`);
+}
+function syncInputs1() {
+  for (let k = 0; k < 2; k++) for (let i = 0; i < 9; i++) { const inp = fCells[k][i].querySelector('input'); const v = (k ? S1.f2 : S1.f1)[i / 3 | 0][i % 3]; if (document.activeElement !== inp) inp.value = v; }
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 2; c++) { const el = $('fc' + r + c); if (document.activeElement !== el) el.value = S1.fc[r][c]; }
+}
+function shade(el, v, mx, base) {
+  const t = mx > 0 ? Math.min(1, Math.abs(v) / mx) : 0, col = v >= 0 ? base : 'var(--curve)';
+  el.style.background = t > 0 ? `color-mix(in srgb, ${col} ${Math.round(t * 85)}%, var(--surface))` : '';
+  el.classList.toggle('dk', t > 0.55);
+}
+function render1(fromTyping) {
+  const R = S1.res = smallForward(S1.inp, S1.f1, S1.f2, S1.fc);
+  if (!fromTyping) syncInputs1();
+  for (const id in PRESETS) $(id).setAttribute('aria-pressed', S1.preset === id ? 'true' : 'false');
+  const k = S1.step < 9 ? 0 : 1, p = S1.step % 9, wr = p / 3 | 0, wc = p % 3;
+  inCells.forEach((b, i) => { const r = i / 5 | 0, c = i % 5, v = S1.inp[r][c]; b._v.textContent = fmt(v); shade(b, v, 1, 'var(--ink)'); b.classList.toggle('win', r >= wr && r < wr + 3 && c >= wc && c < wc + 3); });
+  fCells.forEach((cs, kk) => cs.forEach((d, i) => { const v = (kk ? S1.f2 : S1.f1)[i / 3 | 0][i % 3]; shade(d, v, 1.5, 'var(--fit)'); d.classList.toggle('win', kk === k); }));
+  const mx = Math.max(1e-9, ...R.o1.map(Math.abs), ...R.o2.map(Math.abs));
+  [R.o1, R.o2].forEach((o, kk) => oCells[kk].forEach((b, i) => { b._v.textContent = fmt(o[i]); shade(b, o[i], mx, 'var(--accent)'); b.classList.toggle('cur', kk === k && i === p); }));
+  qCells[0]._v.textContent = fmt(R.q3); qCells[1]._v.textContent = fmt(R.q7);
+  shade(qCells[0], R.q3, mx, 'var(--accent)'); shade(qCells[1], R.q7, mx, 'var(--accent)');
+  const best = R.v.indexOf(Math.max(...R.v));
+  for (let r = 0; r < 3; r++) {
+    $('s' + r + 'v').textContent = R.s[r].toFixed(2);
+    const sb = $('sb' + r); sb.style.width = (R.v[r] * 100).toFixed(1) + '%'; sb.classList.toggle('win', r === best);
+    $('sv' + r).textContent = R.v[r].toFixed(3);
+  }
+  /* the dot product written out */
+  const f = k ? S1.f2 : S1.f1, outRef = colName(12 + wc) + ((k ? 6 : 2) + wr);
+  const terms = []; let sum = 0;
+  for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) { const x = S1.inp[wr + a][wc + b], w = f[a][b]; sum += x * w; terms.push(fmt(x) + '×' + fmt(w)); }
+  const rng = colName(wc) + (3 + wr) + ':' + colName(wc + 2) + (5 + wr), fr = k ? '$H$6:$J$8' : '$H$2:$J$4';
+  $('dot').innerHTML = `<span class="t">${outRef}</span> = ${terms.join(' + ')} = <span class="a">${fmt(sum)}</span><br><span class="m">sheet: ${outRef} = SUM(${rng}*${fr}) &nbsp;·&nbsp; window ${p + 1} of 9 for filter ${k + 1}</span>`;
+  /* page vs sheet */
+  const page = { Q3: R.q3, Q7: R.q7, S4: R.s[0], S5: R.s[1], S6: R.s[2], V4: R.v[0], V5: R.v[1], V6: R.v[2] };
+  const sheet = { Q3: SHEET_CACHE.q3, Q7: SHEET_CACHE.q7, S4: SHEET_CACHE.s[0], S5: SHEET_CACHE.s[1], S6: SHEET_CACHE.s[2], V4: SHEET_CACHE.v[0], V5: SHEET_CACHE.v[1], V6: SHEET_CACHE.v[2] };
+  for (const key in page) { const d = key[0] === 'V' ? 4 : 2; $('t1p' + key).textContent = page[key].toFixed(d); $('t1s' + key).textContent = sheet[key].toFixed(d); }
+  const same = (a, b) => Math.abs(a - b) < 1e-12;
+  const allSame = R.o1.every((v, i) => same(v, SHEET_CACHE.o1[i])) && R.o2.every((v, i) => same(v, SHEET_CACHE.o2[i])) && Object.keys(page).every(kk => same(page[kk], sheet[kk]));
+  $('match1').innerHTML = allSame ? '<span class="ok">All 26 numbers match the sheet.</span> The 18 feature-map cells, Q3, Q7, S4:S6 and V4:V6 equal the file\'s cached values.' : 'You have changed the sheet. The Sheet column keeps the file\'s cached values for the X.';
+  $('play1').textContent = S1.playing ? 'Pause' : 'Play';
+  $('play1').setAttribute('aria-pressed', S1.playing ? 'true' : 'false');
+}
+function setPreset(id) { S1.inp = clone(PRESETS[id]); S1.preset = id; render1(); }
+function wire1() {
+  for (const id in PRESETS) $(id).addEventListener('click', () => setPreset(id));
+  $('pRand').addEventListener('click', () => { S1.inp = S1.inp.map(r => r.map(() => Math.random() < 0.4 ? 1 : 0)); S1.preset = null; render1(); });
+  $('pNoise').addEventListener('click', () => { S1.inp = S1.inp.map(r => r.map(v => Math.round((v + Math.floor(Math.random() * 301) / 1000) * 1000) / 1000)); S1.preset = null; render1(); });
+  $('pReset').addEventListener('click', () => { S1.inp = clone(SHEET_X); S1.f1 = clone(SHEET_F1); S1.f2 = clone(SHEET_F2); S1.fc = clone(SHEET_FC); S1.preset = 'pX'; render1(); });
+  $('play1').addEventListener('click', () => { S1.playing = !S1.playing; S1.last = performance.now(); render1(); });
+  $('next1').addEventListener('click', () => { S1.playing = false; S1.step = (S1.step + 1) % 18; render1(); });
+  $('prev1').addEventListener('click', () => { S1.playing = false; S1.step = (S1.step + 17) % 18; render1(); });
+  $('speed1').addEventListener('input', e => { S1.speed = +e.target.value; $('speed1o').textContent = S1.speed.toFixed(1) + ' s'; });
+}
+
+/* ================= PART 2 ================= */
+const FILTERS = {
+  f1: { name: 'Sheet filter 1, \\ diagonal (H2:J4)', k: SHEET_F1 },
+  f2: { name: 'Sheet filter 2, / diagonal (H6:J8)', k: SHEET_F2 },
+  sobx: { name: 'Vertical edges (Sobel x)', k: [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]] },
+  soby: { name: 'Horizontal edges (Sobel y)', k: [[-1, -2, -1], [0, 0, 0], [1, 2, 1]] },
+  blur: { name: 'Blur (3×3 average)', k: [[1 / 9, 1 / 9, 1 / 9], [1 / 9, 1 / 9, 1 / 9], [1 / 9, 1 / 9, 1 / 9]] },
+  sharp: { name: 'Sharpen', k: [[0, -1, 0], [-1, 5, -1], [0, -1, 0]] },
+  ident: { name: 'Identity (copies the image)', k: [[0, 0, 0], [0, 1, 0], [0, 0, 0]] }
+};
+const ID3 = [[0, 0, 0], [0, 1, 0], [0, 0, 0]];
+const C2A = [ID3, ID3], C2B = [C2B_1, C2B_2];
+const S2 = { img: Float64Array.from(DIGIT7.flat()), a: 'f1', b: 'f2', relu: true, ink: true, res: null, dirty: true };
+function k3html(k) { return k.flat().map(v => `<span>${Math.abs(v - Math.round(v)) < 1e-9 ? Math.round(v) : v.toFixed(2)}</span>`).join(''); }
+function build2() {
+  for (const sel of ['k2a', 'k2b']) { const s = $(sel); for (const key in FILTERS) s.insertAdjacentHTML('beforeend', `<option value="${key}">${FILTERS[key].name}</option>`); }
+  $('k2a').value = S2.a; $('k2b').value = S2.b;
+  $('c2b1V').innerHTML = k3html(C2B_1); $('c2b2V').innerHTML = k3html(C2B_2);
+  const rows = [['Conv 1, shared <small>2 × 3×3</small>', 18], ['Conv 1, local but not shared <small>2 × 676 × 9</small>', 2 * 676 * 9], ['Conv 1 as a dense layer <small>784 × 1,352</small>', 784 * 1352], ['Conv 2 <small>2 filters × 2 maps × 3×3</small>', 36], ['Dense to EN4 <small>2 × 12 × 12</small>', 288]];
+  $('tab2').tBodies[0].innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td class="pg">${fmtN(b)}</td></tr>`).join('');
+}
+function compute2() { S2.res = bigForward(S2.img, FILTERS[S2.a].k, FILTERS[S2.b].k, S2.relu, C2A, C2B, DENSE_A, DENSE_B); }
+function draw2() {
+  if (!S2.res) compute2();
+  const R = S2.res;
+  paint($('img2'), S2.img, 28, 28, 'ink');
+  paint($('c1a'), R.c1a, 26, 26, 'signed'); paint($('c1b'), R.c1b, 26, 26, 'signed');
+  paint($('c2a'), R.c2a, 24, 24, 'signed'); paint($('c2b'), R.c2b, 24, 24, 'signed');
+  paint($('pla'), R.pa, 12, 12, 'signed'); paint($('plb'), R.pb, 12, 12, 'signed');
+  const wa = DENSE_A.map(r => r.slice(0, 12)).flat(), wb = DENSE_B.map(r => r.slice(0, 12)).flat();
+  paint($('dwa'), wa, 12, 12, 'weight', 1); paint($('dwb'), wb, 12, 12, 'weight', 1);
+  $('en4v').textContent = R.en4.toFixed(4);
+  $('en4e').textContent = `= SUMPRODUCT(DN4:EJ26, CM4:DI26) + SUMPRODUCT(DN33:EJ55, CM33:DI55) = ${R.sa.toFixed(3)} + ${R.sb.toFixed(3)}`;
+  $('k2aV').innerHTML = k3html(FILTERS[S2.a].k); $('k2bV').innerHTML = k3html(FILTERS[S2.b].k);
+}
+const MAPS2 = {
+  img2: { n: 28, name: 'Input', get: () => S2.img, ref: (i, j) => '' },
+  c1a: { n: 26, name: 'Conv 1 · A', get: () => S2.res.c1a, ref: () => '' },
+  c1b: { n: 26, name: 'Conv 1 · B', get: () => S2.res.c1b, ref: () => '' },
+  c2a: { n: 24, name: 'Conv 2 · A', get: () => S2.res.c2a, ref: (i, j) => colName(colIdx('BM') + j) + (4 + i) },
+  c2b: { n: 24, name: 'Conv 2 · B', get: () => S2.res.c2b, ref: (i, j) => colName(colIdx('BM') + j) + (33 + i) },
+  pla: { n: 12, name: 'Max pool · A', get: () => S2.res.pa, ref: (i, j) => colName(colIdx('CM') + 2 * j) + (4 + 2 * i) },
+  plb: { n: 12, name: 'Max pool · B', get: () => S2.res.pb, ref: (i, j) => colName(colIdx('CM') + 2 * j) + (33 + 2 * i) },
+  dwa: { n: 12, name: 'Dense weight · A', get: () => DENSE_A.map(r => r.slice(0, 12)).flat(), ref: (i, j) => colName(colIdx('DN') + 2 * j) + (4 + 2 * i) },
+  dwb: { n: 12, name: 'Dense weight · B', get: () => DENSE_B.map(r => r.slice(0, 12)).flat(), ref: (i, j) => colName(colIdx('DN') + 2 * j) + (33 + 2 * i) }
+};
+function cellAt(cv, e, n) { const r = cv.getBoundingClientRect(); return [(e.clientY - r.top) / r.height * n, (e.clientX - r.left) / r.width * n]; }
+function hover2(id, e) {
+  const M = MAPS2[id], [y, x] = cellAt($(id), e, M.n), i = Math.floor(y), j = Math.floor(x);
+  if (i < 0 || j < 0 || i >= M.n || j >= M.n) return;
+  const v = M.get()[i * M.n + j], ref = M.ref(i, j);
+  $('hov2').textContent = `${M.name} · row ${i + 1}, col ${j + 1}${ref ? ' (sheet ' + ref + ')' : ''}: ${v.toFixed(4)}`;
+}
+/* soft round brush on an n x n grid */
+function stamp(buf, n, gy, gx, ink, rad) {
+  const r = rad, R = Math.ceil(r + 1);
+  for (let i = Math.floor(gy - R); i <= gy + R; i++) for (let j = Math.floor(gx - R); j <= gx + R; j++) {
+    if (i < 0 || j < 0 || i >= n || j >= n) continue;
+    const d = Math.hypot(i + 0.5 - gy, j + 0.5 - gx);
+    const a = d <= r * 0.5 ? 1 : Math.max(0, 1 - (d - r * 0.5) / (r * 0.75));
+    if (a <= 0) continue;
+    const q = i * n + j;
+    buf[q] = ink ? Math.max(buf[q], a) : Math.min(buf[q], 1 - a);
+  }
+}
+function attachDraw(cv, n, getBuf, getInk, rad, onChange, onHover) {
+  let down = false, last = null;
+  const at = e => cellAt(cv, e, n);
+  const line = (p, q) => { const steps = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 0.25)); for (let s = 1; s <= steps; s++) stamp(getBuf(), n, p[0] + (q[0] - p[0]) * s / steps, p[1] + (q[1] - p[1]) * s / steps, getInk(), rad()); };
+  cv.addEventListener('pointerdown', e => { down = true; cv.setPointerCapture(e.pointerId); last = at(e); stamp(getBuf(), n, last[0], last[1], getInk(), rad()); onChange(); e.preventDefault(); });
+  cv.addEventListener('pointermove', e => { if (!down) { if (onHover) onHover(e); return; } const p = at(e); line(last, p); last = p; onChange(); e.preventDefault(); });
+  const up = () => { down = false; last = null; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+}
+function wire2() {
+  const ch = () => { S2.res = null; S2.dirty = true; };
+  attachDraw($('img2'), 28, () => S2.img, () => S2.ink, () => 1.5, ch, e => { if (S2.res) hover2('img2', e); });
+  for (const id in MAPS2) if (id !== 'img2') { const cv = $(id); cv.addEventListener('pointermove', e => hover2(id, e)); cv.addEventListener('pointerdown', e => hover2(id, e)); }
+  $('k2a').addEventListener('change', e => { S2.a = e.target.value; ch(); });
+  $('k2b').addEventListener('change', e => { S2.b = e.target.value; ch(); });
+  $('relu2').addEventListener('change', e => { S2.relu = e.target.checked; ch(); });
+  $('brushInk').addEventListener('click', () => { S2.ink = true; $('brushInk').setAttribute('aria-pressed', 'true'); $('brushErase').setAttribute('aria-pressed', 'false'); });
+  $('brushErase').addEventListener('click', () => { S2.ink = false; $('brushInk').setAttribute('aria-pressed', 'false'); $('brushErase').setAttribute('aria-pressed', 'true'); });
+  $('d2Sheet').addEventListener('click', () => { S2.img = Float64Array.from(DIGIT7.flat()); ch(); });
+  $('d2Clear').addEventListener('click', () => { S2.img = new Float64Array(784); ch(); });
+  $('d2Right').addEventListener('click', () => { S2.img = shiftImg(S2.img, 1, 0); ch(); });
+}
+
+/* ================= PART 3 ================= */
+const NTR = 6000, NTE = 1000, BS = 32, MAXEP = 30, AUTO_EP = 3, NSHIFT = 250, SHIFTS = [0, 1, 2, 3, 4, 5];
+const T = { X: [], Y: [], ready: false, cnn: null, mlp: null, running: false, auto: true, job: null, epoch: 0, pos: 0, order: null,
+  hist: [], acc: [], emaC: null, emaM: null, trainMs: 0, seen: 0, cmC: null, cmM: null, shiftAcc: null, cmShow: 'cnn', aug: false, rng: mulberry32(7), lastPred: 0 };
+const P3 = { raw: new Float64Array(784), centre: true, sx: 0, sy: 0, x: null };
+const FONTS = ['sans-serif', 'serif', 'monospace', '"Atkinson Hyperlegible", sans-serif', '"Bricolage Grotesque", sans-serif', '"JetBrains Mono", monospace', 'Georgia, serif', '"Courier New", monospace', 'Verdana, sans-serif', '"Trebuchet MS", sans-serif', '"Times New Roman", serif', 'Arial, sans-serif', 'Helvetica, sans-serif', '"Palatino Linotype", Palatino, serif'];
+function* genData() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 112;
+  const ctx = cv.getContext('2d', { willReadFrequently: true }), rng = mulberry32(2024);
+  for (let n = 0; n < NTR + NTE; n++) {
+    const d = n % 10;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 112, 112);
+    ctx.translate(56 + (rng() - 0.5) * 6, 56 + (rng() - 0.5) * 6);
+    ctx.rotate((rng() - 0.5) * 0.45);
+    ctx.transform(1, 0, (rng() - 0.5) * 0.35, 1, 0, 0); /* slant */
+    ctx.scale(0.8 + rng() * 0.4, 1);
+    const fam = FONTS[Math.floor(rng() * FONTS.length)], wt = rng() < 0.45 ? 'bold' : 'normal', it = rng() < 0.2 ? 'italic' : 'normal';
+    ctx.font = `${it} ${wt} ${Math.round(64 + rng() * 24)}px ${fam}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = ctx.strokeStyle = '#000';
+    ctx.fillText(String(d), 0, 0);
+    const lw = rng() * 9; if (lw > 1) { ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.strokeText(String(d), 0, 0); }
+    const px = ctx.getImageData(0, 0, 112, 112).data, raw = new Float64Array(784);
+    for (let i = 0; i < 28; i++) for (let j = 0; j < 28; j++) {
+      let s = 0; for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) s += px[((4 * i + a) * 112 + 4 * j + b) * 4 + 3];
+      raw[i * 28 + j] = s / (16 * 255);
+    }
+    let x = centreImg(raw);
+    x = shiftImg(x, Math.round((rng() - 0.5) * 2.2), Math.round((rng() - 0.5) * 2.2));
+    const noise = rng() < 0.5 ? 0.04 + rng() * 0.06 : 0, out = new Float32Array(784);
+    for (let q = 0; q < 784; q++) out[q] = Math.max(0, Math.min(1, x[q] + (noise ? noise * gauss(rng) : 0)));
+    T.X.push(out); T.Y.push(d);
+    if (n % 40 === 39) { $('dataInfo').textContent = `generating ${fmtN(n + 1)} of ${fmtN(NTR + NTE)}…`; yield; }
+  }
+}
+function newModels() { T.cnn = makeCNN(8, 11); T.mlp = makeMLP(17, 12); T.epoch = 0; T.pos = 0; T.order = null; T.hist = []; T.acc = []; T.emaC = T.emaM = null; T.trainMs = 0; T.seen = 0; T.cmC = T.cmM = null; T.shiftAcc = null; T.job = null; $('wC').textContent = fmtN(T.cnn.n); $('wM').textContent = fmtN(T.mlp.n); }
+function shuffle(n, rng) { const a = Array.from({ length: n }, (_, i) => i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function* trainJob() {
+  while (T.epoch < MAXEP) {
+    if (!T.order) { T.order = shuffle(NTR, T.rng); T.pos = 0; }
+    while (T.pos < NTR) {
+      const t0 = performance.now(), lr = 0.002 / (1 + 0.25 * T.epoch);
+      let lc = 0, lm = 0;
+      const end = Math.min(NTR, T.pos + BS), bs = end - T.pos;
+      for (let b = T.pos; b < end; b++) {
+        const k = T.order[b]; let x = T.X[k];
+        if (T.aug) x = shiftImg(x, Math.round((T.rng() - 0.5) * 8.99), Math.round((T.rng() - 0.5) * 8.99));
+        forward(T.cnn, x); lc += backward(T.cnn, x, T.Y[k]);
+        forward(T.mlp, x); lm += backward(T.mlp, x, T.Y[k]);
+      }
+      adamStep(T.cnn, lr, bs); adamStep(T.mlp, lr, bs);
+      T.pos = end; T.seen += bs;
+      lc /= bs; lm /= bs;
+      T.emaC = T.emaC == null ? lc : 0.95 * T.emaC + 0.05 * lc; T.emaM = T.emaM == null ? lm : 0.95 * T.emaM + 0.05 * lm;
+      if ((T.pos / BS | 0) % 6 === 0 || T.pos === NTR) T.hist.push({ e: T.epoch + T.pos / NTR, c: T.emaC, m: T.emaM });
+      T.trainMs += performance.now() - t0;
+      yield;
+    }
+    T.epoch++; T.order = null;
+    yield* evalJob();
+    if (T.auto && T.epoch >= AUTO_EP) { T.auto = false; setRunning(false); yield; }
+  }
+  setRunning(false);
+}
+function* evalJob() {
+  const cm = [new Int32Array(100), new Int32Array(100)]; let ok = [0, 0];
+  for (let t = 0; t < NTE; t++) {
+    const x = T.X[NTR + t], y = T.Y[NTR + t];
+    [T.cnn, T.mlp].forEach((m, k) => { const p = argmax(forward(m, x)); cm[k][y * 10 + p]++; if (p === y) ok[k]++; });
+    if (t % 50 === 49) yield;
+  }
+  T.cmC = cm[0]; T.cmM = cm[1];
+  T.acc.push({ e: T.epoch, c: ok[0] / NTE, m: ok[1] / NTE });
+  const sa = SHIFTS.map(() => [0, 0]);
+  for (let si = 0; si < SHIFTS.length; si++) {
+    const s = SHIFTS[si];
+    for (let t = 0; t < NSHIFT; t++) {
+      const x0 = T.X[NTR + t], y = T.Y[NTR + t];
+      for (const dir of s === 0 ? [0] : [-1, 1]) {
+        const x = s === 0 ? x0 : shiftImg(x0, dir * s, 0), w = s === 0 ? 1 : 0.5;
+        if (argmax(forward(T.cnn, x)) === y) sa[si][0] += w;
+        if (argmax(forward(T.mlp, x)) === y) sa[si][1] += w;
+      }
+      if (t % 50 === 49) yield;
+    }
+  }
+  T.shiftAcc = sa.map(([c, m]) => [c / NSHIFT, m / NSHIFT]);
+  const last = T.acc[T.acc.length - 1];
+  $('aC').textContent = (100 * last.c).toFixed(1) + '%'; $('aM').textContent = (100 * last.m).toFixed(1) + '%';
+  $('sC').textContent = (100 * T.shiftAcc[3][0]).toFixed(1) + '%'; $('sM').textContent = (100 * T.shiftAcc[3][1]).toFixed(1) + '%';
+  D3.charts = true; D3.pred = true;
+}
+function setRunning(on) {
+  T.running = on;
+  const b = $('train3'); b.textContent = on ? 'Pause' : (T.epoch > 0 ? 'Train more' : 'Train'); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if (on && !T.job) T.job = trainJob();
+  status3();
+}
+function status3() {
+  if (!T.ready) return;
+  const ep = T.epoch + (T.order ? T.pos / NTR : 0), rate = T.trainMs > 0 ? T.seen / (T.trainMs / 1000) : 0;
+  $('stat3').textContent = `Epoch ${ep.toFixed(2)} · ${fmtN(T.seen)} digits seen · ${(T.trainMs / 1000).toFixed(1)} s of compute${rate ? ' · ' + fmtN(rate) + ' digits/s' : ''}${T.running ? (T.auto ? ' · pre-training ' + AUTO_EP + ' epochs' : ' · training') : ' · paused'}`;
+}
+const D3 = { charts: true, pred: true, samples: true };
+function drawSamples() {
+  const cv = $('samples'), ctx = cv.getContext('2d');
+  cv.width = 280; cv.height = 56;
+  const im = ctx.createImageData(280, 56), d = im.data;
+  for (let s = 0; s < 20; s++) {
+    const x = T.X[s * 37 % NTR] || new Float32Array(784), ox = (s % 10) * 28, oy = (s / 10 | 0) * 28;
+    for (let i = 0; i < 28; i++) for (let j = 0; j < 28; j++) { const c = mix(RGB.surface, RGB.ink, x[i * 28 + j]), q = ((oy + i) * 280 + ox + j) * 4; d[q] = c[0]; d[q + 1] = c[1]; d[q + 2] = c[2]; d[q + 3] = 255; }
+  }
+  ctx.putImageData(im, 0, 0);
+  ctx.fillStyle = COL.line; for (let s = 1; s < 10; s++) ctx.fillRect(s * 28, 0, 1, 56); ctx.fillRect(0, 28, 280, 1);
+}
+/* generic line chart */
+function lineChart(cv, o) {
+  const { ctx, w, h } = sizeCanvas(cv, 0.62, 170, 250);
+  const L = 44, Rm = 10, Tm = 10, B = 30, pw = w - L - Rm, ph = h - Tm - B;
+  ctx.clearRect(0, 0, w, h);
+  const X = v => L + (v - o.x0) / (o.x1 - o.x0) * pw, Y = v => Tm + (1 - (v - o.y0) / (o.y1 - o.y0)) * ph;
+  ctx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--font-mono'); ctx.textBaseline = 'middle';
+  ctx.strokeStyle = COL.grid; ctx.fillStyle = COL.muted; ctx.lineWidth = 1;
+  for (const t of o.yt) { const y = Y(t); ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(o.yf(t), L - 6, y); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const t of o.xt) { const x = X(t); ctx.beginPath(); ctx.moveTo(x, Tm); ctx.lineTo(x, Tm + ph); ctx.stroke(); ctx.fillText(String(t), x, Tm + ph + 5); }
+  ctx.fillText(o.xl, L + pw / 2, Tm + ph + 17);
+  ctx.strokeStyle = COL.line; ctx.strokeRect(L, Tm, pw, ph);
+  for (const s of o.series) {
+    if (!s.pts.length) continue;
+    ctx.strokeStyle = s.col; ctx.fillStyle = s.col; ctx.lineWidth = 2; ctx.setLineDash(s.dash || []);
+    ctx.beginPath(); s.pts.forEach(([a, b], i) => { const x = X(a), y = Y(Math.max(o.y0, Math.min(o.y1, b))); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.setLineDash([]);
+    if (s.dots) for (const [a, b] of s.pts) { ctx.beginPath(); ctx.arc(X(a), Y(Math.max(o.y0, Math.min(o.y1, b))), 3, 0, 7); ctx.fill(); }
+  }
+  if (o.empty) { ctx.fillStyle = COL.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '13px ' + getComputedStyle(document.body).fontFamily; ctx.fillText(o.empty, L + pw / 2, Tm + ph / 2); }
+}
+function niceTicks(lo, hi, n) { const step0 = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), st = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0) || step0; const out = []; for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-9; v += st) out.push(+v.toFixed(6)); return out; }
+function drawCharts() {
+  const xe = Math.max(AUTO_EP, Math.ceil(T.hist.length ? T.hist[T.hist.length - 1].e : 0));
+  const xt = niceTicks(0, xe, Math.min(6, xe));
+  const lmax = Math.max(0.5, ...T.hist.map(p => Math.max(p.c, p.m)));
+  const ly = Math.min(2.5, Math.ceil(lmax * 2) / 2);
+  lineChart($('lossC'), { x0: 0, x1: xe, y0: 0, y1: ly, xt, yt: niceTicks(0, ly, 5), yf: v => v.toFixed(1), xl: 'epoch', series: [
+    { col: COL.accent, pts: T.hist.map(p => [p.e, p.c]) }, { col: COL.fit, pts: T.hist.map(p => [p.e, p.m]) }], empty: T.hist.length ? '' : (T.ready ? 'Press Train' : 'Generating data…') });
+  const amin = T.acc.length ? Math.min(...T.acc.map(a => Math.min(a.c, a.m))) : 0.8;
+  const y0 = Math.max(0, Math.min(0.8, Math.floor(amin * 10) / 10));
+  lineChart($('accC'), { x0: 0, x1: xe, y0, y1: 1, xt, yt: niceTicks(y0, 1, 4), yf: v => Math.round(v * 100) + '%', xl: 'epoch', series: [
+    { col: COL.accent, dots: true, pts: T.acc.map(a => [a.e, a.c]) }, { col: COL.fit, dots: true, pts: T.acc.map(a => [a.e, a.m]) }], empty: T.acc.length ? '' : 'Measured after each epoch' });
+  const sa = T.shiftAcc || [];
+  lineChart($('shiftC'), { x0: 0, x1: 5, y0: 0, y1: 1, xt: SHIFTS, yt: [0, 0.25, 0.5, 0.75, 1], yf: v => Math.round(v * 100) + '%', xl: 'pixels shifted', series: [
+    { col: COL.accent, dots: true, pts: sa.map((a, i) => [SHIFTS[i], a[0]]) }, { col: COL.fit, dots: true, pts: sa.map((a, i) => [SHIFTS[i], a[1]]) }], empty: sa.length ? '' : 'Measured after each epoch' });
+  drawCM();
+}
+function drawCM() {
+  const cv = $('cmC'), { ctx, w, h } = sizeCanvas(cv, 1, 200, 330);
+  ctx.clearRect(0, 0, w, h);
+  const L = 22, Tm = 16, sz = Math.min(w - L - 4, h - Tm - 4), cs = sz / 10, cm = T.cmShow === 'cnn' ? T.cmC : T.cmM;
+  ctx.font = '10.5px ' + getComputedStyle(document.body).getPropertyValue('--font-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = COL.muted;
+  for (let k = 0; k < 10; k++) { ctx.fillText(k, L + (k + 0.5) * cs, Tm / 2); ctx.fillText(k, L / 2, Tm + (k + 0.5) * cs); }
+  for (let i = 0; i < 10; i++) {
+    let row = 0; if (cm) for (let j = 0; j < 10; j++) row += cm[i * 10 + j];
+    for (let j = 0; j < 10; j++) {
+      const v = cm ? cm[i * 10 + j] : 0, t = row ? v / row : 0;
+      const c = i === j ? mix(RGB.surface, RGB.accent, Math.min(1, t)) : mix(RGB.surface, RGB.curve, Math.min(1, t * 4));
+      ctx.fillStyle = `rgb(${c.map(Math.round).join(',')})`; ctx.fillRect(L + j * cs + 0.5, Tm + i * cs + 0.5, cs - 1, cs - 1);
+      if (v && cs > 16) { ctx.fillStyle = (i === j ? t > 0.55 : t * 4 > 0.55) ? COL.surface : COL.ink; ctx.fillText(v, L + (j + 0.5) * cs, Tm + (i + 0.5) * cs); }
+    }
+  }
+  ctx.strokeStyle = COL.line; ctx.strokeRect(L, Tm, sz, sz);
+  if (!cm) { ctx.fillStyle = COL.muted; ctx.font = '13px ' + getComputedStyle(document.body).fontFamily; ctx.fillText('After the first epoch', L + sz / 2, Tm + sz / 2); }
+}
+const filtEls = [];
+function build3() {
+  const g = $('filt3');
+  for (let f = 0; f < 8; f++) {
+    const d = document.createElement('div'); d.className = 'f';
+    d.innerHTML = `<span>filter ${f + 1}</span><canvas class="pix" width="3" height="3" aria-label="Learned filter ${f + 1}"></canvas><canvas class="pix" width="26" height="26" aria-label="Feature map of filter ${f + 1}"></canvas>`;
+    g.appendChild(d); const cs = d.querySelectorAll('canvas'); filtEls.push([cs[0], cs[1]]);
+  }
+  $('probs3').innerHTML = Array.from({ length: 10 }, (_, k) => `<span class="d" id="pd${k}">${k}</span><span class="bars"><i class="cn" id="pc${k}"></i><i class="dn" id="pm${k}"></i></span><span class="pv" id="pv${k}"></span>`).join('');
+}
+function seenInput() { let x = P3.centre ? centreImg(P3.raw) : Float64Array.from(P3.raw); if (P3.sx || P3.sy) x = shiftImg(x, P3.sx, P3.sy); return x; }
+function drawPred() {
+  paint($('pad3'), P3.raw, 28, 28, 'ink');
+  const x = P3.x = seenInput(); paint($('seen3'), x, 28, 28, 'ink');
+  $('shiftInfo').textContent = `Shift: ${P3.sx > 0 ? '+' : ''}${P3.sx} px across, ${P3.sy > 0 ? '+' : ''}${P3.sy} px down${P3.centre ? ' (after centring)' : ''}`;
+  if (!T.cnn) return;
+  const pc = Array.from(forward(T.cnn, x)), z = T.cnn.z.slice(), pm = Array.from(forward(T.mlp, x));
+  const bc = argmax(pc), bm = argmax(pm);
+  for (let k = 0; k < 10; k++) {
+    $('pc' + k).style.width = (pc[k] * 100).toFixed(1) + '%'; $('pm' + k).style.width = (pm[k] * 100).toFixed(1) + '%';
+    $('pv' + k).textContent = (pc[k] * 100).toFixed(0) + ' / ' + (pm[k] * 100).toFixed(0);
+    $('pd' + k).classList.toggle('top', k === bc || k === bm);
+  }
+  const ink = x.some(v => v > 0.1);
+  $('verdict3').innerHTML = ink ? `CNN says <b style="color:var(--accent)">${bc}</b> (${(pc[bc] * 100).toFixed(0)}%) · Dense says <b style="color:var(--fit)">${bm}</b> (${(pm[bm] * 100).toFixed(0)}%)` : 'Draw a digit on the pad.';
+  const p = T.cnn.p;
+  for (let f = 0; f < 8; f++) {
+    paint(filtEls[f][0], p.subarray(f * 9, f * 9 + 9), 3, 3, 'signed');
+    const map = new Float64Array(676); for (let q = 0; q < 676; q++) { const v = z[f * 676 + q]; map[q] = v > 0 ? v : 0; }
+    paint(filtEls[f][1], map, 26, 26, 'signed');
+  }
+}
+function loadTest(idx) { const t = idx != null ? idx : Math.floor(Math.random() * NTE); P3.raw = Float64Array.from(T.X[NTR + t]); P3.sx = P3.sy = 0; D3.pred = true; }
+function wire3() {
+  attachDraw($('pad3'), 28, () => P3.raw, () => true, () => 1.35, () => { D3.pred = true; });
+  $('pClear').addEventListener('click', () => { P3.raw = new Float64Array(784); P3.sx = P3.sy = 0; D3.pred = true; });
+  $('pTest').addEventListener('click', () => { if (T.ready) loadTest(); });
+  $('pCentre').addEventListener('click', () => { P3.centre = !P3.centre; $('pCentre').setAttribute('aria-pressed', P3.centre ? 'true' : 'false'); D3.pred = true; });
+  [['sL', -1, 0], ['sR', 1, 0], ['sU', 0, -1], ['sD', 0, 1]].forEach(([id, dx, dy]) => $(id).addEventListener('click', () => { P3.sx = Math.max(-10, Math.min(10, P3.sx + dx)); P3.sy = Math.max(-10, Math.min(10, P3.sy + dy)); D3.pred = true; }));
+  $('train3').addEventListener('click', () => { if (!T.ready) return; T.auto = false; if (!T.running && T.epoch >= MAXEP) return; setRunning(!T.running); });
+  $('reset3').addEventListener('click', () => { if (!T.ready) return; const was = T.running; newModels(); T.auto = false; setRunning(false); if (was) setRunning(true); D3.charts = D3.pred = true; $('aC').textContent = $('aM').textContent = $('sC').textContent = $('sM').textContent = '–'; });
+  $('aug3').addEventListener('change', e => { T.aug = e.target.checked; });
+  $('cmCnn').addEventListener('click', () => { T.cmShow = 'cnn'; $('cmCnn').setAttribute('aria-pressed', 'true'); $('cmMlp').setAttribute('aria-pressed', 'false'); drawCM(); });
+  $('cmMlp').addEventListener('click', () => { T.cmShow = 'mlp'; $('cmCnn').setAttribute('aria-pressed', 'false'); $('cmMlp').setAttribute('aria-pressed', 'true'); drawCM(); });
+}
+
+/* ================= lesson demos and pooling note ================= */
+function buildPool() {
+  const A = [[12, 20, 30, 0], [8, 12, 2, 0], [34, 70, 37, 0], [112, 100, 25, 12]];
+  const g = $('poolIn');
+  A.forEach((r, i) => r.forEach((v, j) => { const c = mkCell('div', colName(j) + (58 + i)); c._v.textContent = v; const blk = (i >> 1) * 2 + (j >> 1); c.style.background = blk % 3 === 0 ? 'var(--board)' : ''; g.appendChild(c); }));
+  const mx = [[20, 30], [112, 37]], av = [[13, 8], [79, 18.5]];
+  mx.forEach((r, i) => r.forEach((v, j) => { const c = mkCell('div', colName(5 + j) + (57 + i)); c._v.textContent = v; $('poolMax').appendChild(c); }));
+  av.forEach((r, i) => r.forEach((v, j) => { const c = mkCell('div', colName(5 + j) + (61 + i)); c._v.textContent = v; $('poolAvg').appendChild(c); }));
+}
+const smooth = () => reduce ? 'auto' : 'smooth';
+function wireDemos() {
+  $('demoM2').addEventListener('click', () => { $('pReset').click(); S1.step = 0; S1.playing = false; render1(); $('p1h').scrollIntoView({ behavior: smooth(), block: 'start' }); });
+  $('demoShift').addEventListener('click', () => { S1.inp = SHEET_X.map(r => [0, ...r.slice(0, 4)]); S1.preset = null; S1.playing = false; S1.step = 1; render1(); $('p1h').scrollIntoView({ behavior: smooth(), block: 'start' }); });
+  $('demoSobel').addEventListener('click', () => { S2.a = 'sobx'; S2.b = 'soby'; $('k2a').value = 'sobx'; $('k2b').value = 'soby'; S2.res = null; S2.dirty = true; $('p2h').scrollIntoView({ behavior: smooth(), block: 'start' }); });
+}
+
+/* ================= main loop ================= */
+let genJob = null;
+function frame(now) {
+  if (S1.playing && now - S1.last > S1.speed * 1000) { S1.last = now; S1.step = (S1.step + 1) % 18; render1(); }
+  if (S2.dirty) { S2.dirty = false; compute2(); draw2(); }
+  const t0 = performance.now();
+  if (genJob) {
+    while (performance.now() - t0 < 12) { if (genJob.next().done) { genJob = null; break; } }
+    if (!genJob) {
+      T.ready = true; $('dataInfo').textContent = `${fmtN(NTR)} training + ${fmtN(NTE)} test, 28×28, simulated`;
+      $('train3').disabled = false; $('reset3').disabled = false;
+      newModels(); loadTest(3); D3.samples = true; setRunning(true);
+    }
+  } else if (T.running && T.job) {
+    while (performance.now() - t0 < 12) { const r = T.job.next(); if (r.done) { T.job = null; break; } if (!T.running) break; }
+    D3.charts = true;
+    if (now - T.lastPred > 500) { T.lastPred = now; D3.pred = true; }
+    status3();
+  }
+  if (D3.samples && T.ready) { D3.samples = false; drawSamples(); }
+  if (D3.charts) { D3.charts = false; drawCharts(); }
+  if (D3.pred) { D3.pred = false; drawPred(); }
+  requestAnimationFrame(frame);
+}
+function init() {
+  readColors();
+  build1(); wire1(); render1();
+  build2(); wire2();
+  build3(); wire3(); buildPool(); wireDemos();
+  $('train3').disabled = true; $('reset3').disabled = true;
+  P3.raw = new Float64Array(784);
+  const start = () => { if (!genJob && !T.ready) genJob = genData(); };
+  const fontsReady = document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))]) : Promise.resolve();
+  fontsReady.then(start, start);
+  const recolor = () => { readColors(); render1(); S2.dirty = true; D3.charts = D3.pred = D3.samples = true; };
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+  let lastW = 0;
+  new ResizeObserver(() => { const w = $('b3').clientWidth; if (w !== lastW) { lastW = w; D3.charts = true; } }).observe($('b3'));
+  requestAnimationFrame(frame);
+}
+init();
+</script>
+
+</body></html>
