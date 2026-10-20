@@ -8,7 +8,7 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 
 What probability can and cannot contribute to the Langlands programme: Sato Tate laws, random walks on trees and isogeny graphs, Thorin measures and generalized gamma convolutions as reformulations of the Riemann hypothesis, and Bayesian identification of Sato Tate groups, with code and data.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.1.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23445874](https://zenodo.org/badge/DOI/10.5281/zenodo.23445874.svg)](https://doi.org/10.5281/zenodo.23445874) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8BVRB5 "Paperback on Amazon")
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.2.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23503453](https://zenodo.org/badge/DOI/10.5281/zenodo.23503453.svg)](https://doi.org/10.5281/zenodo.23503453) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8BVRB5 "Paperback on Amazon")
 
 ## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
 
