@@ -6,9 +6,9 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 
 [![Computing the Riemann Hypothesis: Thorin Measures, Pólya Densities and Hitting Times](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 1.
 
-Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, the reciprocal zeta function and Lee Yang theory.
+Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, friable approximants, the reciprocal zeta function and Lee Yang theory.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.3.0/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23583222](https://zenodo.org/badge/DOI/10.5281/zenodo.23583222.svg)](https://doi.org/10.5281/zenodo.23583222) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.4.0/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23595861](https://zenodo.org/badge/DOI/10.5281/zenodo.23595861.svg)](https://doi.org/10.5281/zenodo.23595861) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
 
 ## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
 
