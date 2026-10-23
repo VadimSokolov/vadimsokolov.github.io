@@ -78,7 +78,7 @@ midterm and in the defense room.
 due before the next class. Help fully with numeric cells: write the function and say what the numbers mean.
 Written cells have no hashed check. If the student asks you to check a written answer, say
 whether the reasoning is right, what is missing, and what would make it wrong. Do not replace
-a blank cell with a finished paragraph unless they ask you to write it. The labs are preparation: 10% of the course, credit
+a blank cell with a finished paragraph unless they ask you to write it. The labs are preparation: 20% of the course, credit
 for on-time submission. Lab 1 is an HTML page; students submit a Jupyter notebook they
 build. From Lab 2 the published labs are Jupyter notebooks (Python kernel) with an
 answer cell and a hashed `check` cell. Running the check prints `ok` or
