@@ -13,7 +13,7 @@
 | 5. Model selection | `notes/05-modelselection.html` | 10 to 11 | bias-variance, cross-validation, ridge, lasso, shrinkage |
 | 6. Deep learning | `notes/06-dlai.html` | 12 to 13 | neural nets, ReLU and activations, projection pursuit, Kolmogorov-Arnold representation, trees versus nets |
 
-Week 8 is the midterm. Week 14 studio is fairness metrics, auditing, and the decision log. Week 15 is the defense.
+Week 8 is the midterm. Week 14 is fairness metrics, auditing, and the decision log. Week 15 is the defense.
 
 The midterm reading list is on the problem bank (`files/600/midterm-prep.html`, section "Reading guide"). Weeks 1--3: book Chapters 1--2 through Normal (skip CDFs, computing, Naive Bayes as a classifier, election simulation). Week 4 and Lab 5: read $F$, invert it, $X=F^{-1}(U)$, and $\mathrm{sd}(\bar X)=\sigma/\sqrt{n}$; Chapter 3 only coin-toss / beta-binomial / Poisson for counts / Normal mean (not Poisson-gamma); Chapter 5 through confidence intervals; Chapter 11 through MLE and MSE vs MAE. Weeks 5--6: Chapter 11 metrics; Chapter 12 through residuals, log-log, dummies, golf; Chapter 13 through log-odds and the confusion matrix. Week 7: Chapter 5 testing, Chapter 2 predictive values, Chapter 1 expectation as a decision. Not on the midterm: Chapter 4, Chapter 6, Chapters 7--10, trees, ridge, Chapter 12 from quantile regression, Chapter 13 from the kernel trick, Part 3. The Patterns lecture points at Chapters 14 and 16; those are later.
 
@@ -29,17 +29,10 @@ at the first meeting except setting up the tutor. In class the instructor lectur
 in-person midterm covering weeks
 1 through 7, 2.5 hours,
 pen and paper, one double-sided cheat sheet, no AI assistant. A problem bank is posted
-beforehand. Weeks 9 through 14: project work outside class; in class a studio on that week's
-topic. Teams lock at the start of week 9, before studio. Students work the problem with their
-assistants; the instructor does not walk them through it. Week 9 is studio and ungraded
-defense practice; there is no assigned critique that night. Week 11 studio is mid-build on
-the team's own project. Assigned team-on-team critiques run weeks 10 through 14: most of
-those nights two pairs, some three, so each of the twelve teams presents once and critiques
-once. On each studio week, the team submits a one-page studio result before leaving. After
-class, the team adds one entry to its cumulative project decision log: the decision, the
-alternative rejected, the evidence, and what would make them revisit the choice. That log is
-not the six-part studio page. It is due as a whole in week 14; do not reconstruct it then.
-Week 15 is the defense.
+beforehand. Weeks 9 through 14 are the project. Teams lock at the start of week 9. The
+proposal is due week 10, the mid-build is week 11, and the decision log is due in week 14.
+The log is cumulative: the decision, the alternative rejected, the evidence, and what would
+make them revisit the choice. Week 15 is the defense.
 
 ## Assessment
 
@@ -63,30 +56,21 @@ position under questioning.
 |---|---:|---|
 | Self-check labs (7, credit for on-time submission, no drops) | 10% | Preparation |
 | Midterm, in class, week 8, covers weeks 1 to 7, 2.5 hours, pen and paper, no AI | 40% | Understanding 25, Judgment 15 |
-| Studio (weekly page and assigned oral critique) | 10% | Judgment |
-| Project defense | 40% | Understanding 25, Judgment 15 |
+| Project defense | 50% | Understanding 25, Judgment 25 |
 
-The studio 10% splits evenly: half is the six weekly pages, equally weighted, required that
-night; half is the two assigned critique appearances, presenting and critiquing equally. Both
-halves are team scores. The
-page, before they leave, in this order: the decision; the finding; the evidence; the
-alternative they rejected; the strongest check that could have failed; what would change the
-decision.
-
-Critique uses five questions, not those six: what did they do; what does this number mean;
-why does it support the claim; what reasonable alternative did they reject; what evidence
-would change the decision. The first three are mostly understanding. The last two are mostly
-judgment.
+Five questions, every time: what did they do; what does this number mean; why does it
+support the claim; what reasonable alternative did they reject; what evidence would change
+the decision. The first three are mostly understanding. The last two are mostly judgment.
 
 Of the defense, 25 points measure individual understanding from that directed question, with
-follow-ups as needed, and 15 measure the team's judgment: the problem, the alternatives, the
+follow-ups as needed, and 25 measure the team's judgment: the problem, the alternatives, the
 cost of error, and what would change the recommendation. The midterm is the other individual
 Understanding sample. If those two conflict, there is a second five-minute conversation to
 resolve insufficient evidence. Twelve teams of 3 or 4, locked in week 9, eleven minutes each,
 two minutes between, in the 165-minute exam block. About two minutes for the team's statement
-(the decision, the alternative rejected, what would change the recommendation); the other
-three studio-page parts are material for questions. Then one directed question each from the
-project. Labs measure preparation: submit on time, no drops, and the points are yours.
+(the decision, the alternative rejected, what would change the recommendation). Then one
+directed question each from the project. Labs measure preparation: submit on time, no drops,
+and the points are yours.
 Published notebooks are Python Jupyter notebooks with an answer cell and a
 hashed `check` cell. Students grade themselves by running the check; it does
 not display the target number. Written cells have no check. Students write them
@@ -108,8 +92,8 @@ The proposal (week 10), mid-build (week 11), and decision log (due week 14) are 
 They have no separate points. Late delays the posted defense score; missing at the scheduled
 slot means the defense is rescheduled by the last day of the exam period, not skipped.
 
-The midterm and the defense happen in the room. Assistants are expected for labs, studios,
-and project work. They are prohibited during the midterm and in the defense room. Students
+The midterm and the defense happen in the room. Assistants are expected for labs and project
+work. They are prohibited during the midterm and in the defense room. Students
 disclose what they used. No penalty attaches to the disclosure.
 
 ## Datasets in the repository
@@ -142,7 +126,7 @@ Supporting scripts: `hw/weather.R`, `hw/election.R`, `hw/credit.R`, `hw/roc.R`,
 
 ## Conventions
 
-- **R or Python** for student work: labs, studio, project. The notes are mostly R. Follow
+- **R or Python** for student work: labs and the project. The notes are mostly R. Follow
   the language the student is using. In R, prefer base idioms: `lm`, `glm`, `predict`,
   `tapply`, `aggregate`. In Python, follow the stack they already have.
 - Lab 1 is an HTML page; students copy chunks into a Jupyter notebook they submit.
