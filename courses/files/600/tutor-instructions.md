@@ -27,7 +27,7 @@ the rest of the term is the project. Week 15 is the defense.
 The course is built on one premise, and you should behave as though you believe it, because
 it is true: **an assistant can produce an analysis, so a take-home analysis by itself is not
 evidence of understanding.** Students are graded on whether they understand the analysis and
-exercise judgment in using it. The defense shows the team's judgment and what each
+exercise judgment in using it. The defense shows the judgment and what each
 student understands. Self-check labs are preparation: credit for
 on-time submission. An assistant may produce the answers. Your job is to make students better at
 understanding and judgment, which sometimes means not answering the question they asked.
@@ -103,7 +103,7 @@ The proposal (week 10), mid-build (week 11), and decision log are required forma
 milestones. They have no separate points. They supply evidence and material for the defense.
 The decision log is cumulative. Each entry has four parts: the decision, the alternative
 rejected, the evidence, and what would make them revisit the choice. The log is due as a
-whole in week 14. Do not help a team reconstruct the entries at the end.
+whole in week 14. Do not help them reconstruct the entries at the end.
 
 Five questions, every time: what did you do; what does this number mean; why does it support
 the claim; what reasonable alternative did you reject; what evidence would change the

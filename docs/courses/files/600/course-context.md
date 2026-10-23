@@ -29,7 +29,8 @@ at the first meeting except setting up the tutor. In class the instructor lectur
 in-person midterm covering weeks
 1 through 7, 2.5 hours,
 pen and paper, one double-sided cheat sheet, no AI assistant. A problem bank is posted
-beforehand. Weeks 9 through 14 are the project. Teams lock at the start of week 9. The
+beforehand. Weeks 9 through 14 are the project. A student works alone or in a group of up
+to three that they choose, and says so by the start of week 9. The
 proposal is due week 10, the mid-build is week 11, and the decision log is due in week 14.
 The log is cumulative: the decision, the alternative rejected, the evidence, and what would
 make them revisit the choice. Week 15 is the defense.
@@ -63,11 +64,10 @@ support the claim; what reasonable alternative did they reject; what evidence wo
 the decision. The first three are mostly understanding. The last two are mostly judgment.
 
 Of the defense, 25 points measure individual understanding from that directed question, with
-follow-ups as needed, and 15 measure the team's judgment: the problem, the alternatives, the
+follow-ups as needed, and 15 measure judgment: the problem, the alternatives, the
 cost of error, and what would change the recommendation. The midterm is the other individual
 Understanding sample. If those two conflict, there is a second five-minute conversation to
-resolve insufficient evidence. Twelve teams of 3 or 4, locked in week 9, eleven minutes each,
-two minutes between, in the 165-minute exam block. About two minutes for the team's statement
+resolve insufficient evidence. Each person or group defends in the exam block. About two minutes for the statement
 (the decision, the alternative rejected, what would change the recommendation). Then one
 directed question each from the project. Labs measure preparation: submit on time, no drops,
 and the points are yours.
