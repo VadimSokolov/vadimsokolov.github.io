@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/) <small>Thorin Measures, Pólya Densities and Hitting Times</small>
+
+[![Computing the Riemann Hypothesis: Thorin Measures, Pólya Densities and Hitting Times](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 1.
+
+Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, the reciprocal zeta function and Lee Yang theory.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.3.0/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23583222](https://zenodo.org/badge/DOI/10.5281/zenodo.23583222.svg)](https://doi.org/10.5281/zenodo.23583222) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
+
 ## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
 
 [![Clinical Trials in Practice: From Foundations to AI Agents](https://vsokolov.org/books/clinical_trials_in_practice/cover.jpg)](https://vsokolov.org/books/clinical_trials_in_practice/) Alexandra Sokolova and Vadim Sokolov. 2026. Edition 1.
@@ -41,11 +49,3 @@ Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an op
 Hilbert's sixth problem from Kolmogorov's axioms and the Boltzmann equation to the Navier Stokes equations, and the inverse passage: Bayesian estimation on the solution manifold of a differential equation, where the adjoint evolution of the data is a sufficient statistic for linear equations.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/hilbert6/releases/download/v1.0.1/hilbert6.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/hilbert6 "Source on GitHub") [![DOI 10.5281/zenodo.23407620](https://zenodo.org/badge/DOI/10.5281/zenodo.23407620.svg)](https://doi.org/10.5281/zenodo.23407620) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HMV1WFRD "Paperback on Amazon")
-
-## [Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/) <small>Thorin Measures, Pólya Densities and Hitting Times</small>
-
-[![Computing the Riemann Hypothesis: Thorin Measures, Pólya Densities and Hitting Times](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 1.
-
-Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, the reciprocal zeta function and Lee Yang theory.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.2.0/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23543693](https://zenodo.org/badge/DOI/10.5281/zenodo.23543693.svg)](https://doi.org/10.5281/zenodo.23543693) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
