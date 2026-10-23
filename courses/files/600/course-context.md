@@ -37,8 +37,9 @@ make them revisit the choice. Week 15 is the defense.
 
 ## Assessment
 
-The foundation phase is 60%: labs 20 and midterm 40. The project phase is 40%. Across the
-course that is 50% Understanding, 30% Judgment, and 20% Preparation.
+The foundation phase is 60%: labs 20 and midterm 40. The project phase is 40%. The labs are
+Preparation. The midterm was seven problems and 100 points, scaled to 40% of the course. The
+defense is 25 Understanding and 15 Judgment.
 
 Understanding means explaining mechanisms, interpreting results in context, applying
 foundations without an assistant, and predicting what changes when an assumption or
@@ -56,7 +57,7 @@ position under questioning.
 | Component | Weight | Measures |
 |---|---:|---|
 | Self-check labs (7, credit for on-time submission, no drops) | 20% | Preparation |
-| Midterm, in class, week 8, covers weeks 1 to 7, 2.5 hours, pen and paper, no AI | 40% | Understanding 25, Judgment 15 |
+| Midterm, in class, 14 October, seven problems, 100 points, scaled to 40% of the course | 40% | Understanding |
 | Project defense | 40% | Understanding 25, Judgment 15 |
 
 Five questions, every time: what did they do; what does this number mean; why does it
