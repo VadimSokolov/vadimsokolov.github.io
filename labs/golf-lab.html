@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>PGA Tour Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: model builder (actual-vs-predicted board + residual histogram, control rail), skill calculator (waterfall + sliders), outlier table, 2000 vs 2018 comparison, then lesson, notes and class exercises. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
+  --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+    --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+  --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 76ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); max-width: 76ch; }
+.src a { color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.eqn { font-family: var(--font-mono); font-size: clamp(12px, 1.6vw, 15px); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; padding: 2px 4px; }
+.eqn .f { color: var(--fit); font-weight: 600; }
+canvas { display: block; width: 100%; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.dash { border-top: 2px dashed var(--muted); }
+.sw.redc { border-top: 2.5px solid var(--curve); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .75; }
+.sw.tw { width: 11px; height: 11px; border: 0; border-radius: 50%; background: var(--ball); }
+.sw.selp { width: 11px; height: 11px; border: 2px solid var(--accent); border-radius: 50%; }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .7; }
+.sw.bar2 { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--alt); opacity: .7; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; box-shadow: 0 6px 20px rgba(0,0,0,.12); white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; z-index: 2; }
+.tip b { font-family: var(--font-display); font-size: 13.5px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button, select { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+select { font-weight: 400; width: 100%; }
+button:hover, select:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns.three { grid-template-columns: repeat(3, 1fr); }
+.btns.three button { font-size: 13px; padding: 8px 6px; line-height: 1.2; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg.four { grid-template-columns: repeat(4, 1fr); }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.checks code { font-family: var(--font-mono); font-size: 13px; }
+.checks .d { color: var(--muted); font-size: 12.5px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.msg.warn { border-color: var(--curve); }
+.msg.warn b { color: var(--curve); }
+
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-left: 0; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13.5px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.stats td.est { color: var(--fit); }
+.stats td.tw { color: var(--ball); }
+.stats td.hi { color: var(--curve); }
+.stats tbody tr.click { cursor: pointer; }
+.stats tbody tr.click:hover td { background: var(--board); }
+.stats tbody tr.on td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.scroll { max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: var(--surface); }
+.big { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.kv { display: flex; justify-content: space-between; align-items: end; gap: 8px; }
+
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 86ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lesson .demo { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.eq .m { font-family: var(--font-mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.eq .m + .m { margin-top: 2px; }
+.takeaway { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; }
+.takeaway p { margin: 0; max-width: 90ch; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note a { color: var(--accent); }
+.formula { font-family: var(--font-mono); font-size: 12.5px; background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow-x: auto; white-space: pre; }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 86ch; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Regression case study</span>
+    <h1>PGA Tour Lab: What Is Tiger Woods Worth?</h1>
+    <p class="lead">Regress a season of prize money on driving distance, greens in regulation and putting for every PGA Tour player. On the dollar scale Tiger Woods sits nine standard deviations above the line and drags it toward him. Take logs and he becomes an ordinary point: the model predicts more than he earned. Then price a yard, a green and a putt, list the over- and under-performers, and see how the game changed by 2018.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on the example “Golf Performance Data” in Chapter 12, <a href="https://vsokolov.org/html/_book/12-regression.html">Linear Regression</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>). Data: season statistics for 195 players in 2000 and 192 in 2018, the files <code>pga-2000.csv</code> and <code>pga-2018.csv</code> from the book.</p>
+  </header>
+
+  <!-- 1. model builder -->
+  <main class="grid">
+    <section class="board" aria-label="Model builder: actual against predicted earnings and the residual histogram">
+      <div class="eqn" id="eqn"></div>
+      <span class="cap" id="scCap">Actual vs. predicted</span>
+      <canvas id="sc" role="img" aria-label="Scatter of actual against predicted earnings for every player, with the 45 degree line; Tiger Woods highlighted"></canvas>
+      <div class="legend">
+        <span><i class="sw pt"></i>Player</span>
+        <span><i class="sw tw"></i>Tiger Woods</span>
+        <span><i class="sw selp"></i>Selected player</span>
+        <span><i class="sw dash"></i>Actual = predicted</span>
+      </div>
+      <span class="cap">Standardized residuals</span>
+      <canvas id="rh" role="img" aria-label="Histogram of standardized residuals with the standard normal curve and the selected player marked"></canvas>
+      <div class="legend">
+        <span><i class="sw bar"></i>Players</span>
+        <span><i class="sw redc"></i>N(0, 1) scaled to the bars</span>
+        <span><i class="sw tw"></i>Tiger Woods</span>
+      </div>
+      <p class="hint">Hover a point for the player, click to select him. Points above the dashed line earned more than their statistics predict.</p>
+    </section>
+
+    <aside class="panel">
+      <div class="group">
+        <span class="label">Season</span>
+        <div class="seg" role="group" aria-label="Season">
+          <button id="s2000" aria-pressed="true">2000 (n = 195)</button>
+          <button id="s2018" aria-pressed="false">2018 (n = 192)</button>
+        </div>
+        <span class="label">Response</span>
+        <div class="seg" role="group" aria-label="Response">
+          <button id="rMoney" aria-pressed="true">money ($)</button>
+          <button id="rLog" aria-pressed="false">log(money)</button>
+        </div>
+        <span class="label">Predictors</span>
+        <div class="checks">
+          <label><input type="checkbox" id="v_nevents" checked><code>nevents</code><span class="d">events played</span></label>
+          <label><input type="checkbox" id="v_drivedist" checked><code>drivedist</code><span class="d">yards per drive</span></label>
+          <label><input type="checkbox" id="v_gir" checked><code>gir</code><span class="d">greens in regulation, %</span></label>
+          <label><input type="checkbox" id="v_avgputts" checked><code>avgputts</code><span class="d">putts per GIR green</span></label>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="dropTW">Leave Tiger Woods out of the fit</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <table class="stats">
+          <thead><tr><th>Term</th><th>Estimate</th><th>SE</th><th>t</th></tr></thead>
+          <tbody id="coefT"></tbody>
+        </table>
+        <table class="stats">
+          <tbody>
+            <tr><td>Players in the fit, n</td><td id="fN">–</td></tr>
+            <tr><td>R²</td><td class="est" id="fR2">–</td></tr>
+            <tr><td>Residual SD, s</td><td id="fS">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="group">
+        <span class="label">Selected player</span>
+        <select id="who" aria-label="Select a player"></select>
+        <table class="stats">
+          <tbody>
+            <tr><td>Actual earnings</td><td id="pAct">–</td></tr>
+            <tr><td>Predicted</td><td class="est" id="pPred">–</td></tr>
+            <tr><td>Actual / predicted</td><td id="pRatio">–</td></tr>
+            <tr><td>Standardized residual</td><td id="pRs">–</td></tr>
+            <tr><td>Leverage h</td><td id="pH">–</td></tr>
+            <tr><td>Cook’s distance</td><td id="pCook">–</td></tr>
+          </tbody>
+        </table>
+        <p class="msg" id="pMsg"></p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- 2. skill calculator -->
+  <section class="sec" aria-labelledby="calcH">
+    <div class="head">
+      <span class="eyebrow">Skills multiply</span>
+      <h2 id="calcH">Price a yard, a green and a putt</h2>
+      <p>The log model is <code>log(money) ~ drivedist + gir + avgputts</code>, fitted to the season you choose. Start from the median golfer and move one skill at a time. Each change multiplies predicted earnings by e<sup>β·Δ</sup>, so the bars below stack on a log scale.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap" id="wfCap">From the median golfer to this profile</span>
+        <canvas id="wf" role="img" aria-label="Waterfall chart on a log scale from the median golfer's predicted earnings through the multiplier of each skill to the predicted earnings of the chosen profile"></canvas>
+        <table class="stats">
+          <thead><tr><th>Skill</th><th>Median</th><th>Profile</th><th>β̂</th><th>Multiplier</th></tr></thead>
+          <tbody id="wfT"></tbody>
+        </table>
+        <p class="msg" id="wfMsg"></p>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Model fitted to</span>
+          <div class="seg" role="group" aria-label="Season of the calculator model">
+            <button id="c2000" aria-pressed="true">2000</button>
+            <button id="c2018" aria-pressed="false">2018</button>
+          </div>
+          <span class="label">Load a profile</span>
+          <div class="btns three">
+            <button id="pMed">Median golfer</button>
+            <button id="pTW00">Tiger 2000</button>
+            <button id="pTW18">Tiger 2018</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="slider"><div class="top"><label for="xD">Driving distance</label><output id="xDo">–</output></div>
+            <input type="range" id="xD" min="250" max="320" step="0.1"></div>
+          <div class="slider"><div class="top"><label for="xG">Greens in regulation</label><output id="xGo">–</output></div>
+            <input type="range" id="xG" min="56" max="76" step="0.05"></div>
+          <div class="slider"><div class="top"><label for="xP">Putts per GIR green</label><output id="xPo">–</output></div>
+            <input type="range" id="xP" min="1.69" max="1.85" step="0.001"></div>
+        </div>
+        <div class="group">
+          <div class="kv"><span class="label">Predicted earnings</span><span class="big" id="cPred">–</span></div>
+          <p class="hint" id="cHint"></p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 3. over/under performers -->
+  <section class="sec" aria-labelledby="ouH">
+    <div class="head">
+      <span class="eyebrow">Residuals as a scouting report</span>
+      <h2 id="ouH">Who earned more, or less, than his game?</h2>
+      <p>The players whose standardized residual in the model above is beyond the cutoff. Prize money is paid by finishing place and a winner takes a large share of the purse, so a few good weeks can lift a player far above what his season averages predict. Click a row to select the player.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <div class="scroll">
+          <table class="stats">
+            <thead><tr><th>Player</th><th>Money</th><th>Predicted</th><th>Ratio</th><th>Std. resid.</th></tr></thead>
+            <tbody id="ouT"></tbody>
+          </table>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="thr">Cutoff |standardized residual| &gt;</label><output id="thrO">2.0</output></div>
+            <input type="range" id="thr" min="1" max="4" step="0.1" value="2"></div>
+          <table class="stats">
+            <tbody>
+              <tr><td>Players beyond the cutoff</td><td id="ouN">–</td></tr>
+              <tr><td>Expected if residuals were N(0, 1)</td><td id="ouE">–</td></tr>
+              <tr><td>Above (over-performers)</td><td id="ouUp">–</td></tr>
+              <tr><td>Below (under-performers)</td><td id="ouDn">–</td></tr>
+            </tbody>
+          </table>
+          <p class="hint">The expected count is n · 2(1 − Φ(cutoff)). Too many large residuals on one side means the errors are skewed, the first sign that the scale of the response is wrong.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 4. 2000 vs 2018 -->
+  <section class="sec" aria-labelledby="cmpH">
+    <div class="head">
+      <span class="eyebrow">Everyone has gotten better since 2000</span>
+      <h2 id="cmpH">Same model, two seasons</h2>
+      <p>The tour drove the ball 23 yards farther in 2018 and paid more than twice as much. The fitted coefficients answer a different question: within a season, how much does being ahead of the field pay?</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap" id="dCap">Distribution</span>
+        <canvas id="dist" role="img" aria-label="Overlaid histograms of one statistic for the 2000 and 2018 seasons, with Tiger Woods in each season marked"></canvas>
+        <div class="legend">
+          <span><i class="sw bar"></i>2000</span>
+          <span><i class="sw bar2"></i>2018</span>
+          <span><i class="sw tw"></i>Tiger Woods (2000 solid, 2018 dashed)</span>
+        </div>
+        <div class="seg four" role="group" aria-label="Statistic to compare">
+          <button data-v="drivedist" aria-pressed="true">Drive</button>
+          <button data-v="gir" aria-pressed="false">GIR</button>
+          <button data-v="avgputts" aria-pressed="false">Putts</button>
+          <button data-v="money" aria-pressed="false">Money</button>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">log(money) ~ drivedist + gir + avgputts</span>
+          <table class="stats">
+            <thead><tr><th></th><th>2000</th><th>2018</th></tr></thead>
+            <tbody id="cmpT"></tbody>
+          </table>
+          <p class="hint">Percent changes are e<sup>β·Δ</sup> − 1 for +10 yards, +1 point of GIR and 0.01 fewer putts per green.</p>
+        </div>
+        <div class="group">
+          <span class="label">Tiger Woods</span>
+          <table class="stats">
+            <thead><tr><th></th><th>2000</th><th>2018</th></tr></thead>
+            <tbody id="twT"></tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head">
+      <span class="eyebrow">Fit → look at the residuals → change the scale → interpret</span>
+      <h2>An outlier can be a sign of the wrong scale</h2>
+      <p class="hint" style="font-size:14px;max-width:82ch">The book’s example in four steps. Each button sets the model builder to one step.</p>
+      <div class="demo">
+        <button class="primary" id="d1">1 · money on all four</button>
+        <button id="d2">2 · log(money) on all four</button>
+        <button id="d3">3 · drop nevents</button>
+        <button id="d4">4 · refit to 2018</button>
+        <button id="d5">Dollar scale without Tiger</button>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><div>
+        <h3>On the dollar scale Tiger is nine standard deviations out</h3>
+        <p>The additive model predicts $3.6 million for Tiger Woods. He won $9.2 million, a standardized residual of 8.8. The residuals are skewed to the right and the model predicts negative earnings for some players, two more signs that a straight line in dollars is the wrong shape.</p>
+      </div></li>
+      <li><div>
+        <h3>One player moves the line</h3>
+        <p>Tiger’s Cook’s distance on the dollar scale is about 2, above the strict cutoff of 1 and nearly a hundred times the usual alarm level of 4/n. Leave him out and the coefficient on driving distance falls from $23,100 to $13,100 a yard. A model whose slopes depend on one player is a model of that player.</p>
+      </div></li>
+      <li><div>
+        <h3>On the log scale he predicts more than he earned</h3>
+        <p>Tiger was first in greens in regulation and second in driving distance and in putting. In log(money) those advantages add, so in dollars they multiply: the log model predicts $12.0 million, and his residual is −0.5. His Cook’s distance falls to 0.007 and dropping him changes no slope by more than 4%.</p>
+      </div></li>
+      <li><div>
+        <h3>Read log coefficients as percent effects</h3>
+        <p>With β̂ = 0.166 on GIR, one more percentage point of greens multiplies earnings by e<sup>0.166</sup> = 1.18. Ten yards off the tee gives e<sup>0.15</sup> = 1.16, and 0.01 fewer putts per green gives e<sup>0.214</sup> = 1.24. The t-ratio of <code>nevents</code> is −0.94, so it can go.</p>
+      </div></li>
+      <li><div>
+        <h3>Coefficients are about one season</h3>
+        <p>Refit to 2018 and a yard is worth about twice as much (0.032 against 0.015), GIR a little less (0.131 against 0.166). Tiger’s 2000 driving distance would have been in the middle of the 2018 field, and his 75.2% GIR is above anyone’s that year, so plugging his 2000 season into the 2018 model is an extrapolation.</p>
+      </div></li>
+    </ol>
+
+    <div class="eqs">
+      <div class="eq">
+        <div class="cp">The two models</div>
+        <div class="m">money = β₀ + β₁·drive + β₂·gir + β₃·putts + ε</div>
+        <div class="m">log(money) = β₀ + β₁·drive + β₂·gir + β₃·putts + ε</div>
+      </div>
+      <div class="eq">
+        <div class="cp">The log model in dollars: effects multiply</div>
+        <div class="m">money = e<sup>β₀</sup> · e<sup>β₁·drive</sup> · e<sup>β₂·gir</sup> · e<sup>β₃·putts</sup> · e<sup>ε</sup></div>
+        <div class="m">Δx  ⇒  money × e<sup>β·Δx</sup>,   e<sup>β</sup> − 1 ≈ β for small β</div>
+      </div>
+      <div class="eq">
+        <div class="cp">Standardized residual, leverage and Cook’s distance (R: rstandard, hatvalues, cooks.distance)</div>
+        <div class="m">rᵢ = eᵢ / (s√(1 − hᵢ)),   hᵢ = xᵢᵀ(XᵀX)⁻¹xᵢ</div>
+        <div class="m">Dᵢ = rᵢ² · hᵢ / ((1 − hᵢ) · p)</div>
+      </div>
+      <div class="eq">
+        <div class="cp">2000, log(money) ~ drivedist + gir + avgputts</div>
+        <div class="m">36.17 + 0.0146·drive + 0.166·gir − 21.37·putts</div>
+        <div class="m">R² = 0.669,  s = 0.571</div>
+      </div>
+    </div>
+
+    <div class="takeaway">
+      <p><b>Takeaway for students.</b> A huge residual is a fact about the model, not only about the player. When the biggest earner is the biggest outlier and the residuals lean one way, try the scale on which skills multiply. On that scale e raised to a residual reads as “earned this many times his prediction”: Notah Begay III earned 7 times his, the most in 2000.</p>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>The book’s R code</h2>
+      <p>Steps 1 to 3 of the example.</p>
+      <div class="formula">d00 &lt;- read_csv("data/pga-2000.csv")
+model00 &lt;- lm(money ~ nevents + drivedist +
+               gir + avgputts, data = d00)
+model00log &lt;- lm(log(money) ~ nevents +
+               drivedist + gir + avgputts, data = d00)
+m1 &lt;- lm(log(money) ~ drivedist + gir +
+               avgputts, data = d00)
+rstandard(m1)[d00$name == "Tiger Woods"]</div>
+    </div>
+    <div class="note">
+      <h2>Median, not mean</h2>
+      <p>e to the fitted log is the predicted <i>median</i> earnings for a player with those statistics. If the errors are normal, the mean is larger by e<sup>s²/2</sup>: with s = 0.571 that is a factor of 1.18. The calculator reports the median.</p>
+    </div>
+    <div class="note">
+      <h2>Season averages hide where strokes are won</h2>
+      <p>GIR and putts per green mix skills: a long approach that misses the green also makes the next putt easier. <a href="https://doi.org/10.1287/inte.1120.0626">Broadie (2012)</a> measured each shot against the tour average from the same spot (strokes gained) across eight million shots, and found that shots from beyond 100 yards explain about two-thirds of the spread in scores, against Pelz’s claim that the short game matters most.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Load step 1 and ask students to find Tiger before you point at him. Ask what a predicted value below zero means, and how many players get one.</li>
+      <li>Tick “Leave Tiger Woods out” on the dollar scale and read the driving-distance coefficient. Do the same on the log scale. Ask which model you would trust to price a yard.</li>
+      <li>On the log scale, compare the count of players beyond 2 with the 8.9 expected under normality. Then switch back to dollars and count again, above and below the line separately.</li>
+      <li>In the calculator, load the median golfer, then add 10 yards, then add 1 point of GIR. Predict the result of both together before moving the second slider, and check that the multipliers multiply.</li>
+      <li>Load “Tiger 2000” with the 2018 model. Ask why the page warns about the prediction, and what the histograms say about how the tour changed.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  /* DATA: [name, nevents, money, drivedist, gir, avgputts] */
+  const D2000 = [["Tiger Woods",20,9188321,298.0,75.15,1.717],["Phil Mickelson",23,4746457,288.7,68.06,1.726],["Ernie Els",20,3469405,278.4,66.49,1.749],["Hal Sutton",25,3061444,275.4,69.73,1.773],["Vijay Singh",26,2573835,279.9,71.09,1.779],["Mike Weir",28,2547829,272.2,68.48,1.74],["David Duval",19,2462846,283.5,70.46,1.751],["Jesper Parnevik",20,2413345,273.3,65.97,1.742],["Davis Love III",25,2337765,288.7,69.0,1.749],["Stewart Cink",27,2169727,277.8,69.11,1.756],["Kirk Triplett",28,2099943,273.4,69.71,1.75],["Tom Lehman",21,2068499,273.0,70.26,1.793],["Steve Flesch",32,2025781,279.2,70.75,1.748],["Justin Leonard",28,2023465,272.7,67.79,1.757],["David Toms",31,2002068,275.2,70.16,1.762],["Robert Allenby",26,1968685,285.8,67.28,1.778],["Jim Furyk",25,1940519,269.9,68.01,1.757],["Loren Roberts",24,1932280,257.9,66.19,1.747],["Chris DiMarco",33,1842221,277.6,69.25,1.753],["Notah Begay III",24,1819323,273.3,65.69,1.807],["Nick Price",18,1804433,273.2,67.96,1.749],["Scott Verplank",28,1747643,268.6,69.6,1.755],["Mark Calcavecchia",28,1702317,279.7,68.94,1.767],["Stuart Appleby",24,1642221,286.4,65.51,1.753],["John Huston",23,1631695,273.8,66.6,1.751],["Franklin Langham",28,1604952,273.3,67.46,1.744],["Paul Azinger",20,1597139,277.5,65.36,1.733],["Chris Perry",31,1563115,274.8,71.2,1.76],["Bob May",26,1557720,276.4,70.11,1.779],["Carlos Franco",24,1550592,275.2,64.91,1.752],["Steve Lowery",30,1543818,277.1,68.06,1.754],["Duffy Waldorf",23,1384508,283.4,69.41,1.794],["Scott Hoch",29,1368888,270.6,68.86,1.763],["Rocco Mediate",24,1320278,273.6,67.75,1.802],["Tom Scherrer",33,1263585,274.1,67.9,1.771],["Rory Sabbatini",26,1262535,285.5,63.12,1.75],["Shigeki Maruyama",26,1207104,281.1,64.33,1.794],["Grant Waite",26,1142789,279.0,68.89,1.764],["Jeff Maggert",27,1138749,272.7,68.45,1.799],["Jonathan Kaye",34,1096131,275.1,65.82,1.743],["Greg Chalmers",28,1063456,278.1,68.72,1.754],["Sergio Garcia",16,1054338,278.3,61.92,1.733],["Dudley Hart",24,1048166,272.3,69.25,1.788],["Scott Dunlap",30,1040244,274.7,69.34,1.777],["Billy Andrade",31,1004827,272.7,62.53,1.748],["Brad Faxon",29,999460,264.4,64.41,1.704],["Fred Couples",19,990215,284.7,71.13,1.774],["Jim Carter",30,964346,266.4,62.74,1.762],["Blaine McCallister",30,963974,269.4,69.18,1.761],["Skip Kendall",32,947118,271.5,67.46,1.738],["Dennis Paulson",26,896098,284.3,62.34,1.786],["Kenny Perry",20,889381,282.8,71.86,1.776],["Frank Lickliter II",31,889153,269.5,66.08,1.77],["Jeff Sluman",32,877390,265.0,67.81,1.747],["Andrew Magee",26,867372,278.3,65.83,1.778],["Michael Clark II",28,854822,282.1,64.72,1.767],["J.P. Hayes",26,838054,271.9,65.17,1.751],["Fred Funk",32,827691,266.6,69.0,1.78],["Jerry Kelly",32,784754,274.6,66.82,1.757],["Jean Van de Velde",22,774249,276.0,64.73,1.772],["Len Mattiace",31,762979,273.2,65.11,1.789],["Lee Janzen",27,753709,274.4,67.1,1.769],["Stephen Ames",31,747312,274.7,67.89,1.758],["Carl Paulson",33,741995,284.6,67.58,1.783],["Tim Herron",28,731925,285.0,66.85,1.781],["Kevin Sutherland",27,728635,273.3,68.5,1.769],["Robert Damron",28,724580,278.9,63.61,1.752],["Brad Elder",34,700738,276.6,66.21,1.766],["Esteban Toledo",35,673387,259.2,66.12,1.785],["Paul Stankowski",22,669709,283.4,67.43,1.748],["Chris Riley",28,660707,272.9,64.72,1.773],["Steve Pate",28,649674,271.0,65.4,1.781],["Joel Edwards",29,638422,275.2,69.14,1.787],["Craig Stadler",21,631752,276.4,65.57,1.768],["Glen Day",28,617242,268.1,66.18,1.742],["Joe Durant",28,612882,272.1,72.34,1.793],["Edward Fryatt",32,611209,276.2,65.12,1.771],["J.L. Lewis",30,610432,278.9,68.3,1.776],["Harrison Frazar",24,608535,287.3,65.95,1.78],["Matt Gogel",30,604199,268.3,64.55,1.77],["Greg Kraft",29,597021,267.7,67.92,1.766],["Jay Don Blake",29,590109,266.2,64.34,1.757],["Russ Cochran",25,583605,275.0,67.37,1.77],["Brent Geiberger",24,564918,273.8,67.33,1.779],["Bill Glasson",27,552795,280.8,68.58,1.75],["Steve Jones",21,548070,278.2,61.86,1.748],["Bob Estes",21,538706,268.4,62.43,1.769],["John Cook",28,537105,268.6,70.14,1.808],["Mark Brooks",29,528959,263.6,63.7,1.751],["Brian Henninger",29,527741,272.1,65.86,1.744],["Joe Ogilvie",30,519740,277.0,64.71,1.767],["Tom Byrum",27,514193,267.8,67.17,1.775],["Mark Wiebe",28,511414,269.2,64.98,1.788],["Craig Parry",22,507308,271.7,66.92,1.791],["David Sutherland",32,498749,273.4,67.79,1.792],["Scott McCarron",30,495975,288.5,63.32,1.735],["Olin Browne",31,494307,266.9,68.52,1.808],["Brandel Chamblee",21,493906,273.2,69.29,1.78],["Woody Austin",32,485589,274.5,66.39,1.8],["Glen Hnatiuk",30,482744,262.1,70.8,1.791],["Brian Gay",33,482028,264.6,64.76,1.744],["Bradley Hughes",33,469590,272.1,67.41,1.805],["Shaun Micheel",31,467431,277.1,67.52,1.786],["Neal Lancaster",31,466712,272.2,65.32,1.803],["Billy Mayfair",29,466345,268.0,67.74,1.8],["Pete Jordan",31,464480,262.1,65.8,1.797],["Doug Barron",27,461981,268.3,67.41,1.786],["Jay Williamson",32,460024,275.8,65.47,1.755],["David Peoples",28,459812,278.0,69.81,1.787],["Larry Mize",21,425624,264.2,64.41,1.76],["Mark O'Meara",19,424309,267.9,58.39,1.763],["Steve Stricker",21,418780,276.8,61.86,1.77],["Bob Tway",30,417646,270.6,68.97,1.769],["Robin Freeman",32,415430,274.9,64.85,1.795],["Jimmy Green",27,414509,270.2,64.59,1.798],["Mathew Goggin",32,414123,286.3,69.29,1.809],["Jerry Smith",32,406591,264.1,65.79,1.796],["Gary Nicklaus",30,403982,269.1,64.97,1.801],["Brandt Jobe",32,402017,281.7,67.36,1.802],["Paul Goydos",30,398393,263.4,63.69,1.751],["Tommy Armour III",30,397610,280.3,66.04,1.825],["Joe Ozaki",18,393316,267.1,65.36,1.802],["Doug Dunakey",27,393059,278.7,65.49,1.774],["Bob Burns",29,391075,277.6,64.98,1.756],["Joey Sindelar",30,388341,273.2,67.66,1.792],["Tom Pernice Jr.",32,387716,270.7,63.66,1.764],["Dan Forsman",27,379349,268.6,66.92,1.781],["Craig Spence",31,346569,273.2,61.57,1.797],["Sean Murphy",35,339242,271.6,64.72,1.769],["Kevin Wentworth",31,332293,269.8,60.42,1.792],["Rick Fehr",24,313701,270.8,63.3,1.766],["Brian Watts",29,311802,270.4,66.22,1.786],["K.J. Choi",30,305745,274.9,67.04,1.795],["Mike Reid",23,299138,251.6,67.75,1.781],["Craig Perks",28,297912,273.1,64.09,1.801],["Craig Barlow",31,297672,281.3,66.67,1.799],["Gabriel Hjertstedt",29,296189,272.0,63.92,1.77],["Cameron Beckman",26,291515,280.1,66.87,1.798],["Dave Stockton, Jr.",31,290426,267.2,64.18,1.776],["Barry Cheesman",35,277918,284.1,64.99,1.783],["Nick Faldo",15,276583,268.3,63.33,1.805],["Jim McGovern",18,266647,271.6,64.99,1.747],["Jay Haas",26,265755,266.3,63.13,1.786],["Robert Gamez",26,259305,271.2,68.27,1.777],["Rich Beem",29,249881,277.8,65.91,1.798],["Ted Tryba",37,249437,276.4,59.53,1.789],["Ben Bates",35,248087,273.5,65.33,1.813],["Brett Quigley",21,247037,276.4,64.73,1.771],["Frank Nobilo",28,236476,271.0,66.78,1.791],["Dicky Pride",35,233720,266.8,63.3,1.789],["Steve Elkington",17,232785,274.5,68.72,1.826],["Brad Fabel",30,219924,263.6,61.17,1.766],["David Morland IV",31,218648,272.2,64.79,1.776],["Omar Uresti",34,213433,267.2,63.95,1.8],["John Maginnes",32,211749,259.7,63.64,1.797],["Charles Raulerson",32,210093,277.7,62.19,1.779],["Corey Pavin",25,209883,251.3,58.18,1.779],["Mike Brisky",31,204232,267.4,64.08,1.791],["Bob Friend",32,202973,261.4,62.98,1.796],["Mike Sposa",26,201360,272.3,64.92,1.792],["Scott Gump",36,193460,262.1,66.61,1.831],["Trevor Dodds",29,191044,269.7,63.82,1.774],["Ronnie Black",28,190997,270.4,65.82,1.796],["Mike Springer",31,182726,267.6,62.83,1.745],["Michael Bradley",26,179510,275.5,63.93,1.789],["Tom Purtzer",21,170683,278.9,67.86,1.836],["John Rollins",27,169570,277.5,64.12,1.818],["Steve Gotsche",32,164203,272.2,65.29,1.771],["Jason Buha",29,153862,274.8,65.79,1.798],["Jeff Gove",31,153753,273.4,66.06,1.815],["David Frost",25,151123,264.2,60.36,1.777],["Casey Martin",29,143248,288.3,67.23,1.789],["Tommy Tolles",20,142248,274.8,61.48,1.742],["Peter Jacobsen",22,141484,275.8,66.24,1.81],["Jay Delsing",33,132843,273.9,63.14,1.816],["Paul Curry",25,128701,255.8,58.77,1.768],["Bob Heintz",34,127412,277.9,60.85,1.781],["Bobby Cochran",30,127342,275.7,61.77,1.798],["Fulton Allem",25,119626,264.8,65.04,1.805],["John Daly",26,115460,301.4,62.08,1.8],["Emlyn Aubrey",26,110221,265.3,62.85,1.787],["Steve Hart",30,107949,259.7,57.62,1.818],["Perry Moss",21,104735,271.8,67.71,1.794],["Kelly Gibson",30,103304,284.3,69.31,1.841],["Ryan Howison",30,99149,264.4,60.91,1.794],["Eric Booker",31,88615,272.5,62.35,1.812],["Jason Caron",29,87110,272.7,62.22,1.827],["Bart Bryant",25,85797,263.7,64.99,1.837],["P.H. Horgan III",25,80612,264.8,63.68,1.799],["Aaron Bengoechea",29,60429,281.2,62.33,1.828],["Mike Hulbert",34,59878,262.4,60.42,1.784],["Chip Beck",21,56637,258.1,59.07,1.768],["Nolan Henke",32,47722,262.9,63.43,1.839],["Keith Nolan",23,46006,262.1,60.43,1.808],["Craig Bowden",25,34280,260.4,61.01,1.815]];
+  const D2018 = [["Justin Thomas",23,8694821,311.8,68.77,1.714],["Dustin Johnson",20,8457352,314.0,70.57,1.699],["Justin Rose",18,8130678,303.5,69.95,1.732],["Bryson DeChambeau",26,8094489,305.7,69.65,1.758],["Brooks Koepka",17,7094047,313.4,68.28,1.747],["Bubba Watson",24,5793748,313.1,68.21,1.773],["Tony Finau",28,5620138,315.1,70.18,1.735],["Tiger Woods",18,5443841,303.6,67.4,1.744],["Webb Simpson",26,5376417,293.7,67.93,1.741],["Jason Day",20,5087461,310.0,65.28,1.716],["Francesco Molinari",20,5065842,301.0,70.24,1.78],["Patrick Reed",26,5006267,298.1,63.57,1.746],["Phil Mickelson",24,4595187,300.3,64.88,1.699],["Rory McIlroy",18,4410296,319.7,66.3,1.736],["Billy Horschel",27,4315200,295.4,71.75,1.757],["Rickie Fowler",20,4235237,299.8,69.52,1.744],["Keegan Bradley",27,4069464,299.6,69.18,1.784],["Xander Schauffele",27,4047538,304.9,65.59,1.763],["Jon Rahm",20,3992678,308.9,70.12,1.747],["Patrick Cantlay",23,3963962,303.1,70.69,1.781],["Tommy Fleetwood",19,3935147,306.9,69.36,1.745],["Kyle Stanley",26,3916001,295.7,71.09,1.781],["Marc Leishman",25,3771221,298.5,66.67,1.749],["Paul Casey",20,3641771,304.3,67.84,1.775],["Cameron Smith",24,3622607,298.4,63.18,1.745],["Kevin Na",26,3578316,289.6,64.66,1.722],["Patton Kizzire",29,3541151,298.7,69.04,1.764],["Aaron Wise",29,3486407,302.9,68.81,1.748],["Gary Woodland",27,3108907,313.5,70.51,1.794],["Kevin Kisner",25,2972285,290.8,65.38,1.766],["Pat Perez",23,2962641,290.9,67.78,1.765],["Jordan Spieth",23,2793536,299.8,70.47,1.755],["Chesson Hadley",30,2768863,300.0,67.68,1.74],["Brian Harman",25,2733463,291.9,67.59,1.767],["Ian Poulter",20,2714450,293.6,67.01,1.766],["Luke List",29,2710736,314.6,68.36,1.794],["Chez Reavie",28,2700018,286.5,68.67,1.767],["Alex Noren",18,2699150,299.2,64.91,1.782],["Hideki Matsuyama",21,2687477,302.0,69.29,1.754],["Henrik Stenson",16,2680487,291.5,73.51,1.8],["Andrew Landry",27,2642179,291.1,65.63,1.756],["Byeong Hun An",24,2599264,307.9,67.99,1.791],["Emiliano Grillo",25,2493163,295.2,68.84,1.754],["Ryan Armour",32,2485203,283.5,68.22,1.773],["Rafa Cabrera Bello",20,2449869,295.1,70.16,1.773],["Beau Hossler",28,2449707,300.0,67.95,1.748],["Brandt Snedeker",25,2448970,293.1,65.04,1.743],["Austin Cook",29,2448920,292.3,66.51,1.756],["Andrew Putnam",28,2387382,293.8,70.47,1.783],["Brendan Steele",22,2291128,310.3,69.24,1.817],["Si Woo Kim",31,2276114,290.8,63.78,1.77],["Adam Scott",21,2237641,304.6,70.66,1.799],["Charles Howell III",28,2179725,300.9,69.33,1.782],["Brian Gay",30,2152501,282.9,64.52,1.726],["Jimmy Walker",23,2027312,299.0,61.9,1.756],["Ryan Moore",22,1986608,289.2,68.8,1.777],["J.J. Spaun",27,1978906,298.2,69.48,1.772],["Ted Potter, Jr.",28,1976198,286.0,63.03,1.759],["Zach Johnson",25,1957635,289.8,67.43,1.742],["Tyrrell Hatton",16,1943360,298.8,66.46,1.8],["Adam Hadwin",25,1932488,289.4,68.04,1.783],["Whee Kim",30,1920340,285.8,63.55,1.744],["Stewart Cink",25,1887208,298.1,68.58,1.777],["Scott Piercy",26,1882337,296.6,69.72,1.794],["C.T. Pan",30,1881787,292.7,71.2,1.77],["Chris Kirk",29,1824111,289.8,68.24,1.76],["Peter Uihlein",26,1797715,302.2,67.88,1.786],["Jason Kokrak",29,1794431,309.5,70.37,1.776],["Louis Oosthuizen",17,1731493,299.8,65.74,1.809],["Daniel Berger",23,1721763,297.7,66.89,1.785],["Matt Kuchar",24,1720097,288.0,66.81,1.762],["Charl Schwartzel",20,1710179,299.5,61.11,1.782],["Abraham Ancer",30,1676695,296.1,66.49,1.768],["Keith Mitchell",29,1641260,312.6,69.42,1.788],["Kevin Chappell",23,1608338,308.6,66.52,1.786],["J.B. Holmes",24,1595942,306.1,65.26,1.765],["Branden Grace",18,1529289,298.9,67.1,1.772],["Kevin Streelman",27,1523642,295.1,71.56,1.797],["Russell Henley",23,1516438,293.0,68.77,1.783],["Jason Dufner",22,1497655,297.1,64.24,1.811],["Kelly Kraft",31,1496253,288.6,63.83,1.778],["Ryan Palmer",22,1484445,305.2,65.61,1.754],["Joel Dahmen",28,1476838,295.8,68.82,1.778],["Satoshi Kodaira",18,1471462,293.6,60.3,1.827],["Brice Garnett",30,1466224,296.7,66.78,1.78],["Anirban Lahiri",24,1441205,294.0,64.7,1.77],["Russell Knox",27,1424030,291.7,69.57,1.791],["Nick Watney",26,1402833,307.5,67.96,1.755],["Charley Hoffman",25,1400637,299.5,66.53,1.777],["James Hahn",26,1386301,298.7,68.29,1.78],["Michael Kim",27,1379736,289.9,60.63,1.746],["Kevin Tway",31,1379544,310.1,66.88,1.773],["Jamie Lovemark",26,1377286,303.2,64.65,1.751],["Tom Hoge",31,1358542,291.4,63.62,1.752],["Troy Merritt",27,1326989,295.4,65.16,1.747],["Ollie Schniederjans",27,1303610,301.4,62.77,1.732],["Patrick Rodgers",30,1287040,303.5,65.65,1.766],["Danny Lee",30,1269386,290.6,65.05,1.742],["Sung Kang",29,1243309,293.1,63.2,1.768],["Harold Varner III",27,1223064,308.2,67.79,1.786],["Alex Cejka",24,1198541,286.7,63.77,1.756],["Trey Mullinax",24,1184245,318.3,65.38,1.759],["Bronson Burgoon",24,1179616,302.8,68.44,1.778],["Brandon Harkins",30,1148115,303.1,65.67,1.745],["Scott Stallings",30,1147573,299.7,65.62,1.788],["Jhonattan Vegas",27,1137444,303.6,65.17,1.807],["Rory Sabbatini",27,1126057,292.3,67.85,1.776],["Sean O'Hair",22,1104865,302.7,63.84,1.778],["Brian Stuard",32,1089763,278.9,67.12,1.762],["Richy Werenski",32,1081283,291.8,66.97,1.782],["Scott Brown",32,1076678,292.6,65.65,1.762],["Grayson Murray",22,1056628,307.3,62.5,1.759],["Sam Ryder",26,1046166,297.3,72.08,1.785],["Martin Laird",22,1017580,299.0,65.9,1.764],["Sam Saunders",26,981936,302.8,65.02,1.74],["Ryan Blaum",28,980877,289.0,66.1,1.761],["John Huh",29,974538,287.1,65.8,1.741],["Vaughn Taylor",25,965691,286.1,67.02,1.769],["Tyler Duncan",31,944021,294.4,69.65,1.795],["J.T. Poston",22,940661,300.7,68.31,1.747],["William McGirt",26,933327,289.3,67.59,1.786],["Bud Cauley",17,900591,295.4,64.26,1.763],["Nick Taylor",30,899373,292.7,67.65,1.797],["Martin Piller",28,847304,292.2,60.39,1.762],["Chad Campbell",28,801960,286.5,65.54,1.815],["Harris English",31,799450,302.4,63.32,1.764],["Ben Silverman",28,793140,290.2,64.95,1.757],["Seamus Power",28,791018,302.6,65.17,1.778],["Lucas Glover",18,789382,297.7,67.12,1.809],["Tyrone Van Aswegen",31,763584,290.3,65.23,1.766],["Corey Conners",28,728296,303.3,70.19,1.797],["Aaron Baddeley",27,725928,295.3,63.39,1.782],["Derek Fathauer",28,708712,289.1,60.35,1.754],["Robert Garrigus",27,702030,307.9,65.28,1.785],["Tom Lovelady",28,700783,315.9,67.08,1.774],["Shane Lowry",19,696897,300.7,68.65,1.793],["Jim Furyk",15,660010,280.5,63.19,1.791],["Johnson Wagner",21,656322,286.1,67.87,1.754],["Talor Gooch",27,654200,298.9,63.58,1.777],["Bill Haas",25,638414,296.2,64.79,1.811],["David Hearn",21,622383,285.1,68.89,1.778],["Ben Crane",21,620646,281.1,64.88,1.762],["David Lingmerth",26,616758,285.4,63.03,1.738],["Nicholas Lindheim",26,593842,293.5,68.04,1.762],["Graeme McDowell",20,581024,293.2,64.5,1.796],["Hudson Swafford",22,569391,302.8,68.99,1.81],["Chris Stroud",27,565466,289.8,62.94,1.769],["Michael Thompson",19,563972,296.4,70.11,1.776],["Retief Goosen",20,545364,296.2,61.75,1.791],["Matt Jones",23,538681,304.5,66.49,1.765],["Ben Martin",20,532936,289.6,63.98,1.745],["Shawn Stefani",25,523204,299.6,67.49,1.78],["Mackenzie Hughes",28,518476,294.9,66.01,1.766],["Denny McCarthy",22,498341,295.4,68.17,1.777],["Wesley Bryan",23,498166,280.4,61.28,1.748],["J.J. Henry",28,482052,291.8,70.52,1.812],["Adam Schenk",28,474923,305.5,67.92,1.805],["Hunter Mahan",21,457337,296.9,68.96,1.757],["Jonathan Randolph",25,453328,289.4,60.43,1.789],["Martin Flores",29,449266,300.0,66.34,1.772],["FabiÃ¡n GÃ³mez",28,437032,291.1,67.86,1.78],["Stephan Jaeger",26,422260,299.2,67.11,1.79],["Xinjun Zhang",28,420377,298.7,67.04,1.802],["Peter Malnati",28,420001,290.9,62.99,1.723],["Robert Streb",29,411606,292.6,64.94,1.792],["Blayne Barber",22,398137,294.7,69.98,1.781],["Dominic Bozzelli",20,391634,297.0,60.94,1.75],["Cameron Percy",16,387612,295.6,69.56,1.76],["D.A. Points",25,377265,280.8,60.2,1.778],["Jonas Blixt",23,368518,293.1,62.02,1.8],["Ethan Tracy",23,364493,299.0,64.87,1.778],["Lanto Griffin",26,358380,302.5,67.42,1.772],["Ricky Barnes",22,340591,290.6,63.75,1.708],["Zac Blair",20,330507,279.5,66.48,1.758],["Steve Wheatcroft",20,309656,288.9,66.57,1.784],["Brett Stegmaier",21,305607,295.4,70.31,1.775],["Cody Gribble",25,302593,301.0,62.48,1.759],["Matt Every",30,299162,294.2,64.59,1.78],["Nate Lashley",17,296650,293.9,68.2,1.79],["Greg Chalmers",20,288023,282.8,56.94,1.747],["Rob Oppenheim",26,279019,285.2,64.05,1.769],["Jonathan Byrd",24,267055,291.7,68.19,1.779],["Roberto DÃ­az",25,235635,286.3,63.73,1.794],["Daniel Summerhays",19,234510,287.1,56.79,1.737],["Conrad Shindler",20,187399,291.3,66.27,1.781],["Rod Pampling",20,183806,288.4,62.64,1.792],["Cameron Tringale",26,179459,289.3,65.52,1.813],["Billy Hurley III",27,145725,284.0,63.02,1.773],["Zecheng Dou",23,90993,291.9,63.72,1.822],["Matt Atkins",21,89104,301.4,63.46,1.788],["Andrew Yun",22,41566,290.6,61.85,1.808],["Kyle Thompson",22,24878,285.3,62.44,1.797]];
+
+  const VARS = ['nevents', 'drivedist', 'gir', 'avgputts'];
+  const COL = { nevents: 1, money: 2, drivedist: 3, gir: 4, avgputts: 5 };
+  const SEASON = { '2000': D2000, '2018': D2018 };
+  const TW = 'Tiger Woods';
+
+  /* MATH */
+  function inv(A) {
+    const n = A.length, M = A.map((r, i) => [...r, ...r.map((_, j) => +(i === j))]);
+    for (let c = 0; c < n; c++) {
+      let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+      [M[c], M[p]] = [M[p], M[c]]; const d = M[c][c];
+      for (let j = 0; j < 2 * n; j++) M[c][j] /= d;
+      for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c]; if (f) for (let j = 0; j < 2 * n; j++) M[r][j] -= f * M[c][j]; }
+    }
+    return M.map(r => r.slice(n));
+  }
+  function ols(X, y) {
+    const n = X.length, p = X[0].length, XtX = [], Xty = [];
+    for (let a = 0; a < p; a++) { XtX.push(new Array(p).fill(0)); Xty.push(0); }
+    for (let i = 0; i < n; i++) for (let a = 0; a < p; a++) { Xty[a] += X[i][a] * y[i]; for (let b = 0; b < p; b++) XtX[a][b] += X[i][a] * X[i][b]; }
+    const Ci = inv(XtX), beta = Ci.map(r => r.reduce((s, v, j) => s + v * Xty[j], 0));
+    const quad = x => { let s = 0; for (let a = 0; a < p; a++) for (let b = 0; b < p; b++) s += x[a] * Ci[a][b] * x[b]; return s; };
+    const pred = x => x.reduce((s, v, j) => s + v * beta[j], 0);
+    let my = 0; for (const v of y) my += v; my /= n;
+    let sse = 0, sst = 0; const fit = [], res = [];
+    for (let i = 0; i < n; i++) { const f = pred(X[i]); fit.push(f); res.push(y[i] - f); sse += (y[i] - f) ** 2; sst += (y[i] - my) ** 2; }
+    const s = Math.sqrt(sse / (n - p)), se = Ci.map((r, j) => s * Math.sqrt(r[j]));
+    return { n, p, beta, se, s, r2: 1 - sse / sst, fit, res, quad, pred };
+  }
+  const Phi = z => { const t = 1 / (1 + 0.2316419 * Math.abs(z)), d = 0.3989423 * Math.exp(-z * z / 2), q = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - q : q; };
+  const median = a => { const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+
+  // Fit a model to a season; every player gets prediction diagnostics (in or out of the fit).
+  function model(season, logy, vars, dropTW) {
+    const D = SEASON[season], row = r => [1, ...vars.map(v => r[COL[v]])], yv = r => logy ? Math.log(r[2]) : r[2];
+    const inFit = D.filter(r => !(dropTW && r[0] === TW));
+    const f = ols(inFit.map(row), inFit.map(yv));
+    const players = D.map(r => {
+      const x = row(r), h = f.quad(x), yhat = f.pred(x), y = yv(r), e = y - yhat, isIn = !(dropTW && r[0] === TW);
+      const rs = isIn ? e / (f.s * Math.sqrt(1 - h)) : e / (f.s * Math.sqrt(1 + h));
+      const cook = isIn ? rs * rs * h / ((1 - h) * f.p) : NaN;
+      return { name: r[0], money: r[2], y, yhat, predMoney: logy ? Math.exp(yhat) : yhat, rs, h, cook, isIn, r };
+    });
+    return { ...f, season, logy, vars, dropTW, players };
+  }
+
+  /* FORMAT */
+  const minus = s => s.replace(/^-/, '−').replace(/ -/g, ' −');
+  const fmt = (v, d = 2) => isFinite(v) ? minus(v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })) : '–';
+  const usd = v => { if (!isFinite(v)) return '–'; const a = Math.abs(v), sg = v < 0 ? '−' : ''; return a >= 1e6 ? `${sg}$${(a / 1e6).toFixed(a >= 1e7 ? 1 : 2)}M` : a >= 1e3 ? `${sg}$${Math.round(a / 1e3)}K` : `${sg}$${Math.round(a)}`; };
+  const usdFull = v => isFinite(v) ? minus('$' + Math.round(v).toLocaleString('en-US')).replace('$−', '−$') : '–';
+  const pct = v => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(0) + '%';
+
+  /* STATE */
+  const S = { season: '2000', logy: false, vars: { nevents: true, drivedist: true, gir: true, avgputts: true }, dropTW: false, sel: TW, thr: 2, cSeason: '2000', cx: null, dv: 'drivedist' };
+  let M = null;
+  let C = {};
+  function readColors() { const cs = getComputedStyle(document.documentElement); for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'point', 'curve', 'fit', 'ball', 'board', 'surface', 'alt']) C[k] = cs.getPropertyValue('--' + k).trim(); }
+
+  /* CANVAS */
+  function mkCanvas(id, aspect, minH, maxH) {
+    const cv = $(id), o = { cv, ctx: cv.getContext('2d'), W: 0, H: 0 };
+    o.resize = () => { const w = cv.clientWidth || cv.parentElement.clientWidth, h = Math.round(Math.min(Math.max(w * aspect, minH), maxH)), d = window.devicePixelRatio || 1; cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d); o.ctx.setTransform(d, 0, 0, d, 0, 0); o.W = w; o.H = h; };
+    return o;
+  }
+  const SC = mkCanvas('sc', 0.62, 300, 520), RH = mkCanvas('rh', 0.3, 170, 240), WF = mkCanvas('wf', 0.42, 230, 360), DI = mkCanvas('dist', 0.5, 230, 360);
+  const ALL = [SC, RH, WF, DI];
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function linTicks(d, target, lab) { const st = niceStep(d[1] - d[0], target), out = [], dec = Math.max(0, -Math.floor(Math.log10(st) + 1e-9)); for (let v = Math.ceil(d[0] / st) * st; v <= d[1] + 1e-9; v += st) out.push([v, lab ? lab(v) : fmt(Math.abs(v) < st * 1e-6 ? 0 : v, dec)]); return out; }
+  const LOGT = [1e4, 3e4, 1e5, 3e5, 1e6, 3e6, 1e7, 3e7];
+  function logTicks(d) { return LOGT.filter(v => Math.log(v) >= d[0] - 1e-9 && Math.log(v) <= d[1] + 1e-9).map(v => [Math.log(v), usd(v)]); }
+  function frame(o, m, xd, yd, xt, yt, opt = {}) {
+    const { ctx, W, H } = o;
+    const PX = x => m.l + (x - xd[0]) / (xd[1] - xd[0]) * (W - m.l - m.r);
+    const PY = y => m.t + (yd[1] - y) / (yd[1] - yd[0]) * (H - m.t - m.b);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1;
+    if (yt) { ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; for (const [v, t] of yt) { const py = Math.round(PY(v)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(m.l, py); ctx.lineTo(W - m.r, py); ctx.stroke(); ctx.fillStyle = C.muted; ctx.fillText(t, m.l - 6, py); } }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; let last = -1e9;
+    for (const [v, t] of xt) { const px = Math.round(PX(v)) + .5; ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(px, m.t); ctx.lineTo(px, H - m.b); ctx.stroke(); const tw = ctx.measureText(t).width; if (px - tw / 2 > last + 6) { ctx.fillStyle = C.muted; ctx.fillText(t, px, H - m.b + 6); last = px + tw / 2; } }
+    ctx.strokeStyle = C.line; ctx.strokeRect(m.l + .5, m.t + .5, W - m.l - m.r - 1, H - m.t - m.b - 1);
+    ctx.fillStyle = C.muted;
+    if (opt.xlab) { ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xlab, W - m.r, H - 2); }
+    if (opt.ylab) { ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.ylab, m.l, m.t - 5); }
+    return { PX, PY };
+  }
+  const clip = (o, m) => { o.ctx.save(); o.ctx.beginPath(); o.ctx.rect(m.l, m.t, o.W - m.l - m.r, o.H - m.t - m.b); o.ctx.clip(); };
+  function label(ctx, txt, x, y, col, W) {
+    ctx.font = '600 12px "Atkinson Hyperlegible", system-ui, sans-serif'; const w = ctx.measureText(txt).width;
+    const lx = Math.min(Math.max(x + 9, 4), W - w - 6), ly = y - 9;
+    ctx.fillStyle = C.surface; ctx.globalAlpha = .85; ctx.fillRect(lx - 3, ly - 12, w + 6, 16); ctx.globalAlpha = 1;
+    ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(txt, lx, ly);
+  }
+
+  /* 1. builder */
+  let scGeom = null;
+  function drawScatter() {
+    const o = SC, { ctx, W, H } = o, m = { l: 62, r: 16, t: 22, b: 40 };
+    ctx.clearRect(0, 0, W, H);
+    const P = M.players, xs = P.map(p => p.yhat), ys = P.map(p => p.y);
+    let lo = Math.min(...xs, ...ys), hi = Math.max(...xs, ...ys), pad = (hi - lo) * 0.05; lo -= pad; hi += pad;
+    const d = [lo, hi], ticks = M.logy ? logTicks(d) : linTicks(d, 6, v => usd(v));
+    const { PX, PY } = frame(o, m, d, d, ticks, ticks, { xlab: 'predicted ' + (M.logy ? '(log scale)' : '($)'), ylab: 'actual earnings' });
+    clip(o, m);
+    if (!M.logy && lo < 0) { ctx.fillStyle = C.curve; ctx.globalAlpha = .07; ctx.fillRect(m.l, m.t, PX(0) - m.l, H - m.t - m.b); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = C.muted; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(PX(lo), PY(lo)); ctx.lineTo(PX(hi), PY(hi)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = C.point; ctx.globalAlpha = .55;
+    for (const p of P) { if (p.name === TW || p.name === S.sel) continue; ctx.beginPath(); ctx.arc(PX(p.yhat), PY(p.y), 3.2, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    const tw = P.find(p => p.name === TW), sel = P.find(p => p.name === S.sel);
+    if (sel && sel !== tw) { ctx.fillStyle = C.point; ctx.beginPath(); ctx.arc(PX(sel.yhat), PY(sel.y), 3.6, 0, 7); ctx.fill(); ctx.strokeStyle = C.accent; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(PX(sel.yhat), PY(sel.y), 7.5, 0, 7); ctx.stroke(); }
+    if (tw) {
+      const x = PX(tw.yhat), y = PY(tw.y);
+      ctx.strokeStyle = C.ball; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, PY(tw.yhat)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C.ball; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 7); ctx.fill();
+      if (!tw.isIn) { ctx.strokeStyle = C.ball; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke(); }
+      if (S.sel === TW) { ctx.strokeStyle = C.accent; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(x, y, 8.5, 0, 7); ctx.stroke(); }
+    }
+    ctx.restore();
+    if (tw) label(ctx, 'Tiger Woods' + (tw.isIn ? '' : ' (not in fit)'), PX(tw.yhat), PY(tw.y), C.ball, W);
+    if (sel && sel !== tw) label(ctx, sel.name, PX(sel.yhat), PY(sel.y), C.accent, W);
+    scGeom = { PX, PY };
+  }
+  function drawResHist() {
+    const o = RH, { ctx, W, H } = o, m = { l: 40, r: 16, t: 14, b: 30 };
+    ctx.clearRect(0, 0, W, H);
+    const rs = M.players.filter(p => p.isIn).map(p => p.rs), tw = M.players.find(p => p.name === TW), sel = M.players.find(p => p.name === S.sel);
+    const ext = Math.max(4, Math.ceil(Math.max(...M.players.map(p => Math.abs(p.rs))) + 0.5)), xd = [-ext, ext], bw = 0.5;
+    const nb = Math.round(2 * ext / bw), cnt = new Array(nb).fill(0);
+    for (const r of rs) { const k = Math.min(nb - 1, Math.max(0, Math.floor((r + ext) / bw))); cnt[k]++; }
+    const ymax = Math.max(...cnt, rs.length * bw * 0.3989) * 1.15;
+    const { PX, PY } = frame(o, m, xd, [0, ymax], linTicks(xd, 10), linTicks([0, ymax], 3), { xlab: 'standardized residual' });
+    clip(o, m);
+    ctx.fillStyle = C.accent; ctx.globalAlpha = .62;
+    cnt.forEach((c, k) => { if (!c) return; const x0 = PX(-ext + k * bw), x1 = PX(-ext + (k + 1) * bw); ctx.fillRect(x0 + 1, PY(c), x1 - x0 - 2, PY(0) - PY(c)); });
+    ctx.globalAlpha = 1; ctx.strokeStyle = C.curve; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const z = xd[0] + (xd[1] - xd[0]) * i / 200, y = rs.length * bw * Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI); i ? ctx.lineTo(PX(z), PY(y)) : ctx.moveTo(PX(z), PY(y)); }
+    ctx.stroke();
+    const mark = (p, col) => { const x = PX(p.rs); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, H - m.b); ctx.stroke(); };
+    if (sel && sel.name !== TW) mark(sel, C.accent);
+    if (tw) mark(tw, C.ball);
+    ctx.restore();
+    if (tw) { ctx.font = '600 12px "Atkinson Hyperlegible", system-ui, sans-serif'; ctx.fillStyle = C.ball; const x = PX(tw.rs), t = 'Tiger ' + fmt(tw.rs, 1), w = ctx.measureText(t).width; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(t, x + w + 10 > W - m.r ? x - w - 6 : x + 6, m.t + 4); }
+  }
+  function renderBuilder() {
+    const vars = VARS.filter(v => S.vars[v]);
+    M = model(S.season, S.logy, vars, S.dropTW);
+    const resp = S.logy ? 'log(money)' : 'money';
+    const terms = vars.map((v, j) => { const b = M.beta[j + 1]; return `${b < 0 ? '−' : '+'} ${fmt(Math.abs(b), S.logy ? (Math.abs(b) < 1 ? 4 : 2) : 0)}·${v}`; }).join(' ');
+    $('eqn').innerHTML = `<span class="f">${resp}</span> = ${fmt(M.beta[0], S.logy ? 2 : 0)} ${terms}`;
+    $('scCap').textContent = `Actual vs. predicted, ${S.season}, ${resp} ~ ${vars.length ? vars.join(' + ') : '1'}`;
+    const rows = [['(Intercept)', 0], ...vars.map((v, j) => [v, j + 1])];
+    $('coefT').innerHTML = rows.map(([n, j]) => { const b = M.beta[j], se = M.se[j], t = b / se, d = S.logy ? (Math.abs(b) < 1 ? 4 : 2) : 0; return `<tr><td>${n}</td><td class="est">${fmt(b, d)}</td><td>${fmt(se, d)}</td><td${Math.abs(t) < 1.5 && j ? ' class="hi"' : ''}>${fmt(t, 2)}</td></tr>`; }).join('');
+    $('fN').textContent = M.n; $('fR2').textContent = fmt(M.r2, 3); $('fS').textContent = S.logy ? fmt(M.s, 3) : usdFull(M.s);
+    renderPlayer(); renderOU(); drawScatter(); drawResHist();
+  }
+  function fillWho() {
+    const D = [...SEASON[S.season]].sort((a, b) => b[2] - a[2]);
+    if (!D.some(r => r[0] === S.sel)) S.sel = TW;
+    $('who').innerHTML = D.map(r => `<option${r[0] === S.sel ? ' selected' : ''}>${r[0]}</option>`).join('');
+  }
+  function renderPlayer() {
+    const p = M.players.find(q => q.name === S.sel); if (!p) return;
+    $('who').value = p.name;
+    $('pAct').textContent = usdFull(p.money); $('pPred').textContent = usdFull(p.predMoney);
+    $('pRatio').textContent = p.predMoney > 0 ? fmt(p.money / p.predMoney, 2) + '×' : 'prediction ≤ 0';
+    $('pRs').textContent = fmt(p.rs, 2); $('pRs').className = Math.abs(p.rs) > 2 ? 'hi' : '';
+    $('pH').textContent = fmt(p.h, 3);
+    $('pCook').textContent = p.isIn ? fmt(p.cook, 3) : 'not in fit'; $('pCook').className = p.cook > 4 / M.n ? 'hi' : '';
+    const negs = M.players.filter(q => q.predMoney < 0).length;
+    let msg;
+    if (!p.isIn) msg = `<b>${p.name} is left out.</b> His residual is a prediction error, (y − ŷ)/(s√(1 + h)), from a model that never saw him.`;
+    else if (Math.abs(p.rs) > 3) msg = `<b>${fmt(Math.abs(p.rs), 1)} standard deviations ${p.rs > 0 ? 'above' : 'below'} the fit.</b> ${(() => { const e = M.n * 2 * (1 - Phi(Math.abs(p.rs))); return e < 1e-3 ? `Under normal errors the chance of a residual this large anywhere among ${M.n} players is below 1 in 1,000.` : `Under normal errors about ${fmt(e, 3)} of ${M.n} players would get a residual this large.`; })()}`;
+    else msg = `<b>Within the pack.</b> A standardized residual of ${fmt(p.rs, 2)} ${Math.abs(p.rs) > 2 ? 'is large, but about 1 player in 20 gets one.' : 'is ordinary.'}`;
+    if (p.isIn && p.cook > 4 / M.n) msg += ` Cook’s distance ${fmt(p.cook, 2)} is above 4/n = ${fmt(4 / M.n, 3)}: he moves the fitted coefficients.`;
+    if (!S.logy && negs) msg += ` The dollar model predicts negative earnings for ${negs} player${negs > 1 ? 's' : ''}.`;
+    $('pMsg').innerHTML = msg;
+  }
+
+  /* 3. outliers */
+  function renderOU() {
+    const P = M.players.filter(p => Math.abs(p.rs) > S.thr).sort((a, b) => b.rs - a.rs);
+    $('ouT').innerHTML = P.length ? P.map(p => `<tr class="click${p.name === S.sel ? ' on' : ''}" tabindex="0" data-n="${p.name}"><td>${p.name}${p.isIn ? '' : ' *'}</td><td>${usd(p.money)}</td><td>${usd(p.predMoney)}</td><td>${p.predMoney > 0 ? fmt(p.money / p.predMoney, 2) + '×' : '–'}</td><td class="${p.rs > 0 ? 'est' : 'hi'}">${fmt(p.rs, 2)}</td></tr>`).join('') : '<tr><td colspan="5">No player beyond the cutoff.</td></tr>';
+    const inP = M.players.filter(p => p.isIn), big = inP.filter(p => Math.abs(p.rs) > S.thr);
+    $('ouN').textContent = big.length; $('ouE').textContent = fmt(inP.length * 2 * (1 - Phi(S.thr)), 1);
+    $('ouUp').textContent = big.filter(p => p.rs > 0).length; $('ouDn').textContent = big.filter(p => p.rs < 0).length;
+  }
+
+  /* 2. calculator */
+  const CV = ['drivedist', 'gir', 'avgputts'], CL = { drivedist: 'Driving distance', gir: 'Greens in regulation', avgputts: 'Putts per GIR green' };
+  const CM = { '2000': model('2000', true, CV, false), '2018': model('2018', true, CV, false) };
+  const med = s => CV.map(v => median(SEASON[s].map(r => r[COL[v]])));
+  const rng = (s, v) => { const a = SEASON[s].map(r => r[COL[v]]); return [Math.min(...a), Math.max(...a)]; };
+  const twRow = s => SEASON[s].find(r => r[0] === TW);
+  const fmtX = (v, x) => v === 'drivedist' ? fmt(x, 1) + ' yd' : v === 'gir' ? fmt(x, 2) + '%' : fmt(x, 3);
+  function setProfile(xv) { S.cx = xv.slice(); $('xD').value = xv[0]; $('xG').value = xv[1]; $('xP').value = xv[2]; renderCalc(); }
+  function renderCalc() {
+    const f = CM[S.cSeason], m0 = med(S.cSeason), x = S.cx, base = Math.exp(f.pred([1, ...m0]));
+    $('xDo').textContent = fmtX('drivedist', x[0]); $('xGo').textContent = fmtX('gir', x[1]); $('xPo').textContent = fmtX('avgputts', x[2]);
+    const mult = CV.map((v, j) => Math.exp(f.beta[j + 1] * (x[j] - m0[j]))), pred = base * mult.reduce((a, b) => a * b, 1);
+    $('cPred').textContent = usd(pred);
+    $('wfT').innerHTML = CV.map((v, j) => `<tr><td>${CL[v]}</td><td>${fmtX(v, m0[j])}</td><td>${fmtX(v, x[j])}</td><td>${fmt(f.beta[j + 1], j === 2 ? 2 : 4)}</td><td class="${mult[j] >= 1 ? 'est' : 'hi'}">×${fmt(mult[j], 2)}</td></tr>`).join('');
+    const out = CV.filter((v, j) => { const [a, b] = rng(S.cSeason, v); return x[j] < a || x[j] > b; });
+    const box = $('wfMsg');
+    if (out.length) { box.className = 'msg warn'; box.innerHTML = `<b>Extrapolation.</b> ${out.map((v, i) => i ? CL[v].toLowerCase() : CL[v]).join(' and ')} ${out.length > 1 ? 'are' : 'is'} outside the range of the ${S.cSeason} players (${out.map(v => { const [a, b] = rng(S.cSeason, v); return fmtX(v, a) + ' to ' + fmtX(v, b); }).join('; ')}). No player that season looks like this, so the model has no data here.`; }
+    else { box.className = 'msg'; box.innerHTML = `<b>×${fmt(pred / base, 2)}</b> the median golfer’s predicted ${usd(base)}. The multipliers multiply: ${mult.map(v => fmt(v, 2)).join(' × ')} = ${fmt(pred / base, 2)}.`; }
+    $('cHint').textContent = `Predicted median earnings, e^(fitted log). The ${S.cSeason} model has s = ${fmt(f.s, 3)}: a typical player with this profile earns between ${usd(pred * Math.exp(-f.s))} and ${usd(pred * Math.exp(f.s))}.`;
+    $('wfCap').textContent = `From the median golfer to this profile, ${S.cSeason} model`;
+    drawWF(base, mult, pred);
+  }
+  function drawWF(base, mult, pred) {
+    const o = WF, { ctx, W, H } = o, m = { l: 62, r: 16, t: 18, b: 34 };
+    ctx.clearRect(0, 0, W, H);
+    const lv = [Math.log(base)]; mult.forEach(k => lv.push(lv[lv.length - 1] + Math.log(k)));
+    let lo = Math.min(...lv, Math.log(1e5)), hi = Math.max(...lv, Math.log(3e6)); const pad = (hi - lo) * .08; lo -= pad; hi += pad;
+    const n = 5, xd = [0, n], cats = ['Median', 'Drive', 'GIR', 'Putts', 'Profile'];
+    const { PX, PY } = frame(o, m, xd, [lo, hi], [], logTicks([lo, hi]), { ylab: 'predicted earnings (log scale)' });
+    ctx.font = '12px "Atkinson Hyperlegible", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = C.muted;
+    cats.forEach((c, i) => ctx.fillText(c, PX(i + .5), H - m.b + 8));
+    const bar = (i, a, b, col) => { const x0 = PX(i + .18), x1 = PX(i + .82), y0 = PY(Math.max(a, b)), y1 = PY(Math.min(a, b)); ctx.fillStyle = col; ctx.fillRect(x0, y0, x1 - x0, Math.max(2, y1 - y0)); };
+    const floor = lo;
+    bar(0, floor, lv[0], C.point);
+    for (let j = 0; j < 3; j++) { bar(j + 1, lv[j], lv[j + 1], mult[j] >= 1 ? C.fit : C.curve); ctx.strokeStyle = C.muted; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PX(j + .82), PY(lv[j])); ctx.lineTo(PX(j + 1.18), PY(lv[j])); ctx.stroke(); ctx.setLineDash([]); }
+    bar(4, floor, lv[3], C.accent);
+    ctx.font = '600 12px "JetBrains Mono", ui-monospace, monospace'; ctx.textBaseline = 'bottom'; ctx.fillStyle = C.ink;
+    ctx.fillText(usd(base), PX(.5), PY(lv[0]) - 3);
+    for (let j = 0; j < 3; j++) ctx.fillText('×' + fmt(mult[j], 2), PX(j + 1.5), PY(Math.max(lv[j], lv[j + 1])) - 3);
+    ctx.fillText(usd(pred), PX(4.5), PY(lv[3]) - 3);
+  }
+
+  /* 4. compare seasons */
+  function renderCmp() {
+    const a = CM['2000'], b = CM['2018'], eff = (f, j, d) => pct(Math.exp(f.beta[j] * d) - 1);
+    $('cmpT').innerHTML = [
+      ['drivedist β̂', fmt(a.beta[1], 4), fmt(b.beta[1], 4)], ['+10 yards', eff(a, 1, 10), eff(b, 1, 10)],
+      ['gir β̂', fmt(a.beta[2], 3), fmt(b.beta[2], 3)], ['+1 point GIR', eff(a, 2, 1), eff(b, 2, 1)],
+      ['avgputts β̂', fmt(a.beta[3], 2), fmt(b.beta[3], 2)], ['−0.01 putts', eff(a, 3, -0.01), eff(b, 3, -0.01)],
+      ['R²', fmt(a.r2, 3), fmt(b.r2, 3)], ['s', fmt(a.s, 3), fmt(b.s, 3)]
+    ].map(r => `<tr><td>${r[0]}</td><td class="est">${r[1]}</td><td class="est">${r[2]}</td></tr>`).join('');
+    const rank = (s, v, x, desc) => { const a = SEASON[s].map(r => r[COL[v]]); return 1 + a.filter(z => desc ? z > x : z < x).length; };
+    const t0 = twRow('2000'), t8 = twRow('2018'), p0 = a.players.find(p => p.name === TW), p8 = b.players.find(p => p.name === TW);
+    $('twT').innerHTML = [
+      ['Earnings', usd(t0[2]) + ` (#${rank('2000', 'money', t0[2], 1)})`, usd(t8[2]) + ` (#${rank('2018', 'money', t8[2], 1)})`],
+      ['Drive', fmt(t0[3], 1) + ` (#${rank('2000', 'drivedist', t0[3], 1)})`, fmt(t8[3], 1) + ` (#${rank('2018', 'drivedist', t8[3], 1)})`],
+      ['GIR', fmt(t0[4], 2) + ` (#${rank('2000', 'gir', t0[4], 1)})`, fmt(t8[4], 2) + ` (#${rank('2018', 'gir', t8[4], 1)})`],
+      ['Putts', fmt(t0[5], 3) + ` (#${rank('2000', 'avgputts', t0[5], 0)})`, fmt(t8[5], 3) + ` (#${rank('2018', 'avgputts', t8[5], 0)})`],
+      ['Log-model prediction', usd(p0.predMoney), usd(p8.predMoney)],
+      ['Std. residual', fmt(p0.rs, 2), fmt(p8.rs, 2)]
+    ].map(r => `<tr><td>${r[0]}</td><td class="tw">${r[1]}</td><td class="tw">${r[2]}</td></tr>`).join('');
+  }
+  function drawDist() {
+    const o = DI, { ctx, W, H } = o, m = { l: 40, r: 16, t: 16, b: 38 }, v = S.dv, isM = v === 'money';
+    ctx.clearRect(0, 0, W, H);
+    const val = r => isM ? Math.log(r[2]) : r[COL[v]];
+    const A = D2000.map(val), B = D2018.map(val), all = [...A, ...B];
+    let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * .04; lo -= pad; hi += pad;
+    const nb = 28, bw = (hi - lo) / nb, h = arr => { const c = new Array(nb).fill(0); for (const x of arr) c[Math.min(nb - 1, Math.floor((x - lo) / bw))]++; return c; };
+    const ca = h(A), cb = h(B), ymax = Math.max(...ca, ...cb) * 1.15;
+    const xt = isM ? logTicks([lo, hi]) : linTicks([lo, hi], 7, x => fmt(x, v === 'avgputts' ? 2 : 0));
+    const xl = { drivedist: 'driving distance (yards)', gir: 'greens in regulation (%)', avgputts: 'putts per GIR green', money: 'earnings (log scale)' }[v];
+    const { PX, PY } = frame(o, m, [lo, hi], [0, ymax], xt, linTicks([0, ymax], 4), { xlab: xl });
+    clip(o, m);
+    const draw = (c, col) => { ctx.fillStyle = col; ctx.globalAlpha = .45; c.forEach((k, i) => { if (!k) return; const x0 = PX(lo + i * bw), x1 = PX(lo + (i + 1) * bw); ctx.fillRect(x0 + .5, PY(k), x1 - x0 - 1, PY(0) - PY(k)); }); ctx.globalAlpha = 1; };
+    draw(ca, C.accent); draw(cb, C.alt);
+    const t0 = val(twRow('2000')), t8 = val(twRow('2018'));
+    ctx.strokeStyle = C.ball; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(PX(t0), m.t); ctx.lineTo(PX(t0), H - m.b); ctx.stroke();
+    ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(PX(t8), m.t); ctx.lineTo(PX(t8), H - m.b); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    const ma = A.reduce((a, b) => a + b, 0) / A.length, mb = B.reduce((a, b) => a + b, 0) / B.length;
+    const show = x => isM ? usd(Math.exp(x)) + ' (geometric mean)' : fmtX(v, x);
+    $('dCap').textContent = `${xl}: 2000 mean ${show(ma)}, 2018 mean ${show(mb)}`;
+  }
+
+  /* EVENTS */
+  const press = (ids, on) => ids.forEach(id => $(id).setAttribute('aria-pressed', id === on));
+  function setBuilder(o) {
+    Object.assign(S, o);
+    press(['s2000', 's2018'], 's' + S.season); press(['rMoney', 'rLog'], S.logy ? 'rLog' : 'rMoney');
+    VARS.forEach(v => $('v_' + v).checked = S.vars[v]); $('dropTW').checked = S.dropTW;
+    fillWho(); renderBuilder();
+  }
+  $('s2000').onclick = () => setBuilder({ season: '2000' }); $('s2018').onclick = () => setBuilder({ season: '2018' });
+  $('rMoney').onclick = () => setBuilder({ logy: false }); $('rLog').onclick = () => setBuilder({ logy: true });
+  VARS.forEach(v => $('v_' + v).onchange = e => { S.vars[v] = e.target.checked; renderBuilder(); });
+  $('dropTW').onchange = e => setBuilder({ dropTW: e.target.checked });
+  $('who').onchange = e => { S.sel = e.target.value; renderBuilder(); };
+  $('ouT').onclick = e => { const tr = e.target.closest('tr[data-n]'); if (tr) { S.sel = tr.dataset.n; renderBuilder(); } };
+  $('ouT').onkeydown = e => { if (e.key === 'Enter') { const tr = e.target.closest('tr[data-n]'); if (tr) { S.sel = tr.dataset.n; renderBuilder(); } } };
+  $('thr').oninput = e => { S.thr = +e.target.value; $('thrO').textContent = fmt(S.thr, 1); renderOU(); };
+  const all4 = { nevents: true, drivedist: true, gir: true, avgputts: true }, three = { nevents: false, drivedist: true, gir: true, avgputts: true };
+  $('d1').onclick = () => setBuilder({ season: '2000', logy: false, vars: { ...all4 }, dropTW: false, sel: TW });
+  $('d2').onclick = () => setBuilder({ season: '2000', logy: true, vars: { ...all4 }, dropTW: false, sel: 'Notah Begay III' });
+  $('d3').onclick = () => setBuilder({ season: '2000', logy: true, vars: { ...three }, dropTW: false, sel: TW });
+  $('d4').onclick = () => setBuilder({ season: '2018', logy: true, vars: { ...three }, dropTW: false, sel: TW });
+  $('d5').onclick = () => setBuilder({ season: '2000', logy: false, vars: { ...three }, dropTW: true, sel: TW });
+
+  const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; SC.cv.parentElement.appendChild(tip);
+  function nearest(e) {
+    if (!scGeom) return null; const r = SC.cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    let best = null, bd = 144; for (const p of M.players) { const d = (scGeom.PX(p.yhat) - mx) ** 2 + (scGeom.PY(p.y) - my) ** 2; if (d < bd) { bd = d; best = p; } }
+    return best ? { p: best, mx, my } : null;
+  }
+  SC.cv.addEventListener('pointermove', e => {
+    const n = nearest(e); if (!n) { tip.hidden = true; return; }
+    const p = n.p; tip.innerHTML = `<b>${p.name}</b><br>actual ${usd(p.money)} · predicted ${usd(p.predMoney)}<br>std. residual ${fmt(p.rs, 2)}`;
+    tip.hidden = false; const bw = SC.cv.parentElement.clientWidth, tw = tip.offsetWidth;
+    tip.style.left = Math.min(n.mx + 28, bw - tw - 8) + 'px'; tip.style.top = (n.my + SC.cv.offsetTop + 14) + 'px';
+  });
+  SC.cv.addEventListener('pointerleave', () => tip.hidden = true);
+  SC.cv.addEventListener('click', e => { const n = nearest(e); if (n) { S.sel = n.p.name; renderBuilder(); } });
+
+  const setC = s => { S.cSeason = s; press(['c2000', 'c2018'], 'c' + s); renderCalc(); };
+  $('c2000').onclick = () => setC('2000'); $('c2018').onclick = () => setC('2018');
+  $('pMed').onclick = () => setProfile(med(S.cSeason));
+  $('pTW00').onclick = () => { const t = twRow('2000'); setProfile([t[3], t[4], t[5]]); };
+  $('pTW18').onclick = () => { const t = twRow('2018'); setProfile([t[3], t[4], t[5]]); };
+  [['xD', 0], ['xG', 1], ['xP', 2]].forEach(([id, j]) => $(id).oninput = e => { S.cx[j] = +e.target.value; renderCalc(); });
+  document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { S.dv = b.dataset.v; document.querySelectorAll('[data-v]').forEach(x => x.setAttribute('aria-pressed', x === b)); drawDist(); });
+
+  function drawAll() { readColors(); ALL.forEach(o => o.resize()); drawScatter(); drawResHist(); renderCalc(); drawDist(); }
+  readColors(); fillWho(); ALL.forEach(o => o.resize()); renderBuilder(); { const t = twRow("2000"); setProfile([t[3], t[4], t[5]]); } renderCmp(); drawDist();
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 80); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (document.fonts) document.fonts.ready.then(drawAll);
+})();
+</script>
+</body></html>
