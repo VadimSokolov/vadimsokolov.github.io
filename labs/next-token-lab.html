@@ -2,6 +2,8 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Next-Token Lab</title>
+<script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, chtml: { scale: 1, matchFontHeight: false }, options: { enableMenu: false } };</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -169,6 +171,10 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 .src { margin: 0; font-size: 13px; color: var(--muted); max-width: 72ch; }
 .src a { color: var(--accent); }
+.tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
+.tex mjx-container[display="true"] { margin: 6px 0 !important; }
+mjx-container { font-size: 105%; }
+.eq .m mjx-container { font-size: 100%; }
 </style>
 </head><body>
 
@@ -177,7 +183,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
   <header>
     <span class="eyebrow">Polson–Sokolov Lab · Language models</span>
     <h1>Next-Token Lab</h1>
-    <p class="lead">A language model outputs P(next token | all previous tokens). In the first mode you reshape that distribution with temperature, top-k and top-p, then sample from it and compare the frequencies with the probabilities. In the second you build the table of conditional probabilities yourself from a paragraph of text.</p>
+    <p class="lead">A language model outputs \(P(\text{next token} \mid \text{all previous tokens})\). In the first mode you reshape that distribution with temperature, top-k and top-p, then sample from it and compare the frequencies with the probabilities. In the second you build the table of conditional probabilities yourself from a paragraph of text.</p>
     <a class="back" href="index.html">← All labs</a>
     <p class="src">Based on Chapter 24, <a href="https://vsokolov.org/html/_book/24-llm.html">Large Language Models</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>).</p>
   </header>
@@ -210,7 +216,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
       <div class="cpt">
         <h3 id="cptHead"></h3>
         <div class="cpt-wrap"><table class="cp" id="cpt"></table></div>
-        <p class="hint" style="margin-top:6px">Blue bar: P from the counts. Thin red bar: the probability used for sampling at the current temperature.</p>
+        <p class="hint" style="margin-top:6px">Blue bar: \(P\) from the counts. Thin red bar: the probability used for sampling at the current temperature.</p>
       </div>
       <div class="cap"><b>Generated text</b> · click any word to see its row of the table. Red words had under 20% chance. Shaded sentences do not appear anywhere in the training text.</div>
       <div class="gen" id="gen" aria-live="polite"></div>
@@ -256,7 +262,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
             <tr><td>Largest |share − P|</td><td></td><td class="obs" id="gap">–</td></tr>
           </tbody>
         </table>
-        <p class="hint">Entropy H = −Σ p log₂ p. A sure thing has H = 0. A fair coin has H = 1 bit.</p>
+        <p class="hint">Entropy \(H = -\sum p \log_2 p\). A sure thing has \(H = 0\). A fair coin has \(H = 1\) bit.</p>
       </div>
     </aside>
 
@@ -291,7 +297,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
             <tr><td>Generated sentences not in the text</td><td class="obs" id="novel">–</td></tr>
           </tbody>
         </table>
-        <p class="hint">The estimate is the maximum-likelihood one: P(w | c) = count(c, w) / count(c).</p>
+        <p class="hint">The estimate is the maximum-likelihood one: \(P(w \mid c) = \text{count}(c, w) / \text{count}(c)\).</p>
       </div>
     </aside>
   </main>
@@ -311,42 +317,42 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     <ol class="steps">
       <li><div>
         <h3>The output is a distribution, not an answer</h3>
-        <p>For “The capital of France is”, the worked example lists P(“ Paris”) = 0.93, P(“ the”) = 0.03, P(“ a”) = 0.01, and 0.03 for everything else. The network produces a score (logit) for every token in its vocabulary, and the softmax turns the scores into these probabilities.</p>
+        <p>For “The capital of France is”, the worked example lists \(P(\text{“ Paris”}) = 0.93\), \(P(\text{“ the”}) = 0.03\), \(P(\text{“ a”}) = 0.01\), and 0.03 for everything else. The network produces a score (logit) for every token in its vocabulary, and the softmax turns the scores into these probabilities.</p>
       </div></li>
       <li><div>
         <h3>Temperature divides the logits</h3>
-        <p>Dividing every logit by T before the softmax changes the shape and keeps the ranking. T below 1 sharpens the distribution, and T = 0 always picks the top token. T above 1 flattens it, so rare tokens get sampled more often. At T = 1 you sample from the model as trained.</p>
+        <p>Dividing every logit by \(T\) before the softmax changes the shape and keeps the ranking. \(T\) below 1 sharpens the distribution, and \(T = 0\) always picks the top token. \(T\) above 1 flattens it, so rare tokens get sampled more often. At \(T = 1\) you sample from the model as trained.</p>
       </div></li>
       <li><div>
         <h3>Top-k and top-p cut the tail</h3>
-        <p>Top-k keeps the k most likely tokens. Top-p keeps the smallest set of top tokens whose probabilities add up to at least p, so it keeps few tokens when the model is confident and many when it is not. Either way the survivors are renormalized to sum to 1.</p>
+        <p>Top-k keeps the \(k\) most likely tokens. Top-p keeps the smallest set of top tokens whose probabilities add up to at least \(p\), so it keeps few tokens when the model is confident and many when it is not. Either way the survivors are renormalized to sum to 1.</p>
       </div></li>
       <li><div>
         <h3>High temperature is fluent but can be wrong</h3>
-        <p>Every token on the list is grammatical, so a sample always reads well. At T = 1 the France prompt names the wrong city “Lyon” or “Marseille” about once in 100 samples. At T = 2 it does so about once in 12. When the model has no sharp answer, as with a court citation it has never seen, even T = 1 produces a confident-sounding name. That is a hallucination: plausible, fluent and false.</p>
+        <p>Every token on the list is grammatical, so a sample always reads well. At \(T = 1\) the France prompt names the wrong city “Lyon” or “Marseille” about once in 100 samples. At \(T = 2\) it does so about once in 12. When the model has no sharp answer, as with a court citation it has never seen, even \(T = 1\) produces a confident-sounding name. That is a hallucination: plausible, fluent and false.</p>
       </div></li>
     </ol>
 
     <div class="eqs">
       <div class="eq">
         <div class="cap">Softmax with temperature</div>
-        <div class="m">P_T(w) = exp(s_w / T) / Σ_v exp(s_v / T)</div>
-        <div class="m">s_w = ln P(w)  ⇒  P_T(w) ∝ P(w)^{1/T}</div>
+        <div class="m">\(\displaystyle P_T(w) = \frac{\exp(s_w / T)}{\sum_v \exp(s_v / T)}\)</div>
+        <div class="m">\(\displaystyle s_w = \ln P(w) \;\Rightarrow\; P_T(w) \propto P(w)^{1/T}\)</div>
       </div>
       <div class="eq">
         <div class="cap">Order used here (the common default)</div>
-        <div class="m">1. divide logits by T   2. keep top k</div>
-        <div class="m">3. keep top tokens until Σ P ≥ p   4. renormalize</div>
+        <div class="m">\(\displaystyle \text{1. divide logits by } T \quad \text{2. keep top } k\)</div>
+        <div class="m">\(\displaystyle \text{3. keep top tokens until } \sum P \ge p \quad \text{4. renormalize}\)</div>
       </div>
       <div class="eq">
         <div class="cap">Entropy and perplexity</div>
-        <div class="m">H = −Σ_w P(w) log₂ P(w),   perplexity = 2^H</div>
-        <div class="m">perplexity ≈ “number of equally likely choices”</div>
+        <div class="m">\(\displaystyle H = -\sum_w P(w) \log_2 P(w), \quad \text{perplexity} = 2^H\)</div>
+        <div class="m">\(\displaystyle \text{perplexity} \approx \text{“number of equally likely choices”}\)</div>
       </div>
       <div class="eq">
         <div class="cap">A bigram model, estimated from counts</div>
-        <div class="m">P(wₜ | wₜ₋₁) = count(wₜ₋₁, wₜ) / count(wₜ₋₁)</div>
-        <div class="m">P(sentence) = Πₜ P(wₜ | wₜ₋₁)</div>
+        <div class="m">\(\displaystyle P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}\)</div>
+        <div class="m">\(\displaystyle P(\text{sentence}) = \prod_t P(w_t \mid w_{t-1})\)</div>
       </div>
     </div>
 
@@ -359,28 +365,28 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
     <div class="note">
       <h2>More context, sharper rows</h2>
       <p>The bigram model sees only “is” and happily writes “the capital of Italy is Madrid.” The trigram model sees “italy is” and gets it right. Transformers push this to the whole prompt: attention lets each word look at every other word.</p>
-      <div class="formula">P(w | “is”) vs P(w | “italy is”)</div>
+      <div class="tex">\[ P(w \mid \text{“is”}) \ \text{ vs } \ P(w \mid \text{“italy is”}) \]</div>
     </div>
     <div class="note">
       <h2>Tokens become vectors</h2>
       <p>A real model does not keep a row per context. It maps words to vectors (word2vec), so “Italy” and “Spain” share what the model learns about countries. That is how it generalizes to sentences it never saw, and also how it blends facts that should stay apart.</p>
-      <div class="formula">king − man + woman ≈ queen</div>
+      <div class="tex">\[ \text{king} - \text{man} + \text{woman} \approx \text{queen} \]</div>
     </div>
     <div class="note">
       <h2>Where the numbers come from</h2>
       <p>The France probabilities for “ Paris”, “ the” and “ a” are from the worked example. It lumps the remaining 0.03 as “...”, and this lab splits it into six illustrative tokens. All other prompts use illustrative logits, not output from a real model.</p>
-      <div class="formula">0.93 + 0.03 + 0.01 + 0.03 = 1</div>
+      <div class="tex">\[ 0.93 + 0.03 + 0.01 + 0.03 = 1 \]</div>
     </div>
   </section>
 
   <section class="try">
     <h2>Try this in class</h2>
     <ol>
-      <li>On the France prompt, press “+1,000” at T = 1. Compare the blue bars with the red marks, and ask how many samples it takes for “ Lyon” to show up once. The answer is about 1/0.006 ≈ 170.</li>
-      <li>Drag T from 0 to 2.5 and read the entropy row. At T = 0 it is 0 bits. At T = 1 it is about 0.54 bits. At T = 2.5 it is about 2.6 bits, and “ Paris” drops below half.</li>
+      <li>On the France prompt, press “+1,000” at \(T = 1\). Compare the blue bars with the red marks, and ask how many samples it takes for “ Lyon” to show up once. The answer is about \(1/0.006 \approx 170\).</li>
+      <li>Drag \(T\) from 0 to 2.5 and read the entropy row. At \(T = 0\) it is 0 bits. At \(T = 1\) it is about 0.54 bits. At \(T = 2.5\) it is about 2.6 bits, and “ Paris” drops below half.</li>
       <li>Switch to “Flip a fair coin” and set top-p to 0.40. Only “ heads” survives, so the sampler is no longer fair. Raise top-p to 0.95 and both sides come back, with two filler tokens. Top-p cuts more when the model is sure and less when it is not.</li>
-      <li>In mode 2, generate four sentences with the bigram model at T = 1 and count the shaded ones. Switch to trigram and generate again. Then add a sentence to the paragraph, such as “The capital of Japan is Tokyo.”, and look at the row for “is”.</li>
-      <li>Set the word model to T = 0. Every generation is the same sentence, because the model always takes the top row entry. Ask students why chatbots do not run at T = 0 by default, and when you would want them to.</li>
+      <li>In mode 2, generate four sentences with the bigram model at \(T = 1\) and count the shaded ones. Switch to trigram and generate again. Then add a sentence to the paragraph, such as “The capital of Japan is Tokyo.”, and look at the row for “is”.</li>
+      <li>Set the word model to \(T = 0\). Every generation is the same sentence, because the model always takes the top row entry. Ask students why chatbots do not run at \(T = 0\) by default, and when you would want them to.</li>
     </ol>
   </section>
 </div>
