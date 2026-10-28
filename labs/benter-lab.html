@@ -116,6 +116,11 @@ input[type=number] { font-family: var(--font-mono); width: 100%; }
 .mini tr:last-child td { border-bottom: 0; }
 .mini .pub { color: var(--curve); } .mini .mod { color: var(--accent); } .mini .ful { color: var(--fit); }
 .mini .pos { color: var(--fit); font-weight: 600; } .mini .neg { color: var(--muted); }
+.vlist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 3px 14px; font-size: 13.5px; }
+.vlist li { display: flex; gap: 8px; align-items: baseline; }
+.vlist b { font-family: var(--font-mono); font-size: 12px; width: 1.1em; text-align: center; color: var(--muted); flex: none; }
+.vlist b.on { color: var(--accent); }
+.vlist li.off span { text-decoration: line-through; color: var(--muted); }
 .mini .up { color: var(--fit); font-weight: 600; } .mini .dn { color: var(--curve); font-weight: 600; }
 #btTab th:first-child, #btTab td:first-child { min-width: 150px; }
 .mini tr.hl td { background: var(--board); }
@@ -459,6 +464,11 @@ mjx-container { font-size: 105%; }
           <thead><tr><th>Strategy</th><th>Bets</th><th>Hit rate</th><th>Flat ROI ± s.e.</th><th>Kelly final wealth</th><th>Kelly max drawdown</th></tr></thead><tbody></tbody>
         </table></div>
         <p class="hint">The standard error of the ROI is the standard deviation of the profit per bet divided by the square root of the number of bets. A return is only informative if it is large next to its standard error. Edge is c·O − 1. The first three rows use the validation-chosen penalty. The weak-penalty row repeats the 0% threshold with a fixed small penalty, so the variables are not shrunk away. Green is a positive return, red a negative one.</p>
+        <div class="board">
+          <h3>Variables in this model</h3>
+          <p class="hint" style="margin:0 0 8px">The model starts from the log of the crowd's chance, log q, and adds 23 handicapping variables. The study's lasso kept the 18 marked <b>L</b>. The other 5 are marked <b>–</b>. A struck-through name is not used in the selected period because it was not recorded in the training seasons.</p>
+          <ul class="vlist" id="btVars"></ul>
+        </div>
       </div>
       <aside class="panel">
         <div class="group">
@@ -1338,6 +1348,7 @@ mjx-container { font-size: 105%; }
     const d = P.ix(x); let k = BT.kel.findIndex(p => p[0] >= d); if (k < 0) k = BT.kel.length - 1;
     return { d: BT.kel[k][0], html: `<b>${dateOf(BT.kel[k][0])}</b><br>${BT.th['0.0'].n ? 'bankroll ' + fx(BT.kel[k][1], 3) + '×' : 'no bets placed'}` };
   });
+  const VARS6 = [['draw_rel', 'Draw (rail 0, widest 1)', 1], ['draw_x_HV', 'Draw × Happy Valley', 1], ['draw_x_sprint', 'Draw × sprint (≤ 1,200 m)', 1], ['wt_carried', 'Weight carried', 0], ['rating', 'Official rating', 1], ['log_starts', 'log(1 + previous starts)', 1], ['first_start', 'First start', 1], ['last_place', 'Last finish (0 won, 1 last)', 1], ['avg4_place', 'Average finish, last 4 runs', 1], ['avg4_lengths', 'Average lengths beaten, last 4', 1], ['career_win_pct', 'Career win rate', 1], ['log_days_since', 'log days since last run', 1], ['layoff_90', 'Layoff over 90 days', 1], ['body_wt_chg', 'Body-weight change', 1], ['abs_body_wt_chg', '|Body-weight change|', 0], ['dist_chg', 'Distance change', 0], ['abs_dist_chg', '|Distance change|', 1], ['rating_chg', 'Rating change', 0], ['log_prev_odds', 'log payout in previous race', 1], ['same_course_prev', 'Same course as last run', 1], ['first_time_gear', 'First-time gear', 0], ['jockey_logit', 'Jockey (logit win rate)', 1], ['trainer_logit', 'Trainer (logit win rate)', 1]];
   function renderS6() {
     const b = BT, t0 = b.th['0.0'], era = b.key === 'benter_era';
     $('perEra').setAttribute('aria-pressed', era); $('perMod').setAttribute('aria-pressed', !era);
@@ -1363,6 +1374,7 @@ mjx-container { font-size: 105%; }
         `<p>To check, the weak-penalty row forces the variables in. It places ${int(b.weak.th['0.0'].n)} bets with a flat ROI of <b>${pct(b.weak.th['0.0'].roi, 1)} ± ${fx(b.weak.th['0.0'].se * 100, 1)}</b>, and its pseudo R² (${fx(b.weak.r2, 4)}) is below the market's (${fx(b.r2m, 4)}). The variables add noise, not information. The favourite loses ${pct(-b.fav.roi, 1)} per race.</p>` +
         `<p><b>Conclusion.</b> In 2013–2017 these variables do not explain anything the crowd has missed, which fits the era table in Part II. When a profit rests on a few dozen bets, the sample is too small to tell luck from skill.</p>`;
     }
+    $('btVars').innerHTML = '<li><b class="on">q</b><span>Log of the crowd\'s chance, log q (the starting point)</span></li>' + VARS6.map(([id, nm, lk]) => `<li${b.dropped.includes(id) ? ' class="off"' : ''}><b${lk ? ' class="on"' : ''}>${lk ? 'L' : '–'}</b><span>${nm}</span></li>`).join('');
     $('btCall').innerHTML = msg;
     dirty(pFlat, pKel);
   }
