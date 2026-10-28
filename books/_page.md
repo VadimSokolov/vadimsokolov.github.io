@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/) <small>Thorin Measures, Pólya Densities and Hitting Times</small>
+
+[![Computing the Riemann Hypothesis: Thorin Measures, Pólya Densities and Hitting Times](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 1.
+
+Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, friable approximants, the reciprocal zeta function and Lee Yang theory.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.4.1/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23741450](https://zenodo.org/badge/DOI/10.5281/zenodo.23741450.svg)](https://doi.org/10.5281/zenodo.23741450) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
+
 ## [P = RP](https://vsokolov.org/books/p_equals_rp/) <small>A Monte Carlo Program for P versus NP</small>
 
 [![P = RP: A Monte Carlo Program for P versus NP](https://vsokolov.org/books/p_equals_rp/cover.jpg)](https://vsokolov.org/books/p_equals_rp/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
@@ -17,14 +25,6 @@ N queens counting as a rare event and a quantile integral, turned into a Monte C
 A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.1/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23603837](https://zenodo.org/badge/DOI/10.5281/zenodo.23603837.svg)](https://doi.org/10.5281/zenodo.23603837)
-
-## [Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/) <small>Thorin Measures, Pólya Densities and Hitting Times</small>
-
-[![Computing the Riemann Hypothesis: Thorin Measures, Pólya Densities and Hitting Times](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 1.
-
-Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, friable approximants, the reciprocal zeta function and Lee Yang theory.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.4.0/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23595861](https://zenodo.org/badge/DOI/10.5281/zenodo.23595861.svg)](https://doi.org/10.5281/zenodo.23595861) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
 
 ## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
 
