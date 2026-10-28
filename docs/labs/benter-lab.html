@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: six numbered cards, each a plot area with a 340px control rail (one column under 900px): market calibration, alpha correction, full conditional logit, Kelly growth, one-race Kelly allocation, held-out backtest; then lesson notes and class exercises. Data comes from the sibling benter-data.js. */
+/* Layout: Part I has six numbered cards, each a plot area with a 340px control rail (one column under 900px): market calibration, alpha correction, full conditional logit, Kelly growth, one-race Kelly allocation, held-out backtest; then Part II (cards 7-10: draw, variable selection, edge by era, honest backtest on 2013-17), then lesson notes and class exercises. Data comes from the sibling benter-data.js (Part I) and benter-hk-data.js (Part II). */
 :root {
   --bg: #eceff3;
   --surface: #ffffff;
@@ -143,6 +143,9 @@ input[type=number] { font-family: var(--font-mono); width: 100%; }
 .tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
 .tex mjx-container[display="true"] { margin: 6px 0 !important; }
 mjx-container { font-size: 105%; }
+.part { display: flex; flex-direction: column; gap: 10px; max-width: 92ch; padding-top: 18px; border-top: 2px solid var(--line); }
+.part h2 { font-family: var(--font-display); font-size: clamp(24px, 3.2vw, 32px); line-height: 1.1; margin: 0; text-wrap: balance; }
+.part p { margin: 0; }
 .eq .m mjx-container { font-size: 100%; }
 </style>
 </head><body>
@@ -152,9 +155,9 @@ mjx-container { font-size: 105%; }
   <header>
     <span class="eyebrow">Polson–Sokolov Lab · Betting markets</span>
     <h1>Benter Betting Lab</h1>
-    <p class="lead">Bill Benter turned Hong Kong win odds into probabilities, corrected the crowd's biases with a conditional logit model, and sized bets with the Kelly criterion. This lab reruns each step on 73,722 horses in 5,885 races: check how well the odds forecast, fit the correction yourself, size bets, and test the strategy on races the model has not seen.</p>
+    <p class="lead">Bill Benter turned Hong Kong win payouts into probabilities, corrected the crowd's biases with a conditional logit model, and sized bets with the Kelly criterion. Part I reruns each step on 73,722 horses in 5,885 races from 1997–2005: check how well the odds forecast, fit the correction yourself, size bets, and test the strategy on races the model has not seen. Part II follows Nick Polson's refit of Benter's full two-stage model on forty seasons, 1979–2018: how much the starting gate matters, which of 23 handicapping variables a model needs, and why the edge that was there in the 1990s has gone.</p>
     <a class="back" href="index.html">← All labs</a>
-    <p class="src">Based on the case study “Benter’s Betting Strategy” (V. Sokolov), which reproduces Benter’s computer handicapping paper as annotated by <a href="https://actamachina.com/posts/annotated-benter-paper">Acta Machina</a>; see Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/04-dec.html">Chapter 4</a> (Kelly criterion). Data: Hong Kong Jockey Club races 1997–2005 (<a href="https://www.kaggle.com/datasets/gdaley/hkracing">Kaggle gdaley/hkracing</a>).</p>
+    <p class="src">Based on the case study “Benter’s Betting Strategy” (V. Sokolov), which reproduces Benter’s computer handicapping paper as annotated by <a href="https://actamachina.com/posts/annotated-benter-paper">Acta Machina</a>; see Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/04-dec.html">Chapter 4</a> (Kelly criterion). Data: Hong Kong Jockey Club races 1997–2005 (<a href="https://www.kaggle.com/datasets/gdaley/hkracing">Kaggle gdaley/hkracing</a>). Part II is based on N. Polson, “The Benter model on Hong Kong racing: post position, variable selection and the vanishing edge” (notes, October 2026), with Hong Kong Jockey Club results 1979–2018 from <a href="https://github.com/eprochasson/horserace_data">eprochasson/horserace_data</a>; see Benter (1994) and Bolton and Chapman (1986).</p>
   </header>
 
   <p class="callout warn" id="loadErr" hidden>The race data file (benter-data.js) did not load, so the charts cannot be drawn. It must sit next to this page.</p>
@@ -162,8 +165,8 @@ mjx-container { font-size: 105%; }
   <!-- 1 -->
   <section class="card" aria-labelledby="h1s">
     <span class="eyebrow">1 · The market as a forecaster</span>
-    <h2 id="h1s">Odds are forecasts. Are they calibrated?</h2>
-    <p class="intro">Each horse's win odds become an implied probability. The case study uses \(p = 1/(\text{odds} + 1)\), normalised so the field sums to 1. Then horses are grouped by that probability, and each group's actual win rate is compared with the forecast. Points on the 45° line mean the crowd is calibrated.</p>
+    <h2 id="h1s">Payouts are forecasts. Are they calibrated?</h2>
+    <p class="intro">Each horse's final win payout O is the number of dollars paid back per $1 bet, stake included. Racetracks call O the odds, but it is not the odds \(p/(1-p)\). The implied probability is \(p = 1/O\), normalised so the field sums to 1. Then horses are grouped by that probability, and each group's actual win rate is compared with the forecast. Points on the 45° line mean the crowd is calibrated.</p>
     <div class="grid">
       <div class="board">
         <h3 id="calTitle">Calibration: 20 equal-sized groups of horses</h3>
@@ -177,14 +180,6 @@ mjx-container { font-size: 105%; }
       </div>
       <aside class="panel">
         <div class="group">
-          <span class="label" id="convL">Odds → probability</span>
-          <div class="seg" role="group" aria-labelledby="convL">
-            <button id="convFrac" aria-pressed="true">1/(O+1) case study</button>
-            <button id="convDec" aria-pressed="false">1/O dividend</button>
-          </div>
-          <p class="hint" id="convNote"></p>
-        </div>
-        <div class="group">
           <span class="label" id="viewL">Group horses by</span>
           <div class="seg" role="group" aria-labelledby="viewL">
             <button id="viewBins" aria-pressed="true">Probability (20 bins)</button>
@@ -193,7 +188,7 @@ mjx-container { font-size: 105%; }
         </div>
         <div class="group">
           <span class="label">Try one price</span>
-          <div class="field"><label for="oddsIn">Quoted win odds O</label><input type="number" id="oddsIn" min="1" max="99" step="0.1" value="3.5"></div>
+          <div class="field"><label for="oddsIn">Quoted win payout O</label><input type="number" id="oddsIn" min="1" max="99" step="0.1" value="3.5"></div>
           <div class="kv" id="oddsOut"></div>
         </div>
         <div class="group">
@@ -208,7 +203,6 @@ mjx-container { font-size: 105%; }
         <div class="scroll"><table class="mini" id="venueTab">
           <thead><tr><th>Venue</th><th>Races</th><th>Avg field</th><th>Fav wins</th><th>Implied</th><th>Bias</th></tr></thead><tbody></tbody>
         </table></div>
-        <p class="hint">Case study: “favorites win approximately 4–5 percentage points more often than the public odds imply” at both tracks.</p>
       </div>
       <div class="colstack">
         <span class="label">Calibration by betting rank (1 = favourite)</span>
@@ -223,7 +217,7 @@ mjx-container { font-size: 105%; }
   <section class="card" aria-labelledby="h2s">
     <span class="eyebrow">2 · Correcting the crowd</span>
     <h2 id="h2s">One parameter, fitted by maximum likelihood</h2>
-    <p class="intro">Benter's public-only model raises every horse's log-odds to a power and renormalises within the race: \(c_i \propto \exp(\alpha \cdot \operatorname{logit} p_i)\). With \(\alpha = 1\) nothing changes. With \(\alpha &gt; 1\) the gaps widen and probability moves from longshots to favourites. Drag \(\alpha\) and watch the negative log-likelihood of the observed winners.</p>
+    <p class="intro">Benter's public-only model raises every horse's crowd chance to a power and renormalises within the race: \(c_i \propto p_i^{\alpha} = \exp(\alpha \log p_i)\). With \(\alpha = 1\) nothing changes. With \(\alpha &gt; 1\) the gaps widen and probability moves from longshots to favourites. Drag \(\alpha\) and watch the negative log-likelihood of the observed winners.</p>
     <div class="grid">
       <div class="colstack">
         <div class="board">
@@ -260,7 +254,7 @@ mjx-container { font-size: 105%; }
       </div>
       <aside class="panel">
         <div class="group">
-          <div class="slider"><div class="top"><label for="alpha">α, weight on public log-odds</label><output id="alphaOut" for="alpha">1.000</output></div>
+          <div class="slider"><div class="top"><label for="alpha">α, power on the crowd chance</label><output id="alphaOut" for="alpha">1.000</output></div>
             <input type="range" id="alpha" min="0.75" max="1.4" step="0.005" value="1.06"></div>
           <div class="btns">
             <button id="alphaMle" class="primary">Set α to the MLE</button>
@@ -277,7 +271,7 @@ mjx-container { font-size: 105%; }
           <div class="scroll"><table class="mini" id="brier2">
             <thead><tr><th>Forecast</th><th>Brier</th><th>Gain</th></tr></thead><tbody></tbody>
           </table></div>
-          <p class="hint">Gain = percent reduction from the raw public Brier score. Case study: \(\alpha = 1.06\) and an improvement of about 0.45%.</p>
+          <p class="hint">Gain = percent reduction from the raw public Brier score.</p>
         </div>
       </aside>
     </div>
@@ -287,8 +281,8 @@ mjx-container { font-size: 105%; }
   <section class="card" aria-labelledby="h3s">
     <span class="eyebrow">3 · Adding fundamentals</span>
     <h2 id="h3s">The full combined model: a softmax over the field</h2>
-    <p class="intro">Now add four fundamental factors next to the public log-odds: the jockey's and trainer's past win rates (from earlier races only), the starting gate (standardised within the race, positive = outside) and the horse's rating relative to the field, per 10 points. The model is a conditional logit, fitted here by Newton–Raphson on every race with a single winner.</p>
-    <div class="tex">\[ \begin{aligned} c_i &amp;= \frac{\exp(\eta_i)}{\sum_{k \text{ in race}} \exp(\eta_k)},\\ \eta &amp;= \alpha\cdot\operatorname{logit}(p) + \beta_J\cdot\text{jockey} + \beta_T\cdot\text{trainer} + \beta_D\cdot\text{draw} + \beta_R\cdot\text{rating}/10 \end{aligned} \]</div>
+    <p class="intro">Now add four fundamental factors next to the log crowd chance \(\log p\): the jockey's and trainer's past win rates (from earlier races only), the starting gate (standardised within the race, positive = outside) and the horse's rating relative to the field, per 10 points. The model is a conditional logit, fitted here by Newton–Raphson on every race with a single winner.</p>
+    <div class="tex">\[ \begin{aligned} c_i &amp;= \frac{\exp(\eta_i)}{\sum_{k \text{ in race}} \exp(\eta_k)},\\ \eta &amp;= \alpha\cdot\log p + \beta_J\cdot\text{jockey} + \beta_T\cdot\text{trainer} + \beta_D\cdot\text{draw} + \beta_R\cdot\text{rating}/10 \end{aligned} \]</div>
     <div class="grid">
       <div class="colstack">
         <div class="scroll"><table class="mini" id="coefTab">
@@ -331,11 +325,11 @@ mjx-container { font-size: 105%; }
           <p class="hint" id="fitTime"></p>
         </div>
         <div class="group">
-          <span class="label">Case study vs this page</span>
+          <span class="label">Summary of this page</span>
           <div class="scroll"><table class="mini" id="repTab">
-            <thead><tr><th>Quantity</th><th>Case study</th><th>Here</th></tr></thead><tbody></tbody>
+            <thead><tr><th>Quantity</th><th>Value</th></tr></thead><tbody></tbody>
           </table></div>
-          <p class="hint">Rule for dead heats: the 12 races with two winners are left out of every likelihood, as in the case study's R code, and both co-winners count as wins in Brier scores and calibration.</p>
+          <p class="hint">Rule for dead heats: the 12 races with two winners are left out of every likelihood,, and both co-winners count as wins in Brier scores and calibration.</p>
         </div>
       </aside>
     </div>
@@ -407,11 +401,11 @@ mjx-container { font-size: 105%; }
             <span><i class="sw" style="background:var(--curve)"></i>Public p</span>
             <span><i class="sw"></i>Model c (full model, all races)</span>
             <span><i class="sw" style="background:var(--fit)"></i>Kelly stake, % of bankroll</span>
-            <span><i class="sw dash"></i>1/O at the payout odds</span>
+            <span><i class="sw dash"></i>1/O at the payout</span>
           </div>
         </div>
         <div class="scroll"><table class="mini" id="raceTab">
-          <thead><tr><th>Horse</th><th>Odds O</th><th>Public p</th><th>Model c</th><th>Edge c·O − 1</th><th>Kelly stake</th><th>Result</th></tr></thead><tbody></tbody>
+          <thead><tr><th>Horse</th><th>Payout O</th><th>Public p</th><th>Model c</th><th>Edge c·O − 1</th><th>Kelly stake</th><th>Result</th></tr></thead><tbody></tbody>
         </table></div>
       </div>
       <aside class="panel">
@@ -425,9 +419,9 @@ mjx-container { font-size: 105%; }
           </div>
         </div>
         <div class="group">
-          <div class="slider"><div class="top"><label for="take5">Payout odds: track take</label><output id="take5Out" for="take5">5%</output></div>
+          <div class="slider"><div class="top"><label for="take5">Payout: track take</label><output id="take5Out" for="take5">5%</output></div>
             <input type="range" id="take5" min="0" max="21" step="1" value="5"></div>
-          <p class="hint">The far right uses the actual final odds. Lower values rescale them as if the track kept that share of the pool. At 0% the odds are the public's own fair prices.</p>
+          <p class="hint">The far right uses the actual final payouts. Lower values rescale them as if the track kept that share of the pool. At 0% the odds are the public's own fair prices.</p>
         </div>
         <div class="group">
           <span class="label">Allocation</span>
@@ -471,7 +465,7 @@ mjx-container { font-size: 105%; }
       </div>
       <aside class="panel">
         <div class="group">
-          <div class="slider"><div class="top"><label for="take6">Payout odds: track take</label><output id="take6Out" for="take6">Actual</output></div>
+          <div class="slider"><div class="top"><label for="take6">Payout: track take</label><output id="take6Out" for="take6">Actual</output></div>
             <input type="range" id="take6" min="0" max="21" step="1" value="21"></div>
           <div class="slider"><div class="top"><label for="thr">Bet when edge exceeds</label><output id="thrOut" for="thr">0%</output></div>
             <input type="range" id="thr" min="0" max="0.3" step="0.01" value="0"></div>
@@ -486,8 +480,8 @@ mjx-container { font-size: 105%; }
         <div class="group">
           <span class="label">What this backtest ignores</span>
           <ul class="hint" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">
-            <li>Price impact. In a pari-mutuel pool your own bet lowers your odds. Benter solved for the bet size against the final odds after his money was in.</li>
-            <li>Timing. These are final odds, which nobody knows when betting closes; late money moves prices.</li>
+            <li>Price impact. In a pari-mutuel pool your own bet lowers your payout. Benter solved for the bet size against the final payouts after his money was in.</li>
+            <li>Timing. These are final payouts, which nobody knows when betting closes; late money moves prices.</li>
             <li>The 99 cap. Odds above 99 are recorded as 99, so longshot payouts here are understated.</li>
             <li>Exotic pools. Benter also bet exactas and trifectas and built synthetic win bets from them; he also received rebates on turnover.</li>
             <li>His model. Benter used over a hundred factors; this one has four.</li>
@@ -497,11 +491,194 @@ mjx-container { font-size: 105%; }
     </div>
   </section>
 
+  <!-- ================= PART II ================= -->
+  <section class="part" aria-labelledby="p2h">
+    <span class="eyebrow">Part II · Forty seasons of Hong Kong racing, 1979–2018</span>
+    <h2 id="p2h">Benter's full two-stage model, and what happened to his edge</h2>
+    <p>Sections 1 to 6 use eight seasons and four factors. Nick Polson refitted Benter's model on a much larger public record of Hong Kong Jockey Club results: about 265,000 runs in 23,000 races from 1979 to 2018, with the handicapping variables Benter described. Every variable uses only what was known before the race. The races are split by season: the model is fitted on 1999–2010 (5,997 races), tuned on 2011–12 (1,522) and tested on 2013–17 (3,860), which it never sees while being built.</p>
+    <p>Benter's model has two stages. Stage one is a conditional logit on the fundamentals alone, which gives each runner a score \(f_i = x_i^\top \hat b\). Stage two combines that score with the public's implied probability \(q_i\), which is \(1/O_i\) rescaled to sum to one in the race. It enters through \(\log q_i\), not its logit:</p>
+    <div class="tex">\[ c_i = \frac{\exp(\alpha f_i + \beta \log q_i)}{\sum_j \exp(\alpha f_j + \beta \log q_j)} \]</div>
+    <p>The model has an edge only if \(\alpha &gt; 0\): the fundamentals must carry information that the crowd has not already priced. Fit is reported as McFadden's pseudo \(R^2 = 1 - \ell(\hat b)/\ell_0\), where \(\ell_0 = -\sum_r \log n_r\) is the log-likelihood of picking every winner at random. This is the measure Benter used.</p>
+  </section>
+
+  <!-- 7 -->
+  <section class="card" aria-labelledby="h7s">
+    <span class="eyebrow">7 · Post position</span>
+    <h2 id="h7s">Does the starting gate matter?</h2>
+    <p class="intro">Each horse starts from a numbered gate, the draw. Gate 1 is on the rail, the inside of the track, and the widest gate is on the outside. A horse drawn wide has to run farther around the turns unless it gets across to the rail. The chart groups races with twelve or more runners by gate and divides each gate's win rate by the fair rate \(1/n\). A value of 1 means the gate wins its fair share.</p>
+    <div class="grid">
+      <div class="colstack">
+        <div class="board">
+          <h3 id="drawTitle">Win rate by gate, relative to the fair rate 1/n</h3>
+          <canvas id="cvDraw" role="img" aria-label="Win rate by starting gate relative to the fair rate, for sprints and longer races at the chosen course, with the fitted model's draw effect"></canvas>
+          <div class="tip" hidden></div>
+          <div class="legend"><span><i class="sw dot"></i>Races of 1,200 m or less</span><span><i class="sw dot" style="background:var(--ball)"></i>Longer races</span><span><i class="sw line" style="border-color:var(--fit)"></i>Model's draw effect</span><span><i class="sw dash"></i>Fair share</span><span>Bars: ±1.96 SE</span></div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Course</span>
+          <div class="seg" role="group" aria-label="Course">
+            <button id="dHV" aria-pressed="true">Happy Valley</button>
+            <button id="dST" aria-pressed="false">Sha Tin</button>
+          </div>
+          <p class="hint" id="dCourseHint"></p>
+        </div>
+        <div class="group">
+          <span class="label">Rail to widest gate, holding everything else fixed</span>
+          <div class="big" id="dFactor">–</div>
+          <p class="hint" id="dFactorHint"></p>
+        </div>
+        <div class="group">
+          <span class="label">How much the draw explains</span>
+          <div class="kv" id="dKV"></div>
+        </div>
+        <div class="callout" id="dCall"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="card" aria-labelledby="h8s">
+    <span class="eyebrow">8 · Variable selection</span>
+    <h2 id="h8s">Twelve variables do the work of twenty-three</h2>
+    <p class="intro">The full model has 23 candidate variables: the draw, weight carried, rating, recent form, lengths beaten, layoff, body-weight and distance changes, jockey and trainer records, and the payout in the horse's previous race. Each is centred on its race average, because anything that is the same for every runner cancels out of the softmax. Two ways to choose a smaller model are compared here. Forward stepwise selection adds the variable that most lowers \(\text{BIC} = -2\ell + k\log R\), where \(R\) is the number of races. The lasso penalises \(\lambda\sum_j |b_j|\) and lets the penalty push coefficients to exactly zero.</p>
+    <div class="grid">
+      <div class="colstack">
+        <div class="board">
+          <h3>Full model: coefficient per SD, ±1.96 SE</h3>
+          <canvas id="cvCoef" role="img" aria-label="Coefficients of the 23-variable conditional logit with 95 percent intervals, coloured by whether stepwise BIC and the lasso keep each variable"></canvas>
+          <div class="tip" hidden></div>
+          <div class="legend"><span><i class="sw dot"></i>Kept by stepwise BIC</span><span><i class="sw dot" style="background:var(--fit)"></i>Kept only by the lasso at this λ</span><span><i class="sw dot" style="background:var(--muted)"></i>Dropped by both</span></div>
+        </div>
+        <div class="board">
+          <h3>Lasso path: coefficients as the penalty shrinks</h3>
+          <canvas id="cvLasso" role="img" aria-label="Lasso coefficient paths for all 23 variables against log10 of lambda, with the chosen lambda marked"></canvas>
+          <div class="tip" hidden></div>
+          <div class="legend"><span><i class="sw line"></i>Active at the chosen λ</span><span><i class="sw line" style="border-color:var(--muted)"></i>Zero at the chosen λ</span><span><i class="sw dash" style="border-color:var(--ball)"></i>Chosen λ</span></div>
+        </div>
+        <div class="scroll"><table class="mini" id="stepTab">
+          <thead><tr><th>Step</th><th style="text-align:left">Variable added</th><th>BIC</th><th>Validation log L</th></tr></thead><tbody></tbody>
+        </table></div>
+        <div class="scroll"><table class="mini" id="r2Tab">
+          <thead><tr><th>Model</th><th>Variables</th><th>Train R²</th><th>Valid R²</th><th>Test R²</th></tr></thead><tbody></tbody>
+        </table></div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="lam">Lasso penalty λ</label><output id="lamOut" for="lam">–</output></div>
+            <input type="range" id="lam" min="0" max="29" step="1" value="2"></div>
+          <div class="btns">
+            <button id="lamSparse">Sparse choice</button>
+            <button id="lamBest">Best on validation</button>
+          </div>
+          <div class="kv" id="lamKV"></div>
+          <p class="hint">“Sparse choice” is the sparsest model whose validation log-likelihood is within 2 units of the best, a rule in the spirit of “one standard error”.</p>
+        </div>
+        <div class="group">
+          <span class="label">Hover a variable to read it</span>
+          <div class="kv" id="coefKV"><span>Variable</span><span>–</span></div>
+        </div>
+        <div class="callout" id="selCall"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="card" aria-labelledby="h9s">
+    <span class="eyebrow">9 · The edge over time</span>
+    <h2 id="h9s">Benter's edge, era by era</h2>
+    <p class="intro">This section reruns Benter's procedure separately in six blocks of six seasons. Within each block, the twelve-variable fundamental model is fitted on the first three seasons. The stage-two weights \(\alpha\) and \(\beta\) are then fitted on the last three seasons, and every \(R^2\) in that row is measured on them too. If the fundamentals add information beyond the payouts, \(\alpha\) is positive.</p>
+    <div class="grid">
+      <div class="colstack">
+        <div class="split">
+          <div class="board">
+            <h3>Fitted weight on the fundamentals, α ± 1.96 SE</h3>
+            <canvas id="cvAlpha" role="img" aria-label="Estimated stage-two weight on the fundamental model in each six-season era with 95 percent intervals"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend"><span><i class="sw dot"></i>Significant at 5%</span><span><i class="sw dot" style="background:var(--muted)"></i>Not significant</span><span><i class="sw dash"></i>No edge (α = 0)</span></div>
+          </div>
+          <div class="board">
+            <h3>Pseudo R² on the later half of each era</h3>
+            <canvas id="cvEraR2" role="img" aria-label="Pseudo R squared of the fundamental model, the public payout and the combined model in each era"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend"><span><i class="sw line" style="border-color:var(--ball)"></i>Fundamentals</span><span><i class="sw line" style="border-color:var(--curve)"></i>Public payout</span><span><i class="sw line" style="border-color:var(--fit)"></i>Combined</span></div>
+          </div>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Era</span>
+          <div class="btns" id="eraBtns" style="grid-template-columns:1fr 1fr 1fr"></div>
+        </div>
+        <div class="group">
+          <div class="kv" id="eraKV"></div>
+        </div>
+        <div class="callout" id="eraCall"></div>
+        <p class="hint">The twelve variables were chosen on 1999–2010, so the early rows are slightly favourable to the model.</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="card" aria-labelledby="h10s">
+    <span class="eyebrow">10 · The honest backtest, 2013–2017</span>
+    <h2 id="h10s">Can the two-stage model still beat the take?</h2>
+    <p class="intro">This backtest uses the 3,860 test races, with each runner's stage-one score from the twelve-variable model fitted on 1999–2010. You choose \(\alpha\) and \(\beta\), and the page recomputes the combined probabilities \(c_i\) in the browser. It then bets 1 unit on every runner whose edge \(c_i O_i - 1\), with \(O_i\) the payout, is above the threshold. The track keeps about 19% of every pool here, so an edge has to clear that first. The take slider rescales the payouts as if the track kept less.</p>
+    <div class="grid">
+      <div class="colstack">
+        <div class="split">
+          <div class="board">
+            <h3>Flat-stake return against the track take</h3>
+            <canvas id="cvTake" role="img" aria-label="Return on flat stakes as a function of the assumed track take, for the current weights"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend"><span><i class="sw dot"></i>Model at your α, β</span><span><i class="sw dot" style="background:var(--curve)"></i>Every runner</span><span><i class="sw dash"></i>Break-even</span><span>Takes with fewer than 20 bets are not plotted</span></div>
+          </div>
+          <div class="board">
+            <h3>Cumulative profit at the chosen take (units)</h3>
+            <canvas id="cvCum" role="img" aria-label="Cumulative profit of flat-stake bets over the test races at the chosen take"></canvas>
+            <div class="tip" hidden></div>
+            <div class="legend"><span><i class="sw line"></i>Model bets, 1 unit each</span></div>
+          </div>
+        </div>
+        <div class="scroll"><table class="mini" id="hkTab">
+          <thead><tr><th>Weights</th><th style="text-transform:none">α</th><th style="text-transform:none">β</th><th>Test R²</th><th>Bets</th><th>Hit rate</th><th>Profit</th><th>ROI</th></tr></thead><tbody></tbody>
+        </table></div>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Load weights</span>
+          <div class="btns">
+            <button id="wVal" class="primary">Fitted on 2011–12</button>
+            <button id="wEra">Benter era, 1998–2003</button>
+            <button id="wMkt">Market only</button>
+            <button id="wFit">Fit on 2013–17 itself</button>
+          </div>
+          <div class="slider"><div class="top"><label for="hkA">α, weight on fundamentals</label><output id="hkAOut" for="hkA">–</output></div>
+            <input type="range" id="hkA" min="-0.3" max="1" step="0.01" value="-0.03"></div>
+          <div class="slider"><div class="top"><label for="hkB">β, weight on public log q</label><output id="hkBOut" for="hkB">–</output></div>
+            <input type="range" id="hkB" min="0.6" max="1.4" step="0.01" value="1.06"></div>
+        </div>
+        <div class="group">
+          <div class="slider"><div class="top"><label for="hkT">Payout: track take</label><output id="hkTOut" for="hkT">Actual</output></div>
+            <input type="range" id="hkT" min="0" max="20" step="1" value="20"></div>
+          <div class="slider"><div class="top"><label for="hkE">Bet when edge exceeds</label><output id="hkEOut" for="hkE">0%</output></div>
+            <input type="range" id="hkE" min="0" max="0.3" step="0.01" value="0"></div>
+        </div>
+        <div class="group">
+          <div class="kv" id="hkKV"></div>
+        </div>
+        <div class="callout" id="hkCall"></div>
+        <p class="hint">Final payouts are used, which no bettor sees when placing a bet. That flatters any backtest. Payouts above 99 are recorded as 99.</p>
+      </aside>
+    </div>
+  </section>
+
   <section class="notes" aria-label="Lessons">
     <div class="note">
       <h2>Market prices are a strong, biased prior</h2>
-      <p>The odds already pool the views of thousands of bettors. A model that starts from \(\operatorname{logit}(p)\) and adds a few factors needs to explain only what the crowd missed, which is why \(\alpha\) carries almost all the weight.</p>
-      <p>The bias is systematic and small: a few points for favourites, a fraction of a point for each longshot. Check the units first. Section 1 shows how much of the bias here depends on the odds-to-probability formula.</p>
+      <p>The payouts already pool the views of thousands of bettors. A model that starts from \(\log p\) and adds a few factors needs to explain only what the crowd missed, which is why \(\alpha\) carries almost all the weight.</p>
+      <p>The bias is systematic and small: a few points for favourites, a fraction of a point for each longshot. Check the units first.</p>
     </div>
     <div class="note">
       <h2>Conditional logit = softmax over the field</h2>
@@ -526,6 +703,18 @@ mjx-container { font-size: 105%; }
       <p>The edge must beat the take on each bet, survive price impact and be stable over time. The likelihood ratio test says the four factors carry real information; the backtest shows that real information and profit are different things.</p>
     </div>
     <div class="note">
+      <h2>The draw is real, small and course-specific</h2>
+      <p>At Happy Valley, moving from the rail to the widest gate multiplies a horse's odds of winning by about 0.41; at Sha Tin by about 0.81. Here “odds of winning” means \(p/(1-p)\), not the payout. Yet the draw alone explains a pseudo \(R^2\) of only 0.005. A variable can be highly significant and still be a small part of the forecast.</p>
+    </div>
+    <div class="note">
+      <h2>BIC counts races, not runners</h2>
+      <p>A race is one observation of who won, however many horses run, so the sample size in the BIC penalty \(k \log R\) is the number of races. Stepwise BIC and the lasso agree on most of the model, and the twelve BIC variables match the full model out of sample: test \(R^2\) 0.121 against 0.122.</p>
+    </div>
+    <div class="note">
+      <h2>Why the edge vanished</h2>
+      <p>The fundamental model got better over forty seasons (\(R^2\) from 0.06 to 0.12), but the payouts got better faster (0.14 to 0.20). The final payouts now include the syndicates' own bets, so the crowd partly is the computer models. Given the market, all 23 variables are jointly significant in sample (likelihood ratio 63.0 on 23 degrees of freedom) and add nothing out of sample: test \(R^2\) falls from 0.1973 to 0.1964.</p>
+    </div>
+    <div class="note">
       <h2>A word on gambling</h2>
       <p>Pari-mutuel betting has negative expected value for almost everyone: the track keeps about 18% of the pool before anyone is paid. Benter is famous because he is the exception. This lab is about forecasting, calibration and decisions under uncertainty, the same tools used to price insurance, size trading positions and read prediction markets.</p>
     </div>
@@ -534,16 +723,21 @@ mjx-container { font-size: 105%; }
   <section class="try">
     <h2>Try this in class</h2>
     <ol>
-      <li>Before showing section 1, ask: a horse quoted at 3.5 in Hong Kong, what is its implied probability? Then switch between the two conversion formulas and compare the favourite's bias, the fitted \(\alpha\) and the overround. Which formula matches a track that keeps 17.5% of the pool?</li>
+      <li>Before showing section 1, ask: a horse quoted at 3.5 in Hong Kong, what is its implied probability? Then check that the field's Σ 1/O matches a track that keeps 17.5% of the pool.</li>
       <li>In section 2, move \(\alpha\) from 1.00 to the MLE and read off the gain in log-likelihood. How large is it per race? Use the 1.92 line to read a 95% interval for \(\alpha\), and compare it with \(\hat\alpha \pm 1.96\,\text{SE}\) from the panel.</li>
       <li>In section 3, which coefficients have \(|z| &gt; 2\)? Explain the negative jockey sign to a classmate in one sentence, then switch to "Later races" and check whether the full model still beats the public-only model out of sample.</li>
       <li>In section 4, load the two case-study bets. The 12/1 bet has the larger edge (30% vs 25%), yet Kelly stakes 2.5 times less on it. Why? Then set the stake to 2× Kelly and predict the median growth before running the paths.</li>
-      <li>In section 6, start at the actual odds, then lower the take until the model starts betting. At what take does flat staking break even? Compare with the 17.5% the track deducts, and list what else would have to go right for a real bettor.</li>
+      <li>In section 6, start at the actual payouts, then lower the take until the model starts betting. At what take does flat staking break even? Compare with the 17.5% the track deducts, and list what else would have to go right for a real bettor.</li>
+      <li>In section 7, compare the two courses. Ask why a rail draw should matter more on a tight track, and why the model's curve is smoother than the dots.</li>
+      <li>In section 8, move λ from left to right and name the first five variables to enter. Compare them with the first five steps of stepwise BIC. Why does the lasso keep rating but not weight carried?</li>
+      <li>In section 9, predict which era has the largest \(\alpha\) before clicking. Then explain why \(\beta &gt; 1\) after 2004 means the payouts are “sharper than they look”.</li>
+      <li>In section 10, load the 1998–2003 weights and watch the model find bets on 2013–17. Then press “Fit on 2013–17 itself” and explain why even weights fitted to the test seasons do not beat the take.</li>
     </ol>
   </section>
 </div>
 
 <script src="benter-data.js"></script>
+<script src="benter-hk-data.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -570,12 +764,12 @@ mjx-container { font-size: 105%; }
   const rN = dec(RC.n, 1, R), rDay = dec(RC.day, 2, R), rVen = dec(RC.v, 1, R), rDist = dec(RC.dist, 1, R), rGo = dec(RC.go, 1, R), rCls = dec(RC.cls, 1, R), rId = dec(RC.id, 3, R);
   const rS = new Int32Array(R + 1); for (let r = 0; r < R; r++) rS[r + 1] = rS[r] + rN[r];
   const O = new Float64Array(N), win = new Uint8Array(N), jw = new Float64Array(N), tw = new Float64Array(N), dn = new Float64Array(N), rd = new Float64Array(N), raceOf = new Int32Array(N), rank = new Int32Array(N);
-  const nWin = new Int32Array(R), bookDec = new Float64Array(R), bookFrac = new Float64Array(R), favIdx = new Int32Array(R);
+  const nWin = new Int32Array(R), bookDec = new Float64Array(R), favIdx = new Int32Array(R);
   for (let r = 0; r < R; r++) {
     const a = rS[r], b = rS[r + 1], n = b - a; let sd = 0, sr = 0;
     for (let i = a; i < b; i++) {
       O[i] = oddsI[i] / 10; win[i] = dwI[i] & 1; jw[i] = jI[i] / 4000; tw[i] = tI[i] / 4000; raceOf[i] = r;
-      sd += dwI[i] >> 1; sr += ratI[i]; nWin[r] += win[i]; bookDec[r] += 1 / O[i]; bookFrac[r] += 1 / (O[i] + 1);
+      sd += dwI[i] >> 1; sr += ratI[i]; nWin[r] += win[i]; bookDec[r] += 1 / O[i];
     }
     const md = sd / n, mr = sr / n; let v = 0;
     for (let i = a; i < b; i++) { const d = (dwI[i] >> 1) - md; v += d * d; }
@@ -593,16 +787,16 @@ mjx-container { font-size: 105%; }
   const meetOfRace = new Int32Array(R); meetings.forEach((m, k) => m.races.forEach(r => meetOfRace[r] = k));
 
   // ---------- state ----------
-  const S = { conv: 'frac', view: 'bins', alpha: 1.06, exRace: 0, evalOut: false, cut: 0.8, kb: 4, kp: 0.25, nBets: 1000, seed: 7, race: 0, take5: 5, take6: 21, thr: 0, kfrac: 0.25 };
-  const F = {}; // fitted quantities for the current convention
+  const S = { view: 'bins', alpha: 1.06, exRace: 0, evalOut: false, cut: 0.8, kb: 4, kp: 0.25, nBets: 1000, seed: 7, race: 0, take5: 5, take6: 21, thr: 0, kfrac: 0.25 };
+  const F = {}; // fitted quantities
   const pub = new Float64Array(N), z = new Float64Array(N);
 
   // ---------- model core ----------
   function setConv() {
     for (let r = 0; r < R; r++) {
       const a = rS[r], b = rS[r + 1]; let s = 0;
-      for (let i = a; i < b; i++) { pub[i] = S.conv === 'frac' ? 1 / (O[i] + 1) : 1 / O[i]; s += pub[i]; }
-      for (let i = a; i < b; i++) { pub[i] /= s; const p = Math.min(Math.max(pub[i], 1e-10), 1 - 1e-10); z[i] = Math.log(p / (1 - p)); }
+      for (let i = a; i < b; i++) { pub[i] = 1 / O[i]; s += pub[i]; }
+      for (let i = a; i < b; i++) { pub[i] /= s; const p = Math.min(Math.max(pub[i], 1e-10), 1 - 1e-10); z[i] = Math.log(p); }
     }
   }
   const K5 = 5;
@@ -821,16 +1015,12 @@ mjx-container { font-size: 105%; }
   const pCal = makePlot('cvCal', sq, { ml: 50, mr: 12, mt: 10, mb: 42 }, P => drawCal(P, calSets()),
     calHover(calSets, h => S.view === 'bins' ? `Bin ${h.k + 1} of 20` : (h.k === 0 ? 'Favourites (rank 1)' : `Rank ${h.k + 1}`)));
   function renderS1() {
-    $('convFrac').setAttribute('aria-pressed', S.conv === 'frac'); $('convDec').setAttribute('aria-pressed', S.conv === 'dec');
     $('viewBins').setAttribute('aria-pressed', S.view === 'bins'); $('viewRank').setAttribute('aria-pressed', S.view === 'rank');
     $('calTitle').textContent = S.view === 'bins' ? 'Calibration: 20 equal-sized groups of horses' : 'Calibration by betting rank (labels = rank)';
     const f = F.rank[0];
     $('calNote').textContent = S.view === 'bins'
       ? `${F.calPub[19].act > F.calPub[19].mp && F.calPub[0].act < F.calPub[0].mp ? 'Longshot bins sit below the line and the top bin above it. ' : ''}Top bin: forecast ${pct(F.calPub[19].mp)}, actual ${pct(F.calPub[19].act)}. Bottom bin: forecast ${pct(F.calPub[0].mp, 2)}, actual ${pct(F.calPub[0].act, 2)}.`
-      : `The favourite wins ${pct(f.act)} of races against ${pct(f.imp)} implied (case study: 30.0% vs 25.5%). ${F.rank.slice(1).filter(b => b.act < b.imp).length} of ranks 2 to 10 win less often than implied.`;
-    $('convNote').innerHTML = S.conv === 'frac'
-      ? 'The case study treats O as "O to 1" odds. Hong Kong quotes the dividend per $1 including the stake, so 1/O is the price the pool actually pays. Switch to compare: every number on the page refits.'
-      : 'With 1/O the favourite bias shrinks to about one point and the fitted α drops below 1. Much of the case study\'s bias comes from the conversion formula, not the crowd.';
+      : `The favourite wins ${pct(f.act)} of races against ${pct(f.imp)} implied. ${F.rank.slice(1).filter(b => b.act < b.imp).length} of ranks 2 to 10 win less often than implied.`;
     // venue
     const vn = ['Happy Valley', 'Sha Tin', 'All races'];
     $('venueTab').tBodies[0].innerHTML = F.venue.map((b, k) => `<tr${k === 2 ? ' class="hl"' : ''}><td>${vn[k]}</td><td>${int(b.races)}</td><td>${fx(b.fs, 1)}</td><td class="mod">${pct(b.act)}</td><td class="pub">${pct(b.imp)}</td><td>${pts(b.act - b.imp)}</td></tr>`).join('');
@@ -839,14 +1029,14 @@ mjx-container { font-size: 105%; }
   }
   function renderOdds() {
     let o = parseFloat($('oddsIn').value); if (!isFinite(o) || o < 1) o = 1; if (o > 999) o = 999;
-    $('oddsOut').innerHTML = `<span>1/(O+1), case study</span><span>${pct(1 / (o + 1))}</span><span>1/O, dividend</span><span>${pct(1 / o)}</span><span>$10 on a winner returns</span><span>$${fx(10 * o, 2)}</span>`;
+    $('oddsOut').innerHTML = `<span>Implied probability 1/O</span><span>${pct(1 / o)}</span><span>$10 on a winner returns</span><span>$${fx(10 * o, 2)}</span>`;
   }
-  { // book statistics do not depend on the convention
-    let sd = 0, sf = 0, fr = 0, fp = 0, cap = 0; for (let r = 0; r < R; r++) { sd += bookDec[r]; sf += bookFrac[r]; const i = favIdx[r]; fr += win[i] * O[i]; } for (let i = 0; i < N; i++) if (O[i] >= 99) cap++;
-    sd /= R; sf /= R; fr = fr / R - 1;
+  { // book statistics
+    let sd = 0, fr = 0, fp = 0, cap = 0; for (let r = 0; r < R; r++) { sd += bookDec[r]; const i = favIdx[r]; fr += win[i] * O[i]; } for (let i = 0; i < N; i++) if (O[i] >= 99) cap++;
+    sd /= R; fr = fr / R - 1;
     F.bookDec = sd; F.takeAvg = 1 - 1 / sd;
-    $('bookKV').innerHTML = `<span>Average Σ 1/(O+1) per race</span><span>${fx(sf, 3)}</span><span>Average Σ 1/O per race</span><span>${fx(sd, 3)}</span><span>Implied take 1 − 1/Σ(1/O)</span><span>${pct(F.takeAvg)}</span><span>Return on $1 on every favourite</span><span>${pct(fr)}</span><span>Horses at the 99 cap</span><span>${pct(cap / N)}</span>`
-      + `<span style="grid-column:1/-1" class="hint">The Jockey Club deducts 17.5% of the win pool; rounding odds down to 0.1 takes a little more. A take of ${pct(1 - 1 / sf)} under 1/(O+1) would be far too small, and a 1/(O+1) reader would expect a profit from backing every favourite. ${int(nIncomplete)} races have Σ 1/O below 1.15 because runners are missing from the data; they stay in the model fits but are not bet.</span>`;
+    $('bookKV').innerHTML = `<span>Average Σ 1/O per race</span><span>${fx(sd, 3)}</span><span>Implied take 1 − 1/Σ(1/O)</span><span>${pct(F.takeAvg)}</span><span>Return on $1 on every favourite</span><span>${pct(fr)}</span><span>Horses at the 99 cap</span><span>${pct(cap / N)}</span>`
+      + `<span style="grid-column:1/-1" class="hint">The Jockey Club deducts 17.5% of the win pool; rounding payouts down to 0.1 takes a little more. ${int(nIncomplete)} races have Σ 1/O below 1.15 because runners are missing from the data; they stay in the model fits but are not bet.</span>`;
   }
 
   // ---------- section 2 ----------
@@ -890,7 +1080,7 @@ mjx-container { font-size: 105%; }
   }, (P, x) => {
     const r = S.exRace, n = rN[r], k = Math.floor(P.ix(x)); if (k < 0 || k >= n) return null;
     const idx = []; for (let i = rS[r]; i < rS[r + 1]; i++) idx.push(i); idx.sort((x, y) => rank[x] - rank[y]); const i = idx[k];
-    return { k, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>odds ${fx(O[i], 1)}<br>public ${pct(pub[i], 2)}<br>adjusted ${pct(adjC[i], 2)}<br>shift ${pts(adjC[i] - pub[i], 2)}` };
+    return { k, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>payout ${fx(O[i], 1)}<br>public ${pct(pub[i], 2)}<br>adjusted ${pct(adjC[i], 2)}<br>shift ${pts(adjC[i] - pub[i], 2)}` };
   });
   const cal2Sets = () => [{ key: 'b', pts: F.calPub, col: C.curve }, { key: 'a', pts: calAdj, col: C.accent }];
   const pCal2 = makePlot('cvCal2', w => Math.round(Math.min(Math.max(w * 0.85, 250), 380)), { ml: 46, mr: 10, mt: 10, mb: 40 }, P => { if (calAdj) drawCal(P, cal2Sets()); },
@@ -915,7 +1105,7 @@ mjx-container { font-size: 105%; }
   const cal3Sets = () => [{ key: 'f', pts: S.evalOut ? F.oCal : F.calFull, col: C.fit, err: true }];
   const pCal3 = makePlot('cvCal3', w => Math.round(Math.min(Math.max(w * 0.85, 250), 380)), { ml: 46, mr: 10, mt: 10, mb: 40 }, P => { if (F.calFull) drawCal(P, cal3Sets()); },
     calHover(cal3Sets, h => `Full model, bin ${h.k + 1}`));
-  const PNAMES = ['α · logit(public p)', 'β jockey win rate', 'β trainer win rate', 'β draw (z-score)', 'β rating diff / 10'];
+  const PNAMES = ['α · log(public p)', 'β jockey win rate', 'β trainer win rate', 'β draw (z-score)', 'β rating diff / 10'];
   function renderS3() {
     $('evIn').setAttribute('aria-pressed', !S.evalOut); $('evOut').setAttribute('aria-pressed', S.evalOut);
     const fit = S.evalOut ? F.oFull : F.full, pf = S.evalOut ? F.oPub : F.pubFit;
@@ -943,13 +1133,12 @@ mjx-container { font-size: 105%; }
     $('fitTime').textContent = `Full model on all races: ${it.length} Newton steps in ${fx(F.full.ms, 0)} ms (${int(N)} horses × 5 parameters). Starting values α = 1, β = 0.`;
     const rk = F.rank[0];
     const rep = [
-      ['Favourite wins', '30.0%', pct(rk.act)], ['Favourite implied', '25.5%', pct(rk.imp)],
-      ['Bias, Happy Valley', '4–5 pts', pts(F.venue[0].act - F.venue[0].imp)], ['Bias, Sha Tin', '4–5 pts', pts(F.venue[1].act - F.venue[1].imp)],
-      ['α̂ (public only)', '1.06', fx(F.alphaHat, 3)], ['Brier gain with α̂', '≈0.45%', pct((F.brierPub - F.brierAdj) / F.brierPub, 2)],
-      ['LR test, 4 df', 'p < 0.05', 'p = ' + fx(F.lrP, 3)]
+      ['Favourite wins', pct(rk.act)], ['Favourite implied', pct(rk.imp)],
+      ['Bias, Happy Valley', pts(F.venue[0].act - F.venue[0].imp)], ['Bias, Sha Tin', pts(F.venue[1].act - F.venue[1].imp)],
+      ['α̂ (public only)', fx(F.alphaHat, 3)], ['Brier gain with α̂', pct((F.brierPub - F.brierAdj) / F.brierPub, 2)],
+      ['LR test, 4 df', 'p = ' + fx(F.lrP, 3)]
     ];
-    $('repTab').tBodies[0].innerHTML = rep.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="mod">${r[2]}</td></tr>`).join('')
-      + (S.conv === 'dec' ? '<tr><td colspan="3" class="hint" style="white-space:normal">The case study used 1/(O+1); switch back in section 1 to compare like with like.</td></tr>' : '');
+    $('repTab').tBodies[0].innerHTML = rep.map(r => `<tr><td>${r[0]}</td><td class="mod">${r[1]}</td></tr>`).join('');
     dirty(pCal3);
   }
 
@@ -1026,7 +1215,7 @@ mjx-container { font-size: 105%; }
     $('kb').value = S.kb; $('kp').value = S.kp; $('nBetsOut').textContent = int(S.nBets);
     const fs = kellyF(), b = S.kb, p = S.kp, edge = b * p - (1 - p), fl = frac(fs);
     $('kellyBig').textContent = fs > 0 ? `f* = ${fl || pct(fs, 2)}` : 'f* ≤ 0: no bet';
-    $('kellyKV').innerHTML = `<span>Edge bp − q (profit per $1)</span><span>${sg(edge, 3)}</span><span>Kelly f* = edge / b</span><span>${fs > 0 ? pct(fs, 2) : '0%'}</span><span>Decimal odds b + 1</span><span>${fx(b + 1, 1)}</span><span>Break-even p = 1/(b+1)</span><span>${fx(1 / (b + 1), 3)}</span>`;
+    $('kellyKV').innerHTML = `<span>Edge bp − q (profit per $1)</span><span>${sg(edge, 3)}</span><span>Kelly f* = edge / b</span><span>${fs > 0 ? pct(fs, 2) : '0%'}</span><span>Payout O = b + 1</span><span>${fx(b + 1, 1)}</span><span>Break-even p = 1/(b+1)</span><span>${fx(1 / (b + 1), 3)}</span>`;
     $('simLegend').innerHTML = KM.map((m, k) => `<span><i class="sw line" style="border-color:${KCOL()[k]}"></i>${KN[k]}</span>`).join('') + '<span><i class="sw dash"></i>5th percentile</span>';
     if (rerun !== false) runSim();
     if (fs > 0) {
@@ -1086,7 +1275,7 @@ mjx-container { font-size: 105%; }
     if (!RACE) return null;
     const pos = Math.floor(P.ix(x)); if (pos < 0 || pos >= RACE.n) return null;
     const { a, n, c, o, f } = RACE, idx = Array.from({ length: n }, (_, k) => k).sort((x2, y) => rank[a + x2] - rank[a + y]), k = idx[pos], i = a + k;
-    return { pos, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>odds ${fx(o[k], 2)} (1/O = ${pct(1 / o[k], 1)})<br>public ${pct(pub[i], 2)} · model ${pct(c[k], 2)}<br>edge ${pct(c[k] * o[k] - 1, 1)}<br>Kelly stake ${pct(f[k], 2)}` };
+    return { pos, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>payout ${fx(o[k], 2)} (1/O = ${pct(1 / o[k], 1)})<br>public ${pct(pub[i], 2)} · model ${pct(c[k], 2)}<br>edge ${pct(c[k] * o[k] - 1, 1)}<br>Kelly stake ${pct(f[k], 2)}` };
   });
   function fillMeetings() {
     $('mtgSel').innerHTML = meetings.map((m, k) => `<option value="${k}">${dateOf(m.day)} · ${rVen[m.races[0]] ? 'Sha Tin' : 'Happy Valley'}</option>`).join('');
@@ -1108,10 +1297,10 @@ mjx-container { font-size: 105%; }
     const ret = RACE.set.length ? (1 - RACE.F + RACE.set.reduce((s, k) => s + (win[a + k] ? f[k] * o[k] : 0), 0)) : 1;
     $('raceKV').innerHTML = `<span>Horses bet</span><span>${RACE.set.length}</span><span>Threshold R</span><span>${fx(RACE.R, 3)}</span><span>Total stake</span><span>${pct(RACE.F, 2)}</span><span>Expected log growth</span><span>${RACE.G.toExponential(2)}</span><span>Best single-horse Kelly</span><span>${RACE.best.j >= 0 ? RACE.best.G.toExponential(2) : 'no bet'}</span><span>Bankroll after the race</span><span>${fx(ret, 4)}×</span><span>Actual take this race</span><span>${pct(1 - 1 / bookDec[r])}</span>`;
     let msg;
-    if (!RACE.set.length) msg = `<p>No bet. No horse has c·O above 1 at these odds, so Kelly keeps all the cash.${S.take5 >= 21 ? ' This is the usual result at the actual odds: the take is larger than the model\'s disagreements with the crowd.' : ''}</p>`;
+    if (!RACE.set.length) msg = `<p>No bet. No horse has c·O above 1 at these payouts, so Kelly keeps all the cash.${S.take5 >= 21 ? ' This is the usual result at the actual payouts: the take is larger than the model\'s disagreements with the crowd.' : ''}</p>`;
     else if (RACE.set.length === 1) msg = `<p>One horse is worth backing. Its Kelly stake equals the single-bet formula (c·O − 1)/(O − 1).</p>`;
     else msg = `<p><b>${RACE.set.length} horses</b> share the bankroll. Each extra horse lowers R, because when one bet loses another may win: the bets hedge each other. ${hedge ? `${hedge} of them ${hedge > 1 ? 'have' : 'has'} a negative edge on its own and is still in the optimal set, since c·O exceeds R.` : 'The combined bet grows the bankroll faster than the best single bet.'}</p>`;
-    if (!clean[r]) msg += '<p class="err">Runners are missing from this race in the data (Σ 1/O below 1.15), so its odds look too generous. The backtest skips races like this.</p>';
+    if (!clean[r]) msg += '<p class="err">Runners are missing from this race in the data (Σ 1/O below 1.15), so its payouts look too generous. The backtest skips races like this.</p>';
     $('raceCall').innerHTML = msg;
     dirty(pRace);
   }
@@ -1205,7 +1394,7 @@ mjx-container { font-size: 105%; }
     let be = -1; for (const q of SW) { if (q.n >= 10 && q.model > 0) be = q.t; else break; }
     const firstBet = SW.filter(s => s.n).map(s => s.t).pop();
     let msg = '';
-    if (S.take6 >= 21 && !b.flatN) msg = `<p><b>No bets.</b> At the actual odds the model never finds a horse with c·O above ${fx(1 + S.thr, 2)} in ${int(F.nTestClean)} held-out races. Its disagreements with the crowd are a few points of probability; the take is about 18% of every payout.</p>`;
+    if (S.take6 >= 21 && !b.flatN) msg = `<p><b>No bets.</b> At the actual payouts the model never finds a horse with c·O above ${fx(1 + S.thr, 2)} in ${int(F.nTestClean)} held-out races. Its disagreements with the crowd are a few points of probability; the take is about 18% of every payout.</p>`;
     else if (!b.flatN) msg = `<p><b>No bets</b> at this take and threshold.</p>`;
     else msg = `<p>Flat staking returns <b>${pct(b.flatP / b.flatN, 1)}</b> on ${int(b.flatN)} bets; betting the favourite every race returns ${pct(b.favP / b.favN, 1)}. ${b.flatN < 100 ? 'With so few bets, one longshot winner can swing the result.' : ''}</p>`;
     msg += `<p class="hint">The model starts to bet once the take falls to about ${firstBet !== undefined ? firstBet + '%' : 'zero'} at this threshold${be >= 0 ? `, and flat stakes stay profitable only up to a take of about ${be}%` : ''}. The real take is ${pct(F.takeAvg)}.</p>`;
@@ -1214,8 +1403,6 @@ mjx-container { font-size: 105%; }
   }
 
   // ---------- wiring ----------
-  function setConvUI(c) { if (S.conv === c) return; S.conv = c; fitAll(); S.alpha = Math.round(F.alphaHat * 200) / 200; renderAll(); }
-  $('convFrac').onclick = () => setConvUI('frac'); $('convDec').onclick = () => setConvUI('dec');
   $('viewBins').onclick = () => { S.view = 'bins'; renderS1(); }; $('viewRank').onclick = () => { S.view = 'rank'; renderS1(); };
   $('oddsIn').oninput = renderOdds;
   $('alpha').oninput = e => { S.alpha = +e.target.value; s2Slider(); };
@@ -1264,6 +1451,331 @@ mjx-container { font-size: 105%; }
     F.totalMs = performance.now() - t0;
     window.__benter = { F, S, ms: F.totalMs }; // for verification
   }, 30);
+})();
+</script>
+
+<script>
+/* Part II: Polson's 1979-2018 refit. Small tables are inline (P2); the test-season runners come from benter-hk-data.js. */
+(() => {
+  const $ = id => document.getElementById(id);
+  const P2 = {"names":["draw_rel","draw_x_HV","draw_x_sprint","wt_carried","rating","log_starts","first_start","last_place","avg4_place","avg4_lengths","career_win_pct","log_days_since","layoff_90","body_wt_chg","abs_body_wt_chg","dist_chg","abs_dist_chg","rating_chg","log_prev_odds","same_course_prev","first_time_gear","jockey_logit","trainer_logit"],"full":{"b":[-0.0685,-0.1236,-0.021,-0.1486,0.1545,-0.1795,-0.0611,-0.1929,-0.2504,-0.0433,0.0641,-0.0435,-0.0241,-0.0256,0.0017,-0.0119,-0.0328,-0.0095,-0.2302,0.0515,0.0237,0.2572,0.0465],"se":[0.0186,0.0161,0.0167,0.0303,0.0284,0.0173,0.0173,0.0219,0.0307,0.0304,0.0115,0.0187,0.0184,0.0143,0.0145,0.015,0.0147,0.0166,0.0189,0.015,0.014,0.0162,0.0129],"raw":[-0.2121,-0.6904,-0.1098,-0.0248,0.0272,-0.206,-0.3353,-0.6502,-1.2056,-0.0142,0.6222,-0.067,-0.099,-0.0023,0.0002,-0.0939,-0.3259,-0.0036,-0.2447,0.1202,0.0982,0.5849,0.2334]},"bic":["avg4_place","jockey_logit","log_prev_odds","draw_x_HV","last_place","log_starts","career_win_pct","draw_rel","same_course_prev","log_days_since","trainer_logit","first_start"],"lasso":[{"lam":0.03,"k":17,"vll":-3440.59,"b":[-0.0558,-0.1052,-0.0039,0.0,0.0067,-0.1047,-0.0024,-0.1747,-0.266,0.0,0.0643,-0.0183,-0.001,-0.0011,0.0,0.0,-0.0007,0.0,-0.2283,0.033,0.0,0.2194,0.0357]},{"lam":0.024644,"k":17,"vll":-3439.14,"b":[-0.058,-0.1085,-0.0068,0.0,0.0117,-0.1166,-0.0119,-0.1762,-0.2683,0.0,0.0636,-0.0222,-0.0047,-0.0054,0.0,0.0,-0.0059,0.0,-0.2294,0.0361,0.0,0.2208,0.0383]},{"lam":0.020243,"k":18,"vll":-3438.21,"b":[-0.0598,-0.1111,-0.0093,0.0,0.0158,-0.1267,-0.02,-0.1775,-0.266,-0.0061,0.0632,-0.0253,-0.0077,-0.0089,0.0,0.0,-0.0103,0.0,-0.23,0.0388,0.0,0.2219,0.0404]},{"lam":0.016629,"k":19,"vll":-3437.69,"b":[-0.0613,-0.1133,-0.0113,0.0,0.0192,-0.1347,-0.0267,-0.1788,-0.2638,-0.0116,0.063,-0.028,-0.0102,-0.0118,0.0,0.0,-0.014,0.0,-0.2303,0.041,0.0029,0.2227,0.0422]},{"lam":0.01366,"k":19,"vll":-3437.44,"b":[-0.0626,-0.1152,-0.013,0.0,0.022,-0.1411,-0.0323,-0.18,-0.2621,-0.0161,0.0629,-0.0304,-0.0123,-0.0141,0.0,0.0,-0.017,0.0,-0.2305,0.0428,0.0067,0.2234,0.0437]},{"lam":0.011221,"k":20,"vll":-3437.17,"b":[-0.0636,-0.1166,-0.0144,-0.0211,0.0412,-0.1472,-0.0372,-0.181,-0.2603,-0.0205,0.0627,-0.0324,-0.0139,-0.016,0.0,0.0,-0.0198,0.0,-0.2305,0.0443,0.0098,0.2282,0.0443]},{"lam":0.009218,"k":20,"vll":-3437.1,"b":[-0.0644,-0.1179,-0.0155,-0.0438,0.0613,-0.1524,-0.0413,-0.1818,-0.2587,-0.0244,0.0625,-0.0341,-0.0153,-0.0176,0.0,0.0,-0.0221,0.0,-0.2304,0.0455,0.0124,0.2333,0.0447]},{"lam":0.007572,"k":20,"vll":-3437.2,"b":[-0.0652,-0.1189,-0.0165,-0.0625,0.0779,-0.1568,-0.0447,-0.1825,-0.2574,-0.0275,0.0624,-0.0355,-0.0165,-0.019,0.0,0.0,-0.0241,0.0,-0.2304,0.0465,0.0146,0.2375,0.0451]},{"lam":0.00622,"k":20,"vll":-3437.39,"b":[-0.0657,-0.1197,-0.0173,-0.078,0.0916,-0.1603,-0.0475,-0.1831,-0.2562,-0.0302,0.0623,-0.0367,-0.0174,-0.0201,0.0,0.0,-0.0257,0.0,-0.2303,0.0473,0.0163,0.241,0.0453]},{"lam":0.005109,"k":21,"vll":-3437.55,"b":[-0.0662,-0.1204,-0.018,-0.0906,0.1027,-0.1634,-0.0499,-0.1836,-0.2554,-0.0324,0.0622,-0.0377,-0.0183,-0.021,0.0,-0.0011,-0.0269,0.0,-0.2302,0.048,0.0177,0.2439,0.0456]},{"lam":0.004197,"k":21,"vll":-3437.67,"b":[-0.0666,-0.121,-0.0185,-0.1011,0.1121,-0.1662,-0.052,-0.1841,-0.2545,-0.0344,0.0622,-0.0387,-0.0191,-0.0218,0.0,-0.003,-0.0279,0.0,-0.23,0.0485,0.0188,0.2463,0.0457]},{"lam":0.003448,"k":21,"vll":-3437.81,"b":[-0.067,-0.1215,-0.0189,-0.1096,0.1197,-0.1684,-0.0536,-0.1846,-0.2538,-0.0359,0.0622,-0.0394,-0.0198,-0.0225,0.0,-0.0046,-0.0286,0.0,-0.23,0.0491,0.0198,0.2483,0.0458]},{"lam":0.002832,"k":22,"vll":-3437.95,"b":[-0.0673,-0.1218,-0.0192,-0.1167,0.126,-0.1703,-0.055,-0.185,-0.2532,-0.0372,0.0622,-0.0401,-0.0203,-0.0231,0.0,-0.0059,-0.0293,-0.0001,-0.2299,0.0495,0.0206,0.2499,0.0459]},{"lam":0.002326,"k":22,"vll":-3438.06,"b":[-0.0674,-0.1222,-0.0196,-0.1224,0.1311,-0.172,-0.0561,-0.1863,-0.2527,-0.0384,0.0625,-0.0406,-0.0209,-0.0235,0.0,-0.0069,-0.0299,-0.0017,-0.2299,0.0498,0.0211,0.2512,0.046]},{"lam":0.001911,"k":22,"vll":-3438.16,"b":[-0.0676,-0.1224,-0.0198,-0.1271,0.1352,-0.1733,-0.057,-0.1875,-0.2523,-0.0391,0.0628,-0.0411,-0.0215,-0.0239,0.0,-0.0078,-0.0304,-0.0031,-0.23,0.0501,0.0216,0.2523,0.0461]},{"lam":0.00157,"k":22,"vll":-3438.24,"b":[-0.0678,-0.1226,-0.02,-0.1309,0.1386,-0.1744,-0.0577,-0.1885,-0.2519,-0.04,0.0631,-0.0414,-0.0219,-0.0242,0.0,-0.0085,-0.0308,-0.0043,-0.2301,0.0504,0.022,0.2531,0.0462]},{"lam":0.00129,"k":22,"vll":-3438.33,"b":[-0.0679,-0.1228,-0.0202,-0.134,0.1414,-0.1754,-0.0583,-0.1893,-0.2517,-0.0405,0.0633,-0.0418,-0.0222,-0.0244,0.0,-0.0091,-0.0312,-0.0052,-0.2301,0.0506,0.0223,0.2539,0.0462]},{"lam":0.001059,"k":22,"vll":-3438.39,"b":[-0.068,-0.1229,-0.0204,-0.1367,0.1438,-0.1761,-0.0588,-0.1899,-0.2514,-0.041,0.0634,-0.042,-0.0225,-0.0246,0.0,-0.0096,-0.0314,-0.0059,-0.2301,0.0507,0.0225,0.2545,0.0463]},{"lam":0.00087,"k":22,"vll":-3438.49,"b":[-0.0676,-0.1239,-0.0205,-0.1391,0.1467,-0.1775,-0.0597,-0.1934,-0.2496,-0.0393,0.0645,-0.0418,-0.0232,-0.0245,0.0,-0.01,-0.0309,-0.0073,-0.2311,0.0499,0.022,0.2546,0.0455]},{"lam":0.000715,"k":23,"vll":-3438.24,"b":[-0.0698,-0.1216,-0.0198,-0.1413,0.1476,-0.176,-0.0598,-0.1933,-0.2429,-0.05,0.0628,-0.0437,-0.0213,-0.0269,0.0009,-0.0105,-0.0319,-0.0088,-0.2343,0.0529,0.0232,0.2543,0.041]},{"lam":0.000587,"k":23,"vll":-3438.53,"b":[-0.0682,-0.1233,-0.0207,-0.1419,0.1485,-0.1777,-0.0599,-0.1912,-0.251,-0.042,0.0637,-0.0427,-0.0232,-0.0251,0.0007,-0.0106,-0.032,-0.0075,-0.2302,0.0511,0.0231,0.2556,0.0463]},{"lam":0.000482,"k":23,"vll":-3438.64,"b":[-0.0687,-0.1225,-0.021,-0.1424,0.1486,-0.1775,-0.0604,-0.1923,-0.2528,-0.0384,0.0642,-0.0433,-0.0235,-0.0251,0.0008,-0.011,-0.0323,-0.0083,-0.2318,0.0505,0.0235,0.2558,0.0463]},{"lam":0.000396,"k":23,"vll":-3438.6,"b":[-0.0683,-0.1234,-0.0208,-0.1442,0.1505,-0.1782,-0.0602,-0.1917,-0.2509,-0.0424,0.0638,-0.0429,-0.0235,-0.0253,0.0011,-0.011,-0.0322,-0.0081,-0.2302,0.0512,0.0233,0.2561,0.0464]},{"lam":0.000325,"k":23,"vll":-3438.36,"b":[-0.0687,-0.1199,-0.0239,-0.1424,0.149,-0.1789,-0.0608,-0.1959,-0.2495,-0.0427,0.0638,-0.0434,-0.0241,-0.0251,0.0019,-0.0123,-0.0319,-0.0108,-0.2303,0.051,0.0237,0.2564,0.045]},{"lam":0.000267,"k":23,"vll":-3438.56,"b":[-0.069,-0.1239,-0.0199,-0.1455,0.1521,-0.1784,-0.0614,-0.1903,-0.2494,-0.0445,0.0621,-0.0427,-0.0235,-0.0254,0.0017,-0.011,-0.0329,-0.0075,-0.2288,0.0509,0.0242,0.2574,0.0472]},{"lam":0.00022,"k":23,"vll":-3438.65,"b":[-0.0695,-0.1222,-0.0209,-0.1463,0.1529,-0.1793,-0.0625,-0.1905,-0.2525,-0.0406,0.0632,-0.0429,-0.024,-0.0259,0.002,-0.0109,-0.033,-0.0076,-0.2298,0.0506,0.0244,0.2555,0.0466]},{"lam":0.00018,"k":23,"vll":-3438.66,"b":[-0.0684,-0.1235,-0.0209,-0.1467,0.1527,-0.1789,-0.0607,-0.1924,-0.2505,-0.043,0.064,-0.0432,-0.0239,-0.0255,0.0014,-0.0115,-0.0325,-0.0089,-0.2302,0.0514,0.0235,0.2567,0.0464]},{"lam":0.000148,"k":23,"vll":-3438.58,"b":[-0.0697,-0.1225,-0.0194,-0.1484,0.154,-0.1792,-0.0606,-0.1932,-0.2508,-0.0419,0.0641,-0.0431,-0.024,-0.0256,0.0015,-0.0121,-0.0322,-0.0093,-0.231,0.0517,0.0235,0.2567,0.0455]},{"lam":0.000122,"k":23,"vll":-3438.68,"b":[-0.0694,-0.1233,-0.0202,-0.1485,0.1541,-0.1791,-0.0609,-0.1932,-0.2508,-0.0422,0.0642,-0.0431,-0.0241,-0.0257,0.0011,-0.0117,-0.0328,-0.0097,-0.2308,0.0517,0.0238,0.2575,0.0455]},{"lam":0.0001,"k":23,"vll":-3438.69,"b":[-0.0684,-0.1236,-0.021,-0.1475,0.1534,-0.1792,-0.0609,-0.1926,-0.2505,-0.0431,0.0641,-0.0434,-0.0239,-0.0255,0.0016,-0.0117,-0.0326,-0.0091,-0.2302,0.0514,0.0236,0.2569,0.0464]}],"lamSparse":0.020243,"lamBest":0.009218,"step":[{"k":1,"v":"avg4_place","bic":27860.2,"vll":-3571.09,"tll":-13925.76},{"k":2,"v":"jockey_logit","bic":27347.4,"vll":-3512.0,"tll":-13664.98},{"k":3,"v":"log_prev_odds","bic":27119.2,"vll":-3503.58,"tll":-13546.53},{"k":4,"v":"draw_x_HV","bic":26958.4,"vll":-3486.32,"tll":-13461.79},{"k":5,"v":"last_place","bic":26848.7,"vll":-3463.79,"tll":-13402.6},{"k":6,"v":"log_starts","bic":26768.2,"vll":-3455.1,"tll":-13358.03},{"k":7,"v":"career_win_pct","bic":26730.7,"vll":-3449.54,"tll":-13334.91},{"k":8,"v":"draw_rel","bic":26715.1,"vll":-3444.75,"tll":-13322.74},{"k":9,"v":"same_course_prev","bic":26703.2,"vll":-3445.01,"tll":-13312.47},{"k":10,"v":"log_days_since","bic":26691.3,"vll":-3442.27,"tll":-13302.14},{"k":11,"v":"trainer_logit","bic":26684.6,"vll":-3441.5,"tll":-13294.46},{"k":12,"v":"first_start","bic":26683.7,"vll":-3443.03,"tll":-13289.66}],"r2":[{"m":"draw only","k":3,"tr":0.006,"va":0.005,"te":0.0054},{"m":"full (23 vars)","k":23,"tr":0.1193,"va":0.1049,"te":0.122},{"m":"stepwise BIC","k":12,"tr":0.1177,"va":0.1037,"te":0.121},{"m":"lasso (sparse)","k":18,"tr":0.1183,"va":0.1049,"te":0.121},{"m":"public odds alone","k":0,"tr":0.1756,"va":0.1684,"te":0.1967},{"m":"combined (stage 2)","k":2,"tr":null,"va":0.1687,"te":0.1975}],"era":[{"s":"1980 to 1985","n":1396,"f":0.0603,"p":0.1404,"c":0.1409,"a":0.1066,"ase":0.0604,"b":0.974,"bse":0.047},{"s":"1986 to 1991","n":1456,"f":0.0754,"p":0.1412,"c":0.1415,"a":0.0812,"ase":0.0589,"b":0.9565,"bse":0.0475},{"s":"1992 to 1997","n":1709,"f":0.0996,"p":0.1589,"c":0.1604,"a":0.1836,"ase":0.0513,"b":0.9063,"bse":0.0415},{"s":"1998 to 2003","n":573,"f":0.1186,"p":0.171,"c":0.1741,"a":0.2514,"ase":0.087,"b":0.8828,"bse":0.0734},{"s":"2004 to 2009","n":2122,"f":0.1129,"p":0.1767,"c":0.177,"a":-0.0163,"ase":0.0459,"b":1.0597,"bse":0.0423},{"s":"2010 to 2017","n":3098,"f":0.1187,"p":0.1958,"c":0.1972,"a":-0.1335,"ase":0.0384,"b":1.1654,"bse":0.0354}],"draw":[{"v":"HV","sp":0,"d":1,"n":1012,"w":113,"f":12.259},{"v":"HV","sp":0,"d":2,"n":1016,"w":108,"f":12.262},{"v":"HV","sp":0,"d":3,"n":1016,"w":110,"f":12.262},{"v":"HV","sp":0,"d":4,"n":1016,"w":92,"f":12.262},{"v":"HV","sp":0,"d":5,"n":1016,"w":87,"f":12.262},{"v":"HV","sp":0,"d":6,"n":1016,"w":89,"f":12.262},{"v":"HV","sp":0,"d":7,"n":1014,"w":73,"f":12.262},{"v":"HV","sp":0,"d":8,"n":1016,"w":76,"f":12.262},{"v":"HV","sp":0,"d":9,"n":1016,"w":63,"f":12.262},{"v":"HV","sp":0,"d":10,"n":1013,"w":67,"f":12.261},{"v":"HV","sp":0,"d":11,"n":1014,"w":64,"f":12.26},{"v":"HV","sp":0,"d":12,"n":1016,"w":64,"f":12.262},{"v":"HV","sp":0,"d":13,"n":150,"w":4,"f":13.773},{"v":"HV","sp":0,"d":14,"n":127,"w":6,"f":13.921},{"v":"HV","sp":1,"d":1,"n":813,"w":112,"f":12.082},{"v":"HV","sp":1,"d":2,"n":813,"w":100,"f":12.082},{"v":"HV","sp":1,"d":3,"n":813,"w":81,"f":12.082},{"v":"HV","sp":1,"d":4,"n":813,"w":82,"f":12.082},{"v":"HV","sp":1,"d":5,"n":813,"w":85,"f":12.082},{"v":"HV","sp":1,"d":6,"n":813,"w":67,"f":12.082},{"v":"HV","sp":1,"d":7,"n":813,"w":58,"f":12.082},{"v":"HV","sp":1,"d":8,"n":812,"w":57,"f":12.083},{"v":"HV","sp":1,"d":9,"n":813,"w":46,"f":12.082},{"v":"HV","sp":1,"d":10,"n":813,"w":44,"f":12.082},{"v":"HV","sp":1,"d":11,"n":813,"w":42,"f":12.082},{"v":"HV","sp":1,"d":12,"n":813,"w":38,"f":12.082},{"v":"HV","sp":1,"d":13,"n":38,"w":1,"f":13.763},{"v":"HV","sp":1,"d":14,"n":30,"w":0,"f":14.0},{"v":"ST","sp":0,"d":1,"n":2782,"w":235,"f":13.529},{"v":"ST","sp":0,"d":2,"n":2792,"w":215,"f":13.53},{"v":"ST","sp":0,"d":3,"n":2792,"w":236,"f":13.529},{"v":"ST","sp":0,"d":4,"n":2783,"w":229,"f":13.531},{"v":"ST","sp":0,"d":5,"n":2789,"w":232,"f":13.532},{"v":"ST","sp":0,"d":6,"n":2780,"w":201,"f":13.534},{"v":"ST","sp":0,"d":7,"n":2795,"w":237,"f":13.526},{"v":"ST","sp":0,"d":8,"n":2798,"w":191,"f":13.528},{"v":"ST","sp":0,"d":9,"n":2776,"w":179,"f":13.536},{"v":"ST","sp":0,"d":10,"n":2783,"w":167,"f":13.53},{"v":"ST","sp":0,"d":11,"n":2778,"w":179,"f":13.533},{"v":"ST","sp":0,"d":12,"n":2789,"w":206,"f":13.53},{"v":"ST","sp":0,"d":13,"n":2642,"w":179,"f":13.617},{"v":"ST","sp":0,"d":14,"n":2368,"w":160,"f":13.708},{"v":"ST","sp":1,"d":1,"n":1313,"w":103,"f":13.19},{"v":"ST","sp":1,"d":2,"n":1313,"w":121,"f":13.187},{"v":"ST","sp":1,"d":3,"n":1313,"w":106,"f":13.188},{"v":"ST","sp":1,"d":4,"n":1310,"w":110,"f":13.19},{"v":"ST","sp":1,"d":5,"n":1311,"w":111,"f":13.193},{"v":"ST","sp":1,"d":6,"n":1318,"w":107,"f":13.186},{"v":"ST","sp":1,"d":7,"n":1301,"w":97,"f":13.195},{"v":"ST","sp":1,"d":8,"n":1320,"w":84,"f":13.185},{"v":"ST","sp":1,"d":9,"n":1307,"w":85,"f":13.194},{"v":"ST","sp":1,"d":10,"n":1303,"w":98,"f":13.196},{"v":"ST","sp":1,"d":11,"n":1311,"w":102,"f":13.19},{"v":"ST","sp":1,"d":12,"n":1312,"w":89,"f":13.189},{"v":"ST","sp":1,"d":13,"n":937,"w":54,"f":13.671},{"v":"ST","sp":1,"d":14,"n":837,"w":61,"f":13.772}],"resid":{"LR":63.0,"df":23,"R2":{"market_only_refit":{"train":0.17588428420583124,"valid":0.1686327756027065,"test":0.19728555347582621},"market_plus_selected":{"train":0.17692637954787338,"valid":0.1680069182818006,"test":0.19643974195409208}},"vars":["avg4_place","wt_carried"]},"stage2":{"alpha":-0.02903921574530432,"alpha_se":0.05464807188850121,"beta":1.0632157062232488,"beta_se":0.050203506505419576},"n":{"runs":{"train":74551,"valid":19127,"test":47876},"races":{"train":5997,"valid":1522,"test":3860}},"flatAll":-0.2665};
+  const HK = window.BENTER_HK;
+
+  // ---------- formatting ----------
+  const minus = s => s.replace(/^-/, '−');
+  const fx = (v, d) => isFinite(v) ? minus(Number(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })) : '–';
+  const pct = (v, d = 1) => isFinite(v) ? (v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(d) + '%' : '–';
+  const int = v => Math.round(v).toLocaleString('en-US');
+  const LAB = {
+    draw_rel: 'Draw (rail 0, widest 1)', draw_x_HV: 'Draw × Happy Valley', draw_x_sprint: 'Draw × sprint (≤ 1,200 m)', wt_carried: 'Weight carried',
+    rating: 'Official rating', log_starts: 'log(1 + previous starts)', first_start: 'First start', last_place: 'Last finish (0 won, 1 last)',
+    avg4_place: 'Average finish, last 4 runs', avg4_lengths: 'Average lengths beaten, last 4', career_win_pct: 'Career win rate',
+    log_days_since: 'log days since last run', layoff_90: 'Layoff over 90 days', body_wt_chg: 'Body-weight change', abs_body_wt_chg: '|Body-weight change|',
+    dist_chg: 'Distance change', abs_dist_chg: '|Distance change|', rating_chg: 'Rating change', log_prev_odds: 'log payout in previous race',
+    same_course_prev: 'Same course as last run', first_time_gear: 'First-time gear', jockey_logit: 'Jockey (logit win rate)', trainer_logit: 'Trainer (logit win rate)'
+  };
+  const lab = n => LAB[n] || n;
+
+  // ---------- colours and plotting (same conventions as Part I) ----------
+  let C = {};
+  function readColors() { const cs = getComputedStyle(document.documentElement); for (const k of ['ink', 'muted', 'line', 'grid', 'accent', 'curve', 'ball', 'fit', 'board', 'surface']) C[k] = cs.getPropertyValue('--' + k).trim(); }
+  readColors();
+  const plots = [];
+  function niceStep(range, target) { const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function ticks(a, b, n) { const s = niceStep(b - a, n), o = []; for (let v = Math.ceil(a / s - 1e-9) * s; v <= b + 1e-9; v += s) o.push(+v.toFixed(10)); return o; }
+  let raf = 0;
+  function schedule() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; for (const P of plots) if (P.dirty) { P.dirty = false; P.ctx.clearRect(0, 0, P.L.W, P.L.H); P.draw(P); } }); }
+  function makePlot(id, sizeFn, mg, drawFn, hoverFn) {
+    const cv = $(id), box = cv.parentElement, tip = box.querySelector('.tip');
+    const P = { cv, ctx: cv.getContext('2d'), L: { W: 300, H: 200, ...mg }, dirty: true, draw: drawFn, hover: null };
+    P.resize = () => {
+      const w = Math.max(200, box.clientWidth - 24), h = sizeFn(w), d = window.devicePixelRatio || 1;
+      cv.style.height = h + 'px'; cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+      P.ctx.setTransform(d, 0, 0, d, 0, 0); P.L = { W: w, H: h, ...mg }; P.dirty = true; schedule();
+    };
+    P.dom = (x0, x1, y0, y1) => { P.D = { x0, x1, y0, y1 }; };
+    P.px = x => P.L.ml + (x - P.D.x0) / (P.D.x1 - P.D.x0) * (P.L.W - P.L.ml - P.L.mr);
+    P.py = y => P.L.mt + (P.D.y1 - y) / (P.D.y1 - P.D.y0) * (P.L.H - P.L.mt - P.L.mb);
+    P.axes = (xt, yt, fxl, fyl, xl, yl) => {
+      const { ctx, L } = P;
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1;
+      ctx.strokeStyle = C.grid; ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (const y of yt) { const p = Math.round(P.py(y)) + .5; ctx.beginPath(); ctx.moveTo(L.ml, p); ctx.lineTo(L.W - L.mr, p); ctx.stroke(); ctx.fillText(fyl(y), L.ml - 6, p); }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top'; let last = -1e9;
+      for (const x of [...xt].sort((a, b) => P.px(a) - P.px(b))) { const p = Math.round(P.px(x)) + .5; ctx.beginPath(); ctx.moveTo(p, L.mt); ctx.lineTo(p, L.H - L.mb); ctx.stroke(); const t = fxl(x), w = ctx.measureText(t).width; if (p - w / 2 > last + 4) { ctx.fillText(t, p, L.H - L.mb + 6); last = p + w / 2; } }
+      ctx.strokeStyle = C.line; ctx.strokeRect(L.ml + .5, L.mt + .5, L.W - L.ml - L.mr - 1, L.H - L.mt - L.mb - 1);
+      ctx.fillStyle = C.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.font = '12px "Atkinson Hyperlegible", system-ui, sans-serif';
+      if (xl) ctx.fillText(xl, (L.ml + L.W - L.mr) / 2, L.H - 1);
+      if (yl) { ctx.save(); ctx.translate(12, (L.mt + L.H - L.mb) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore(); }
+    };
+    P.clip = () => { const { ctx, L } = P; ctx.save(); ctx.beginPath(); ctx.rect(L.ml, L.mt, L.W - L.ml - L.mr, L.H - L.mt - L.mb); ctx.clip(); };
+    P.line = (pts, col, w = 2, dash) => { const ctx = P.ctx; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); pts.forEach(([x, y], k) => k ? ctx.lineTo(P.px(x), P.py(y)) : ctx.moveTo(P.px(x), P.py(y))); ctx.stroke(); ctx.setLineDash([]); };
+    P.dot = (x, y, r, col) => { const ctx = P.ctx; ctx.beginPath(); ctx.arc(P.px(x), P.py(y), r, 0, 2 * Math.PI); ctx.fillStyle = col; ctx.fill(); ctx.strokeStyle = C.board; ctx.lineWidth = 1.5; ctx.stroke(); };
+    P.vbar = (x, y0, y1, col) => { const ctx = P.ctx; ctx.strokeStyle = col; ctx.globalAlpha = .55; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(P.px(x), P.py(y0)); ctx.lineTo(P.px(x), P.py(y1)); ctx.stroke(); ctx.globalAlpha = 1; };
+    if (hoverFn) {
+      const move = e => {
+        const rc = cv.getBoundingClientRect(), x = e.clientX - rc.left, y = e.clientY - rc.top;
+        const h = hoverFn(P, x, y);
+        P.hover = h; P.dirty = true; schedule();
+        if (!h) { tip.hidden = true; return; }
+        tip.innerHTML = h.html; tip.hidden = false;
+        const bw = box.clientWidth, tw2 = tip.offsetWidth, th = tip.offsetHeight;
+        let lx = cv.offsetLeft + x + 14, ly = cv.offsetTop + y + 12;
+        if (lx + tw2 > bw - 4) lx = cv.offsetLeft + x - tw2 - 14;
+        lx = Math.max(4, lx); if (ly + th > box.clientHeight - 4) ly = Math.max(4, cv.offsetTop + y - th - 12);
+        tip.style.left = lx + 'px'; tip.style.top = ly + 'px';
+      };
+      cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move);
+      cv.addEventListener('pointerleave', () => { P.hover = null; tip.hidden = true; P.dirty = true; schedule(); });
+    }
+    new ResizeObserver(P.resize).observe(box);
+    plots.push(P); return P;
+  }
+  const press = (ids, on) => ids.forEach(id => $(id).setAttribute('aria-pressed', id === on));
+  const sq = w => Math.round(Math.min(Math.max(w * 0.72, 250), 440));
+  const near = (P, pts, x, y, r = 22) => { let best = -1, bd = r * r; pts.forEach(([a, b], k) => { const dx = P.px(a) - x, dy = P.py(b) - y, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = k; } }); return best; };
+
+  const NAMES = P2.names, IDX = Object.fromEntries(NAMES.map((n, i) => [n, i]));
+  const RAW = n => P2.full.raw[IDX[n]];
+
+  // ============ 7. draw ============
+  const S7 = { v: 'HV' };
+  function drawSeries(v, sp) {
+    return P2.draw.filter(r => r.v === v && r.sp === sp && r.n >= 100).map(r => { const p = r.w / r.n, se = Math.sqrt(p * (1 - p) / r.n); return { d: r.d, rel: p * r.f, lo: (p - 1.96 * se) * r.f, hi: (p + 1.96 * se) * r.f, n: r.n, w: r.w, f: r.f }; });
+  }
+  function modelCurve(v, sp, n) { // fitted draw effect on the odds, rescaled so the gates average 1
+    const b = RAW('draw_rel') + (v === 'HV' ? RAW('draw_x_HV') : 0) + (sp ? RAW('draw_x_sprint') : 0);
+    const m = []; for (let g = 1; g <= n; g++) m.push(Math.exp(b * (g - 1) / (n - 1)));
+    const avg = m.reduce((a, c) => a + c, 0) / n; return m.map((x, k) => [k + 1, x / avg]);
+  }
+  const pDraw = makePlot('cvDraw', w => Math.round(Math.min(Math.max(w * 0.55, 260), 400)), { ml: 50, mr: 12, mt: 10, mb: 42 }, P => {
+    const A = drawSeries(S7.v, 1), B = drawSeries(S7.v, 0), nmax = Math.max(...A.map(r => r.d), ...B.map(r => r.d));
+    const ymax = Math.max(1.8, ...A.map(r => r.hi), ...B.map(r => r.hi)) * 1.05;
+    P.dom(0.5, nmax + 0.5, 0, ymax);
+    P.axes(ticks(1, nmax, nmax), ticks(0, ymax, 5), v => String(v), v => fx(v, 1), 'Starting gate (1 = rail)', 'Win rate ÷ fair rate');
+    P.clip();
+    P.line([[0.5, 1], [nmax + 0.5, 1]], C.muted, 1.5, [5, 4]);
+    const fld = S7.v === 'HV' ? 12 : 14;
+    P.line(modelCurve(S7.v, 1, fld), C.fit, 2); P.line(modelCurve(S7.v, 0, fld), C.fit, 1.5, [2, 3]);
+    for (const [ser, col, off] of [[A, C.accent, -0.12], [B, C.ball, 0.12]]) for (const r of ser) { P.vbar(r.d + off, r.lo, r.hi, col); P.dot(r.d + off, r.rel, P.hover && P.hover.r === r ? 6 : 4.2, col); }
+    P.ctx.restore();
+  }, (P, x, y) => {
+    const all = [...drawSeries(S7.v, 1).map(r => ({ r, off: -0.12, s: '1,200 m or less' })), ...drawSeries(S7.v, 0).map(r => ({ r, off: 0.12, s: 'longer races' }))];
+    const k = near(P, all.map(a => [a.r.d + a.off, a.r.rel]), x, y); if (k < 0) return null;
+    const a = all[k]; return { r: a.r, html: `<b>Gate ${a.r.d}, ${a.s}</b><br>${int(a.r.n)} runners, ${int(a.r.w)} wins<br>win rate ${pct(a.r.w / a.r.n)}<br>fair rate 1/n ${pct(1 / a.r.f)}<br>ratio ${fx(a.r.rel, 2)}` };
+  });
+  function render7() {
+    press(['dHV', 'dST'], S7.v === 'HV' ? 'dHV' : 'dST');
+    const hv = S7.v === 'HV', b = RAW('draw_rel') + (hv ? RAW('draw_x_HV') : 0), fac = Math.exp(b);
+    $('dFactor').textContent = '× ' + fx(fac, 2);
+    $('dFactorHint').innerHTML = `The fitted odds of winning are multiplied by \\(e^{${fx(b, 2).replace('−', '-')}} = ${fx(fac, 2)}\\) going from the rail to the widest gate${hv ? ', the draw coefficient plus its Happy Valley interaction' : ''}. The sprint interaction is small and not significant once the course is known.`;
+    $('dCourseHint').textContent = hv ? 'A tight, turning track with a short straight.' : 'A larger track with long straights.';
+    $('drawTitle').textContent = `Win rate by gate, relative to the fair rate 1/n, ${hv ? 'Happy Valley' : 'Sha Tin'}, 1999–2012`;
+    const r2 = P2.r2.find(r => r.m === 'draw only'), full = P2.r2.find(r => r.m.startsWith('full'));
+    $('dKV').innerHTML = `<span>Draw only, test R²</span><span>${fx(r2.te, 3)}</span><span>All 23 variables, test R²</span><span>${fx(full.te, 3)}</span><span>Public payout, test R²</span><span>${fx(P2.r2.find(r => r.m === 'public odds alone').te, 3)}</span>`;
+    $('dCall').innerHTML = hv ? '<p>At Happy Valley the rail gate wins about 1.4 to 1.7 times its fair share and the widest gates about 0.6 to 0.8 times. That is a real effect, but it explains only a small part of who wins: the draw alone gives a pseudo \\(R^2\\) of about 0.005.</p>' : '<p>At Sha Tin the pattern is much flatter, and the widest gates are close to their fair share. The draw is a course-specific variable, which is why the model needs the Happy Valley interaction.</p>';
+    typeset($('dFactorHint')); typeset($('dCall'));
+    pDraw.dirty = true; schedule();
+  }
+  $('dHV').onclick = () => { S7.v = 'HV'; render7(); };
+  $('dST').onclick = () => { S7.v = 'ST'; render7(); };
+
+  // ============ 8. selection ============
+  const S8 = { li: P2.lasso.findIndex(r => r.lam === P2.lamSparse), hov: null };
+  const inBIC = n => P2.bic.includes(n);
+  const lassoActive = n => P2.lasso[S8.li].b[IDX[n]] !== 0;
+  const coefOrder = NAMES.map((n, i) => i).sort((a, b) => P2.full.b[a] - P2.full.b[b]);
+  const pCoef = makePlot('cvCoef', w => 470, { ml: 12, mr: 14, mt: 8, mb: 40 }, P => {
+    P.L.ml = Math.min(220, Math.round(P.L.W * 0.46));
+    const n = NAMES.length, xs = coefOrder.map(i => [P2.full.b[i] - 1.96 * P2.full.se[i], P2.full.b[i] + 1.96 * P2.full.se[i]]);
+    const lo = Math.min(-0.35, ...xs.map(v => v[0])), hi = Math.max(0.35, ...xs.map(v => v[1]));
+    P.dom(lo, hi, n + 0.5, 0.5);
+    P.axes(ticks(lo, hi, 5), [], v => fx(v, 1), () => '', 'Coefficient per SD (effect on log score)', '');
+    const { ctx } = P; P.clip();
+    P.line([[0, 0.5], [0, n + 0.5]], C.muted, 1.2, [4, 3]);
+    ctx.restore(); ctx.font = (P.L.W < 420 ? '10.5px' : '12px') + ' "Atkinson Hyperlegible", system-ui, sans-serif'; ctx.textBaseline = 'middle';
+    coefOrder.forEach((i, k) => {
+      const nm = NAMES[i], y = k + 1, b = P2.full.b[i], se = P2.full.se[i];
+      const col = inBIC(nm) ? C.accent : lassoActive(nm) ? C.fit : C.muted;
+      ctx.strokeStyle = col; ctx.globalAlpha = .6; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(P.px(b - 1.96 * se), P.py(y)); ctx.lineTo(P.px(b + 1.96 * se), P.py(y)); ctx.stroke(); ctx.globalAlpha = 1;
+      P.dot(b, y, S8.hov === nm ? 5.5 : 4, col);
+      ctx.fillStyle = S8.hov === nm ? C.ink : C.muted; ctx.textAlign = 'right';
+      let t = lab(nm); while (ctx.measureText(t).width > P.L.ml - 10 && t.length > 4) t = t.slice(0, -2) + '…';
+      ctx.fillText(t, P.L.ml - 8, P.py(y));
+    });
+  }, (P, x, y) => {
+    const k = Math.round((y - P.L.mt) / (P.L.H - P.L.mt - P.L.mb) * NAMES.length + 0.5) - 1;
+    if (k < 0 || k >= NAMES.length) return null;
+    const i = coefOrder[k], nm = NAMES[i]; S8.hov = nm; showCoef(nm);
+    return { html: `<b>${lab(nm)}</b><br>coef per SD ${fx(P2.full.b[i], 3)}<br>z ${fx(P2.full.b[i] / P2.full.se[i], 1)}` };
+  });
+  const lx = v => Math.log10(v);
+  const pLasso = makePlot('cvLasso', w => Math.round(Math.min(Math.max(w * 0.55, 280), 420)), { ml: 50, mr: 24, mt: 10, mb: 42 }, P => {
+    const L = P2.lasso, x0 = lx(L[0].lam), x1 = lx(L[L.length - 1].lam);
+    let lo = 0, hi = 0; L.forEach(r => r.b.forEach(v => { lo = Math.min(lo, v); hi = Math.max(hi, v); }));
+    P.dom(x0, x1, lo * 1.1, hi * 1.1);
+    P.axes(ticks(x1, x0, 5), ticks(lo, hi, 5), v => fx(v, 1), v => fx(v, 1), 'log10 λ  (penalty shrinks to the right)', 'Coefficient per SD');
+    P.clip();
+    NAMES.forEach((nm, j) => { const act = L[S8.li].b[j] !== 0, hv = S8.hov === nm; P.line(L.map(r => [lx(r.lam), r.b[j]]), hv ? C.ink : act ? C.accent : C.muted, hv ? 2.6 : act ? 1.6 : 1); });
+    P.line([[lx(L[S8.li].lam), lo * 1.1], [lx(L[S8.li].lam), hi * 1.1]], C.ball, 2, [5, 4]);
+    P.ctx.restore();
+  }, (P, x, y) => {
+    const L = P2.lasso; let best = null, bd = 14 * 14;
+    NAMES.forEach((nm, j) => L.forEach(r => { const dx = P.px(lx(r.lam)) - x, dy = P.py(r.b[j]) - y, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = { nm, j, r }; } }));
+    if (!best) { S8.hov = null; return null; }
+    S8.hov = best.nm; showCoef(best.nm); pCoef.dirty = true;
+    return { html: `<b>${lab(best.nm)}</b><br>λ ${fx(best.r.lam, 4)}: coef ${fx(best.r.b[best.j], 3)}` };
+  });
+  function showCoef(nm) {
+    const i = IDX[nm], z = P2.full.b[i] / P2.full.se[i];
+    $('coefKV').innerHTML = `<span>Variable</span><span>${lab(nm)}</span><span>Coefficient per SD</span><span>${fx(P2.full.b[i], 3)}</span><span>Wald z</span><span>${fx(z, 1)}</span><span>Stepwise BIC</span><span>${inBIC(nm) ? 'kept, step ' + (P2.bic.indexOf(nm) + 1) : 'dropped'}</span><span>Lasso at this λ</span><span>${lassoActive(nm) ? 'kept' : 'zero'}</span>`;
+  }
+  function render8() {
+    const r = P2.lasso[S8.li];
+    $('lam').value = S8.li; $('lamOut').textContent = fx(r.lam, 4);
+    const best = Math.max(...P2.lasso.map(q => q.vll));
+    $('lamKV').innerHTML = `<span>Active variables</span><span>${r.k} of 23</span><span>Validation log L</span><span>${fx(r.vll, 1)}</span><span>Below the best</span><span>${fx(best - r.vll, 1)}</span>`;
+    const both = P2.bic.filter(n => r.b[IDX[n]] !== 0).length;
+    $('selCall').innerHTML = `<p>At this λ the lasso keeps ${r.k} variables, ${both} of the 12 that stepwise BIC chose. Both methods drop the change variables: body-weight change in absolute value, raw distance change, rating change and first-time gear. Where two variables carry the same information, as weight carried and rating do under handicapping, the lasso tends to keep one of them.</p>`;
+    pCoef.dirty = true; pLasso.dirty = true; schedule();
+  }
+  $('lam').oninput = e => { S8.li = +e.target.value; render8(); };
+  $('lamSparse').onclick = () => { S8.li = P2.lasso.findIndex(r => r.lam === P2.lamSparse); render8(); };
+  $('lamBest').onclick = () => { S8.li = P2.lasso.findIndex(r => r.lam === P2.lamBest); render8(); };
+  $('stepTab').querySelector('tbody').innerHTML = P2.step.map(s => `<tr><td>${s.k}</td><td style="text-align:left;font-family:var(--font-body)">${lab(s.v)}</td><td>${fx(s.bic, 0)}</td><td>${fx(s.vll, 1)}</td></tr>`).join('');
+  const r2name = { 'draw only': 'Draw only', 'full (23 vars)': 'All 23 variables', 'stepwise BIC': 'Stepwise BIC', 'lasso (sparse)': 'Lasso, sparse choice', 'public odds alone': 'Public payout alone', 'combined (stage 2)': 'Combined, stage 2' };
+  $('r2Tab').querySelector('tbody').innerHTML = P2.r2.map(r => `<tr${r.m.startsWith('public') ? ' class="hl"' : ''}><td>${r2name[r.m] || r.m}</td><td>${r.k}</td><td>${r.tr == null ? '–' : fx(r.tr, 3)}</td><td>${fx(r.va, 3)}</td><td>${fx(r.te, 3)}</td></tr>`).join('');
+
+  // ============ 9. era ============
+  const S9 = { k: 3 };
+  const E = P2.era, eraLab = s => s.replace(' to ', '–');
+  const eraShort = s => { const [x, y] = s.split(' to '); return x.slice(2) + '–' + y.slice(2); };
+  const pAlpha = makePlot('cvAlpha', sq, { ml: 50, mr: 12, mt: 10, mb: 42 }, P => {
+    const lo = Math.min(...E.map(e => e.a - 1.96 * e.ase)) - 0.05, hi = Math.max(...E.map(e => e.a + 1.96 * e.ase)) + 0.05;
+    P.dom(-0.5, E.length - 0.5, lo, hi);
+    P.axes(E.map((e, k) => k), ticks(lo, hi, 5), k => eraShort(E[k].s), v => fx(v, 1), 'Seasons', 'Fitted α');
+    P.clip(); P.line([[-0.5, 0], [E.length - 0.5, 0]], C.muted, 1.5, [5, 4]);
+    E.forEach((e, k) => { const sig = Math.abs(e.a / e.ase) > 1.96, col = sig ? C.accent : C.muted; P.vbar(k, e.a - 1.96 * e.ase, e.a + 1.96 * e.ase, col); P.dot(k, e.a, k === S9.k ? 6.5 : 4.5, col); });
+    P.ctx.restore();
+  }, (P, x, y) => { const k = near(P, E.map((e, k) => [k, e.a]), x, y, 30); if (k < 0) return null; const e = E[k]; return { html: `<b>${eraLab(e.s)}</b><br>α ${fx(e.a, 3)} (SE ${fx(e.ase, 3)})<br>z ${fx(e.a / e.ase, 1)}` }; });
+  const pEraR2 = makePlot('cvEraR2', sq, { ml: 50, mr: 12, mt: 10, mb: 42 }, P => {
+    P.dom(-0.5, E.length - 0.5, 0, 0.22);
+    P.axes(E.map((e, k) => k), ticks(0, 0.22, 5), k => eraShort(E[k].s), v => fx(v, 2), 'Seasons', 'Pseudo R²');
+    P.clip();
+    for (const [key, col] of [['f', C.ball], ['p', C.curve], ['c', C.fit]]) { P.line(E.map((e, k) => [k, e[key]]), col, 2); E.forEach((e, k) => P.dot(k, e[key], k === S9.k ? 5.5 : 3.6, col)); }
+    P.ctx.restore();
+  }, (P, x, y) => { const k = Math.round((x - P.L.ml) / (P.L.W - P.L.ml - P.L.mr) * E.length - 0.5); if (k < 0 || k >= E.length) return null; const e = E[k]; return { html: `<b>${eraLab(e.s)}</b><br>fundamentals ${fx(e.f, 3)}<br>public ${fx(e.p, 3)}<br>combined ${fx(e.c, 3)}` }; });
+  $('eraBtns').innerHTML = E.map((e, k) => `<button data-k="${k}" aria-pressed="false">${eraLab(e.s)}</button>`).join('');
+  $('eraBtns').querySelectorAll('button').forEach(b => b.onclick = () => { S9.k = +b.dataset.k; render9(); });
+  function render9() {
+    $('eraBtns').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.k === S9.k));
+    const e = E[S9.k], z = e.a / e.ase;
+    $('eraKV').innerHTML = `<span>Races in stage two</span><span>${int(e.n)}</span><span>Fitted α on fundamentals</span><span>${fx(e.a, 3)} ± ${fx(1.96 * e.ase, 3)}</span><span>z for α</span><span>${fx(z, 1)}</span><span>Fitted β on public log q</span><span>${fx(e.b, 3)} ± ${fx(1.96 * e.bse, 3)}</span><span>R² fundamentals</span><span>${fx(e.f, 3)}</span><span>R² public payout</span><span>${fx(e.p, 3)}</span><span>R² combined</span><span>${fx(e.c, 3)}</span>`;
+    $('eraCall').innerHTML = z > 1.96 ? `<p><b>An edge.</b> In ${eraLab(e.s)} the fundamentals get a significant positive weight: they carried information the payouts had not priced. These are the years when Benter's and Alan Woods's teams were building their models.</p>`
+      : e.a > 0 ? `<p><b>Positive but not significant.</b> The fundamentals get some weight in ${eraLab(e.s)}, but the interval includes zero.</p>`
+      : `<p><b>No edge.</b> In ${eraLab(e.s)} the weight on the fundamentals is zero or negative, and \\(\\hat\\beta\\) is ${e.b > 1 ? 'above' : 'near'} one. The public payouts already contain what a twelve-variable model knows. The final payouts include the syndicates' own money, so the crowd now partly is the computer models.</p>`;
+    typeset($('eraCall'));
+    pAlpha.dirty = true; pEraR2.dirty = true; schedule();
+  }
+
+  // ============ 10. honest backtest ============
+  const T = HK ? (() => {
+    const nR = HK.n.length, N = HK.f.length, st = new Int32Array(nR + 1); for (let r = 0; r < nR; r++) st[r + 1] = st[r] + HK.n[r];
+    const f = new Float64Array(N), O = new Float64Array(N), lq = new Float64Array(N), y = new Uint8Array(N), take = new Float64Array(nR);
+    for (let r = 0; r < nR; r++) { let s = 0; for (let i = st[r]; i < st[r + 1]; i++) { f[i] = HK.f[i] / 100; O[i] = HK.o[i] / 10; s += 1 / O[i]; } take[r] = 1 - 1 / s; for (let i = st[r]; i < st[r + 1]; i++) lq[i] = Math.log((1 / O[i]) / s); y[st[r] + HK.w[r]] = 1; }
+    let l0 = 0; for (let r = 0; r < nR; r++) l0 -= Math.log(HK.n[r]);
+    const meanTake = take.reduce((a, b) => a + b, 0) / nR;
+    return { nR, N, st, f, O, lq, y, take, l0, meanTake };
+  })() : null;
+  const S10 = { a: -0.029, b: 1.063, take: null, thr: 0, label: 'Fitted on 2011–12' };
+  const PRE = { wVal: [P2.stage2.alpha, P2.stage2.beta, 'Fitted on 2011–12'], wEra: [E[3].a, E[3].b, 'Benter era, 1998–2003'], wMkt: [0, 1, 'Market only'] };
+  const c = T ? new Float64Array(T.N) : null;
+  function combine(a, b) { let ll = 0; for (let r = 0; r < T.nR; r++) { let mx = -Infinity; const lo = T.st[r], hi = T.st[r + 1]; for (let i = lo; i < hi; i++) { c[i] = a * T.f[i] + b * T.lq[i]; if (c[i] > mx) mx = c[i]; } let s = 0; for (let i = lo; i < hi; i++) { c[i] = Math.exp(c[i] - mx); s += c[i]; } for (let i = lo; i < hi; i++) { c[i] /= s; if (T.y[i]) ll += Math.log(c[i]); } } return 1 - ll / T.l0; }
+  function bets(take, thr, curve) { // take = null for the actual payouts
+    let n = 0, hit = 0, prof = 0; const cum = curve ? [] : null;
+    for (let r = 0; r < T.nR; r++) {
+      const sc = take == null ? 1 : (1 - take) / (1 - T.take[r]);
+      for (let i = T.st[r]; i < T.st[r + 1]; i++) { const o = T.O[i] * sc; if (c[i] * o - 1 > thr) { n++; if (T.y[i]) { hit++; prof += o - 1; } else prof -= 1; } }
+      if (curve) cum.push(prof);
+    }
+    return { n, hit, prof, roi: n ? prof / n : NaN, cum };
+  }
+  function everyRunner(take) { let p = 0; for (let r = 0; r < T.nR; r++) { const sc = take == null ? 1 : (1 - take) / (1 - T.take[r]); for (let i = T.st[r]; i < T.st[r + 1]; i++) p += T.y[i] ? T.O[i] * sc - 1 : -1; } return p / T.N; }
+  function fitTest() { // Newton-Raphson for (alpha, beta) on the test seasons themselves
+    let a = 0, b = 1;
+    for (let it = 0; it < 30; it++) {
+      combine(a, b); let g0 = 0, g1 = 0, h00 = 0, h01 = 0, h11 = 0;
+      for (let r = 0; r < T.nR; r++) { let mf = 0, mq = 0, sff = 0, sfq = 0, sqq = 0; for (let i = T.st[r]; i < T.st[r + 1]; i++) { const p = c[i]; mf += p * T.f[i]; mq += p * T.lq[i]; sff += p * T.f[i] * T.f[i]; sfq += p * T.f[i] * T.lq[i]; sqq += p * T.lq[i] * T.lq[i]; if (T.y[i]) { g0 += T.f[i]; g1 += T.lq[i]; } } g0 -= mf; g1 -= mq; h00 += sff - mf * mf; h01 += sfq - mf * mq; h11 += sqq - mq * mq; }
+      const det = h00 * h11 - h01 * h01, da = (h11 * g0 - h01 * g1) / det, db = (h00 * g1 - h01 * g0) / det; a += da; b += db; if (Math.abs(da) + Math.abs(db) < 1e-9) break;
+    }
+    return [a, b];
+  }
+  let cache = null;
+  const takeGrid = []; for (let t = 0; t <= 0.19 + 1e-9; t += 0.01) takeGrid.push(+t.toFixed(2));
+  const pTake = makePlot('cvTake', sq, { ml: 54, mr: 12, mt: 10, mb: 42 }, P => {
+    if (!cache) return;
+    const pts = cache.sweep.filter(s => s.n >= 20), base = cache.base;
+    const ys = [...pts.map(s => s.roi), ...base.map(s => s[1]), 0.1, -0.3];
+    const lo = Math.min(...ys) - 0.02, hi = Math.max(...ys) + 0.02;
+    P.dom(0, 0.2, lo, hi);
+    P.axes(ticks(0, 0.2, 5), ticks(lo, hi, 5), v => Math.round(v * 100) + '%', v => pct(v, 0), 'Track take used for the payouts', 'Return on stakes');
+    P.clip(); P.line([[0, 0], [0.2, 0]], C.muted, 1.5, [5, 4]);
+    const tA = T.meanTake; P.line([[tA, lo], [tA, hi]], C.line, 1, [2, 3]);
+    P.line(base.map(s => [s[0], s[1]]), C.curve, 1.2); base.forEach(s => P.dot(s[0], s[1], 3, C.curve));
+    if (pts.length) { P.line(pts.map(s => [s.t, s.roi]), C.accent, 1.6); pts.forEach(s => P.dot(s.t, s.roi, 4, C.accent)); }
+    P.ctx.restore();
+    P.ctx.font = '11px "JetBrains Mono", monospace'; P.ctx.fillStyle = C.muted; P.ctx.textAlign = 'left'; P.ctx.textBaseline = 'top'; P.ctx.fillText('actual ' + pct(tA, 1), Math.min(P.px(tA) - 70, P.L.W - P.L.mr - 90), P.L.mt + 4);
+  }, (P, x, y) => { if (!cache) return null; const pts = cache.sweep.filter(s => s.n >= 20); const k = near(P, pts.map(s => [s.t, s.roi]), x, y); if (k < 0) return null; const s = pts[k]; return { html: `<b>Take ${Math.round(s.t * 100)}%</b><br>${int(s.n)} bets<br>ROI ${pct(s.roi)}` }; });
+  const pCum = makePlot('cvCum', sq, { ml: 54, mr: 12, mt: 10, mb: 42 }, P => {
+    if (!cache || !cache.cur.n) { P.dom(0, 1, -1, 1); P.axes([], [0], () => '', v => fx(v, 0), 'Race in the test seasons', 'Profit'); P.ctx.fillStyle = C.muted; P.ctx.font = '13px "Atkinson Hyperlegible", system-ui'; P.ctx.textAlign = 'center'; P.ctx.fillText('No bets at these settings', (P.L.ml + P.L.W - P.L.mr) / 2, (P.L.mt + P.L.H - P.L.mb) / 2); return; }
+    const cum = cache.cur.cum, lo = Math.min(0, ...cum), hi = Math.max(1, ...cum);
+    P.dom(0, cum.length, lo - (hi - lo) * 0.05, hi + (hi - lo) * 0.05);
+    P.axes(ticks(0, cum.length, 5), ticks(lo, hi, 5), v => int(v), v => fx(v, 0), 'Race in the test seasons', 'Profit (units)');
+    P.clip(); P.line([[0, 0], [cum.length, 0]], C.muted, 1.2, [5, 4]);
+    const step = Math.max(1, Math.floor(cum.length / 800)), pts = []; for (let k = 0; k < cum.length; k += step) pts.push([k, cum[k]]); pts.push([cum.length - 1, cum[cum.length - 1]]);
+    P.line(pts, C.accent, 1.8); P.ctx.restore();
+  });
+  function render10(full) {
+    if (!T) { $('hkCall').innerHTML = '<p class="err">The test-season data file (benter-hk-data.js) did not load. It must sit next to this page.</p>'; return; }
+    $('hkA').value = S10.a; $('hkB').value = S10.b; $('hkAOut').textContent = fx(S10.a, 2); $('hkBOut').textContent = fx(S10.b, 2);
+    const tk = S10.take; $('hkTOut').textContent = tk == null ? 'Actual (' + pct(T.meanTake, 1) + ')' : Math.round(tk * 100) + '%';
+    $('hkEOut').textContent = Math.round(S10.thr * 100) + '%';
+    const R2 = combine(S10.a, S10.b);
+    const cur = bets(tk, S10.thr, true);
+    if (full !== false) cache = { R2, cur, sweep: takeGrid.map(t => ({ t, ...bets(t, S10.thr, false) })), base: takeGrid.map(t => [t, everyRunner(t)]) }; else { cache.R2 = R2; cache.cur = cur; }
+    const be = cache.sweep.filter(s => s.n >= 20 && s.roi >= 0).map(s => s.t);
+    $('hkKV').innerHTML = `<span>Test R², combined</span><span>${fx(R2, 4)}</span><span>Test R², payout alone</span><span>${fx(P2.r2.find(r => r.m === 'public odds alone').te, 4)}</span><span>Bets</span><span>${int(cur.n)}</span><span>Profit, units</span><span>${fx(cur.prof, 1)}</span><span>ROI</span><span>${cur.n ? pct(cur.roi) : '–'}</span><span>Every runner, ROI</span><span>${pct(everyRunner(tk))}</span><span>Break-even take</span><span>${be.length ? 'up to ' + Math.round(Math.max(...be) * 100) + '%' : 'none from 0% to 19%'}</span>`;
+    const rows = [];
+    for (const [id, [a, b, nm]] of Object.entries(PRE)) { const r2 = combine(a, b), x = bets(null, S10.thr, false); rows.push(`<tr${nm === S10.label ? ' class="hl"' : ''}><td>${nm}</td><td>${fx(a, 3)}</td><td>${fx(b, 3)}</td><td>${fx(r2, 4)}</td><td>${int(x.n)}</td><td>${x.n ? pct(x.hit / x.n) : '–'}</td><td>${fx(x.prof, 1)}</td><td>${x.n ? pct(x.roi) : '–'}</td></tr>`); }
+    combine(S10.a, S10.b);
+    $('hkTab').querySelector('tbody').innerHTML = rows.join('') + `<tr><td>Your α, β at the actual payouts</td><td>${fx(S10.a, 3)}</td><td>${fx(S10.b, 3)}</td><td>${fx(R2, 4)}</td><td>${int(bets(null, S10.thr, false).n)}</td><td>–</td><td>–</td><td>${pct(bets(null, S10.thr, false).roi)}</td></tr>`;
+    let msg;
+    if (!cur.n) msg = `<p><b>No bets.</b> With \\(\\alpha = ${fx(S10.a, 2).replace('−', '-')}\\) and \\(\\beta = ${fx(S10.b, 2)}\\) no runner's combined probability is high enough to beat the payout${tk == null ? ' after the track’s take' : ''}. Lower the take to see how much of the take the model could recover.</p>`;
+    else if (cur.n < 30) msg = `<p><b>Only ${int(cur.n)} bets</b> (${pct(cur.roi)} per unit). That is far too few to tell skill from luck: one longshot winner can swing the return by tens of percentage points.</p>`;
+    else if (cur.roi < 0) msg = `<p><b>${int(cur.n)} bets, ${pct(cur.roi)} per unit staked.</b> ${S10.a > 0.1 ? 'Giving the fundamentals the weight they earned in the 1990s finds many “edges”, and they lose: the model is now wrong where it disagrees with the market.' : 'The model bets, but its edges are not real at these payouts.'}</p>`;
+    else msg = `<p><b>${int(cur.n)} bets, ${pct(cur.roi)} per unit staked.</b> ${tk != null && tk < T.meanTake - 0.02 ? 'Only because the take is set below what the track keeps. With \\(\\beta &gt; 1\\) the model corrects the favourite–longshot bias, which is real but smaller than the take.' : 'Check the number of bets before believing the return.'}</p>`;
+    $('hkCall').innerHTML = msg; typeset($('hkCall'));
+    pTake.dirty = true; pCum.dirty = true; schedule();
+  }
+  let pend = 0; const soon = full => { if (pend) return; pend = 1; requestAnimationFrame(() => { pend = 0; render10(full); }); };
+  const load = (id) => { const [a, b, nm] = PRE[id]; S10.a = +a.toFixed(3); S10.b = +b.toFixed(3); S10.label = nm; ['wVal', 'wEra', 'wMkt', 'wFit'].forEach(k => $(k).classList.toggle('primary', k === id)); render10(); };
+  ['wVal', 'wEra', 'wMkt'].forEach(id => $(id).onclick = () => load(id));
+  $('wFit').onclick = () => { const [a, b] = fitTest(); PRE.wFit = [a, b, 'Fit on 2013–17 itself (in sample)']; load('wFit'); };
+  $('hkA').oninput = e => { S10.a = +e.target.value; S10.label = ''; ['wVal', 'wEra', 'wMkt', 'wFit'].forEach(k => $(k).classList.remove('primary')); soon(); };
+  $('hkB').oninput = e => { S10.b = +e.target.value; S10.label = ''; ['wVal', 'wEra', 'wMkt', 'wFit'].forEach(k => $(k).classList.remove('primary')); soon(); };
+  $('hkT').oninput = e => { const v = +e.target.value; S10.take = v >= 20 ? null : v / 100; soon(false); };
+  $('hkE').oninput = e => { S10.thr = +e.target.value; soon(); };
+
+  // ---------- MathJax for text written by this script ----------
+  function typeset(el) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(() => {}); }
+
+  function recolor() { readColors(); plots.forEach(p => p.dirty = true); schedule(); }
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', recolor);
+
+  render7(); render8(); showCoef('jockey_logit'); render9();
+  setTimeout(() => { render10(); window.__benter2 = { T, S10, cache }; }, 60);
 })();
 </script>
 

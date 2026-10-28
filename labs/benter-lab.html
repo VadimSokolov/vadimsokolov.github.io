@@ -155,7 +155,7 @@ mjx-container { font-size: 105%; }
   <header>
     <span class="eyebrow">Polson–Sokolov Lab · Betting markets</span>
     <h1>Benter Betting Lab</h1>
-    <p class="lead">Bill Benter turned Hong Kong win odds into probabilities, corrected the crowd's biases with a conditional logit model, and sized bets with the Kelly criterion. Part I reruns each step on 73,722 horses in 5,885 races from 1997–2005: check how well the odds forecast, fit the correction yourself, size bets, and test the strategy on races the model has not seen. Part II follows Nick Polson's refit of Benter's full two-stage model on forty seasons, 1979–2018: how much the starting gate matters, which of 23 handicapping variables a model needs, and why the edge that was there in the 1990s has gone.</p>
+    <p class="lead">Bill Benter turned Hong Kong win payouts into probabilities, corrected the crowd's biases with a conditional logit model, and sized bets with the Kelly criterion. Part I reruns each step on 73,722 horses in 5,885 races from 1997–2005: check how well the odds forecast, fit the correction yourself, size bets, and test the strategy on races the model has not seen. Part II follows Nick Polson's refit of Benter's full two-stage model on forty seasons, 1979–2018: how much the starting gate matters, which of 23 handicapping variables a model needs, and why the edge that was there in the 1990s has gone.</p>
     <a class="back" href="index.html">← All labs</a>
     <p class="src">Based on the case study “Benter’s Betting Strategy” (V. Sokolov), which reproduces Benter’s computer handicapping paper as annotated by <a href="https://actamachina.com/posts/annotated-benter-paper">Acta Machina</a>; see Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/04-dec.html">Chapter 4</a> (Kelly criterion). Data: Hong Kong Jockey Club races 1997–2005 (<a href="https://www.kaggle.com/datasets/gdaley/hkracing">Kaggle gdaley/hkracing</a>). Part II is based on N. Polson, “The Benter model on Hong Kong racing: post position, variable selection and the vanishing edge” (notes, October 2026), with Hong Kong Jockey Club results 1979–2018 from <a href="https://github.com/eprochasson/horserace_data">eprochasson/horserace_data</a>; see Benter (1994) and Bolton and Chapman (1986).</p>
   </header>
@@ -165,8 +165,8 @@ mjx-container { font-size: 105%; }
   <!-- 1 -->
   <section class="card" aria-labelledby="h1s">
     <span class="eyebrow">1 · The market as a forecaster</span>
-    <h2 id="h1s">Odds are forecasts. Are they calibrated?</h2>
-    <p class="intro">Each horse's win odds become an implied probability. The case study uses \(p = 1/(\text{odds} + 1)\), normalised so the field sums to 1. Then horses are grouped by that probability, and each group's actual win rate is compared with the forecast. Points on the 45° line mean the crowd is calibrated.</p>
+    <h2 id="h1s">Payouts are forecasts. Are they calibrated?</h2>
+    <p class="intro">Each horse's final win payout O is the number of dollars paid back per $1 bet, stake included. Racetracks call O the odds, but it is not the odds \(p/(1-p)\). The implied probability is \(p = 1/O\), normalised so the field sums to 1. Then horses are grouped by that probability, and each group's actual win rate is compared with the forecast. Points on the 45° line mean the crowd is calibrated.</p>
     <div class="grid">
       <div class="board">
         <h3 id="calTitle">Calibration: 20 equal-sized groups of horses</h3>
@@ -180,14 +180,6 @@ mjx-container { font-size: 105%; }
       </div>
       <aside class="panel">
         <div class="group">
-          <span class="label" id="convL">Odds → probability</span>
-          <div class="seg" role="group" aria-labelledby="convL">
-            <button id="convFrac" aria-pressed="true">1/(O+1) case study</button>
-            <button id="convDec" aria-pressed="false">1/O dividend</button>
-          </div>
-          <p class="hint" id="convNote"></p>
-        </div>
-        <div class="group">
           <span class="label" id="viewL">Group horses by</span>
           <div class="seg" role="group" aria-labelledby="viewL">
             <button id="viewBins" aria-pressed="true">Probability (20 bins)</button>
@@ -196,7 +188,7 @@ mjx-container { font-size: 105%; }
         </div>
         <div class="group">
           <span class="label">Try one price</span>
-          <div class="field"><label for="oddsIn">Quoted win odds O</label><input type="number" id="oddsIn" min="1" max="99" step="0.1" value="3.5"></div>
+          <div class="field"><label for="oddsIn">Quoted win payout O</label><input type="number" id="oddsIn" min="1" max="99" step="0.1" value="3.5"></div>
           <div class="kv" id="oddsOut"></div>
         </div>
         <div class="group">
@@ -211,7 +203,6 @@ mjx-container { font-size: 105%; }
         <div class="scroll"><table class="mini" id="venueTab">
           <thead><tr><th>Venue</th><th>Races</th><th>Avg field</th><th>Fav wins</th><th>Implied</th><th>Bias</th></tr></thead><tbody></tbody>
         </table></div>
-        <p class="hint">Case study: “favorites win approximately 4–5 percentage points more often than the public odds imply” at both tracks.</p>
       </div>
       <div class="colstack">
         <span class="label">Calibration by betting rank (1 = favourite)</span>
@@ -226,7 +217,7 @@ mjx-container { font-size: 105%; }
   <section class="card" aria-labelledby="h2s">
     <span class="eyebrow">2 · Correcting the crowd</span>
     <h2 id="h2s">One parameter, fitted by maximum likelihood</h2>
-    <p class="intro">Benter's public-only model raises every horse's log-odds to a power and renormalises within the race: \(c_i \propto \exp(\alpha \cdot \operatorname{logit} p_i)\). With \(\alpha = 1\) nothing changes. With \(\alpha &gt; 1\) the gaps widen and probability moves from longshots to favourites. Drag \(\alpha\) and watch the negative log-likelihood of the observed winners.</p>
+    <p class="intro">Benter's public-only model raises every horse's crowd chance to a power and renormalises within the race: \(c_i \propto p_i^{\alpha} = \exp(\alpha \log p_i)\). With \(\alpha = 1\) nothing changes. With \(\alpha &gt; 1\) the gaps widen and probability moves from longshots to favourites. Drag \(\alpha\) and watch the negative log-likelihood of the observed winners.</p>
     <div class="grid">
       <div class="colstack">
         <div class="board">
@@ -263,7 +254,7 @@ mjx-container { font-size: 105%; }
       </div>
       <aside class="panel">
         <div class="group">
-          <div class="slider"><div class="top"><label for="alpha">α, weight on public log-odds</label><output id="alphaOut" for="alpha">1.000</output></div>
+          <div class="slider"><div class="top"><label for="alpha">α, power on the crowd chance</label><output id="alphaOut" for="alpha">1.000</output></div>
             <input type="range" id="alpha" min="0.75" max="1.4" step="0.005" value="1.06"></div>
           <div class="btns">
             <button id="alphaMle" class="primary">Set α to the MLE</button>
@@ -280,7 +271,7 @@ mjx-container { font-size: 105%; }
           <div class="scroll"><table class="mini" id="brier2">
             <thead><tr><th>Forecast</th><th>Brier</th><th>Gain</th></tr></thead><tbody></tbody>
           </table></div>
-          <p class="hint">Gain = percent reduction from the raw public Brier score. Case study: \(\alpha = 1.06\) and an improvement of about 0.45%.</p>
+          <p class="hint">Gain = percent reduction from the raw public Brier score.</p>
         </div>
       </aside>
     </div>
@@ -290,8 +281,8 @@ mjx-container { font-size: 105%; }
   <section class="card" aria-labelledby="h3s">
     <span class="eyebrow">3 · Adding fundamentals</span>
     <h2 id="h3s">The full combined model: a softmax over the field</h2>
-    <p class="intro">Now add four fundamental factors next to the public log-odds: the jockey's and trainer's past win rates (from earlier races only), the starting gate (standardised within the race, positive = outside) and the horse's rating relative to the field, per 10 points. The model is a conditional logit, fitted here by Newton–Raphson on every race with a single winner.</p>
-    <div class="tex">\[ \begin{aligned} c_i &amp;= \frac{\exp(\eta_i)}{\sum_{k \text{ in race}} \exp(\eta_k)},\\ \eta &amp;= \alpha\cdot\operatorname{logit}(p) + \beta_J\cdot\text{jockey} + \beta_T\cdot\text{trainer} + \beta_D\cdot\text{draw} + \beta_R\cdot\text{rating}/10 \end{aligned} \]</div>
+    <p class="intro">Now add four fundamental factors next to the log crowd chance \(\log p\): the jockey's and trainer's past win rates (from earlier races only), the starting gate (standardised within the race, positive = outside) and the horse's rating relative to the field, per 10 points. The model is a conditional logit, fitted here by Newton–Raphson on every race with a single winner.</p>
+    <div class="tex">\[ \begin{aligned} c_i &amp;= \frac{\exp(\eta_i)}{\sum_{k \text{ in race}} \exp(\eta_k)},\\ \eta &amp;= \alpha\cdot\log p + \beta_J\cdot\text{jockey} + \beta_T\cdot\text{trainer} + \beta_D\cdot\text{draw} + \beta_R\cdot\text{rating}/10 \end{aligned} \]</div>
     <div class="grid">
       <div class="colstack">
         <div class="scroll"><table class="mini" id="coefTab">
@@ -334,11 +325,11 @@ mjx-container { font-size: 105%; }
           <p class="hint" id="fitTime"></p>
         </div>
         <div class="group">
-          <span class="label">Case study vs this page</span>
+          <span class="label">Summary of this page</span>
           <div class="scroll"><table class="mini" id="repTab">
-            <thead><tr><th>Quantity</th><th>Case study</th><th>Here</th></tr></thead><tbody></tbody>
+            <thead><tr><th>Quantity</th><th>Value</th></tr></thead><tbody></tbody>
           </table></div>
-          <p class="hint">Rule for dead heats: the 12 races with two winners are left out of every likelihood, as in the case study's R code, and both co-winners count as wins in Brier scores and calibration.</p>
+          <p class="hint">Rule for dead heats: the 12 races with two winners are left out of every likelihood,, and both co-winners count as wins in Brier scores and calibration.</p>
         </div>
       </aside>
     </div>
@@ -410,11 +401,11 @@ mjx-container { font-size: 105%; }
             <span><i class="sw" style="background:var(--curve)"></i>Public p</span>
             <span><i class="sw"></i>Model c (full model, all races)</span>
             <span><i class="sw" style="background:var(--fit)"></i>Kelly stake, % of bankroll</span>
-            <span><i class="sw dash"></i>1/O at the payout odds</span>
+            <span><i class="sw dash"></i>1/O at the payout</span>
           </div>
         </div>
         <div class="scroll"><table class="mini" id="raceTab">
-          <thead><tr><th>Horse</th><th>Odds O</th><th>Public p</th><th>Model c</th><th>Edge c·O − 1</th><th>Kelly stake</th><th>Result</th></tr></thead><tbody></tbody>
+          <thead><tr><th>Horse</th><th>Payout O</th><th>Public p</th><th>Model c</th><th>Edge c·O − 1</th><th>Kelly stake</th><th>Result</th></tr></thead><tbody></tbody>
         </table></div>
       </div>
       <aside class="panel">
@@ -428,9 +419,9 @@ mjx-container { font-size: 105%; }
           </div>
         </div>
         <div class="group">
-          <div class="slider"><div class="top"><label for="take5">Payout odds: track take</label><output id="take5Out" for="take5">5%</output></div>
+          <div class="slider"><div class="top"><label for="take5">Payout: track take</label><output id="take5Out" for="take5">5%</output></div>
             <input type="range" id="take5" min="0" max="21" step="1" value="5"></div>
-          <p class="hint">The far right uses the actual final odds. Lower values rescale them as if the track kept that share of the pool. At 0% the odds are the public's own fair prices.</p>
+          <p class="hint">The far right uses the actual final payouts. Lower values rescale them as if the track kept that share of the pool. At 0% the odds are the public's own fair prices.</p>
         </div>
         <div class="group">
           <span class="label">Allocation</span>
@@ -474,7 +465,7 @@ mjx-container { font-size: 105%; }
       </div>
       <aside class="panel">
         <div class="group">
-          <div class="slider"><div class="top"><label for="take6">Payout odds: track take</label><output id="take6Out" for="take6">Actual</output></div>
+          <div class="slider"><div class="top"><label for="take6">Payout: track take</label><output id="take6Out" for="take6">Actual</output></div>
             <input type="range" id="take6" min="0" max="21" step="1" value="21"></div>
           <div class="slider"><div class="top"><label for="thr">Bet when edge exceeds</label><output id="thrOut" for="thr">0%</output></div>
             <input type="range" id="thr" min="0" max="0.3" step="0.01" value="0"></div>
@@ -489,8 +480,8 @@ mjx-container { font-size: 105%; }
         <div class="group">
           <span class="label">What this backtest ignores</span>
           <ul class="hint" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">
-            <li>Price impact. In a pari-mutuel pool your own bet lowers your odds. Benter solved for the bet size against the final odds after his money was in.</li>
-            <li>Timing. These are final odds, which nobody knows when betting closes; late money moves prices.</li>
+            <li>Price impact. In a pari-mutuel pool your own bet lowers your payout. Benter solved for the bet size against the final payouts after his money was in.</li>
+            <li>Timing. These are final payouts, which nobody knows when betting closes; late money moves prices.</li>
             <li>The 99 cap. Odds above 99 are recorded as 99, so longshot payouts here are understated.</li>
             <li>Exotic pools. Benter also bet exactas and trifectas and built synthetic win bets from them; he also received rebates on turnover.</li>
             <li>His model. Benter used over a hundred factors; this one has four.</li>
@@ -505,7 +496,7 @@ mjx-container { font-size: 105%; }
     <span class="eyebrow">Part II · Forty seasons of Hong Kong racing, 1979–2018</span>
     <h2 id="p2h">Benter's full two-stage model, and what happened to his edge</h2>
     <p>Sections 1 to 6 use eight seasons and four factors. Nick Polson refitted Benter's model on a much larger public record of Hong Kong Jockey Club results: about 265,000 runs in 23,000 races from 1979 to 2018, with the handicapping variables Benter described. Every variable uses only what was known before the race. The races are split by season: the model is fitted on 1999–2010 (5,997 races), tuned on 2011–12 (1,522) and tested on 2013–17 (3,860), which it never sees while being built.</p>
-    <p>Benter's model has two stages. Stage one is a conditional logit on the fundamentals alone, which gives each runner a score \(f_i = x_i^\top \hat b\). Stage two combines that score with the public's implied probability \(q_i\):</p>
+    <p>Benter's model has two stages. Stage one is a conditional logit on the fundamentals alone, which gives each runner a score \(f_i = x_i^\top \hat b\). Stage two combines that score with the public's implied probability \(q_i\), which is \(1/O_i\) rescaled to sum to one in the race. It enters through \(\log q_i\), not its logit:</p>
     <div class="tex">\[ c_i = \frac{\exp(\alpha f_i + \beta \log q_i)}{\sum_j \exp(\alpha f_j + \beta \log q_j)} \]</div>
     <p>The model has an edge only if \(\alpha &gt; 0\): the fundamentals must carry information that the crowd has not already priced. Fit is reported as McFadden's pseudo \(R^2 = 1 - \ell(\hat b)/\ell_0\), where \(\ell_0 = -\sum_r \log n_r\) is the log-likelihood of picking every winner at random. This is the measure Benter used.</p>
   </section>
@@ -551,7 +542,7 @@ mjx-container { font-size: 105%; }
   <section class="card" aria-labelledby="h8s">
     <span class="eyebrow">8 · Variable selection</span>
     <h2 id="h8s">Twelve variables do the work of twenty-three</h2>
-    <p class="intro">The full model has 23 candidate variables: the draw, weight carried, rating, recent form, lengths beaten, layoff, body-weight and distance changes, jockey and trainer records, and the odds in the horse's previous race. Each is centred on its race average, because anything that is the same for every runner cancels out of the softmax. Two ways to choose a smaller model are compared here. Forward stepwise selection adds the variable that most lowers \(\text{BIC} = -2\ell + k\log R\), where \(R\) is the number of races. The lasso penalises \(\lambda\sum_j |b_j|\) and lets the penalty push coefficients to exactly zero.</p>
+    <p class="intro">The full model has 23 candidate variables: the draw, weight carried, rating, recent form, lengths beaten, layoff, body-weight and distance changes, jockey and trainer records, and the payout in the horse's previous race. Each is centred on its race average, because anything that is the same for every runner cancels out of the softmax. Two ways to choose a smaller model are compared here. Forward stepwise selection adds the variable that most lowers \(\text{BIC} = -2\ell + k\log R\), where \(R\) is the number of races. The lasso penalises \(\lambda\sum_j |b_j|\) and lets the penalty push coefficients to exactly zero.</p>
     <div class="grid">
       <div class="colstack">
         <div class="board">
@@ -597,7 +588,7 @@ mjx-container { font-size: 105%; }
   <section class="card" aria-labelledby="h9s">
     <span class="eyebrow">9 · The edge over time</span>
     <h2 id="h9s">Benter's edge, era by era</h2>
-    <p class="intro">This section reruns Benter's procedure separately in six blocks of six seasons. Within each block, the twelve-variable fundamental model is fitted on the first three seasons. The stage-two weights \(\alpha\) and \(\beta\) are then fitted on the last three seasons, and every \(R^2\) in that row is measured on them too. If the fundamentals add information beyond the odds, \(\alpha\) is positive.</p>
+    <p class="intro">This section reruns Benter's procedure separately in six blocks of six seasons. Within each block, the twelve-variable fundamental model is fitted on the first three seasons. The stage-two weights \(\alpha\) and \(\beta\) are then fitted on the last three seasons, and every \(R^2\) in that row is measured on them too. If the fundamentals add information beyond the payouts, \(\alpha\) is positive.</p>
     <div class="grid">
       <div class="colstack">
         <div class="split">
@@ -609,9 +600,9 @@ mjx-container { font-size: 105%; }
           </div>
           <div class="board">
             <h3>Pseudo R² on the later half of each era</h3>
-            <canvas id="cvEraR2" role="img" aria-label="Pseudo R squared of the fundamental model, the public odds and the combined model in each era"></canvas>
+            <canvas id="cvEraR2" role="img" aria-label="Pseudo R squared of the fundamental model, the public payout and the combined model in each era"></canvas>
             <div class="tip" hidden></div>
-            <div class="legend"><span><i class="sw line" style="border-color:var(--ball)"></i>Fundamentals</span><span><i class="sw line" style="border-color:var(--curve)"></i>Public odds</span><span><i class="sw line" style="border-color:var(--fit)"></i>Combined</span></div>
+            <div class="legend"><span><i class="sw line" style="border-color:var(--ball)"></i>Fundamentals</span><span><i class="sw line" style="border-color:var(--curve)"></i>Public payout</span><span><i class="sw line" style="border-color:var(--fit)"></i>Combined</span></div>
           </div>
         </div>
       </div>
@@ -633,7 +624,7 @@ mjx-container { font-size: 105%; }
   <section class="card" aria-labelledby="h10s">
     <span class="eyebrow">10 · The honest backtest, 2013–2017</span>
     <h2 id="h10s">Can the two-stage model still beat the take?</h2>
-    <p class="intro">This backtest uses the 3,860 test races, with each runner's stage-one score from the twelve-variable model fitted on 1999–2010. You choose \(\alpha\) and \(\beta\), and the page recomputes the combined probabilities \(c_i\) in the browser. It then bets 1 unit on every runner whose edge \(c_i O_i - 1\), with \(O_i\) the payout odds, is above the threshold. The track keeps about 19% of every pool here, so an edge has to clear that first. The take slider rescales the payout odds as if the track kept less.</p>
+    <p class="intro">This backtest uses the 3,860 test races, with each runner's stage-one score from the twelve-variable model fitted on 1999–2010. You choose \(\alpha\) and \(\beta\), and the page recomputes the combined probabilities \(c_i\) in the browser. It then bets 1 unit on every runner whose edge \(c_i O_i - 1\), with \(O_i\) the payout, is above the threshold. The track keeps about 19% of every pool here, so an edge has to clear that first. The take slider rescales the payouts as if the track kept less.</p>
     <div class="grid">
       <div class="colstack">
         <div class="split">
@@ -669,7 +660,7 @@ mjx-container { font-size: 105%; }
             <input type="range" id="hkB" min="0.6" max="1.4" step="0.01" value="1.06"></div>
         </div>
         <div class="group">
-          <div class="slider"><div class="top"><label for="hkT">Payout odds: track take</label><output id="hkTOut" for="hkT">Actual</output></div>
+          <div class="slider"><div class="top"><label for="hkT">Payout: track take</label><output id="hkTOut" for="hkT">Actual</output></div>
             <input type="range" id="hkT" min="0" max="20" step="1" value="20"></div>
           <div class="slider"><div class="top"><label for="hkE">Bet when edge exceeds</label><output id="hkEOut" for="hkE">0%</output></div>
             <input type="range" id="hkE" min="0" max="0.3" step="0.01" value="0"></div>
@@ -678,7 +669,7 @@ mjx-container { font-size: 105%; }
           <div class="kv" id="hkKV"></div>
         </div>
         <div class="callout" id="hkCall"></div>
-        <p class="hint">Final odds are used, which no bettor sees when placing a bet. That flatters any backtest. Odds above 99 are recorded as 99.</p>
+        <p class="hint">Final payouts are used, which no bettor sees when placing a bet. That flatters any backtest. Payouts above 99 are recorded as 99.</p>
       </aside>
     </div>
   </section>
@@ -686,8 +677,8 @@ mjx-container { font-size: 105%; }
   <section class="notes" aria-label="Lessons">
     <div class="note">
       <h2>Market prices are a strong, biased prior</h2>
-      <p>The odds already pool the views of thousands of bettors. A model that starts from \(\operatorname{logit}(p)\) and adds a few factors needs to explain only what the crowd missed, which is why \(\alpha\) carries almost all the weight.</p>
-      <p>The bias is systematic and small: a few points for favourites, a fraction of a point for each longshot. Check the units first. Section 1 shows how much of the bias here depends on the odds-to-probability formula.</p>
+      <p>The payouts already pool the views of thousands of bettors. A model that starts from \(\log p\) and adds a few factors needs to explain only what the crowd missed, which is why \(\alpha\) carries almost all the weight.</p>
+      <p>The bias is systematic and small: a few points for favourites, a fraction of a point for each longshot. Check the units first.</p>
     </div>
     <div class="note">
       <h2>Conditional logit = softmax over the field</h2>
@@ -713,7 +704,7 @@ mjx-container { font-size: 105%; }
     </div>
     <div class="note">
       <h2>The draw is real, small and course-specific</h2>
-      <p>At Happy Valley, moving from the rail to the widest gate multiplies a horse's odds of winning by about 0.41; at Sha Tin by about 0.81. Yet the draw alone explains a pseudo \(R^2\) of only 0.005. A variable can be highly significant and still be a small part of the forecast.</p>
+      <p>At Happy Valley, moving from the rail to the widest gate multiplies a horse's odds of winning by about 0.41; at Sha Tin by about 0.81. Here “odds of winning” means \(p/(1-p)\), not the payout. Yet the draw alone explains a pseudo \(R^2\) of only 0.005. A variable can be highly significant and still be a small part of the forecast.</p>
     </div>
     <div class="note">
       <h2>BIC counts races, not runners</h2>
@@ -721,7 +712,7 @@ mjx-container { font-size: 105%; }
     </div>
     <div class="note">
       <h2>Why the edge vanished</h2>
-      <p>The fundamental model got better over forty seasons (\(R^2\) from 0.06 to 0.12), but the odds got better faster (0.14 to 0.20). The final odds now include the syndicates' own bets, so the crowd partly is the computer models. Given the market, all 23 variables are jointly significant in sample (likelihood ratio 63.0 on 23 degrees of freedom) and add nothing out of sample: test \(R^2\) falls from 0.1973 to 0.1964.</p>
+      <p>The fundamental model got better over forty seasons (\(R^2\) from 0.06 to 0.12), but the payouts got better faster (0.14 to 0.20). The final payouts now include the syndicates' own bets, so the crowd partly is the computer models. Given the market, all 23 variables are jointly significant in sample (likelihood ratio 63.0 on 23 degrees of freedom) and add nothing out of sample: test \(R^2\) falls from 0.1973 to 0.1964.</p>
     </div>
     <div class="note">
       <h2>A word on gambling</h2>
@@ -732,14 +723,14 @@ mjx-container { font-size: 105%; }
   <section class="try">
     <h2>Try this in class</h2>
     <ol>
-      <li>Before showing section 1, ask: a horse quoted at 3.5 in Hong Kong, what is its implied probability? Then switch between the two conversion formulas and compare the favourite's bias, the fitted \(\alpha\) and the overround. Which formula matches a track that keeps 17.5% of the pool?</li>
+      <li>Before showing section 1, ask: a horse quoted at 3.5 in Hong Kong, what is its implied probability? Then check that the field's Σ 1/O matches a track that keeps 17.5% of the pool.</li>
       <li>In section 2, move \(\alpha\) from 1.00 to the MLE and read off the gain in log-likelihood. How large is it per race? Use the 1.92 line to read a 95% interval for \(\alpha\), and compare it with \(\hat\alpha \pm 1.96\,\text{SE}\) from the panel.</li>
       <li>In section 3, which coefficients have \(|z| &gt; 2\)? Explain the negative jockey sign to a classmate in one sentence, then switch to "Later races" and check whether the full model still beats the public-only model out of sample.</li>
       <li>In section 4, load the two case-study bets. The 12/1 bet has the larger edge (30% vs 25%), yet Kelly stakes 2.5 times less on it. Why? Then set the stake to 2× Kelly and predict the median growth before running the paths.</li>
-      <li>In section 6, start at the actual odds, then lower the take until the model starts betting. At what take does flat staking break even? Compare with the 17.5% the track deducts, and list what else would have to go right for a real bettor.</li>
+      <li>In section 6, start at the actual payouts, then lower the take until the model starts betting. At what take does flat staking break even? Compare with the 17.5% the track deducts, and list what else would have to go right for a real bettor.</li>
       <li>In section 7, compare the two courses. Ask why a rail draw should matter more on a tight track, and why the model's curve is smoother than the dots.</li>
       <li>In section 8, move λ from left to right and name the first five variables to enter. Compare them with the first five steps of stepwise BIC. Why does the lasso keep rating but not weight carried?</li>
-      <li>In section 9, predict which era has the largest \(\alpha\) before clicking. Then explain why \(\beta &gt; 1\) after 2004 means the odds are “sharper than they look”.</li>
+      <li>In section 9, predict which era has the largest \(\alpha\) before clicking. Then explain why \(\beta &gt; 1\) after 2004 means the payouts are “sharper than they look”.</li>
       <li>In section 10, load the 1998–2003 weights and watch the model find bets on 2013–17. Then press “Fit on 2013–17 itself” and explain why even weights fitted to the test seasons do not beat the take.</li>
     </ol>
   </section>
@@ -773,12 +764,12 @@ mjx-container { font-size: 105%; }
   const rN = dec(RC.n, 1, R), rDay = dec(RC.day, 2, R), rVen = dec(RC.v, 1, R), rDist = dec(RC.dist, 1, R), rGo = dec(RC.go, 1, R), rCls = dec(RC.cls, 1, R), rId = dec(RC.id, 3, R);
   const rS = new Int32Array(R + 1); for (let r = 0; r < R; r++) rS[r + 1] = rS[r] + rN[r];
   const O = new Float64Array(N), win = new Uint8Array(N), jw = new Float64Array(N), tw = new Float64Array(N), dn = new Float64Array(N), rd = new Float64Array(N), raceOf = new Int32Array(N), rank = new Int32Array(N);
-  const nWin = new Int32Array(R), bookDec = new Float64Array(R), bookFrac = new Float64Array(R), favIdx = new Int32Array(R);
+  const nWin = new Int32Array(R), bookDec = new Float64Array(R), favIdx = new Int32Array(R);
   for (let r = 0; r < R; r++) {
     const a = rS[r], b = rS[r + 1], n = b - a; let sd = 0, sr = 0;
     for (let i = a; i < b; i++) {
       O[i] = oddsI[i] / 10; win[i] = dwI[i] & 1; jw[i] = jI[i] / 4000; tw[i] = tI[i] / 4000; raceOf[i] = r;
-      sd += dwI[i] >> 1; sr += ratI[i]; nWin[r] += win[i]; bookDec[r] += 1 / O[i]; bookFrac[r] += 1 / (O[i] + 1);
+      sd += dwI[i] >> 1; sr += ratI[i]; nWin[r] += win[i]; bookDec[r] += 1 / O[i];
     }
     const md = sd / n, mr = sr / n; let v = 0;
     for (let i = a; i < b; i++) { const d = (dwI[i] >> 1) - md; v += d * d; }
@@ -796,16 +787,16 @@ mjx-container { font-size: 105%; }
   const meetOfRace = new Int32Array(R); meetings.forEach((m, k) => m.races.forEach(r => meetOfRace[r] = k));
 
   // ---------- state ----------
-  const S = { conv: 'frac', view: 'bins', alpha: 1.06, exRace: 0, evalOut: false, cut: 0.8, kb: 4, kp: 0.25, nBets: 1000, seed: 7, race: 0, take5: 5, take6: 21, thr: 0, kfrac: 0.25 };
-  const F = {}; // fitted quantities for the current convention
+  const S = { view: 'bins', alpha: 1.06, exRace: 0, evalOut: false, cut: 0.8, kb: 4, kp: 0.25, nBets: 1000, seed: 7, race: 0, take5: 5, take6: 21, thr: 0, kfrac: 0.25 };
+  const F = {}; // fitted quantities
   const pub = new Float64Array(N), z = new Float64Array(N);
 
   // ---------- model core ----------
   function setConv() {
     for (let r = 0; r < R; r++) {
       const a = rS[r], b = rS[r + 1]; let s = 0;
-      for (let i = a; i < b; i++) { pub[i] = S.conv === 'frac' ? 1 / (O[i] + 1) : 1 / O[i]; s += pub[i]; }
-      for (let i = a; i < b; i++) { pub[i] /= s; const p = Math.min(Math.max(pub[i], 1e-10), 1 - 1e-10); z[i] = Math.log(p / (1 - p)); }
+      for (let i = a; i < b; i++) { pub[i] = 1 / O[i]; s += pub[i]; }
+      for (let i = a; i < b; i++) { pub[i] /= s; const p = Math.min(Math.max(pub[i], 1e-10), 1 - 1e-10); z[i] = Math.log(p); }
     }
   }
   const K5 = 5;
@@ -1024,16 +1015,12 @@ mjx-container { font-size: 105%; }
   const pCal = makePlot('cvCal', sq, { ml: 50, mr: 12, mt: 10, mb: 42 }, P => drawCal(P, calSets()),
     calHover(calSets, h => S.view === 'bins' ? `Bin ${h.k + 1} of 20` : (h.k === 0 ? 'Favourites (rank 1)' : `Rank ${h.k + 1}`)));
   function renderS1() {
-    $('convFrac').setAttribute('aria-pressed', S.conv === 'frac'); $('convDec').setAttribute('aria-pressed', S.conv === 'dec');
     $('viewBins').setAttribute('aria-pressed', S.view === 'bins'); $('viewRank').setAttribute('aria-pressed', S.view === 'rank');
     $('calTitle').textContent = S.view === 'bins' ? 'Calibration: 20 equal-sized groups of horses' : 'Calibration by betting rank (labels = rank)';
     const f = F.rank[0];
     $('calNote').textContent = S.view === 'bins'
       ? `${F.calPub[19].act > F.calPub[19].mp && F.calPub[0].act < F.calPub[0].mp ? 'Longshot bins sit below the line and the top bin above it. ' : ''}Top bin: forecast ${pct(F.calPub[19].mp)}, actual ${pct(F.calPub[19].act)}. Bottom bin: forecast ${pct(F.calPub[0].mp, 2)}, actual ${pct(F.calPub[0].act, 2)}.`
-      : `The favourite wins ${pct(f.act)} of races against ${pct(f.imp)} implied (case study: 30.0% vs 25.5%). ${F.rank.slice(1).filter(b => b.act < b.imp).length} of ranks 2 to 10 win less often than implied.`;
-    $('convNote').innerHTML = S.conv === 'frac'
-      ? 'The case study treats O as "O to 1" odds. Hong Kong quotes the dividend per $1 including the stake, so 1/O is the price the pool actually pays. Switch to compare: every number on the page refits.'
-      : 'With 1/O the favourite bias shrinks to about one point and the fitted α drops below 1. Much of the case study\'s bias comes from the conversion formula, not the crowd.';
+      : `The favourite wins ${pct(f.act)} of races against ${pct(f.imp)} implied. ${F.rank.slice(1).filter(b => b.act < b.imp).length} of ranks 2 to 10 win less often than implied.`;
     // venue
     const vn = ['Happy Valley', 'Sha Tin', 'All races'];
     $('venueTab').tBodies[0].innerHTML = F.venue.map((b, k) => `<tr${k === 2 ? ' class="hl"' : ''}><td>${vn[k]}</td><td>${int(b.races)}</td><td>${fx(b.fs, 1)}</td><td class="mod">${pct(b.act)}</td><td class="pub">${pct(b.imp)}</td><td>${pts(b.act - b.imp)}</td></tr>`).join('');
@@ -1042,14 +1029,14 @@ mjx-container { font-size: 105%; }
   }
   function renderOdds() {
     let o = parseFloat($('oddsIn').value); if (!isFinite(o) || o < 1) o = 1; if (o > 999) o = 999;
-    $('oddsOut').innerHTML = `<span>1/(O+1), case study</span><span>${pct(1 / (o + 1))}</span><span>1/O, dividend</span><span>${pct(1 / o)}</span><span>$10 on a winner returns</span><span>$${fx(10 * o, 2)}</span>`;
+    $('oddsOut').innerHTML = `<span>Implied probability 1/O</span><span>${pct(1 / o)}</span><span>$10 on a winner returns</span><span>$${fx(10 * o, 2)}</span>`;
   }
-  { // book statistics do not depend on the convention
-    let sd = 0, sf = 0, fr = 0, fp = 0, cap = 0; for (let r = 0; r < R; r++) { sd += bookDec[r]; sf += bookFrac[r]; const i = favIdx[r]; fr += win[i] * O[i]; } for (let i = 0; i < N; i++) if (O[i] >= 99) cap++;
-    sd /= R; sf /= R; fr = fr / R - 1;
+  { // book statistics
+    let sd = 0, fr = 0, fp = 0, cap = 0; for (let r = 0; r < R; r++) { sd += bookDec[r]; const i = favIdx[r]; fr += win[i] * O[i]; } for (let i = 0; i < N; i++) if (O[i] >= 99) cap++;
+    sd /= R; fr = fr / R - 1;
     F.bookDec = sd; F.takeAvg = 1 - 1 / sd;
-    $('bookKV').innerHTML = `<span>Average Σ 1/(O+1) per race</span><span>${fx(sf, 3)}</span><span>Average Σ 1/O per race</span><span>${fx(sd, 3)}</span><span>Implied take 1 − 1/Σ(1/O)</span><span>${pct(F.takeAvg)}</span><span>Return on $1 on every favourite</span><span>${pct(fr)}</span><span>Horses at the 99 cap</span><span>${pct(cap / N)}</span>`
-      + `<span style="grid-column:1/-1" class="hint">The Jockey Club deducts 17.5% of the win pool; rounding odds down to 0.1 takes a little more. A take of ${pct(1 - 1 / sf)} under 1/(O+1) would be far too small, and a 1/(O+1) reader would expect a profit from backing every favourite. ${int(nIncomplete)} races have Σ 1/O below 1.15 because runners are missing from the data; they stay in the model fits but are not bet.</span>`;
+    $('bookKV').innerHTML = `<span>Average Σ 1/O per race</span><span>${fx(sd, 3)}</span><span>Implied take 1 − 1/Σ(1/O)</span><span>${pct(F.takeAvg)}</span><span>Return on $1 on every favourite</span><span>${pct(fr)}</span><span>Horses at the 99 cap</span><span>${pct(cap / N)}</span>`
+      + `<span style="grid-column:1/-1" class="hint">The Jockey Club deducts 17.5% of the win pool; rounding payouts down to 0.1 takes a little more. ${int(nIncomplete)} races have Σ 1/O below 1.15 because runners are missing from the data; they stay in the model fits but are not bet.</span>`;
   }
 
   // ---------- section 2 ----------
@@ -1093,7 +1080,7 @@ mjx-container { font-size: 105%; }
   }, (P, x) => {
     const r = S.exRace, n = rN[r], k = Math.floor(P.ix(x)); if (k < 0 || k >= n) return null;
     const idx = []; for (let i = rS[r]; i < rS[r + 1]; i++) idx.push(i); idx.sort((x, y) => rank[x] - rank[y]); const i = idx[k];
-    return { k, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>odds ${fx(O[i], 1)}<br>public ${pct(pub[i], 2)}<br>adjusted ${pct(adjC[i], 2)}<br>shift ${pts(adjC[i] - pub[i], 2)}` };
+    return { k, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>payout ${fx(O[i], 1)}<br>public ${pct(pub[i], 2)}<br>adjusted ${pct(adjC[i], 2)}<br>shift ${pts(adjC[i] - pub[i], 2)}` };
   });
   const cal2Sets = () => [{ key: 'b', pts: F.calPub, col: C.curve }, { key: 'a', pts: calAdj, col: C.accent }];
   const pCal2 = makePlot('cvCal2', w => Math.round(Math.min(Math.max(w * 0.85, 250), 380)), { ml: 46, mr: 10, mt: 10, mb: 40 }, P => { if (calAdj) drawCal(P, cal2Sets()); },
@@ -1118,7 +1105,7 @@ mjx-container { font-size: 105%; }
   const cal3Sets = () => [{ key: 'f', pts: S.evalOut ? F.oCal : F.calFull, col: C.fit, err: true }];
   const pCal3 = makePlot('cvCal3', w => Math.round(Math.min(Math.max(w * 0.85, 250), 380)), { ml: 46, mr: 10, mt: 10, mb: 40 }, P => { if (F.calFull) drawCal(P, cal3Sets()); },
     calHover(cal3Sets, h => `Full model, bin ${h.k + 1}`));
-  const PNAMES = ['α · logit(public p)', 'β jockey win rate', 'β trainer win rate', 'β draw (z-score)', 'β rating diff / 10'];
+  const PNAMES = ['α · log(public p)', 'β jockey win rate', 'β trainer win rate', 'β draw (z-score)', 'β rating diff / 10'];
   function renderS3() {
     $('evIn').setAttribute('aria-pressed', !S.evalOut); $('evOut').setAttribute('aria-pressed', S.evalOut);
     const fit = S.evalOut ? F.oFull : F.full, pf = S.evalOut ? F.oPub : F.pubFit;
@@ -1146,13 +1133,12 @@ mjx-container { font-size: 105%; }
     $('fitTime').textContent = `Full model on all races: ${it.length} Newton steps in ${fx(F.full.ms, 0)} ms (${int(N)} horses × 5 parameters). Starting values α = 1, β = 0.`;
     const rk = F.rank[0];
     const rep = [
-      ['Favourite wins', '30.0%', pct(rk.act)], ['Favourite implied', '25.5%', pct(rk.imp)],
-      ['Bias, Happy Valley', '4–5 pts', pts(F.venue[0].act - F.venue[0].imp)], ['Bias, Sha Tin', '4–5 pts', pts(F.venue[1].act - F.venue[1].imp)],
-      ['α̂ (public only)', '1.06', fx(F.alphaHat, 3)], ['Brier gain with α̂', '≈0.45%', pct((F.brierPub - F.brierAdj) / F.brierPub, 2)],
-      ['LR test, 4 df', 'p < 0.05', 'p = ' + fx(F.lrP, 3)]
+      ['Favourite wins', pct(rk.act)], ['Favourite implied', pct(rk.imp)],
+      ['Bias, Happy Valley', pts(F.venue[0].act - F.venue[0].imp)], ['Bias, Sha Tin', pts(F.venue[1].act - F.venue[1].imp)],
+      ['α̂ (public only)', fx(F.alphaHat, 3)], ['Brier gain with α̂', pct((F.brierPub - F.brierAdj) / F.brierPub, 2)],
+      ['LR test, 4 df', 'p = ' + fx(F.lrP, 3)]
     ];
-    $('repTab').tBodies[0].innerHTML = rep.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="mod">${r[2]}</td></tr>`).join('')
-      + (S.conv === 'dec' ? '<tr><td colspan="3" class="hint" style="white-space:normal">The case study used 1/(O+1); switch back in section 1 to compare like with like.</td></tr>' : '');
+    $('repTab').tBodies[0].innerHTML = rep.map(r => `<tr><td>${r[0]}</td><td class="mod">${r[1]}</td></tr>`).join('');
     dirty(pCal3);
   }
 
@@ -1229,7 +1215,7 @@ mjx-container { font-size: 105%; }
     $('kb').value = S.kb; $('kp').value = S.kp; $('nBetsOut').textContent = int(S.nBets);
     const fs = kellyF(), b = S.kb, p = S.kp, edge = b * p - (1 - p), fl = frac(fs);
     $('kellyBig').textContent = fs > 0 ? `f* = ${fl || pct(fs, 2)}` : 'f* ≤ 0: no bet';
-    $('kellyKV').innerHTML = `<span>Edge bp − q (profit per $1)</span><span>${sg(edge, 3)}</span><span>Kelly f* = edge / b</span><span>${fs > 0 ? pct(fs, 2) : '0%'}</span><span>Decimal odds b + 1</span><span>${fx(b + 1, 1)}</span><span>Break-even p = 1/(b+1)</span><span>${fx(1 / (b + 1), 3)}</span>`;
+    $('kellyKV').innerHTML = `<span>Edge bp − q (profit per $1)</span><span>${sg(edge, 3)}</span><span>Kelly f* = edge / b</span><span>${fs > 0 ? pct(fs, 2) : '0%'}</span><span>Payout O = b + 1</span><span>${fx(b + 1, 1)}</span><span>Break-even p = 1/(b+1)</span><span>${fx(1 / (b + 1), 3)}</span>`;
     $('simLegend').innerHTML = KM.map((m, k) => `<span><i class="sw line" style="border-color:${KCOL()[k]}"></i>${KN[k]}</span>`).join('') + '<span><i class="sw dash"></i>5th percentile</span>';
     if (rerun !== false) runSim();
     if (fs > 0) {
@@ -1289,7 +1275,7 @@ mjx-container { font-size: 105%; }
     if (!RACE) return null;
     const pos = Math.floor(P.ix(x)); if (pos < 0 || pos >= RACE.n) return null;
     const { a, n, c, o, f } = RACE, idx = Array.from({ length: n }, (_, k) => k).sort((x2, y) => rank[a + x2] - rank[a + y]), k = idx[pos], i = a + k;
-    return { pos, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>odds ${fx(o[k], 2)} (1/O = ${pct(1 / o[k], 1)})<br>public ${pct(pub[i], 2)} · model ${pct(c[k], 2)}<br>edge ${pct(c[k] * o[k] - 1, 1)}<br>Kelly stake ${pct(f[k], 2)}` };
+    return { pos, html: `<b>Horse ${hno[i]}${win[i] ? ' · won' : ''}</b><br>payout ${fx(o[k], 2)} (1/O = ${pct(1 / o[k], 1)})<br>public ${pct(pub[i], 2)} · model ${pct(c[k], 2)}<br>edge ${pct(c[k] * o[k] - 1, 1)}<br>Kelly stake ${pct(f[k], 2)}` };
   });
   function fillMeetings() {
     $('mtgSel').innerHTML = meetings.map((m, k) => `<option value="${k}">${dateOf(m.day)} · ${rVen[m.races[0]] ? 'Sha Tin' : 'Happy Valley'}</option>`).join('');
@@ -1311,10 +1297,10 @@ mjx-container { font-size: 105%; }
     const ret = RACE.set.length ? (1 - RACE.F + RACE.set.reduce((s, k) => s + (win[a + k] ? f[k] * o[k] : 0), 0)) : 1;
     $('raceKV').innerHTML = `<span>Horses bet</span><span>${RACE.set.length}</span><span>Threshold R</span><span>${fx(RACE.R, 3)}</span><span>Total stake</span><span>${pct(RACE.F, 2)}</span><span>Expected log growth</span><span>${RACE.G.toExponential(2)}</span><span>Best single-horse Kelly</span><span>${RACE.best.j >= 0 ? RACE.best.G.toExponential(2) : 'no bet'}</span><span>Bankroll after the race</span><span>${fx(ret, 4)}×</span><span>Actual take this race</span><span>${pct(1 - 1 / bookDec[r])}</span>`;
     let msg;
-    if (!RACE.set.length) msg = `<p>No bet. No horse has c·O above 1 at these odds, so Kelly keeps all the cash.${S.take5 >= 21 ? ' This is the usual result at the actual odds: the take is larger than the model\'s disagreements with the crowd.' : ''}</p>`;
+    if (!RACE.set.length) msg = `<p>No bet. No horse has c·O above 1 at these payouts, so Kelly keeps all the cash.${S.take5 >= 21 ? ' This is the usual result at the actual payouts: the take is larger than the model\'s disagreements with the crowd.' : ''}</p>`;
     else if (RACE.set.length === 1) msg = `<p>One horse is worth backing. Its Kelly stake equals the single-bet formula (c·O − 1)/(O − 1).</p>`;
     else msg = `<p><b>${RACE.set.length} horses</b> share the bankroll. Each extra horse lowers R, because when one bet loses another may win: the bets hedge each other. ${hedge ? `${hedge} of them ${hedge > 1 ? 'have' : 'has'} a negative edge on its own and is still in the optimal set, since c·O exceeds R.` : 'The combined bet grows the bankroll faster than the best single bet.'}</p>`;
-    if (!clean[r]) msg += '<p class="err">Runners are missing from this race in the data (Σ 1/O below 1.15), so its odds look too generous. The backtest skips races like this.</p>';
+    if (!clean[r]) msg += '<p class="err">Runners are missing from this race in the data (Σ 1/O below 1.15), so its payouts look too generous. The backtest skips races like this.</p>';
     $('raceCall').innerHTML = msg;
     dirty(pRace);
   }
@@ -1408,7 +1394,7 @@ mjx-container { font-size: 105%; }
     let be = -1; for (const q of SW) { if (q.n >= 10 && q.model > 0) be = q.t; else break; }
     const firstBet = SW.filter(s => s.n).map(s => s.t).pop();
     let msg = '';
-    if (S.take6 >= 21 && !b.flatN) msg = `<p><b>No bets.</b> At the actual odds the model never finds a horse with c·O above ${fx(1 + S.thr, 2)} in ${int(F.nTestClean)} held-out races. Its disagreements with the crowd are a few points of probability; the take is about 18% of every payout.</p>`;
+    if (S.take6 >= 21 && !b.flatN) msg = `<p><b>No bets.</b> At the actual payouts the model never finds a horse with c·O above ${fx(1 + S.thr, 2)} in ${int(F.nTestClean)} held-out races. Its disagreements with the crowd are a few points of probability; the take is about 18% of every payout.</p>`;
     else if (!b.flatN) msg = `<p><b>No bets</b> at this take and threshold.</p>`;
     else msg = `<p>Flat staking returns <b>${pct(b.flatP / b.flatN, 1)}</b> on ${int(b.flatN)} bets; betting the favourite every race returns ${pct(b.favP / b.favN, 1)}. ${b.flatN < 100 ? 'With so few bets, one longshot winner can swing the result.' : ''}</p>`;
     msg += `<p class="hint">The model starts to bet once the take falls to about ${firstBet !== undefined ? firstBet + '%' : 'zero'} at this threshold${be >= 0 ? `, and flat stakes stay profitable only up to a take of about ${be}%` : ''}. The real take is ${pct(F.takeAvg)}.</p>`;
@@ -1417,8 +1403,6 @@ mjx-container { font-size: 105%; }
   }
 
   // ---------- wiring ----------
-  function setConvUI(c) { if (S.conv === c) return; S.conv = c; fitAll(); S.alpha = Math.round(F.alphaHat * 200) / 200; renderAll(); }
-  $('convFrac').onclick = () => setConvUI('frac'); $('convDec').onclick = () => setConvUI('dec');
   $('viewBins').onclick = () => { S.view = 'bins'; renderS1(); }; $('viewRank').onclick = () => { S.view = 'rank'; renderS1(); };
   $('oddsIn').oninput = renderOdds;
   $('alpha').oninput = e => { S.alpha = +e.target.value; s2Slider(); };
@@ -1487,7 +1471,7 @@ mjx-container { font-size: 105%; }
     rating: 'Official rating', log_starts: 'log(1 + previous starts)', first_start: 'First start', last_place: 'Last finish (0 won, 1 last)',
     avg4_place: 'Average finish, last 4 runs', avg4_lengths: 'Average lengths beaten, last 4', career_win_pct: 'Career win rate',
     log_days_since: 'log days since last run', layoff_90: 'Layoff over 90 days', body_wt_chg: 'Body-weight change', abs_body_wt_chg: '|Body-weight change|',
-    dist_chg: 'Distance change', abs_dist_chg: '|Distance change|', rating_chg: 'Rating change', log_prev_odds: 'log odds in previous race',
+    dist_chg: 'Distance change', abs_dist_chg: '|Distance change|', rating_chg: 'Rating change', log_prev_odds: 'log payout in previous race',
     same_course_prev: 'Same course as last run', first_time_gear: 'First-time gear', jockey_logit: 'Jockey (logit win rate)', trainer_logit: 'Trainer (logit win rate)'
   };
   const lab = n => LAB[n] || n;
@@ -1589,7 +1573,7 @@ mjx-container { font-size: 105%; }
     $('dCourseHint').textContent = hv ? 'A tight, turning track with a short straight.' : 'A larger track with long straights.';
     $('drawTitle').textContent = `Win rate by gate, relative to the fair rate 1/n, ${hv ? 'Happy Valley' : 'Sha Tin'}, 1999–2012`;
     const r2 = P2.r2.find(r => r.m === 'draw only'), full = P2.r2.find(r => r.m.startsWith('full'));
-    $('dKV').innerHTML = `<span>Draw only, test R²</span><span>${fx(r2.te, 3)}</span><span>All 23 variables, test R²</span><span>${fx(full.te, 3)}</span><span>Public odds, test R²</span><span>${fx(P2.r2.find(r => r.m === 'public odds alone').te, 3)}</span>`;
+    $('dKV').innerHTML = `<span>Draw only, test R²</span><span>${fx(r2.te, 3)}</span><span>All 23 variables, test R²</span><span>${fx(full.te, 3)}</span><span>Public payout, test R²</span><span>${fx(P2.r2.find(r => r.m === 'public odds alone').te, 3)}</span>`;
     $('dCall').innerHTML = hv ? '<p>At Happy Valley the rail gate wins about 1.4 to 1.7 times its fair share and the widest gates about 0.6 to 0.8 times. That is a real effect, but it explains only a small part of who wins: the draw alone gives a pseudo \\(R^2\\) of about 0.005.</p>' : '<p>At Sha Tin the pattern is much flatter, and the widest gates are close to their fair share. The draw is a course-specific variable, which is why the model needs the Happy Valley interaction.</p>';
     typeset($('dFactorHint')); typeset($('dCall'));
     pDraw.dirty = true; schedule();
@@ -1607,7 +1591,7 @@ mjx-container { font-size: 105%; }
     const n = NAMES.length, xs = coefOrder.map(i => [P2.full.b[i] - 1.96 * P2.full.se[i], P2.full.b[i] + 1.96 * P2.full.se[i]]);
     const lo = Math.min(-0.35, ...xs.map(v => v[0])), hi = Math.max(0.35, ...xs.map(v => v[1]));
     P.dom(lo, hi, n + 0.5, 0.5);
-    P.axes(ticks(lo, hi, 5), [], v => fx(v, 1), () => '', 'Coefficient per SD (log-odds)', '');
+    P.axes(ticks(lo, hi, 5), [], v => fx(v, 1), () => '', 'Coefficient per SD (effect on log score)', '');
     const { ctx } = P; P.clip();
     P.line([[0, 0.5], [0, n + 0.5]], C.muted, 1.2, [4, 3]);
     ctx.restore(); ctx.font = (P.L.W < 420 ? '10.5px' : '12px') + ' "Atkinson Hyperlegible", system-ui, sans-serif'; ctx.textBaseline = 'middle';
@@ -1660,7 +1644,7 @@ mjx-container { font-size: 105%; }
   $('lamSparse').onclick = () => { S8.li = P2.lasso.findIndex(r => r.lam === P2.lamSparse); render8(); };
   $('lamBest').onclick = () => { S8.li = P2.lasso.findIndex(r => r.lam === P2.lamBest); render8(); };
   $('stepTab').querySelector('tbody').innerHTML = P2.step.map(s => `<tr><td>${s.k}</td><td style="text-align:left;font-family:var(--font-body)">${lab(s.v)}</td><td>${fx(s.bic, 0)}</td><td>${fx(s.vll, 1)}</td></tr>`).join('');
-  const r2name = { 'draw only': 'Draw only', 'full (23 vars)': 'All 23 variables', 'stepwise BIC': 'Stepwise BIC', 'lasso (sparse)': 'Lasso, sparse choice', 'public odds alone': 'Public odds alone', 'combined (stage 2)': 'Combined, stage 2' };
+  const r2name = { 'draw only': 'Draw only', 'full (23 vars)': 'All 23 variables', 'stepwise BIC': 'Stepwise BIC', 'lasso (sparse)': 'Lasso, sparse choice', 'public odds alone': 'Public payout alone', 'combined (stage 2)': 'Combined, stage 2' };
   $('r2Tab').querySelector('tbody').innerHTML = P2.r2.map(r => `<tr${r.m.startsWith('public') ? ' class="hl"' : ''}><td>${r2name[r.m] || r.m}</td><td>${r.k}</td><td>${r.tr == null ? '–' : fx(r.tr, 3)}</td><td>${fx(r.va, 3)}</td><td>${fx(r.te, 3)}</td></tr>`).join('');
 
   // ============ 9. era ============
@@ -1687,10 +1671,10 @@ mjx-container { font-size: 105%; }
   function render9() {
     $('eraBtns').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.k === S9.k));
     const e = E[S9.k], z = e.a / e.ase;
-    $('eraKV').innerHTML = `<span>Races in stage two</span><span>${int(e.n)}</span><span>Fitted α on fundamentals</span><span>${fx(e.a, 3)} ± ${fx(1.96 * e.ase, 3)}</span><span>z for α</span><span>${fx(z, 1)}</span><span>Fitted β on public log q</span><span>${fx(e.b, 3)} ± ${fx(1.96 * e.bse, 3)}</span><span>R² fundamentals</span><span>${fx(e.f, 3)}</span><span>R² public odds</span><span>${fx(e.p, 3)}</span><span>R² combined</span><span>${fx(e.c, 3)}</span>`;
-    $('eraCall').innerHTML = z > 1.96 ? `<p><b>An edge.</b> In ${eraLab(e.s)} the fundamentals get a significant positive weight: they carried information the odds had not priced. These are the years when Benter's and Alan Woods's teams were building their models.</p>`
+    $('eraKV').innerHTML = `<span>Races in stage two</span><span>${int(e.n)}</span><span>Fitted α on fundamentals</span><span>${fx(e.a, 3)} ± ${fx(1.96 * e.ase, 3)}</span><span>z for α</span><span>${fx(z, 1)}</span><span>Fitted β on public log q</span><span>${fx(e.b, 3)} ± ${fx(1.96 * e.bse, 3)}</span><span>R² fundamentals</span><span>${fx(e.f, 3)}</span><span>R² public payout</span><span>${fx(e.p, 3)}</span><span>R² combined</span><span>${fx(e.c, 3)}</span>`;
+    $('eraCall').innerHTML = z > 1.96 ? `<p><b>An edge.</b> In ${eraLab(e.s)} the fundamentals get a significant positive weight: they carried information the payouts had not priced. These are the years when Benter's and Alan Woods's teams were building their models.</p>`
       : e.a > 0 ? `<p><b>Positive but not significant.</b> The fundamentals get some weight in ${eraLab(e.s)}, but the interval includes zero.</p>`
-      : `<p><b>No edge.</b> In ${eraLab(e.s)} the weight on the fundamentals is zero or negative, and \\(\\hat\\beta\\) is ${e.b > 1 ? 'above' : 'near'} one. The public odds already contain what a twelve-variable model knows. The final odds include the syndicates' own money, so the crowd now partly is the computer models.</p>`;
+      : `<p><b>No edge.</b> In ${eraLab(e.s)} the weight on the fundamentals is zero or negative, and \\(\\hat\\beta\\) is ${e.b > 1 ? 'above' : 'near'} one. The public payouts already contain what a twelve-variable model knows. The final payouts include the syndicates' own money, so the crowd now partly is the computer models.</p>`;
     typeset($('eraCall'));
     pAlpha.dirty = true; pEraR2.dirty = true; schedule();
   }
@@ -1708,7 +1692,7 @@ mjx-container { font-size: 105%; }
   const PRE = { wVal: [P2.stage2.alpha, P2.stage2.beta, 'Fitted on 2011–12'], wEra: [E[3].a, E[3].b, 'Benter era, 1998–2003'], wMkt: [0, 1, 'Market only'] };
   const c = T ? new Float64Array(T.N) : null;
   function combine(a, b) { let ll = 0; for (let r = 0; r < T.nR; r++) { let mx = -Infinity; const lo = T.st[r], hi = T.st[r + 1]; for (let i = lo; i < hi; i++) { c[i] = a * T.f[i] + b * T.lq[i]; if (c[i] > mx) mx = c[i]; } let s = 0; for (let i = lo; i < hi; i++) { c[i] = Math.exp(c[i] - mx); s += c[i]; } for (let i = lo; i < hi; i++) { c[i] /= s; if (T.y[i]) ll += Math.log(c[i]); } } return 1 - ll / T.l0; }
-  function bets(take, thr, curve) { // take = null for the actual odds
+  function bets(take, thr, curve) { // take = null for the actual payouts
     let n = 0, hit = 0, prof = 0; const cum = curve ? [] : null;
     for (let r = 0; r < T.nR; r++) {
       const sc = take == null ? 1 : (1 - take) / (1 - T.take[r]);
@@ -1735,7 +1719,7 @@ mjx-container { font-size: 105%; }
     const ys = [...pts.map(s => s.roi), ...base.map(s => s[1]), 0.1, -0.3];
     const lo = Math.min(...ys) - 0.02, hi = Math.max(...ys) + 0.02;
     P.dom(0, 0.2, lo, hi);
-    P.axes(ticks(0, 0.2, 5), ticks(lo, hi, 5), v => Math.round(v * 100) + '%', v => pct(v, 0), 'Track take used for the payout odds', 'Return on stakes');
+    P.axes(ticks(0, 0.2, 5), ticks(lo, hi, 5), v => Math.round(v * 100) + '%', v => pct(v, 0), 'Track take used for the payouts', 'Return on stakes');
     P.clip(); P.line([[0, 0], [0.2, 0]], C.muted, 1.5, [5, 4]);
     const tA = T.meanTake; P.line([[tA, lo], [tA, hi]], C.line, 1, [2, 3]);
     P.line(base.map(s => [s[0], s[1]]), C.curve, 1.2); base.forEach(s => P.dot(s[0], s[1], 3, C.curve));
@@ -1761,15 +1745,15 @@ mjx-container { font-size: 105%; }
     const cur = bets(tk, S10.thr, true);
     if (full !== false) cache = { R2, cur, sweep: takeGrid.map(t => ({ t, ...bets(t, S10.thr, false) })), base: takeGrid.map(t => [t, everyRunner(t)]) }; else { cache.R2 = R2; cache.cur = cur; }
     const be = cache.sweep.filter(s => s.n >= 20 && s.roi >= 0).map(s => s.t);
-    $('hkKV').innerHTML = `<span>Test R², combined</span><span>${fx(R2, 4)}</span><span>Test R², odds alone</span><span>${fx(P2.r2.find(r => r.m === 'public odds alone').te, 4)}</span><span>Bets</span><span>${int(cur.n)}</span><span>Profit, units</span><span>${fx(cur.prof, 1)}</span><span>ROI</span><span>${cur.n ? pct(cur.roi) : '–'}</span><span>Every runner, ROI</span><span>${pct(everyRunner(tk))}</span><span>Break-even take</span><span>${be.length ? 'up to ' + Math.round(Math.max(...be) * 100) + '%' : 'none from 0% to 19%'}</span>`;
+    $('hkKV').innerHTML = `<span>Test R², combined</span><span>${fx(R2, 4)}</span><span>Test R², payout alone</span><span>${fx(P2.r2.find(r => r.m === 'public odds alone').te, 4)}</span><span>Bets</span><span>${int(cur.n)}</span><span>Profit, units</span><span>${fx(cur.prof, 1)}</span><span>ROI</span><span>${cur.n ? pct(cur.roi) : '–'}</span><span>Every runner, ROI</span><span>${pct(everyRunner(tk))}</span><span>Break-even take</span><span>${be.length ? 'up to ' + Math.round(Math.max(...be) * 100) + '%' : 'none from 0% to 19%'}</span>`;
     const rows = [];
     for (const [id, [a, b, nm]] of Object.entries(PRE)) { const r2 = combine(a, b), x = bets(null, S10.thr, false); rows.push(`<tr${nm === S10.label ? ' class="hl"' : ''}><td>${nm}</td><td>${fx(a, 3)}</td><td>${fx(b, 3)}</td><td>${fx(r2, 4)}</td><td>${int(x.n)}</td><td>${x.n ? pct(x.hit / x.n) : '–'}</td><td>${fx(x.prof, 1)}</td><td>${x.n ? pct(x.roi) : '–'}</td></tr>`); }
     combine(S10.a, S10.b);
-    $('hkTab').querySelector('tbody').innerHTML = rows.join('') + `<tr><td>Your α, β at the actual odds</td><td>${fx(S10.a, 3)}</td><td>${fx(S10.b, 3)}</td><td>${fx(R2, 4)}</td><td>${int(bets(null, S10.thr, false).n)}</td><td>–</td><td>–</td><td>${pct(bets(null, S10.thr, false).roi)}</td></tr>`;
+    $('hkTab').querySelector('tbody').innerHTML = rows.join('') + `<tr><td>Your α, β at the actual payouts</td><td>${fx(S10.a, 3)}</td><td>${fx(S10.b, 3)}</td><td>${fx(R2, 4)}</td><td>${int(bets(null, S10.thr, false).n)}</td><td>–</td><td>–</td><td>${pct(bets(null, S10.thr, false).roi)}</td></tr>`;
     let msg;
-    if (!cur.n) msg = `<p><b>No bets.</b> With \\(\\alpha = ${fx(S10.a, 2).replace('−', '-')}\\) and \\(\\beta = ${fx(S10.b, 2)}\\) no runner's combined probability is high enough to beat the payout odds${tk == null ? ' after the track’s take' : ''}. Lower the take to see how much of the take the model could recover.</p>`;
+    if (!cur.n) msg = `<p><b>No bets.</b> With \\(\\alpha = ${fx(S10.a, 2).replace('−', '-')}\\) and \\(\\beta = ${fx(S10.b, 2)}\\) no runner's combined probability is high enough to beat the payout${tk == null ? ' after the track’s take' : ''}. Lower the take to see how much of the take the model could recover.</p>`;
     else if (cur.n < 30) msg = `<p><b>Only ${int(cur.n)} bets</b> (${pct(cur.roi)} per unit). That is far too few to tell skill from luck: one longshot winner can swing the return by tens of percentage points.</p>`;
-    else if (cur.roi < 0) msg = `<p><b>${int(cur.n)} bets, ${pct(cur.roi)} per unit staked.</b> ${S10.a > 0.1 ? 'Giving the fundamentals the weight they earned in the 1990s finds many “edges”, and they lose: the model is now wrong where it disagrees with the market.' : 'The model bets, but its edges are not real at these odds.'}</p>`;
+    else if (cur.roi < 0) msg = `<p><b>${int(cur.n)} bets, ${pct(cur.roi)} per unit staked.</b> ${S10.a > 0.1 ? 'Giving the fundamentals the weight they earned in the 1990s finds many “edges”, and they lose: the model is now wrong where it disagrees with the market.' : 'The model bets, but its edges are not real at these payouts.'}</p>`;
     else msg = `<p><b>${int(cur.n)} bets, ${pct(cur.roi)} per unit staked.</b> ${tk != null && tk < T.meanTake - 0.02 ? 'Only because the take is set below what the track keeps. With \\(\\beta &gt; 1\\) the model corrects the favourite–longshot bias, which is real but smaller than the take.' : 'Check the number of bets before believing the return.'}</p>`;
     $('hkCall').innerHTML = msg; typeset($('hkCall'));
     pTake.dirty = true; pCum.dirty = true; schedule();
