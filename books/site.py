@@ -357,7 +357,10 @@ def icon(kind):
 
 
 def entry(book):
-    """The four paragraphs of a book on the list page."""
+    """The four paragraphs of a book on the list page; a book in volumes (book.json volumes) has four per volume, each
+    with the volume's cover, PDF and DOI, and every heading links the one book page."""
+    if book.get('volumes'):
+        return [p for v in book['volumes'] for p in volume_entry(book, v)]
     L, page = book['links'], book['links']['page']
     head = f"## [{book['title']}]({page})" + (f" <small>{book['subtitle']}</small>" if book.get('subtitle') else '')
     by = f"{join_names([a['name'] for a in book['authors']])}. {book['year']}."
@@ -375,6 +378,22 @@ def entry(book):
     if L.get('print'):
         items.append(f'[![Paperback, available at Amazon]({SITE}/books/{AMAZON_BADGE})]({L["print"]} "Paperback on Amazon")')
     return [head, cover, book['short_description'].strip(), ' '.join(items)]
+
+
+def volume_entry(book, v):
+    L, page = book['links'], book['links']['page']
+    head = f"## [{v['title']}]({page})" + (f" <small>{v['subtitle']}</small>" if v.get('subtitle') else '')
+    by = f"{join_names([a['name'] for a in book['authors']])}. {book['year']}."
+    if str(book.get('edition') or '').strip():
+        by += f" Edition {book['edition']}."
+    cover = f"[![{v.get('full_title') or v['title']}]({v.get('cover') or L['cover']})]({page}) {by}"
+    items = []
+    if v.get('pdf'):
+        items.append(f'[![PDF]({icon("pdf")})]({v["pdf"]} "PDF")')
+    items.append(f'[![Source on GitHub]({icon("github")})]({L["repository"]} "Source on GitHub")')
+    if v.get('doi_badge') and v.get('doi_url'):
+        items.append(f'[![DOI {v["doi"]}]({v["doi_badge"]})]({v["doi_url"]})')
+    return [head, cover, (v.get('short_description') or book['short_description']).strip(), ' '.join(items)]
 
 
 def ld_item(book):
@@ -403,8 +422,11 @@ def parse_list(text):
         slug = slug_in(group[0])
         if len(group) < 4 or any(g.startswith('## [') for g in group[1:]) or not slug:
             raise Fail('books/_page.md: an entry is not made of a heading and three paragraphs; fix it by hand or restore it')
-        entries[slug] = group
-        order.append(slug)
+        if order and order[-1] == slug:  # the next volume of a book in volumes
+            entries[slug] += group
+        else:
+            entries[slug] = group
+            order.append(slug)
         i += 4
     return intro, entries, order, paras[i:]
 
