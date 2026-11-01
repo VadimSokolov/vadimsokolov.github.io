@@ -2,13 +2,21 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
-## [Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/)
+## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
 
-[![Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
+[![Computing the Riemann Hypothesis, Volume I: Representations of Xi, Thorin Measures and the Reciprocal Xi Function](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.0.0/pdf/cover_vol1.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
 
-Two volumes on the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, computed in certified ball arithmetic: Volume I on representations of Xi, Thorin measures and the reciprocal Xi function, Volume II on Cauchy deconvolution and certified computation.
+The theory: representations of Riemann's Xi function, the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, and the reciprocal Xi function as a generalised gamma convolution.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol1.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861971](https://zenodo.org/badge/DOI/10.5281/zenodo.23861971.svg)](https://doi.org/10.5281/zenodo.23861971)
+
+## [Computing the Riemann Hypothesis, Volume II](https://vsokolov.org/books/computing_rh/) <small>Cauchy Deconvolution and Certified Computation</small>
+
+[![Computing the Riemann Hypothesis, Volume II: Cauchy Deconvolution and Certified Computation](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.0.0/pdf/cover_vol2.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
+
+The computations: Riemann's Xi function in ball arithmetic, the Thorin measure at finite resolution, Cauchy deconvolution, the de Bruijn Newman flow, the barrier method and the Thorin phase diagram.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol2.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861976](https://zenodo.org/badge/DOI/10.5281/zenodo.23861976.svg)](https://doi.org/10.5281/zenodo.23861976)
 
 ## [P = RP](https://vsokolov.org/books/p_equals_rp/) <small>A Monte Carlo Program for P versus NP</small>
 
