@@ -2,13 +2,13 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
-## [Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/) <small>Thorin Measures, Pólya Densities and Hitting Times</small>
+## [Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/)
 
-[![Computing the Riemann Hypothesis: Thorin Measures, Pólya Densities and Hitting Times](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 1.
+[![Computing the Riemann Hypothesis](https://vsokolov.org/books/computing_rh/cover.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
 
-Computes the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, from Pólya's integral for Xi in certified ball arithmetic, and proves that finite positivity tests on the heat trace cannot decide it; with hitting times, friable approximants, the reciprocal zeta function and Lee Yang theory.
+Two volumes on the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, computed in certified ball arithmetic: Volume I on representations of Xi, Thorin measures and the reciprocal Xi function, Volume II on Cauchy deconvolution and certified computation.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v1.4.1/computing_rh.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23741450](https://zenodo.org/badge/DOI/10.5281/zenodo.23741450.svg)](https://doi.org/10.5281/zenodo.23741450) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HM6X1WMN "Paperback on Amazon")
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol1.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861971](https://zenodo.org/badge/DOI/10.5281/zenodo.23861971.svg)](https://doi.org/10.5281/zenodo.23861971)
 
 ## [P = RP](https://vsokolov.org/books/p_equals_rp/) <small>A Monte Carlo Program for P versus NP</small>
 
