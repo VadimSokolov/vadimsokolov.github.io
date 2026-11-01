@@ -16,7 +16,7 @@ The theory: representations of Riemann's Xi function, the Thorin measure whose p
 
 The computations: Riemann's Xi function in ball arithmetic, the Thorin measure at finite resolution, Cauchy deconvolution, the de Bruijn Newman flow, the barrier method and the Thorin phase diagram.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol2.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861976](https://zenodo.org/badge/DOI/10.5281/zenodo.23861976.svg)](https://doi.org/10.5281/zenodo.23861976)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol2.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861976](https://zenodo.org/badge/DOI/10.5281/zenodo.23861976.svg)](https://doi.org/10.5281/zenodo.23861976) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1J5762 "Paperback on Amazon")
 
 ## [P = RP](https://vsokolov.org/books/p_equals_rp/) <small>A Monte Carlo Program for P versus NP</small>
 
