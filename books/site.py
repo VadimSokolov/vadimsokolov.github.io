@@ -393,6 +393,8 @@ def volume_entry(book, v):
     items.append(f'[![Source on GitHub]({icon("github")})]({L["repository"]} "Source on GitHub")')
     if v.get('doi_badge') and v.get('doi_url'):
         items.append(f'[![DOI {v["doi"]}]({v["doi_badge"]})]({v["doi_url"]})')
+    if v.get('print'):
+        items.append(f'[![Paperback, available at Amazon]({SITE}/books/{AMAZON_BADGE})]({v["print"]} "Paperback on Amazon")')
     return [head, cover, (v.get('short_description') or book['short_description']).strip(), ' '.join(items)]
 
 
