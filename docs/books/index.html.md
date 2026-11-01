@@ -8,7 +8,7 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 
 The theory: representations of Riemann's Xi function, the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, and the reciprocal Xi function as a generalised gamma convolution.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol1.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861971](https://zenodo.org/badge/DOI/10.5281/zenodo.23861971.svg)](https://doi.org/10.5281/zenodo.23861971)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol1.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861971](https://zenodo.org/badge/DOI/10.5281/zenodo.23861971.svg)](https://doi.org/10.5281/zenodo.23861971) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1D4ZSF "Paperback on Amazon")
 
 ## [Computing the Riemann Hypothesis, Volume II](https://vsokolov.org/books/computing_rh/) <small>Cauchy Deconvolution and Certified Computation</small>
 
