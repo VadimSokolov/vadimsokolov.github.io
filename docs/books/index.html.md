@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
+
+[![On Langlands Conjectures: Probabilistic Methods](https://vsokolov.org/books/langlands/cover.jpg)](https://vsokolov.org/books/langlands/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+What probability can and cannot contribute to the Langlands programme: Sato Tate laws, random walks on trees and isogeny graphs, Thorin measures and generalized gamma convolutions as reformulations of the Riemann hypothesis, and Bayesian identification of Sato Tate groups, with code and data.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.3.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23874307](https://zenodo.org/badge/DOI/10.5281/zenodo.23874307.svg)](https://doi.org/10.5281/zenodo.23874307) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8BVRB5 "Paperback on Amazon")
+
 ## [On Hilbert's 6th Problem](https://vsokolov.org/books/hilbert6/) <small>Probability, Mechanics and Bayesian Computation</small>
 
 [![On Hilbert's 6th Problem: Probability, Mechanics and Bayesian Computation](https://vsokolov.org/books/hilbert6/cover.jpg)](https://vsokolov.org/books/hilbert6/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
@@ -57,14 +65,6 @@ Clinical trials as science and as regulated operations: design and statistics, t
 Statistical theory of population genetics: an exact form of Fisher's Fundamental Theorem, shrinkage estimates of the rate of adaptation, the Ewens sampling formula and its rigidity, rational conjugacy, and sufficiency for learned coalescent inference.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/statistical_methods_genetics/releases/download/v1.0.1/statistical_methods_genetics.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/statistical_methods_genetics "Source on GitHub") [![DOI 10.5281/zenodo.23509850](https://zenodo.org/badge/DOI/10.5281/zenodo.23509850.svg)](https://doi.org/10.5281/zenodo.23509850)
-
-## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
-
-[![On Langlands Conjectures: Probabilistic Methods](https://vsokolov.org/books/langlands/cover.jpg)](https://vsokolov.org/books/langlands/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
-
-What probability can and cannot contribute to the Langlands programme: Sato Tate laws, random walks on trees and isogeny graphs, Thorin measures and generalized gamma convolutions as reformulations of the Riemann hypothesis, and Bayesian identification of Sato Tate groups, with code and data.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.2.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23503453](https://zenodo.org/badge/DOI/10.5281/zenodo.23503453.svg)](https://doi.org/10.5281/zenodo.23503453) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8BVRB5 "Paperback on Amazon")
 
 ## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
 
