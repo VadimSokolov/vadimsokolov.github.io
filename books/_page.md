@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Bayes, Artificial Intelligence, and Deep Learning](https://vsokolov.org/books/bayes_ai_deep_learning/) <small>Foundations of Data Science</small>
+
+[![Bayes, Artificial Intelligence, and Deep Learning: Foundations of Data Science](https://vsokolov.org/books/bayes_ai_deep_learning/cover.png)](https://vsokolov.org/books/bayes_ai_deep_learning/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.2/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23874626](https://zenodo.org/badge/DOI/10.5281/zenodo.23874626.svg)](https://doi.org/10.5281/zenodo.23874626)
+
 ## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
 
 [![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
@@ -49,14 +57,6 @@ The computations: Riemann's Xi function in ball arithmetic, the Thorin measure a
 N queens counting as a rare event and a quantile integral, turned into a Monte Carlo program for P versus NP: NP = RP is shown equivalent to sampling queens completions, promise RP = promise P, which implies P = RP, is restated as a hitting set problem, with exact computations on the queens.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/p_equals_rp/releases/download/v1.0.0/p_equals_rp.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/p_equals_rp "Source on GitHub") [![DOI 10.5281/zenodo.23738431](https://zenodo.org/badge/DOI/10.5281/zenodo.23738431.svg)](https://doi.org/10.5281/zenodo.23738431)
-
-## [Bayes, Artificial Intelligence, and Deep Learning](https://vsokolov.org/books/bayes_ai_deep_learning/) <small>Foundations of Data Science</small>
-
-[![Bayes, Artificial Intelligence, and Deep Learning: Foundations of Data Science](https://vsokolov.org/books/bayes_ai_deep_learning/cover.png)](https://vsokolov.org/books/bayes_ai_deep_learning/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
-
-A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.1/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23603837](https://zenodo.org/badge/DOI/10.5281/zenodo.23603837.svg)](https://doi.org/10.5281/zenodo.23603837)
 
 ## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
 
