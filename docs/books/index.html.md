@@ -8,7 +8,7 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 
 A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.2/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23874626](https://zenodo.org/badge/DOI/10.5281/zenodo.23874626.svg)](https://doi.org/10.5281/zenodo.23874626)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.3/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23891385](https://zenodo.org/badge/DOI/10.5281/zenodo.23891385.svg)](https://doi.org/10.5281/zenodo.23891385)
 
 ## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
 
