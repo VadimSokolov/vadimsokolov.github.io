@@ -2,6 +2,22 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
+
+[![Computing the Riemann Hypothesis, Volume I: Representations of Xi, Thorin Measures and the Reciprocal Xi Function](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.1.0/pdf/cover_vol1.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
+
+The theory: representations of Riemann's Xi function, the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, and the reciprocal Xi function as a generalised gamma convolution.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.1.0/computing_rh_vol1.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23891944](https://zenodo.org/badge/DOI/10.5281/zenodo.23891944.svg)](https://doi.org/10.5281/zenodo.23891944) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1D4ZSF "Paperback on Amazon")
+
+## [Computing the Riemann Hypothesis, Volume II](https://vsokolov.org/books/computing_rh/) <small>Cauchy Deconvolution and Certified Computation</small>
+
+[![Computing the Riemann Hypothesis, Volume II: Cauchy Deconvolution and Certified Computation](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.1.0/pdf/cover_vol2.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
+
+The computations: Riemann's Xi function in ball arithmetic, the Thorin measure at finite resolution, Cauchy deconvolution, the de Bruijn Newman flow, the barrier method and the Thorin phase diagram.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.1.0/computing_rh_vol2.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23891946](https://zenodo.org/badge/DOI/10.5281/zenodo.23891946.svg)](https://doi.org/10.5281/zenodo.23891946) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1J5762 "Paperback on Amazon")
+
 ## [Bayes, Artificial Intelligence, and Deep Learning](https://vsokolov.org/books/bayes_ai_deep_learning/) <small>Foundations of Data Science</small>
 
 [![Bayes, Artificial Intelligence, and Deep Learning: Foundations of Data Science](https://vsokolov.org/books/bayes_ai_deep_learning/cover.png)](https://vsokolov.org/books/bayes_ai_deep_learning/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
@@ -33,22 +49,6 @@ What probability can and cannot contribute to the Langlands programme: Sato Tate
 Hilbert's sixth problem from Kolmogorov's axioms and the Boltzmann equation to the Navier Stokes equations, and the inverse passage: Bayesian estimation on the solution manifold of a differential equation, where the adjoint evolution of the data is a sufficient statistic for linear equations.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/hilbert6/releases/download/v1.1.0/hilbert6.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/hilbert6 "Source on GitHub") [![DOI 10.5281/zenodo.23741447](https://zenodo.org/badge/DOI/10.5281/zenodo.23741447.svg)](https://doi.org/10.5281/zenodo.23741447) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HMV1WFRD "Paperback on Amazon")
-
-## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
-
-[![Computing the Riemann Hypothesis, Volume I: Representations of Xi, Thorin Measures and the Reciprocal Xi Function](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.0.0/pdf/cover_vol1.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
-
-The theory: representations of Riemann's Xi function, the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, and the reciprocal Xi function as a generalised gamma convolution.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol1.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861971](https://zenodo.org/badge/DOI/10.5281/zenodo.23861971.svg)](https://doi.org/10.5281/zenodo.23861971) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1D4ZSF "Paperback on Amazon")
-
-## [Computing the Riemann Hypothesis, Volume II](https://vsokolov.org/books/computing_rh/) <small>Cauchy Deconvolution and Certified Computation</small>
-
-[![Computing the Riemann Hypothesis, Volume II: Cauchy Deconvolution and Certified Computation](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.0.0/pdf/cover_vol2.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
-
-The computations: Riemann's Xi function in ball arithmetic, the Thorin measure at finite resolution, Cauchy deconvolution, the de Bruijn Newman flow, the barrier method and the Thorin phase diagram.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.0.0/computing_rh_vol2.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23861976](https://zenodo.org/badge/DOI/10.5281/zenodo.23861976.svg)](https://doi.org/10.5281/zenodo.23861976) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1J5762 "Paperback on Amazon")
 
 ## [P = RP](https://vsokolov.org/books/p_equals_rp/) <small>A Monte Carlo Program for P versus NP</small>
 
