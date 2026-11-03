@@ -48,7 +48,7 @@ The computations: Riemann's Xi function in ball arithmetic, the Thorin measure a
 
 A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.3/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23891385](https://zenodo.org/badge/DOI/10.5281/zenodo.23891385.svg)](https://doi.org/10.5281/zenodo.23891385)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.4/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23905441](https://zenodo.org/badge/DOI/10.5281/zenodo.23905441.svg)](https://doi.org/10.5281/zenodo.23905441)
 
 ## [On Hilbert's 6th Problem](https://vsokolov.org/books/hilbert6/) <small>Probability, Mechanics and Bayesian Computation</small>
 
