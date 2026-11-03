@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
+
+[![On Langlands Conjectures: Probabilistic Methods](https://vsokolov.org/books/langlands/cover.jpg)](https://vsokolov.org/books/langlands/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+What probability can and cannot contribute to the Langlands programme: Sato Tate laws, random walks on trees and isogeny graphs, Thorin measures and generalized gamma convolutions as reformulations of the Riemann hypothesis, and Bayesian identification of Sato Tate groups, with code and data.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.4.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23904867](https://zenodo.org/badge/DOI/10.5281/zenodo.23904867.svg)](https://doi.org/10.5281/zenodo.23904867) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8BVRB5 "Paperback on Amazon")
+
 ## [Bayesian Causality](https://vsokolov.org/books/bayesian_causality_book/) <small>Models, Accounting and the Bayesian Alternative to Double Machine Learning</small>
 
 [![Bayesian Causality: Models, Accounting and the Bayesian Alternative to Double Machine Learning](https://vsokolov.org/books/bayesian_causality_book/cover.jpg)](https://vsokolov.org/books/bayesian_causality_book/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
@@ -41,14 +49,6 @@ A textbook that develops Bayesian reasoning, statistical learning and deep learn
 Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an optimizer and a Diophantine problem; proofs that fixed horizon monotone Lyapunov certificates and finite residue sieves cannot settle it and the cycle inequality cannot exclude all cycles; a momentum method from log2 3.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.2.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.23874304](https://zenodo.org/badge/DOI/10.5281/zenodo.23874304.svg)](https://doi.org/10.5281/zenodo.23874304) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8TS5N8 "Paperback on Amazon")
-
-## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
-
-[![On Langlands Conjectures: Probabilistic Methods](https://vsokolov.org/books/langlands/cover.jpg)](https://vsokolov.org/books/langlands/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
-
-What probability can and cannot contribute to the Langlands programme: Sato Tate laws, random walks on trees and isogeny graphs, Thorin measures and generalized gamma convolutions as reformulations of the Riemann hypothesis, and Bayesian identification of Sato Tate groups, with code and data.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.3.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23874307](https://zenodo.org/badge/DOI/10.5281/zenodo.23874307.svg)](https://doi.org/10.5281/zenodo.23874307) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8BVRB5 "Paperback on Amazon")
 
 ## [On Hilbert's 6th Problem](https://vsokolov.org/books/hilbert6/) <small>Probability, Mechanics and Bayesian Computation</small>
 
