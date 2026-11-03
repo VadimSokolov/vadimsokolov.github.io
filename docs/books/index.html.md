@@ -16,7 +16,7 @@ What probability can and cannot contribute to the Langlands programme: Sato Tate
 
 A textbook that builds one Bayesian model of outcomes given treatment and covariates and reads every causal quantity from its posterior, and compares it with double machine learning in simulations and in the 401(k), LaLonde and NHEFS data.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_causality_book/releases/download/v1.0.1/bayesian_causality_book.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_causality_book "Source on GitHub") [![DOI 10.5281/zenodo.23902093](https://zenodo.org/badge/DOI/10.5281/zenodo.23902093.svg)](https://doi.org/10.5281/zenodo.23902093)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_causality_book/releases/download/v1.1.0/bayesian_causality_book.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_causality_book "Source on GitHub") [![DOI 10.5281/zenodo.23905002](https://zenodo.org/badge/DOI/10.5281/zenodo.23905002.svg)](https://doi.org/10.5281/zenodo.23905002)
 
 ## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
 
