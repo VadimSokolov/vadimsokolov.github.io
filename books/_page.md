@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
+
+[![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an optimizer and a Diophantine problem; proofs that fixed horizon monotone Lyapunov certificates and finite residue sieves cannot settle it and the cycle inequality cannot exclude all cycles; a momentum method from log2 3.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.3.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.23905381](https://zenodo.org/badge/DOI/10.5281/zenodo.23905381.svg)](https://doi.org/10.5281/zenodo.23905381) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8TS5N8 "Paperback on Amazon")
+
 ## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
 
 [![On Langlands Conjectures: Probabilistic Methods](https://vsokolov.org/books/langlands/cover.jpg)](https://vsokolov.org/books/langlands/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
@@ -41,14 +49,6 @@ The computations: Riemann's Xi function in ball arithmetic, the Thorin measure a
 A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.3/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23891385](https://zenodo.org/badge/DOI/10.5281/zenodo.23891385.svg)](https://doi.org/10.5281/zenodo.23891385)
-
-## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
-
-[![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
-
-Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an optimizer and a Diophantine problem; proofs that fixed horizon monotone Lyapunov certificates and finite residue sieves cannot settle it and the cycle inequality cannot exclude all cycles; a momentum method from log2 3.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.2.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.23874304](https://zenodo.org/badge/DOI/10.5281/zenodo.23874304.svg)](https://doi.org/10.5281/zenodo.23874304) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8TS5N8 "Paperback on Amazon")
 
 ## [On Hilbert's 6th Problem](https://vsokolov.org/books/hilbert6/) <small>Probability, Mechanics and Bayesian Computation</small>
 
