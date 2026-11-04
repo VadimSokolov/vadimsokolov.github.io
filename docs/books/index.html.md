@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
+
+[![Clinical Trials in Practice: From Foundations to AI Agents](https://vsokolov.org/books/clinical_trials_in_practice/cover.jpg)](https://vsokolov.org/books/clinical_trials_in_practice/) Alexandra Sokolova and Vadim Sokolov. 2026. Edition 1.
+
+Clinical trials as science and as regulated operations: design and statistics, the daily work of a Phase III study from site selection to the trial master file, regulatory submission, and what AI agents may and may not do in regulated research.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice/releases/download/v1.2.0/clinical_trials_in_practice.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/clinical_trials_in_practice/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice "Source on GitHub") [![DOI 10.5281/zenodo.23933570](https://zenodo.org/badge/DOI/10.5281/zenodo.23933570.svg)](https://doi.org/10.5281/zenodo.23933570) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HNRVSW18 "Paperback on Amazon")
+
 ## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
 
 [![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
@@ -65,14 +73,6 @@ Hilbert's sixth problem from Kolmogorov's axioms and the Boltzmann equation to t
 N queens counting as a rare event and a quantile integral, turned into a Monte Carlo program for P versus NP: NP = RP is shown equivalent to sampling queens completions, promise RP = promise P, which implies P = RP, is restated as a hitting set problem, with exact computations on the queens.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/p_equals_rp/releases/download/v1.0.0/p_equals_rp.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/p_equals_rp "Source on GitHub") [![DOI 10.5281/zenodo.23738431](https://zenodo.org/badge/DOI/10.5281/zenodo.23738431.svg)](https://doi.org/10.5281/zenodo.23738431)
-
-## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
-
-[![Clinical Trials in Practice: From Foundations to AI Agents](https://vsokolov.org/books/clinical_trials_in_practice/cover.jpg)](https://vsokolov.org/books/clinical_trials_in_practice/) Alexandra Sokolova and Vadim Sokolov. 2026. Edition 1.
-
-Clinical trials as science and as regulated operations: design and statistics, the daily work of a Phase III study from site selection to the trial master file, regulatory submission, and what AI agents may and may not do in regulated research.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice/releases/download/v1.1.1/clinical_trials_in_practice.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/clinical_trials_in_practice/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice "Source on GitHub") [![DOI 10.5281/zenodo.23537080](https://zenodo.org/badge/DOI/10.5281/zenodo.23537080.svg)](https://doi.org/10.5281/zenodo.23537080) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HNRVSW18 "Paperback on Amazon")
 
 ## [On Statistical Methods for Genetics](https://vsokolov.org/books/statistical_methods_genetics/) <small>Fisher, Ewens and the Bayesian Programme</small>
 
