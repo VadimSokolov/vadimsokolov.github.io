@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Bayesian Causality](https://vsokolov.org/books/bayesian_causality_book/) <small>Models, Accounting and the Bayesian Alternative to Double Machine Learning</small>
+
+[![Bayesian Causality: Models, Accounting and the Bayesian Alternative to Double Machine Learning](https://vsokolov.org/books/bayesian_causality_book/cover.jpg)](https://vsokolov.org/books/bayesian_causality_book/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+A textbook that builds one Bayesian model of outcomes given treatment and covariates and reads every causal quantity from its posterior, and compares it with double machine learning in simulations and in the 401(k), LaLonde and NHEFS data.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_causality_book/releases/download/v1.2.0/bayesian_causality_book.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_causality_book "Source on GitHub") [![DOI 10.5281/zenodo.23961396](https://zenodo.org/badge/DOI/10.5281/zenodo.23961396.svg)](https://doi.org/10.5281/zenodo.23961396)
+
 ## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
 
 [![Clinical Trials in Practice: From Foundations to AI Agents](https://vsokolov.org/books/clinical_trials_in_practice/cover.jpg)](https://vsokolov.org/books/clinical_trials_in_practice/) Alexandra Sokolova and Vadim Sokolov. 2026. Edition 1.
@@ -25,14 +33,6 @@ Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an op
 What probability can and cannot contribute to the Langlands programme: Sato Tate laws, random walks on trees and isogeny graphs, Thorin measures and generalized gamma convolutions as reformulations of the Riemann hypothesis, and Bayesian identification of Sato Tate groups, with code and data.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/langlands/releases/download/v1.4.0/langlands.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/langlands "Source on GitHub") [![DOI 10.5281/zenodo.23904867](https://zenodo.org/badge/DOI/10.5281/zenodo.23904867.svg)](https://doi.org/10.5281/zenodo.23904867) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8BVRB5 "Paperback on Amazon")
-
-## [Bayesian Causality](https://vsokolov.org/books/bayesian_causality_book/) <small>Models, Accounting and the Bayesian Alternative to Double Machine Learning</small>
-
-[![Bayesian Causality: Models, Accounting and the Bayesian Alternative to Double Machine Learning](https://vsokolov.org/books/bayesian_causality_book/cover.jpg)](https://vsokolov.org/books/bayesian_causality_book/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
-
-A textbook that builds one Bayesian model of outcomes given treatment and covariates and reads every causal quantity from its posterior, and compares it with double machine learning in simulations and in the 401(k), LaLonde and NHEFS data.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_causality_book/releases/download/v1.1.0/bayesian_causality_book.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_causality_book "Source on GitHub") [![DOI 10.5281/zenodo.23905002](https://zenodo.org/badge/DOI/10.5281/zenodo.23905002.svg)](https://doi.org/10.5281/zenodo.23905002)
 
 ## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
 
