@@ -8,7 +8,7 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 
 A textbook that builds one Bayesian model of outcomes given treatment and covariates and reads every causal quantity from its posterior, and compares it with double machine learning in simulations and in the 401(k), LaLonde and NHEFS data.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_causality_book/releases/download/v1.2.0/bayesian_causality_book.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_causality_book "Source on GitHub") [![DOI 10.5281/zenodo.23961396](https://zenodo.org/badge/DOI/10.5281/zenodo.23961396.svg)](https://doi.org/10.5281/zenodo.23961396)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_causality_book/releases/download/v1.2.1/bayesian_causality_book.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_causality_book "Source on GitHub") [![DOI 10.5281/zenodo.23985916](https://zenodo.org/badge/DOI/10.5281/zenodo.23985916.svg)](https://doi.org/10.5281/zenodo.23985916)
 
 ## [Clinical Trials in Practice](https://vsokolov.org/books/clinical_trials_in_practice/) <small>From Foundations to AI Agents</small>
 
