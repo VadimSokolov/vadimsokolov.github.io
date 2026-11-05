@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Bayes, AI and Deep Learning](https://vsokolov.org/books/bayes_ai_deep_learning/) <small>Foundations of Data Science</small>
+
+[![Bayes, AI and Deep Learning: Foundations of Data Science](https://vsokolov.org/books/bayes_ai_deep_learning/cover.jpg)](https://vsokolov.org/books/bayes_ai_deep_learning/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.5/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23986335](https://zenodo.org/badge/DOI/10.5281/zenodo.23986335.svg)](https://doi.org/10.5281/zenodo.23986335)
+
 ## [Bayesian Causality](https://vsokolov.org/books/bayesian_causality_book/) <small>Models, Accounting and the Bayesian Alternative to Double Machine Learning</small>
 
 [![Bayesian Causality: Models, Accounting and the Bayesian Alternative to Double Machine Learning](https://vsokolov.org/books/bayesian_causality_book/cover.jpg)](https://vsokolov.org/books/bayesian_causality_book/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
@@ -49,14 +57,6 @@ The theory: representations of Riemann's Xi function, the Thorin measure whose p
 The computations: Riemann's Xi function in ball arithmetic, the Thorin measure at finite resolution, Cauchy deconvolution, the de Bruijn Newman flow, the barrier method and the Thorin phase diagram.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.1.0/computing_rh_vol2.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.23891946](https://zenodo.org/badge/DOI/10.5281/zenodo.23891946.svg)](https://doi.org/10.5281/zenodo.23891946) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1J5762 "Paperback on Amazon")
-
-## [Bayes, Artificial Intelligence, and Deep Learning](https://vsokolov.org/books/bayes_ai_deep_learning/) <small>Foundations of Data Science</small>
-
-[![Bayes, Artificial Intelligence, and Deep Learning: Foundations of Data Science](https://vsokolov.org/books/bayes_ai_deep_learning/cover.png)](https://vsokolov.org/books/bayes_ai_deep_learning/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
-
-A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.4/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23905441](https://zenodo.org/badge/DOI/10.5281/zenodo.23905441.svg)](https://doi.org/10.5281/zenodo.23905441)
 
 ## [On Hilbert's 6th Problem](https://vsokolov.org/books/hilbert6/) <small>Probability, Mechanics and Bayesian Computation</small>
 
