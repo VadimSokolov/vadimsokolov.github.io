@@ -8,7 +8,7 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 
 A textbook that develops Bayesian reasoning, statistical learning and deep learning as one probabilistic framework, from Bayes' rule and decision theory to neural networks, transformers and AI agents, with code in R and Python.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.6/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23987544](https://zenodo.org/badge/DOI/10.5281/zenodo.23987544.svg)](https://doi.org/10.5281/zenodo.23987544)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning/releases/download/v1.0.7/bayes_ai_deep_learning.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayes_ai_deep_learning/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_ai_deep_learning "Source on GitHub") [![DOI 10.5281/zenodo.23992805](https://zenodo.org/badge/DOI/10.5281/zenodo.23992805.svg)](https://doi.org/10.5281/zenodo.23992805)
 
 ## [Bayesian Causality](https://vsokolov.org/books/bayesian_causality_book/) <small>Models, Accounting and the Bayesian Alternative to Double Machine Learning</small>
 
