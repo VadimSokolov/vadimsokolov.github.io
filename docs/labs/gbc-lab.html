@@ -1,0 +1,1260 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>GBC Architecture Lab</title>
+<script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, chtml: { scale: 1, matchFontHeight: false }, options: { enableMenu: false } };</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+<script src="gbc-galaxy-data.js"></script>
+<script src="gbc-gan-data.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header with the Y = F(x, U) frame; Part I galaxy mixture (data, simulate, architecture, R, one uniform, results, prompt); Part II live forecasting; lesson, notes, class exercises. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
+  --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+    --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+  --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); }
+.src a { color: var(--accent); }
+.part { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); margin: 12px 0 0; border-top: 2px solid var(--line); padding-top: 18px; }
+.part small { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.dash { border-top: 2px dashed var(--ink); }
+.sw.red { border-top: 2.5px solid var(--curve); }
+.sw.acc { border-top: 2.5px solid var(--accent); }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
+.sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.msg.warn { border-color: var(--curve); }
+.msg.warn b { color: var(--curve); }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-left: 0; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--curve); } .stat .v.good { color: var(--fit); }
+
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 88ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+.sec .head p + p { margin-top: 4px; }
+.tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
+mjx-container { font-size: 105%; }
+.frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame .note h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; }
+.frame .note p { margin: 0; font-size: 14px; }
+
+.arch { overflow-x: auto; }
+.prompt { font-family: var(--font-mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; margin: 0; }
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; overflow-x: auto; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.note a { color: var(--accent); }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+code { font-family: var(--font-mono); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Generative Bayesian Computation</span>
+    <h1>GBC Architecture Lab: \(Y = F(x, U)\)</h1>
+    <p class="lead">Generative Bayesian computation writes every uncertain quantity as a deterministic function of what you know and of noise you draw yourself: \(Y = F(x, U)\), with \(U\) independent of \(x\). Learn \(F\) from simulated or historical pairs \((x, Y)\), and every fresh draw of \(U\) is a draw of \(Y\) given \(x\). This lab takes the map apart on the galaxy velocities, where \(Y\) is a mixture's parameters and \(x\) a summary of the data, and on a time series, where \(Y\) is tomorrow's value and \(x\) is today's. A third part trains the same kind of map two ways, by the check loss and as a GAN, and asks why one minimization beats a saddle point.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Polson and Sokolov, <i>Generative Bayesian Computation: Quantile Neural Networks for Inference and Surrogates</i> (2026; <a href="https://github.com/VadimSokolov/gbc-book">github.com/VadimSokolov/gbc-book</a>), chapters 4 (noise outsourcing), 5 (the quantile network), 10 (Bayesian inference) and 11 (prediction). Data: the 82 galaxy velocities of Roeder (1990), <code>MASS::galaxies</code>. The galaxy fits in Part I were run offline by <a href="gbc-galaxy-lab.py">gbc-galaxy-lab.py</a>; everything else runs in this page. Part III follows Polson and Sokolov, <i>GBC versus GANs: Why a Minimization Beats a Saddle Point</i> (working paper, November 2026); its tables are recomputed from the paper's result files by <a href="gbc-gan-extract.py">gbc-gan-extract.py</a>.</p>
+  </header>
+
+  <section class="frame">
+    <div class="note"><h3>One equation</h3><p>The noise outsourcing theorem (Kallenberg, 1997) says such an \(F\) always exists: for any pair \((x, Y)\) there is a measurable \(F\) with \(Y = F(x, U)\) almost surely, \(U \sim U(0,1)\) independent of \(x\). For scalar \(Y\) it is the conditional quantile function, \(F(x, \tau) = Q_{Y\mid x}(\tau)\).</p></div>
+    <div class="note"><h3>Inference: Part I</h3><p>\(Y = \theta\), the parameters. \(x = S(y)\), a summary of a data set. Pairs come from the prior and the simulator. Fix \(x\) at the observed data and draw \(U\): each draw is a posterior sample.</p></div>
+    <div class="note"><h3>Forecasting: Part II</h3><p>\(Y = y_{t+1}\), the next value. \(x = y_t\), the present. Pairs come from history. Feed a draw back in as the next \(x\) and you have a simulated future path; a thousand paths are a forecast distribution.</p></div>
+  </section>
+
+  <h2 class="part"><small>Part I</small>Inference: how many groups of galaxies?</h2>
+
+  <!-- DATA -->
+  <section class="sec" aria-labelledby="dH">
+    <div class="head">
+      <h2 id="dH">The data: 82 velocities, no agreed number of modes</h2>
+      <p>Velocities of 82 galaxies in the Corona Borealis region, the standard test of mixture methods since Roeder (1990). A clear group near 9.7 thousand km/s, a crowded main body with peaks near 20 and 22.5, and three stragglers past 32. Published counts of components run from three to seven. Reversible jump MCMC has to move between dimensions to ask the question; GBC fits an overfitted mixture with \(K = 10\) slots and lets the empty ones stay empty.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap">Galaxy velocities, thousands of km/s</span>
+        <canvas id="cvData" height="300" aria-label="Histogram, kernel density and rug of the galaxy velocities"></canvas>
+        <div class="legend"><span><i class="sw bar"></i>histogram</span><span><i class="sw red"></i>Gaussian kernel density</span><span><i class="sw pt"></i>one tick per galaxy</span></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="bw">Bin width</label><output id="bwO"></output></div><input id="bw" type="range" min="250" max="3000" step="250" value="1000"></div>
+          <div class="slider"><div class="top"><label for="kb">Kernel bandwidth</label><output id="kbO"></output></div><input id="kb" type="range" min="200" max="3000" step="100" value="900"></div>
+          <p class="hint">Drag the bandwidth below 500 and above 2000. The number of bumps you "see" is a choice of smoothing, which is why the number of components is a question for a model, not for the eye.</p>
+        </div>
+        <div class="group"><p class="msg" id="dataMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIMULATE -->
+  <section class="sec" aria-labelledby="sH">
+    <div class="head">
+      <h2 id="sH">Step 1. Simulate: the pairs \((x, Y)\) come from the prior</h2>
+      <p>One draw: weights \(w \sim \text{Dirichlet}(0.3, \dots, 0.3)\) on \(K = 10\) slots, means \(\mu_k \sim N(21, 8^2)\), variances \(\sigma_k^2 \sim \text{InvGamma}(2, 2)\), then 82 velocities from the mixture, reduced to \(x = S\), their 32 sample quantiles at levels \((i - \tfrac12)/32\). The slots are sorted by mean in every draw, so "slot 1" means "the lowest mean" and a label is never a parameter. The offline run repeats this \(10^5\) times.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board">
+          <span class="cap">One prior draw: mixture density and its 82 velocities</span>
+          <canvas id="cvSim" height="250"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>mixture density</span><span><i class="sw bar"></i>simulated data</span><span><i class="sw pt"></i>observed (rug)</span></div>
+        </div>
+        <div class="board">
+          <span class="cap">The summary x = S: 32 quantiles, simulated against observed</span>
+          <canvas id="cvQ" height="250"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>S(simulated)</span><span><i class="sw dash"></i>S(observed)</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="btns"><button class="primary" id="simOne">Draw θ from the prior</button><button id="simClose">Search for a close draw</button></div>
+          <div class="slider"><div class="top"><label for="eps">Closeness for the search</label><output id="epsO"></output></div><input id="eps" type="range" min="0.4" max="3" step="0.1" value="1.2"></div>
+          <p class="hint">"Close" means the root mean square gap between the two sets of quantiles is below this, in thousands of km/s. The search is rejection ABC: count how many prior draws it burns.</p>
+        </div>
+        <div class="group">
+          <div class="two">
+            <div class="stat"><span class="k">occupied slots</span><span class="v" id="sOcc">–</span></div>
+            <div class="stat"><span class="k">RMS gap to S(obs)</span><span class="v" id="sDist">–</span></div>
+          </div>
+          <p class="msg" id="simMsg">Press a button to draw.</p>
+          <table class="stats"><thead><tr><th>slot</th><th>w</th><th>μ</th><th>σ</th><th>n</th></tr></thead><tbody id="simTab"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="sec" aria-labelledby="aH">
+    <div class="head">
+      <h2 id="aH">Step 2. Train: the architecture of \(F\)</h2>
+      <p>Noise \(U\) goes through a fixed random projection \(R\), is concatenated with the summary \(S\), and three dense ReLU layers map the result to the \(3K\) mixture parameters. Training draws a fresh \(U\) at every step and fits by a loss whose minimizer is the conditional distribution of \(\theta\) given \(S\). Change the widths and watch what each one costs.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap">θ = F(S, U): layers and sizes</span>
+        <div class="arch"><canvas id="cvArch" height="240"></canvas></div>
+        <table class="stats" id="archTab"></table>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="aM">Noise width M</label><output id="aMO"></output></div><input id="aM" type="range" min="3" max="24" step="1" value="20"></div>
+          <div class="checks"><label><input type="checkbox" id="aFrz" checked> Freeze R (never trained)</label></div>
+          <div class="slider"><div class="top"><label for="aD">Width after R</label><output id="aDO"></output></div><input id="aD" type="range" min="3" max="12" step="1" value="10"></div>
+          <div class="slider"><div class="top"><label for="aH2">Hidden width</label><output id="aH2O"></output></div><input id="aH2" type="range" min="4" max="12" step="1" value="10"></div>
+          <div class="slider"><div class="top"><label for="aL">Hidden layers</label><output id="aLO"></output></div><input id="aL" type="range" min="1" max="6" step="1" value="3"></div>
+          <div class="slider"><div class="top"><label for="aK">Mixture slots K</label><output id="aKO"></output></div><input id="aK" type="range" min="2" max="20" step="1" value="10"></div>
+          <div class="slider"><div class="top"><label for="aQ">Quantiles in S</label><output id="aQO"></output></div><input id="aQ" type="range" min="3" max="7" step="1" value="5"></div>
+        </div>
+        <div class="group"><p class="msg" id="archMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- R -->
+  <section class="sec" aria-labelledby="rH">
+    <div class="head">
+      <h2 id="rH">What \(R\) is: one matrix, drawn once</h2>
+      <p>\(R\) has \(d\) rows and \(M\) columns with entries drawn independently from \(N(0, 1/M)\). A linear map of a Gaussian is Gaussian, so \(RU \sim N(0, RR^\top)\) exactly, and \(RR^\top \to I\) as \(M\) grows: after \(R\) the noise is a standard \(d\)-dimensional Gaussian. Draw an \(R\) here (scaled down so it fits in a browser) and look at \(RR^\top\).</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board">
+          <span class="cap">RRᵀ − I, blue below zero, red above</span>
+          <canvas id="cvRR" height="280"></canvas>
+        </div>
+        <div class="board">
+          <span class="cap">Eigenvalues of RRᵀ against the Marchenko–Pastur edges</span>
+          <canvas id="cvEig" height="280"></canvas>
+          <div class="legend"><span><i class="sw pt"></i>eigenvalue</span><span><i class="sw dash"></i>(1 ± √(d/M))²</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="rM">Columns M</label><output id="rMO"></output></div><input id="rM" type="range" min="4" max="16" step="1" value="10"></div>
+          <div class="slider"><div class="top"><label for="rD">Rows d</label><output id="rDO"></output></div><input id="rD" type="range" min="4" max="64" step="4" value="32"></div>
+          <button id="rNew">Draw a new R</button>
+        </div>
+        <div class="group">
+          <table class="stats"><thead><tr><th></th><th>measured</th><th>theory</th></tr></thead><tbody id="rTab"></tbody></table>
+          <p class="msg" id="rMsg"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ONE UNIFORM -->
+  <section class="sec" aria-labelledby="uH">
+    <div class="head">
+      <h2 id="uH">How wide should \(U\) be? Modes need pieces, not dimensions</h2>
+      <p>Noise outsourcing needs one uniform per parameter: draw \(\theta_1 = F_1(x, U_1)\), then \(\theta_2 = F_2(x, \theta_1, U_2)\), and so on. Fifteen numbers for a five-component mixture, thirty for ten slots. Can one uniform carry several modes? Take the quantile function of the galaxy kernel density, approximate it by a ReLU network with \(H\) units (at most \(H + 1\) linear pieces in one input), and push a single uniform through it. A gap between modes is a steep piece; a mode is a flat one.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board">
+          <span class="cap">Quantile function F(τ) and its piecewise linear fit</span>
+          <canvas id="cvPw" height="250"></canvas>
+          <div class="legend"><span><i class="sw red"></i>target quantile function</span><span><i class="sw acc"></i>H + 1 pieces</span></div>
+        </div>
+        <div class="board">
+          <span class="cap">Draws of F(U), U ~ U(0,1), against the target density</span>
+          <canvas id="cvPwD" height="250"></canvas>
+          <div class="legend"><span><i class="sw bar"></i>20,000 draws</span><span><i class="sw red"></i>target density</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="pwH">ReLU units H</label><output id="pwHO"></output></div><input id="pwH" type="range" min="1" max="48" step="1" value="3"></div>
+          <div class="checks"><label><input type="checkbox" id="pwOpt" checked> Place the knots where the density changes</label></div>
+          <p class="hint">Unchecked, the knots sit at equally spaced τ. Checked, they sit at equally spaced velocities, so the steep stretches (the gaps) get their own pieces.</p>
+        </div>
+        <div class="group"><p class="msg" id="pwMsg"></p></div>
+        <div class="group"><p class="hint"><b>So what does extra width buy?</b> Each input coordinate is another direction in which a ReLU unit can place a hyperplane, so a wider \(U\) cuts the noise space into more affine regions, and separate regions can carry separate modes. But only before the first trainable layer: a frozen \(R\) hands the network a \(d\)-dimensional Gaussian whatever \(M\) was, so \(2^{20}\) is what the theory permits, not what the optimizer sees. On 82 data points, \(U\) at \(2^{10}\) is ample.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="sec" aria-labelledby="eH">
+    <div class="head">
+      <h2 id="eH">Step 3. Evaluate: fix \(x = S(y_{\text{obs}})\) and draw \(U\) again and again</h2>
+      <p id="resIntro">Each draw of \(U\) gives one \(\theta\), so 5,000 draws are 5,000 posterior samples from one forward pass. Two losses were trained on the same \(10^5\) pairs and the same network, and both are checked against a Gibbs sampler under the same prior (exact up to Monte Carlo error).</p>
+    </div>
+    <div id="resMissing" class="msg warn" hidden><b>Results file missing.</b> Run <code>python gbc-galaxy-lab.py</code> next to this page to produce <code>gbc-galaxy-data.js</code>.</div>
+    <div class="grid" id="resGrid">
+      <div class="board">
+        <span class="cap" id="bandCap">Posterior predictive density with 90% bands</span>
+        <canvas id="cvBand" height="280"></canvas>
+        <div class="legend"><span><i class="sw"></i>posterior mean density</span><span><i class="sw band"></i>pointwise 90% band</span><span><i class="sw dash"></i>Gibbs reference</span><span><i class="sw pt"></i>data</span></div>
+        <div class="duo">
+          <div><span class="cap">Number of occupied components</span><canvas id="cvOcc" height="200"></canvas>
+            <div class="legend"><span><i class="sw bar"></i>this method</span><span><i class="sw dash"></i>Gibbs</span><span><i class="sw red"></i>prior</span></div></div>
+          <div><span class="cap">Posterior atoms (μₖ, wₖ), 500 draws</span><canvas id="cvAtoms" height="200"></canvas></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <span class="label">Method</span>
+          <div class="seg" id="mSeg" style="grid-template-columns:repeat(2,1fr)"><button data-m="energy" aria-pressed="false">GBC, energy, global</button><button data-m="energy_local" aria-pressed="true">GBC, energy, local</button><button data-m="pinball" aria-pressed="false" style="border-left:0;border-top:1px solid var(--line)">GBC, pinball, global</button><button data-m="gibbs" aria-pressed="false" style="border-top:1px solid var(--line)">Gibbs reference</button></div>
+          <p class="hint"><b>Global</b>: trained on 10⁵ draws from the whole prior, as the prompt asks. <b>Local</b>: the same network trained on the 10⁵ draws, out of 2×10⁷, whose summary is closest to the observed one.</p>
+        </div>
+        <div class="group"><table class="stats" id="resTab"></table></div>
+        <div class="group">
+          <span class="label">Do the weights add up to one?</span>
+          <canvas id="cvWsum" height="130"></canvas>
+          <p class="msg" id="resMsg"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROMPT -->
+  <section class="sec" aria-labelledby="pH">
+    <div class="head">
+      <h2 id="pH">Doing it yourself: the prompt</h2>
+      <p>Four numbered steps, each one checkable. The prompt names the dimensions because that is what makes the answer reproducible, and because a model that has to guess the width of \(U\) will guess something small. Asking for the code as well as the figures is what lets you check that step 2 drew from the prior you meant.</p>
+    </div>
+    <div class="grid">
+      <pre class="prompt" id="promptTxt">Take the 82 galaxy velocities from the MASS galaxies data.
+
+1. Plot them: histogram with bin width 1000 km/s, a Gaussian kernel density with bandwidth 900 on top, a rug of the raw values below the axis, and the group sizes labelled. Grey panel, white gridlines.
+
+2. Fit a normal mixture by generative Bayesian computation, not MCMC. Simulate 100,000 draws of weights, means and scales from the prior, simulate 82 velocities from each, and reduce every sample to 32 quantiles.
+
+3. Train a map from noise to parameters. Draw U of dimension 2 to the 20, pass it through a fixed random projection to width 1024, concatenate the quantile summary, then three dense ReLU layers of width 1024. Fit by the pinball loss.
+
+4. Fix the summary at the observed data, draw 5000 noise vectors, and report the posterior predictive density with 90 percent bands and the posterior for the number of occupied components.
+
+Give me the code and the two figures.</pre>
+      <div class="panel">
+        <button id="copyP">Copy the prompt</button>
+        <div class="group"><span class="label">What the prompt still leaves open</span>
+          <p class="hint"><b>The prior.</b> Dirichlet concentration, the spread of the means and of the scales. The occupied count moves with the Dirichlet concentration more than with anything else.</p>
+          <p class="hint"><b>The labels.</b> Sorting slots by mean before training is what removes label switching; say so, or the network regresses on arbitrary slot numbers.</p>
+          <p class="hint"><b>Which τ the pinball loss uses.</b> With Gaussian \(U\) one natural choice is \(\tau_j = \Phi(U_j)\) for coordinate \(j\). That learns each parameter's marginal and nothing about how they move together (see the pinball tab in Step 3). Ask for an autoregressive chain or a joint loss such as the energy score.</p>
+          <p class="hint"><b>Where to spend the simulations.</b> 10⁵ draws from a broad prior teach the network every kind of data set, and few of them look like yours; the fitted posterior comes out too smooth. Screening a larger batch and training on the draws whose summary is near yours helps without changing the target: here it brought the occupied count in line with Gibbs, though the density stays smoother than the exact posterior.</p>
+          <p class="hint"><b>"Occupied".</b> Here: slots that receive at least one of the 82 galaxies when they are allocated by their posterior probabilities.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part II</small>Forecasting: \(y_{t+1} = F(y_t, U)\), trained live</h2>
+
+  <section class="sec" aria-labelledby="fH">
+    <div class="head">
+      <h2 id="fH">A series with two regimes</h2>
+      <p>The history is simulated from \(y_{t+1} = 0.6\,y_t + 0.8\tanh(1.5\,y_t) + 0.6\,\varepsilon_t\), \(\varepsilon_t \sim N(0,1)\). It wanders around \(+2\) or \(-2\) and now and then jumps between them. The network does not know this formula. It sees only the pairs \((y_t, y_{t+1})\) and fits \(F(x, \tau)\) by the pinball loss \(\rho_\tau(y - F(x, \tau))\) with a fresh \(\tau \sim U(0,1)\) for every pair. This is the book's quantile network: \(x\) and \(\tau\) (through 16 cosine features) each pass a layer of 32 ReLU units, the two are multiplied element by element, then one more layer of 32 and a linear output.</p>
+      <p>Then the generative step: start at \(y_T\), draw \(U\), compute \(y_{T+1} = F(y_T, U)\), feed it back, repeat. One-step quantile forecasts are what any quantile regression gives; paths are what a generative map gives, and from a start near zero they split into two regimes, which no single interval can describe.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap">History and a 30-step forecast fan from the start value</span>
+        <canvas id="cvFan" height="270"></canvas>
+        <div class="legend"><span><i class="sw pt"></i>history</span><span><i class="sw band"></i>learned 50% and 90% bands</span><span><i class="sw"></i>learned median</span><span><i class="sw dash"></i>true 5%, 50%, 95%</span><span><i class="sw acc"></i>three learned paths</span></div>
+        <div class="duo">
+          <div><span class="cap">One step: F(x, τ) at τ = .05, .25, .5, .75, .95</span><canvas id="cvFq" height="230"></canvas>
+            <div class="legend"><span><i class="sw pt"></i>pairs (yₜ, yₜ₊₁)</span><span><i class="sw"></i>learned</span><span><i class="sw dash"></i>true</span></div></div>
+          <div><span class="cap" id="hCap">Forecast distribution at the horizon</span><canvas id="cvFh" height="230"></canvas>
+            <div class="legend"><span><i class="sw bar"></i>learned paths</span><span><i class="sw red"></i>true model paths</span></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="btns"><button class="primary" id="fTrain">Train</button><button id="fReset">New history</button></div>
+          <div class="slider"><div class="top"><label for="fT">Length of history</label><output id="fTO"></output></div><input id="fT" type="range" min="100" max="3000" step="100" value="1000"></div>
+          <div class="two">
+            <div class="stat"><span class="k">steps</span><span class="v" id="fSteps">0</span></div>
+            <div class="stat"><span class="k">pinball loss</span><span class="v" id="fLoss">–</span></div>
+          </div>
+        </div>
+        <div class="group">
+          <div class="slider"><div class="top"><label for="fX0">Start value y_T</label><output id="fX0O"></output></div><input id="fX0" type="range" min="-3" max="3" step="0.05" value="0.1"></div>
+          <div class="slider"><div class="top"><label for="fHz">Horizon shown on the right</label><output id="fHzO"></output></div><input id="fHz" type="range" min="1" max="30" step="1" value="12"></div>
+          <div class="checks"><label><input type="checkbox" id="fMono"> Sort the τ grid (rearrangement)</label></div>
+        </div>
+        <div class="group"><p class="msg" id="fMsg">Press Train. About 3,000 steps of batch 64 take a few seconds.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part III</small>GBC versus GANs: a minimization against a saddle point</h2>
+
+  <section class="sec" aria-labelledby="gH">
+    <div class="head">
+      <h2 id="gH">Same map, two ways to train it</h2>
+      <p>A generative adversarial network also learns \(Y = F(x, U)\): a generator pushes noise onto the target. It finds \(F\) by playing it against a discriminator, a saddle point problem whose inner maximization is never solved exactly. GBC finds \(F\) by one minimization of the check loss. The network can be identical; the loss, and with it the geometry of optimization, differs. This part follows Polson and Sokolov, <i>Generative Bayesian Computation versus Generative Adversarial Networks: Why a Minimization Beats a Saddle Point</i> (working paper, November 2026).</p>
+    </div>
+    <div class="frame">
+      <div class="note"><h3>GAN</h3><p>\[ \min_G \max_D\ \mathbb{E}\log D(Y) + \mathbb{E}\log\bigl(1 - D(G(x, U))\bigr) \]With the best discriminator this is \(2\,\mathrm{JS}(P, Q_G) - \log 4\), but the generator only ever sees the current, partly trained \(D\).</p></div>
+      <div class="note"><h3>GBC</h3><p>\[ \min_F\ \mathbb{E}\,\rho_\tau\bigl(Y - F(x, \tau)\bigr), \quad \tau \sim U(0,1) \]Pointwise convex in the output, minimized by the conditional quantile function, with expected gradient \(F_x(F) - \tau\), zero only at the truth.</p></div>
+      <div class="note"><h3>The key identity</h3><p>Integrated over \(\tau\), the check loss is half the CRPS, so the excess risk is half the squared Cramér distance:\[ R(F) - R(F^\star) = \tfrac12\,\mathbb{E}_x\!\int (F_x - G_x)^2\,dz. \]The training loss is itself a distance between the learned and the true distribution.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="dirH">
+    <div class="head">
+      <h2 id="dirH">The Dirac GAN spirals; the check loss descends</h2>
+      <p>The cleanest case (Mescheder et al., 2018): data are a point mass at 0, the generator is a point mass at \(\theta\), the discriminator is \(D(x) = \sigma(\psi x)\). The equilibrium is \((0, 0)\), but the simultaneous gradient field is orthogonal to \((\theta, \psi)\), so each step multiplies the squared distance to equilibrium by \(1 + h^2 f'(\psi\theta)^2 > 1\). For the same target, gradient descent on the check loss moves the quantile toward 0 by a fixed amount per step and stops there.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">GAN: simultaneous steps in (θ, ψ)</span><canvas id="cvDir" height="260"></canvas>
+          <div class="legend"><span><i class="sw red"></i>trajectory</span><span><i class="sw dash"></i>starting circle</span></div></div>
+        <div class="board"><span class="cap">GBC: the median quantile q against step</span><canvas id="cvDirQ" height="260"></canvas>
+          <div class="legend"><span><i class="sw"></i>check-loss descent, τ = 0.5</span><span><i class="sw red"></i>GAN generator θ</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="dStep">Step size h</label><output id="dStepO"></output></div><input id="dStep" type="range" min="0.01" max="0.5" step="0.01" value="0.1"></div>
+          <div class="slider"><div class="top"><label for="dSteps">Steps</label><output id="dStepsO"></output></div><input id="dSteps" type="range" min="50" max="1500" step="50" value="300"></div>
+        </div>
+        <div class="group"><p class="msg" id="dirMsg"></p><p class="hint">Smaller steps slow the spiral but never stop it: the continuous-time flow is an exact circle, so the best a GAN optimizer can do here is orbit. Remedies (gradient penalties, two time scales, extragradient) each add tuning knobs.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="chH">
+    <div class="head">
+      <h2 id="chH">What each loss charges for a mistake</h2>
+      <p>Left: the target puts half its mass at \(-a\) and half at \(+a\), and a collapsed generator has found only \(+a\). The Jensen–Shannon divergence is \(0.2158\) whatever \(a\) is; it cannot tell a missing mode next door from one a thousand units away. The GBC excess risk is \(a/4\). Right: a normal posterior with the right centre and scale \(c\,s\). The excess check loss prices every error in spread, and a collapse to the posterior mean (\(c = 0\)) costs 41% of the minimal risk.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">A missing mode at distance 2a</span><canvas id="cvTwo" height="240"></canvas>
+          <div class="legend"><span><i class="sw"></i>GBC excess risk a/4</span><span><i class="sw red"></i>Jensen–Shannon</span></div></div>
+        <div class="board"><span class="cap">Excess check loss / s, generator scale c·s</span><canvas id="cvDisp" height="240"></canvas>
+          <div class="legend"><span><i class="sw"></i>excess risk</span><span><i class="sw pt"></i>your c</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="tA">Mode half-distance a</label><output id="tAO"></output></div><input id="tA" type="range" min="0.1" max="10" step="0.1" value="2"></div>
+          <div class="slider"><div class="top"><label for="cS">Scale ratio c</label><output id="cSO"></output></div><input id="cS" type="range" min="0" max="2.5" step="0.05" value="0.5"></div>
+        </div>
+        <div class="group"><p class="msg" id="chMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="rcH">
+    <div class="head">
+      <h2 id="rcH">A race on the ring of eight Gaussians, live</h2>
+      <p>The standard mode-collapse test: eight Gaussians with sd 0.05 on a circle of radius 2. GBC uses the Knothe–Rosenblatt chain \(x_1 = F_1(\tau_1)\), \(x_2 = F_2(x_1, \tau_2)\), two small networks fitted by the check loss. The GAN uses a generator from 2-dimensional Gaussian noise and a discriminator, non-saturating loss, Adam with \(\beta_1 = 0.5\). All four networks have two hidden layers of 32 LeakyReLU units, batches of 128 fresh draws, and run side by side in this page. (The paper uses three layers of 64 and batches of 512; the numbers below its results are from those runs.)</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <div class="duo">
+          <div><span class="cap">GBC, 1,500 draws</span><canvas id="cvRG" height="250"></canvas></div>
+          <div><span class="cap">GAN, 1,500 draws</span><canvas id="cvRA" height="250"></canvas></div>
+        </div>
+        <span class="cap">Modes covered during training</span>
+        <canvas id="cvRM" height="140"></canvas>
+        <div class="legend"><span><i class="sw"></i>GBC</span><span><i class="sw red"></i>GAN</span><span><i class="sw pt"></i>mode centres</span></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="btns"><button class="primary" id="rcGo">Start the race</button><button id="rcReset">Reset</button></div>
+          <span class="label">Learning rates</span>
+          <div class="seg" id="rcLr" style="grid-template-columns:repeat(2,1fr)"><button data-lr="tuned" aria-pressed="true">Tuned: 1e-3 / 2e-4</button><button data-lr="0.0005" aria-pressed="false">Both 5e-4</button><button data-lr="0.002" aria-pressed="false" style="border-left:0;border-top:1px solid var(--line)">Both 2e-3</button><button data-lr="0.0001" aria-pressed="false" style="border-top:1px solid var(--line)">Both 1e-4</button></div>
+          <p class="hint">The GAN rate 2×10⁻⁴ with β₁ = 0.5 is the standard DCGAN setting. The paper's sweep gives both methods the same rate.</p>
+        </div>
+        <div class="group">
+          <table class="stats"><thead><tr><th></th><th>GBC</th><th>GAN</th></tr></thead><tbody id="rcTab"><tr><td>Steps</td><td colspan="2">0</td></tr></tbody></table>
+          <p class="msg" id="rcMsg">Press Start. 3,000 steps take about 15 seconds.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="evH">
+    <div class="head">
+      <h2 id="evH">The paper's evidence: five studies, identical networks</h2>
+      <p>Same multilayer perceptron for both methods (three hidden layers of 64), fresh simulations every minibatch, five seeds per method (three in the sweep). Pick a study. Values are means with the seed-to-seed standard deviation in brackets, recomputed from the paper's result files.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap" id="evCap"></span>
+        <div id="evPlots" class="duo"><canvas id="cvE1" height="260"></canvas><canvas id="cvE2" height="260"></canvas></div>
+        <div class="legend" id="evLeg"></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <span class="label">Study</span>
+          <div class="seg" id="evSeg" style="grid-template-columns:repeat(2,1fr)"><button data-e="post" aria-pressed="true">1. Bimodal posterior</button><button data-e="ring" aria-pressed="false">2. Ring of 8</button><button data-e="grid" aria-pressed="false" style="border-left:0;border-top:1px solid var(--line)">3. Grid of 25</button><button data-e="sweep" aria-pressed="false" style="border-top:1px solid var(--line)">3b. Learning rates</button><button data-e="nig" aria-pressed="false" style="border-left:0;border-top:1px solid var(--line)">4. Normal (μ, σ)</button><button data-e="gk" aria-pressed="false" style="border-top:1px solid var(--line)">5. g-and-k</button></div>
+          <div class="seg" id="evY"><button data-y="0.25" aria-pressed="false">y = 0.25</button><button data-y="1.0" aria-pressed="true">y = 1</button><button data-y="2.0" aria-pressed="false">y = 2</button></div>
+        </div>
+        <div class="group"><table class="stats" id="evTab"></table></div>
+        <div class="group"><p class="msg" id="evMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head"><h2>Generative Bayesian computation in four moves</h2></div>
+    <ol class="steps">
+      <li><div><h3>Write the unknown as a function of noise</h3><p>\(Y = F(x, U)\) with \(U\) independent of \(x\) always exists. For scalar \(Y\) it is the conditional quantile function; for a vector, a chain of them. Modes and gaps are steep and flat stretches of \(F\), not extra noise dimensions.</p></div></li>
+      <li><div><h3>Get pairs, not likelihoods</h3><p>For inference the pairs come from the prior and a simulator, \(\theta \sim \pi\), \(y \sim p(y\mid\theta)\), \(x = S(y)\). For forecasting they come from history. Nothing is ever evaluated as a density.</p></div></li>
+      <li><div><h3>Fit F by a proper loss</h3><p>The pinball loss at a random \(\tau\) recovers the conditional quantile function of a scalar. For several outputs at once, use a chain of quantile maps or a joint proper score such as the energy score. A loss that scores each coordinate alone learns the margins and loses the dependence.</p></div></li>
+      <li><div><h3>Evaluate by forward passes</h3><p>Fix \(x\) at what you observed and draw \(U\). Posterior samples, forecast paths and the occupied-components count are all averages over those draws. Training was paid once, so a new data set or a new start value costs one pass, not a new chain.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cp">Noise outsourcing</div>\[ Y \overset{a.s.}{=} F(x, U), \quad U \perp x \]</div>
+      <div class="eq"><div class="cp">Pinball (check) loss, minimized at the τ-quantile</div>\[ \rho_\tau(u) = \max\{\tau u, (\tau - 1)u\} \]</div>
+      <div class="eq"><div class="cp">Energy score, a joint proper scoring rule</div>\[ \text{ES} = \mathbb{E}\lVert F(x,U) - Y\rVert - \tfrac12\,\mathbb{E}\lVert F(x,U) - F(x,U')\rVert \]</div>
+      <div class="eq"><div class="cp">A frozen random projection</div>\[ RU \sim N(0, RR^\top), \quad RR^\top \to I_d \ \text{ as } M \to \infty \]</div>
+      <div class="eq"><div class="cp">Forecast paths</div>\[ y_{T+h} = F(y_{T+h-1}, U_h), \quad U_h \overset{iid}{\sim} U(0,1) \]</div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Why no label switching</h2>
+      <p>In MCMC on a mixture, the posterior is symmetric in the \(K!\) relabellings and chains wander between them. Here the training targets are sorted by mean before the network sees them, so slot 1 is always "the lowest mean". The network never learns a label because no label was ever a target. What it does learn is a posterior over sorted slots, where an empty slot's mean is close to its prior.</p>
+    </div>
+    <div class="note">
+      <h2>Where the pinball loss falls short</h2>
+      <p>Score each of the 30 outputs with its own \(\tau_j = \Phi(U_j)\) and the best the network can do is the marginal quantile of each parameter, drawn independently of the others. The weights then no longer sum to one and a weight need not belong with its mean. The energy score scores the whole vector, so it rewards getting the dependence right. The book's remedy for vectors is the autoregressive chain \(\theta_j = F_j(x, \theta_{&lt;j}, \tau_j)\).</p>
+    </div>
+    <div class="note">
+      <h2>What R really costs</h2>
+      <p>Zero parameters, but at \(M = 2^{20}\) and \(d = 2^{10}\) it is \(2^{30}\) numbers, 4 GiB in single precision, and a 2-gigaflop multiply per draw. Since \(RU\) is exactly Gaussian, the offline run draws \(RU\) directly as \(N(0, I_{1024})\), its limit. A trainable first layer would absorb any full-rank \(RR^\top\) anyway, so only the rank of \(R\) matters.</p>
+    </div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Set the kernel bandwidth to 300 and then to 2,500. Count the bumps each time. Ask: is the number of components a property of the data or of the smoother?</li>
+      <li>Draw ten prior samples and note the occupied count each time. Then search for a close draw at closeness 1.2, 0.8 and 0.6 and record how many draws it burned. That count is what rejection ABC pays per posterior sample; GBC paid \(10^5\) simulations once.</li>
+      <li>In the architecture panel, uncheck "Freeze R" at M = 2²⁰. How many trainable parameters does the first layer have now? Then set M to 2⁵ and the width after R to 2¹⁰: what is wrong with that design?</li>
+      <li>In the R panel, hold d = 32 and raise M from 2⁴ to 2¹⁶. Predict the off-diagonal spread at each step from \(1/\sqrt M\) before you look.</li>
+      <li>With equally spaced knots, how many ReLU units does a single uniform need before the group near 9.7 separates from the main body? With knots placed by velocity?</li>
+      <li>Switch Step 3 between the global energy-score fit and the pinball fit. Compare the sum of the raw weights and the occupied count with Gibbs. Which part of the posterior did the pinball fit get right? Then switch to the local fit: what changed, and why is it still the same posterior?</li>
+      <li>Train the forecaster with 100 points of history and then with 3,000. Where in x do the learned one-step quantiles go wrong with little data? Set the start value to 0.1 and the horizon to 20: why is the median path a poor forecast?</li>
+      <li>Run the Dirac GAN at h = 0.5 and h = 0.05 for 1,500 steps. Ask before revealing: will the smaller step converge? Then read off the radius and check it against the product of \(1 + h^2 f'^2\).</li>
+      <li>Start the ring race at the tuned rates, then at "Both 2e-3". Record when each method first covers all eight modes. Which method needed its learning rate tuned, and how would you know without the true answer?</li>
+      <li>In the evidence panel, compare the GAN's coverage in studies 1, 4 and 5 with its point errors. Why can a method with nearly the right point estimates still give intervals that miss half the time?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
+  const fmtInt = v => Math.round(v).toLocaleString('en-US');
+
+  /* RANDOM NUMBERS */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  let R = mulberry32(20261108);
+  const N = () => { let u = 0, v = 0; while (!u) u = R(); while (!v) v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const G = a => { if (a < 1) return G(a + 1) * Math.pow(R(), 1 / a); const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d); for (;;) { let x, v; do { x = N(); v = 1 + c * x; } while (v <= 0); v = v * v * v; const u = R(); if (u < 1 - .0331 * x ** 4 || Math.log(u) < .5 * x * x + d * (1 - v + Math.log(v))) return d * v; } };
+  const Phi = z => { const t = 1 / (1 + 0.2316419 * Math.abs(z)), p = 0.3989423 * Math.exp(-z * z / 2) * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; };
+  const PhiInv = p => { // Acklam
+    const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239], b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572], c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783], d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+    const pl = 0.02425; let q, r;
+    if (p < pl) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    if (p > 1 - pl) { q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    q = p - 0.5; r = q * q; return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  };
+
+  /* CANVAS */
+  function setup(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.getAttribute('height');
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    return { ctx, w, h };
+  }
+  // A plot frame: returns mappers. pad = [left, right, top, bottom]
+  function frame(cv, xr, yr, o = {}) {
+    const { ctx, w, h } = setup(cv), p = o.pad || [42, 12, 10, 30];
+    const X = x => p[0] + (x - xr[0]) / (xr[1] - xr[0]) * (w - p[0] - p[1]);
+    const Y = y => h - p[3] - (y - yr[0]) / (yr[1] - yr[0]) * (h - p[2] - p[3]);
+    ctx.font = '11px ' + css('--font-mono'); ctx.fillStyle = css('--muted'); ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1;
+    const xt = o.xt || nice(xr, 6), yt = o.yt || nice(yr, 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const t of xt) { ctx.beginPath(); ctx.moveTo(X(t), p[2]); ctx.lineTo(X(t), h - p[3]); ctx.stroke(); ctx.fillText(o.xf ? o.xf(t) : t, X(t), h - p[3] + 5 + (o.rug ? 10 : 0)); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const t of yt) { ctx.beginPath(); ctx.moveTo(p[0], Y(t)); ctx.lineTo(w - p[1], Y(t)); ctx.stroke(); ctx.fillText(o.yf ? o.yf(t) : t, p[0] - 6, Y(t)); }
+    return { ctx, w, h, X, Y, p };
+  }
+  function nice(r, n) { const span = r[1] - r[0], raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= raw); const out = []; for (let v = Math.ceil(r[0] / st) * st; v <= r[1] + 1e-9; v += st) out.push(+v.toFixed(10)); return out; }
+  function line(ctx, xs, ys, X, Y, color, wdt = 2, dash) { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = wdt; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(X(x), Y(ys[i])) : ctx.moveTo(X(x), Y(ys[i]))); ctx.stroke(); ctx.restore(); }
+  function area(ctx, xs, lo, hi, X, Y, color) { ctx.save(); ctx.fillStyle = color; ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(X(x), Y(hi[i])) : ctx.moveTo(X(x), Y(hi[i]))); for (let i = xs.length - 1; i >= 0; i--) ctx.lineTo(X(xs[i]), Y(lo[i])); ctx.closePath(); ctx.fill(); ctx.restore(); }
+  const alpha = (c, a) => `color-mix(in srgb, ${c} ${Math.round(a * 100)}%, transparent)`;
+  function rug(ctx, ys, X, h, p, color) { ctx.save(); ctx.strokeStyle = color; ctx.globalAlpha = .7; ctx.lineWidth = 1; for (const v of ys) { ctx.beginPath(); ctx.moveTo(X(v), h - p[3] + 1); ctx.lineTo(X(v), h - p[3] + 9); ctx.stroke(); } ctx.restore(); }
+
+  /* DATA */
+  const Yobs = [9172, 9350, 9483, 9558, 9775, 10227, 10406, 16084, 16170, 18419, 18552, 18600, 18927, 19052, 19070, 19330, 19343, 19349, 19440, 19473, 19529, 19541, 19547, 19663, 19846, 19856, 19863, 19914, 19918, 19973, 19989, 20166, 20175, 20179, 20196, 20215, 20221, 20415, 20629, 20795, 20821, 20846, 20875, 20986, 21137, 21492, 21701, 21814, 21921, 21960, 22185, 22209, 22242, 22249, 22314, 22374, 22495, 22746, 22747, 22888, 22914, 23206, 23241, 23263, 23484, 23538, 23542, 23666, 23706, 23711, 24129, 24285, 24289, 24366, 24717, 24990, 25633, 26690, 26995, 32065, 32789, 34279].map(v => v / 1000);
+  const NOBS = Yobs.length, XR = [5, 40];
+  const kde = (data, bw, xs) => xs.map(x => data.reduce((s, v) => s + Math.exp(-0.5 * ((x - v) / bw) ** 2), 0) / (data.length * bw * Math.sqrt(2 * Math.PI)));
+  const groups = (() => { const g = [[Yobs[0]]]; for (let i = 1; i < NOBS; i++) { if (Yobs[i] - Yobs[i - 1] > 2) g.push([]); g[g.length - 1].push(Yobs[i]); } return g; })();
+
+  function drawData() {
+    const bw = +$('bw').value / 1000, kb = +$('kb').value / 1000;
+    $('bwO').textContent = fmtInt(bw * 1000) + ' km/s'; $('kbO').textContent = fmtInt(kb * 1000) + ' km/s';
+    const lo = 8, edges = []; for (let e = lo; e < 36; e += bw) edges.push(e);
+    const counts = edges.map(e => Yobs.filter(v => v >= e && v < e + bw).length);
+    const xs = []; for (let x = 8; x <= 36; x += 0.1) xs.push(x);
+    const dens = kde(Yobs, kb, xs).map(d => d * NOBS * bw);
+    const ymax = Math.max(Math.max(...counts), Math.max(...dens)) * 1.18;
+    const { ctx, w, h, X, Y, p } = frame($('cvData'), [8, 36], [0, ymax], { rug: true, pad: [36, 12, 10, 40] });
+    ctx.fillStyle = alpha(css('--accent'), .35);
+    edges.forEach((e, i) => { if (counts[i]) ctx.fillRect(X(e) + 1, Y(counts[i]), X(e + bw) - X(e) - 2, Y(0) - Y(counts[i])); });
+    line(ctx, xs, dens, X, Y, css('--curve'), 2.5);
+    rug(ctx, Yobs, X, h, p, css('--point'));
+    ctx.fillStyle = css('--curve'); ctx.font = '600 12px ' + css('--font-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    for (const g of groups) { const m = (g[0] + g[g.length - 1]) / 2, xi = xs.reduce((b, x, i) => Math.abs(x - m) < Math.abs(xs[b] - m) ? i : b, 0); ctx.fillText(g.length === 70 ? '70 in the main body' : g.length, X(m), Math.max(14, Y(Math.max(dens[xi], ...counts.filter((_, i) => edges[i] <= m && m < edges[i] + bw))) - 6)); }
+    const bumps = dens.filter((d, i) => i > 0 && i < dens.length - 1 && d > dens[i - 1] && d >= dens[i + 1] && d > 0.02 * Math.max(...dens)).length;
+    $('dataMsg').innerHTML = `At bandwidth ${fmtInt(kb * 1000)} km/s the kernel density has <b>${bumps}</b> local maxima. Gaps wider than 2,000 km/s split the galaxies into groups of ${groups.map(g => g.length).join(', ')}.`;
+  }
+
+  /* PRIOR AND SIMULATOR (must match gbc-galaxy-lab.py) */
+  const K = 10, E0 = 0.3, MU0 = 21, MUSD = 8, IGA = 2, IGB = 2, NQ = 32;
+  const QLEV = Array.from({ length: NQ }, (_, i) => (i + 0.5) / NQ);
+  const quant = (sorted, p) => { const h = (sorted.length - 1) * p, i = Math.floor(h); return sorted[i] + (h - i) * ((sorted[Math.min(i + 1, sorted.length - 1)]) - sorted[i]); };
+  const Sobs = QLEV.map(p => quant(Yobs, p));
+  function priorDraw() {
+    const g = Array.from({ length: K }, () => G(E0)), sg = g.reduce((a, b) => a + b, 0);
+    const comp = g.map(v => ({ w: v / sg, mu: MU0 + MUSD * N(), sd: Math.sqrt(IGB / G(IGA)) })).sort((a, b) => a.mu - b.mu);
+    const z = [], y = [];
+    for (let i = 0; i < NOBS; i++) { let u = R(), k = 0; while (k < K - 1 && u > comp[k].w) { u -= comp[k].w; k++; } z.push(k); y.push(comp[k].mu + comp[k].sd * N()); }
+    comp.forEach((c, k) => c.n = z.filter(v => v === k).length);
+    const ys = y.slice().sort((a, b) => a - b), S = QLEV.map(p => quant(ys, p));
+    const dist = Math.sqrt(S.reduce((s, v, i) => s + (v - Sobs[i]) ** 2, 0) / NQ);
+    return { comp, y, S, dist, occ: comp.filter(c => c.n > 0).length };
+  }
+  let simCur = null;
+  function drawSim(note) {
+    const d = simCur; if (!d) return;
+    const xs = []; for (let x = XR[0]; x <= XR[1]; x += 0.1) xs.push(x);
+    const mix = xs.map(x => d.comp.reduce((s, c) => s + c.w * Math.exp(-0.5 * ((x - c.mu) / c.sd) ** 2) / (c.sd * Math.sqrt(2 * Math.PI)), 0));
+    const bw = 1, edges = []; for (let e = XR[0]; e < XR[1]; e += bw) edges.push(e);
+    const inR = d.y.filter(v => v >= XR[0] && v < XR[1]);
+    const hist = edges.map(e => inR.filter(v => v >= e && v < e + bw).length / (NOBS * bw));
+    const ymax = Math.min(1.2, Math.max(...mix, ...hist) * 1.12) || 0.2;
+    let f = frame($('cvSim'), XR, [0, ymax], { rug: true, pad: [40, 10, 10, 40] });
+    f.ctx.fillStyle = alpha(css('--accent'), .3);
+    edges.forEach((e, i) => { if (hist[i]) f.ctx.fillRect(f.X(e) + 1, f.Y(Math.min(hist[i], ymax)), f.X(e + bw) - f.X(e) - 2, f.Y(0) - f.Y(Math.min(hist[i], ymax))); });
+    line(f.ctx, xs, mix.map(v => Math.min(v, ymax)), f.X, f.Y, css('--accent'), 2.5);
+    rug(f.ctx, Yobs, f.X, f.h, f.p, css('--point'));
+    const all = d.S.concat(Sobs), lo = Math.min(...all), hi = Math.max(...all), padv = (hi - lo) * 0.08 + 0.5;
+    f = frame($('cvQ'), [0, 1], [lo - padv, hi + padv], { pad: [40, 10, 10, 30], xt: [0, .25, .5, .75, 1] });
+    line(f.ctx, QLEV, Sobs, f.X, f.Y, css('--ink'), 2, [5, 4]);
+    line(f.ctx, QLEV, d.S, f.X, f.Y, css('--accent'), 2.5);
+    f.ctx.fillStyle = css('--accent'); for (let i = 0; i < NQ; i++) { f.ctx.beginPath(); f.ctx.arc(f.X(QLEV[i]), f.Y(d.S[i]), 2.5, 0, 7); f.ctx.fill(); }
+    $('sOcc').textContent = d.occ; $('sDist').textContent = fmt(d.dist, 2);
+    $('simTab').innerHTML = d.comp.map((c, k) => c.w < 0.01 && !c.n ? '' : `<tr><td>${k + 1}</td><td>${fmt(c.w, 3)}</td><td>${fmt(c.mu, 1)}</td><td>${fmt(c.sd, 2)}</td><td>${c.n}</td></tr>`).join('');
+    if (note) $('simMsg').innerHTML = note;
+  }
+
+  /* ARCHITECTURE */
+  const bytes = n => n >= 2 ** 30 ? fmt(n / 2 ** 30, 1) + ' GiB' : n >= 2 ** 20 ? fmt(n / 2 ** 20, 1) + ' MiB' : fmt(n / 2 ** 10, 1) + ' KiB';
+  const big = n => n >= 1e9 ? fmt(n / 1e9, 2) + ' B' : n >= 1e6 ? fmt(n / 1e6, 2) + ' M' : n >= 1e3 ? fmt(n / 1e3, 1) + ' k' : String(n);
+  function drawArch() {
+    const M = 2 ** +$('aM').value, d = 2 ** +$('aD').value, H = 2 ** +$('aH2').value, L = +$('aL').value, Kk = +$('aK').value, Q = 2 ** +$('aQ').value, frz = $('aFrz').checked;
+    $('aMO').textContent = `2^${$('aM').value} = ${fmtInt(M)}`; $('aDO').textContent = `2^${$('aD').value} = ${fmtInt(d)}`; $('aH2O').textContent = `2^${$('aH2').value} = ${fmtInt(H)}`; $('aLO').textContent = L; $('aKO').textContent = `${Kk} → ${3 * Kk} outputs`; $('aQO').textContent = Q;
+    $('aD').disabled = !frz;
+    const inW = (frz ? d : M) + Q;
+    const first = inW * H + H, hid = (L - 1) * (H * H + H), out = H * 3 * Kk + 3 * Kk, train = first + hid + out;
+    const rEnt = frz ? d * M : 0, flops = 2 * (rEnt + train);
+    const cv = $('cvArch'), { ctx, w, h } = setup(cv);
+    const boxes = [{ t: 'U', s: fmtInt(M), c: '--muted', note: 'N(0, I) noise' }];
+    if (frz) boxes.push({ t: 'R', s: `${fmtInt(d)} × ${fmtInt(M)}`, c: '--alt', note: 'frozen, 0 params' });
+    boxes.push({ t: '[ · , S]', s: `${fmtInt(frz ? d : M)} + ${Q}`, c: '--fit', note: 'concat summary' });
+    for (let l = 0; l < L; l++) boxes.push({ t: `ReLU ${l + 1}`, s: fmtInt(H), c: '--accent', note: l === 0 ? big(first) + ' params' : big(H * H + H) + ' params' });
+    boxes.push({ t: 'θ', s: String(3 * Kk), c: '--curve', note: 'w, μ, log σ' });
+    const n = boxes.length, gap = 14, bwid = Math.max(54, (w - gap * (n - 1) - 8) / n), hmax = 150;
+    const lg = v => Math.log2(Math.max(2, v));
+    const sizeOf = b => b.t === 'U' ? M : b.t === 'R' ? d : b.t.startsWith('[') ? inW : b.t === 'θ' ? 3 * Kk : H;
+    boxes.forEach((b, i) => {
+      const x = 4 + i * (bwid + gap), bh = 20 + hmax * lg(sizeOf(b)) / 24, y = 20 + (hmax + 20 - bh) / 2;
+      ctx.fillStyle = alpha(css(b.c), .18); ctx.strokeStyle = css(b.c); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(x, y, bwid, bh, 6); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = css('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 13px ' + css('--font-display'); ctx.fillText(b.t, x + bwid / 2, y + bh / 2);
+      ctx.font = '11px ' + css('--font-mono'); ctx.fillStyle = css('--muted'); ctx.fillText(b.s, x + bwid / 2, 10); ctx.fillText(b.note, x + bwid / 2, h - 30);
+      if (i < n - 1) { ctx.strokeStyle = css('--muted'); ctx.beginPath(); ctx.moveTo(x + bwid + 2, 105); ctx.lineTo(x + bwid + gap - 2, 105); ctx.stroke(); }
+    });
+    ctx.font = '11px ' + css('--font-mono'); ctx.fillStyle = css('--muted'); ctx.textAlign = 'left'; ctx.fillText('box height ∝ log₂(width)', 4, h - 10);
+    $('archTab').innerHTML = `<tbody><tr><td>Trainable parameters</td><td>${fmtInt(train)}</td></tr><tr><td>First trainable layer</td><td>${fmtInt(first)}</td></tr><tr><td>Entries of R (frozen)</td><td>${frz ? fmtInt(rEnt) + ' (' + bytes(4 * rEnt) + ')' : 'none'}</td></tr><tr><td>Multiply-adds per draw</td><td>${big(flops / 2)}</td></tr><tr><td>Trainable size, float32</td><td>${bytes(4 * train)}</td></tr></tbody>`;
+    let m = '';
+    if (frz && d > M) m = `<b>R widens the noise.</b> With ${fmtInt(d)} rows and only ${fmtInt(M)} columns, RRᵀ has rank ${fmtInt(M)}: the network still sees an ${fmtInt(M)}-dimensional Gaussian spread over ${fmtInt(d)} coordinates. Width after R cannot exceed the width of U.`;
+    else if (Math.min(frz ? d : M, M) < 3 * Kk) m = `<b>Noise narrower than the parameters.</b> ${3 * Kk} outputs, ${fmtInt(Math.min(frz ? d : M, M))} noise coordinates. A smooth map cannot fill a ${3 * Kk}-dimensional posterior from fewer dimensions; noise outsourcing asks for one uniform per parameter.`;
+    else if (!frz && M > 2 ** 14) m = `<b>Training on raw U.</b> The first layer alone has ${fmtInt(first)} weights, ${bytes(4 * first)}, nearly all of them multiplying pure noise. This is why R is frozen.`;
+    else if (frz && M >= 2 ** 18) m = `<b>Zero parameters, not zero cost.</b> R holds ${bytes(4 * rEnt)} and adds ${big(rEnt)} multiply-adds per draw, ${fmt(rEnt / train, 0)} times the rest of the network, to produce noise distributed almost exactly as N(0, I<sub>${fmtInt(d)}</sub>), which can be drawn directly.`;
+    else m = `${fmtInt(train)} trainable parameters fitted to 10⁵ simulated pairs: <b>${fmt(train / 1e5, 1)}</b> parameters per pair. The pairs are free, so more can always be simulated.`;
+    $('archMsg').innerHTML = m;
+  }
+
+  /* R */
+  let Rmat = null;
+  function newR() {
+    const M = 2 ** +$('rM').value, d = +$('rD').value, s = 1 / Math.sqrt(M);
+    $('rMO').textContent = `2^${$('rM').value} = ${fmtInt(M)}`; $('rDO').textContent = d;
+    const Rm = Array.from({ length: d }, () => { const r = new Float64Array(M); for (let j = 0; j < M; j++) r[j] = N() * s; return r; });
+    const C = Array.from({ length: d }, () => new Float64Array(d));
+    for (let i = 0; i < d; i++) for (let j = i; j < d; j++) { let t = 0; const a = Rm[i], b = Rm[j]; for (let k = 0; k < M; k++) t += a[k] * b[k]; C[i][j] = C[j][i] = t; }
+    Rmat = { M, d, C, eig: jacobi(C.map(r => Array.from(r))) };
+    drawR();
+  }
+  function jacobi(A) {
+    const n = A.length;
+    for (let sweep = 0; sweep < 60; sweep++) {
+      let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += A[i][j] ** 2;
+      if (off < 1e-20) break;
+      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+        if (Math.abs(A[p][q]) < 1e-15) continue;
+        const th = (A[q][q] - A[p][p]) / (2 * A[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+        for (let k = 0; k < n; k++) { const akp = A[k][p], akq = A[k][q]; A[k][p] = c * akp - s * akq; A[k][q] = s * akp + c * akq; }
+        for (let k = 0; k < n; k++) { const apk = A[p][k], aqk = A[q][k]; A[p][k] = c * apk - s * aqk; A[q][k] = s * apk + c * aqk; }
+      }
+    }
+    return A.map((r, i) => r[i]).sort((a, b) => a - b);
+  }
+  function drawR() {
+    if (!Rmat) return;
+    const { M, d, C, eig } = Rmat;
+    const { ctx, w, h } = setup($('cvRR')), side = Math.min(w, h) - 8, cell = side / d, x0 = (w - side) / 2, y0 = (h - side) / 2;
+    const lim = Math.max(0.05, 3 / Math.sqrt(M)), red = css('--curve'), blue = css('--accent');
+    for (let i = 0; i < d; i++) for (let j = 0; j < d; j++) { const v = C[i][j] - (i === j ? 1 : 0), a = Math.min(1, Math.abs(v) / lim); ctx.fillStyle = alpha(v > 0 ? red : blue, a); ctx.fillRect(x0 + j * cell, y0 + i * cell, cell + 0.5, cell + 0.5); }
+    ctx.strokeStyle = css('--line'); ctx.strokeRect(x0, y0, side, side);
+    ctx.fillStyle = css('--muted'); ctx.font = '11px ' + css('--font-mono'); ctx.textAlign = 'left'; ctx.fillText(`full colour at ±${fmt(lim, 3)}`, x0 + 4, y0 + side - 6);
+    const r = d / M, lo = (1 - Math.sqrt(r)) ** 2, hi = (1 + Math.sqrt(r)) ** 2;
+    const xr = [Math.min(eig[0], lo) * 0.9, Math.max(eig[d - 1], hi) * 1.05 + 0.02];
+    const f = frame($('cvEig'), xr, [0, 1], { pad: [14, 12, 10, 30], yt: [] });
+    line(f.ctx, [lo, lo], [0, 1], f.X, f.Y, css('--ink'), 1.5, [5, 4]); line(f.ctx, [hi, hi], [0, 1], f.X, f.Y, css('--ink'), 1.5, [5, 4]); line(f.ctx, [1, 1], [0, 1], f.X, f.Y, css('--muted'), 1);
+    f.ctx.fillStyle = css('--point'); eig.forEach((e, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(e), f.Y(0.1 + 0.8 * (i + 0.5) / d), 3.2, 0, 7); f.ctx.fill(); });
+    const dg = [], od = []; for (let i = 0; i < d; i++) for (let j = 0; j < d; j++) (i === j ? dg : od).push(C[i][j]);
+    const mean = a => a.reduce((s, v) => s + v, 0) / a.length, sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+    $('rTab').innerHTML = `<tr><td>Diagonal, mean</td><td>${fmt(mean(dg), 3)}</td><td>1</td></tr><tr><td>Diagonal, sd</td><td>${fmt(sd(dg), 3)}</td><td>${fmt(Math.sqrt(2 / M), 3)}</td></tr><tr><td>Off-diagonal, sd</td><td>${fmt(sd(od), 3)}</td><td>${fmt(1 / Math.sqrt(M), 3)}</td></tr><tr><td>Smallest eigenvalue</td><td>${fmt(eig[0], 3)}</td><td>${fmt(lo, 3)}</td></tr><tr><td>Largest eigenvalue</td><td>${fmt(eig[d - 1], 3)}</td><td>${fmt(hi, 3)}</td></tr>`;
+    $('rMsg').innerHTML = d > M ? `<b>Rank deficient.</b> d = ${d} rows but only M = ${M} columns: ${d - M} eigenvalues are exactly zero, and RU lives in an ${M}-dimensional subspace.` : `The ratio d/M = ${fmt(r, 4)} sets everything: the eigenvalues fill [${fmt(lo, 2)}, ${fmt(hi, 2)}]. At the slide's d/M = 2⁻¹⁰ that interval is [0.94, 1.06]. RU is exactly Gaussian at every M; only its covariance approaches I.`;
+  }
+
+  /* ONE UNIFORM, MANY PIECES */
+  const PW = (() => { // target: galaxy kernel density, bandwidth 0.9
+    const xs = []; for (let x = 4; x <= 40; x += 0.02) xs.push(x);
+    const den = kde(Yobs, 0.9, xs), cdf = [0]; for (let i = 1; i < xs.length; i++) cdf.push(cdf[i - 1] + (den[i] + den[i - 1]) / 2 * 0.02);
+    const tot = cdf[cdf.length - 1]; for (let i = 0; i < cdf.length; i++) cdf[i] /= tot;
+    const qf = t => { let lo = 0, hi = cdf.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cdf[m] < t) lo = m; else hi = m; } const f = (t - cdf[lo]) / ((cdf[hi] - cdf[lo]) || 1); return xs[lo] + f * (xs[hi] - xs[lo]); };
+    const cdfAt = x => { const i = Math.max(0, Math.min(xs.length - 1, Math.round((x - 4) / 0.02))); return cdf[i]; };
+    return { xs, den: den.map(v => v / tot), qf, cdfAt };
+  })();
+  function drawPw() {
+    const H = +$('pwH').value, opt = $('pwOpt').checked, T0 = 0.003, T1 = 0.997;
+    $('pwHO').textContent = `${H} → ${H + 1} pieces`;
+    let knots;
+    if (opt) { const a = PW.qf(T0), b = PW.qf(T1); knots = Array.from({ length: H + 2 }, (_, i) => PW.cdfAt(a + (b - a) * i / (H + 1))); knots[0] = T0; knots[H + 1] = T1; knots = [...new Set(knots.map(v => +v.toFixed(6)))].sort((p, q) => p - q); }
+    else knots = Array.from({ length: H + 2 }, (_, i) => T0 + (T1 - T0) * i / (H + 1));
+    const kv = knots.map(PW.qf);
+    const approx = t => { if (t <= knots[0]) return kv[0]; for (let i = 1; i < knots.length; i++) if (t <= knots[i]) return kv[i - 1] + (t - knots[i - 1]) / (knots[i] - knots[i - 1]) * (kv[i] - kv[i - 1]); return kv[kv.length - 1]; };
+    const ts = []; for (let t = 0.003; t <= 0.997; t += 0.002) ts.push(t);
+    let f = frame($('cvPw'), [0, 1], [5, 37], { xt: [0, .25, .5, .75, 1], pad: [36, 10, 10, 30] });
+    line(f.ctx, ts, ts.map(PW.qf), f.X, f.Y, css('--curve'), 2.5);
+    line(f.ctx, knots, kv, f.X, f.Y, css('--accent'), 2);
+    f.ctx.fillStyle = css('--accent'); knots.forEach((k, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(k), f.Y(kv[i]), 3, 0, 7); f.ctx.fill(); });
+    const bw = 0.5, edges = []; for (let e = 5; e < 37; e += bw) edges.push(e);
+    const cnt = new Array(edges.length).fill(0), Rl = mulberry32(7), ND = 20000;
+    for (let i = 0; i < ND; i++) { const v = approx(Rl()), k = Math.floor((v - 5) / bw); if (k >= 0 && k < cnt.length) cnt[k]++; }
+    const hist = cnt.map(c => c / (ND * bw)), ymax = Math.max(...PW.den, ...hist) * 1.1;
+    f = frame($('cvPwD'), [5, 37], [0, ymax], { pad: [40, 10, 10, 30] });
+    f.ctx.fillStyle = alpha(css('--accent'), .35); edges.forEach((e, i) => { if (hist[i]) f.ctx.fillRect(f.X(e) + .5, f.Y(hist[i]), f.X(e + bw) - f.X(e) - 1, f.Y(0) - f.Y(hist[i])); });
+    line(f.ctx, PW.xs, PW.den, f.X, f.Y, css('--curve'), 2);
+    let tv = 0; edges.forEach((e, i) => { const m = (PW.cdfAt(e + bw) - PW.cdfAt(e)); tv += Math.abs(hist[i] * bw - m); }); tv /= 2;
+    const sep = hist[Math.floor((13 - 5) / bw)] < 0.3 * PW.den[Math.round((13 - 4) / 0.02)] + 0.002;
+    $('pwMsg').innerHTML = `One uniform, ${knots.length - 1} linear pieces: total variation distance to the target <b>${fmt(tv, 3)}</b>. ${sep ? 'The gap between the group near 9.7 and the main body is open.' : 'The gap near 13 is still filled in: no piece is steep enough there yet.'}`;
+  }
+
+  /* RESULTS */
+  const D = window.GBC_GALAXY;
+  let method = D && D.res.energy_local ? 'energy_local' : 'energy';
+  function drawRes() {
+    if (!D) { $('resMissing').hidden = false; $('resGrid').hidden = true; return; }
+    const r = D.res[method], g = D.res.gibbs, gr = D.grid;
+    const ymax = Math.max(...r.band.hi, ...g.band.hi) * 1.08;
+    let f = frame($('cvBand'), XR, [0, ymax], { rug: true, pad: [44, 10, 10, 40] });
+    area(f.ctx, gr, r.band.lo, r.band.hi, f.X, f.Y, alpha(css('--fit'), .28));
+    line(f.ctx, gr, r.band.mean, f.X, f.Y, css('--fit'), 2.5);
+    if (method !== 'gibbs') { line(f.ctx, gr, g.band.mean, f.X, f.Y, css('--ink'), 1.6, [5, 4]); line(f.ctx, gr, g.band.lo, f.X, f.Y, css('--ink'), 1, [2, 3]); line(f.ctx, gr, g.band.hi, f.X, f.Y, css('--ink'), 1, [2, 3]); }
+    rug(f.ctx, Yobs, f.X, f.h, f.p, css('--point'));
+    const NAMES = { energy: 'GBC, energy score, trained on the whole prior', energy_local: 'GBC, energy score, trained near the observed summary', pinball: 'GBC, pinball loss, trained on the whole prior', gibbs: 'Gibbs sampler' };
+    $('bandCap').textContent = `Posterior predictive density with 90% bands: ${NAMES[method]}`;
+    // occupied
+    const ks = Array.from({ length: K }, (_, i) => i + 1), om = Math.max(...r.occ, ...g.occ, ...D.prior_occ) * 1.12;
+    f = frame($('cvOcc'), [0.4, K + 0.6], [0, om], { xt: ks, pad: [36, 8, 8, 26], yf: v => v.toFixed(1) });
+    f.ctx.fillStyle = alpha(css('--accent'), .5); ks.forEach(k => { const v = r.occ[k - 1]; f.ctx.fillRect(f.X(k - 0.32), f.Y(v), f.X(k + 0.32) - f.X(k - 0.32), f.Y(0) - f.Y(v)); });
+    line(f.ctx, ks, g.occ, f.X, f.Y, css('--ink'), 1.6, [5, 4]); line(f.ctx, ks, D.prior_occ, f.X, f.Y, css('--curve'), 1.6);
+    // atoms
+    f = frame($('cvAtoms'), XR, [0, 0.7], { pad: [36, 8, 8, 26], yt: [0, .2, .4, .6] });
+    f.ctx.fillStyle = alpha(css('--fit'), .22); for (const [m, w] of r.atoms) { if (m < XR[0] || m > XR[1]) continue; f.ctx.beginPath(); f.ctx.arc(f.X(m), f.Y(Math.min(w, 0.7)), 2, 0, 7); f.ctx.fill(); }
+    // wsum
+    const ws = r.wsum, wl = 0, wh = 2, nb = 40, cnt = new Array(nb).fill(0);
+    for (const v of ws) { const k = Math.floor((v - wl) / (wh - wl) * nb); cnt[Math.max(0, Math.min(nb - 1, k))]++; }
+    const cm = Math.max(...cnt);
+    f = frame($('cvWsum'), [wl, wh], [0, 1.05], { pad: [12, 8, 6, 24], yt: [], xt: [0, .5, 1, 1.5, 2] });
+    f.ctx.fillStyle = alpha(css('--accent'), .55); cnt.forEach((c, i) => { const x = wl + (wh - wl) * i / nb; f.ctx.fillRect(f.X(x) + .5, f.Y(c / cm), f.X(x + (wh - wl) / nb) - f.X(x) - 1, f.Y(0) - f.Y(c / cm)); });
+    line(f.ctx, [1, 1], [0, 1.05], f.X, f.Y, css('--curve'), 1.5, [4, 3]);
+    const mean = a => a.reduce((s, v) => s + v, 0) / a.length, sdv = a => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / a.length); };
+    const tv = 0.5 * gr.reduce((s, _, i) => s + Math.abs(r.band.mean[i] - g.band.mean[i]), 0) * (gr[1] - gr[0]);
+    const pmode = r.occ.indexOf(Math.max(...r.occ)) + 1, eocc = r.occ.reduce((s, p, i) => s + p * (i + 1), 0), egocc = g.occ.reduce((s, p, i) => s + p * (i + 1), 0);
+    const p4 = r.occ.slice(0, 4).reduce((a, b) => a + b, 0);
+    $('resTab').innerHTML = `<thead><tr><th></th><th>this</th><th>Gibbs</th></tr></thead><tbody>
+      <tr><td>Most likely occupied count</td><td>${pmode}</td><td>${g.occ.indexOf(Math.max(...g.occ)) + 1}</td></tr>
+      <tr><td>Mean occupied count</td><td>${fmt(eocc, 2)}</td><td>${fmt(egocc, 2)}</td></tr>
+      <tr><td>P(at most 4 occupied)</td><td>${fmt(p4, 3)}</td><td>${fmt(g.occ.slice(0, 4).reduce((a, b) => a + b, 0), 3)}</td></tr>
+      <tr><td>TV distance of mean density to Gibbs</td><td>${method === 'gibbs' ? '0' : fmt(tv, 3)}</td><td>0</td></tr>
+      <tr><td>Raw weight sum, mean ± sd</td><td>${method === 'gibbs' ? '1 ± 0' : fmt(mean(ws), 2) + ' ± ' + fmt(sdv(ws), 2)}</td><td>1 ± 0</td></tr>
+      <tr><td>Run time</td><td>${r.seconds} s</td><td>${g.seconds} s</td></tr></tbody>`;
+    const c = D.config;
+    $('resIntro').innerHTML = `Each draw of \\(U\\) gives one \\(\\theta\\), so ${fmtInt(c.draws)} draws are ${fmtInt(c.draws)} posterior samples from one forward pass. Two losses were trained on the same ${fmtInt(c.n_sim)} simulated pairs and the same network (\\(U\\) of width ${c.u_dim}, three ReLU layers of ${c.width}, ${fmtInt(c.steps)} Adam steps of batch 1,024 on ${c.device === 'mps' ? 'an Apple M2 laptop GPU' : c.device}), and both are checked against a Gibbs sampler under the same prior. The pinball fit uses \\(\\tau_j = \\Phi(U_j)\\) for output \\(j\\). A third fit trains the energy-score network only on simulations whose summary lands near the observed one: the posterior given \\(x\\) is unchanged by a restriction on \\(x\\), and the network no longer has to be accurate everywhere at once.`;
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('resIntro')]);
+    const L = D.res.energy_local && D.res.energy_local.local, tvG = m => 0.5 * gr.reduce((s, _, i) => s + Math.abs(D.res[m].band.mean[i] - g.band.mean[i]), 0) * (gr[1] - gr[0]);
+    if (method === 'energy_local' && L) { $('resMsg').innerHTML = `Kept ${fmtInt(L.kept)} of ${fmtInt(L.n_prior)} prior simulations (${fmt(100 * L.kept / L.n_prior, 1)}%), all with an RMS quantile gap to the observed data of at most ${fmt(L.max_dist, 2)} thousand km/s. Raw weights sum to <b>${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}</b>. Distance of the mean density to Gibbs: <b>${fmt(tv, 3)}</b> here against ${fmt(tvG('energy'), 3)} when trained on the whole prior. Restricting the pairs on x, never on θ, leaves the posterior given x unchanged, so the target is the same. The occupied count now matches Gibbs closely, but the density is still smoother: even the closest 0.5% of prior data sets sit ${fmt(L.median_dist, 1)} thousand km/s from the observed quantiles (median RMS gap), so the network still interpolates to these 82 velocities. Closing the rest of the gap would take more rounds of localization or a better summary than 32 quantiles; we report the gap rather than hide it.`; return; }
+    $('resMsg').innerHTML = method === 'energy' ? `Trained on the whole prior, the network spends its capacity on data sets that look nothing like these 82 velocities, and its posterior at the observed summary is too smooth: distance <b>${fmt(tv, 3)}</b> to Gibbs, with the group near 9.7 blurred into the gap. The weights do move together (raw sum ${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}). Compare the localized fit.` : method === 'gibbs' ? 'Gibbs draws are proper mixtures, so the weights sum to one exactly.' : method === 'energy' ? `The network outputs ten weights with no constraint. Under the energy score their sum is <b>${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}</b>: the fit learned that weights move together. They are clipped at zero and renormalized before use.` : `Under the pinball loss the ten weights are drawn as independent marginal quantiles, so their sum is <b>${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}</b>. Each margin can be right while the joint is wrong; the renormalization then hides the damage.`;
+  }
+
+  /* FORECASTING: an IQN in plain JavaScript */
+  const FH = 32, FE = 16, FS = 2; // hidden width, cosine features, input scale
+  const drift = x => 0.6 * x + 0.8 * Math.tanh(1.5 * x), NOISE = 0.6;
+  const trueQ = (x, t) => drift(x) + NOISE * PhiInv(t);
+  let fc = null, running = false;
+  function initNet(seed) {
+    const Rn = mulberry32(seed), Nn = () => { let u = 0, v = 0; while (!u) u = Rn(); while (!v) v = Rn(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+    const mk = (n, fanIn) => { const a = new Float64Array(n); for (let i = 0; i < n; i++) a[i] = Nn() * Math.sqrt(2 / fanIn); return a; };
+    const P = { Wx: mk(FH, 1), bx: new Float64Array(FH).fill(0.1), Wt: mk(FH * FE, FE), bt: new Float64Array(FH).fill(0.1), W2: mk(FH * FH, FH), b2: new Float64Array(FH), W3: mk(FH, FH), b3: new Float64Array(1) };
+    const z = () => Object.fromEntries(Object.entries(P).map(([k, v]) => [k, new Float64Array(v.length)]));
+    return { P, m: z(), v: z(), g: z(), t: 0 };
+  }
+  const phi = (t, out) => { for (let i = 0; i < FE; i++) out[i] = Math.cos((i + 1) * Math.PI * t); return out; };
+  const buf = { ax: new Float64Array(FH), hx: new Float64Array(FH), at: new Float64Array(FH), ht: new Float64Array(FH), h: new Float64Array(FH), a2: new Float64Array(FH), h2: new Float64Array(FH), ph: new Float64Array(FE), dh2: new Float64Array(FH), dh: new Float64Array(FH) };
+  function fwd(P, x, t) {
+    const B = buf; x /= FS; phi(t, B.ph);
+    for (let j = 0; j < FH; j++) {
+      B.ax[j] = P.Wx[j] * x + P.bx[j]; B.hx[j] = B.ax[j] > 0 ? B.ax[j] : 0;
+      let s = P.bt[j]; for (let i = 0; i < FE; i++) s += P.Wt[j * FE + i] * B.ph[i]; B.at[j] = s; B.ht[j] = s > 0 ? s : 0;
+      B.h[j] = B.hx[j] * B.ht[j];
+    }
+    let o = P.b3[0];
+    for (let j = 0; j < FH; j++) { let s = P.b2[j]; for (let i = 0; i < FH; i++) s += P.W2[j * FH + i] * B.h[i]; B.a2[j] = s; B.h2[j] = s > 0 ? s : 0; o += P.W3[j] * B.h2[j]; }
+    return o * FS;
+  }
+  function trainSteps(nSteps) {
+    const net = fc.net, P = net.P, g = net.g, B = buf, bs = 64, n = fc.y.length - 1, lr0 = 3e-3;
+    let lossSum = 0;
+    for (let s = 0; s < nSteps; s++) {
+      for (const k in g) g[k].fill(0);
+      let L = 0;
+      for (let b = 0; b < bs; b++) {
+        const i = Math.floor(R() * n), x = fc.y[i], y = fc.y[i + 1], t = R();
+        const out = fwd(P, x, t), r = y - out; L += Math.max(t * r, (t - 1) * r);
+        const dout = (r < 0 ? 1 - t : -t) * FS / bs, xs = x / FS;
+        g.b3[0] += dout;
+        for (let j = 0; j < FH; j++) { g.W3[j] += dout * B.h2[j]; B.dh2[j] = B.a2[j] > 0 ? dout * P.W3[j] : 0; }
+        B.dh.fill(0);
+        for (let j = 0; j < FH; j++) { const d = B.dh2[j]; if (!d) continue; g.b2[j] += d; for (let i = 0; i < FH; i++) { g.W2[j * FH + i] += d * B.h[i]; B.dh[i] += d * P.W2[j * FH + i]; } }
+        for (let j = 0; j < FH; j++) {
+          const dax = B.ax[j] > 0 ? B.dh[j] * B.ht[j] : 0, dat = B.at[j] > 0 ? B.dh[j] * B.hx[j] : 0;
+          g.Wx[j] += dax * xs; g.bx[j] += dax;
+          if (dat) { g.bt[j] += dat; for (let i = 0; i < FE; i++) g.Wt[j * FE + i] += dat * B.ph[i]; }
+        }
+      }
+      lossSum += L / bs;
+      net.t++; const lr = lr0 * (net.t < 3000 ? 1 : 0.3), b1 = 0.9, b2 = 0.999, c1 = 1 - b1 ** net.t, c2 = 1 - b2 ** net.t;
+      for (const k in P) { const p = P[k], gg = g[k], m = net.m[k], v = net.v[k]; for (let i = 0; i < p.length; i++) { m[i] = b1 * m[i] + (1 - b1) * gg[i]; v[i] = b2 * v[i] + (1 - b2) * gg[i] * gg[i]; p[i] -= lr * (m[i] / c1) / (Math.sqrt(v[i] / c2) + 1e-8); } }
+    }
+    return lossSum / nSteps;
+  }
+  function newHistory() {
+    const T = +$('fT').value, y = [2 * (R() < 0.5 ? 1 : -1)];
+    for (let t = 1; t < T; t++) y.push(drift(y[t - 1]) + NOISE * N());
+    fc = { y, net: initNet(Math.floor(R() * 1e9)), loss: NaN };
+    $('fSteps').textContent = '0'; $('fLoss').textContent = '–';
+    drawFc();
+  }
+  const TAUS = [0.05, 0.25, 0.5, 0.75, 0.95];
+  function learnedQ(x, t) {
+    if (!$('fMono').checked) return fwd(fc.net.P, x, t);
+    const grid = []; for (let k = 1; k < 40; k++) grid.push(fwd(fc.net.P, x, k / 40)); grid.sort((a, b) => a - b);
+    const h = t * 40 - 1, i = Math.max(0, Math.min(37, Math.floor(h))), f = Math.max(0, Math.min(1, h - i)); return grid[i] + f * (grid[i + 1] - grid[i]);
+  }
+  function paths(step, x0, H, n, seed) {
+    const Rp = mulberry32(seed), out = []; for (let p = 0; p < n; p++) { let x = x0; const path = []; for (let h = 0; h < H; h++) { x = step(x, Math.min(0.999, Math.max(0.001, Rp()))); path.push(x); } out.push(path); } return out;
+  }
+  const qOf = (a, p) => { const s = a.slice().sort((u, v) => u - v); return quant(s, p); };
+  function drawFc() {
+    if (!fc) return;
+    const x0 = +$('fX0').value, Hh = 30, hz = +$('fHz').value, trained = fc.net.t > 0;
+    $('fX0O').textContent = fmt(x0, 2); $('fHzO').textContent = hz + (hz === 1 ? ' step' : ' steps'); $('fTO').textContent = fmtInt(+$('fT').value);
+    const NP = 800, lp = trained ? paths((x, t) => learnedQ(x, t), x0, Hh, NP, 11) : null, tp = paths(trueQ, x0, Hh, NP, 12);
+    const hist = fc.y.slice(-80), H0 = hist.length;
+    const band = ps => Array.from({ length: Hh }, (_, h) => { const col = ps.map(p => p[h]); return [0.05, 0.25, 0.5, 0.75, 0.95].map(q => qOf(col, q)); });
+    const tb = band(tp), lb = lp ? band(lp) : null;
+    const xs = Array.from({ length: Hh + 1 }, (_, h) => H0 - 1 + h);
+    let f = frame($('cvFan'), [0, H0 + Hh], [-5, 5], { pad: [32, 10, 10, 28], xf: v => v - H0 + 1 });
+    f.ctx.fillStyle = css('--point'); hist.forEach((v, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(i), f.Y(v), 1.8, 0, 7); f.ctx.fill(); });
+    line(f.ctx, hist.map((_, i) => i), hist, f.X, f.Y, alpha(css('--point'), .5), 1);
+    line(f.ctx, [H0 - 1, H0 - 1], [-5, 5], f.X, f.Y, css('--muted'), 1, [2, 3]);
+    f.ctx.fillStyle = css('--ball'); f.ctx.beginPath(); f.ctx.arc(f.X(H0 - 1), f.Y(x0), 4.5, 0, 7); f.ctx.fill();
+    if (lb) {
+      const ex = (k) => [x0, ...lb.map(b => b[k])];
+      area(f.ctx, xs, ex(0), ex(4), f.X, f.Y, alpha(css('--fit'), .18)); area(f.ctx, xs, ex(1), ex(3), f.X, f.Y, alpha(css('--fit'), .28)); line(f.ctx, xs, ex(2), f.X, f.Y, css('--fit'), 2.5);
+      for (let p = 0; p < 3; p++) line(f.ctx, xs, [x0, ...lp[p]], f.X, f.Y, alpha(css('--accent'), .8), 1.3);
+    }
+    for (const k of [0, 2, 4]) line(f.ctx, xs, [x0, ...tb.map(b => b[k])], f.X, f.Y, css('--ink'), 1.4, [5, 4]);
+    f.ctx.fillStyle = css('--muted'); f.ctx.textAlign = 'left'; f.ctx.fillText('time relative to the start value', f.p[0] + 4, f.p[2] + 10);
+    // one-step quantiles
+    f = frame($('cvFq'), [-4.5, 4.5], [-5.5, 5.5], { pad: [32, 8, 8, 26] });
+    f.ctx.fillStyle = alpha(css('--point'), .35); const step = Math.max(1, Math.floor(fc.y.length / 700)); for (let i = 0; i < fc.y.length - 1; i += step) { f.ctx.beginPath(); f.ctx.arc(f.X(fc.y[i]), f.Y(fc.y[i + 1]), 1.6, 0, 7); f.ctx.fill(); }
+    const gx = []; for (let x = -4.5; x <= 4.5; x += 0.1) gx.push(x);
+    for (const t of TAUS) { line(f.ctx, gx, gx.map(x => trueQ(x, t)), f.X, f.Y, css('--ink'), 1.3, [5, 4]); if (trained) line(f.ctx, gx, gx.map(x => learnedQ(x, t)), f.X, f.Y, css('--fit'), t === 0.5 ? 2.5 : 1.6); }
+    const lo = Math.min(...fc.y), hi = Math.max(...fc.y); f.ctx.fillStyle = alpha(css('--muted'), .12); f.ctx.fillRect(f.X(-4.5), f.p[2], f.X(lo) - f.X(-4.5), f.h - f.p[3] - f.p[2]); f.ctx.fillRect(f.X(hi), f.p[2], f.X(4.5) - f.X(hi), f.h - f.p[3] - f.p[2]);
+    // horizon histogram
+    $('hCap').textContent = `Forecast distribution ${hz} step${hz > 1 ? 's' : ''} ahead`;
+    const bw = 0.25, edges = []; for (let e = -5; e < 5; e += bw) edges.push(e);
+    const hh = ps => { const c = new Array(edges.length).fill(0); ps.forEach(p => { const k = Math.floor((p[hz - 1] + 5) / bw); if (k >= 0 && k < c.length) c[k]++; }); return c.map(v => v / (ps.length * bw)); };
+    const th = hh(tp), lh = lp ? hh(lp) : null, ym = Math.max(...th, ...(lh || [0])) * 1.12;
+    f = frame($('cvFh'), [-5, 5], [0, ym], { pad: [36, 8, 8, 26], yf: v => v.toFixed(1) });
+    if (lh) { f.ctx.fillStyle = alpha(css('--accent'), .4); edges.forEach((e, i) => { if (lh[i]) f.ctx.fillRect(f.X(e) + .5, f.Y(lh[i]), f.X(e + bw) - f.X(e) - 1, f.Y(0) - f.Y(lh[i])); }); }
+    line(f.ctx, edges.map(e => e + bw / 2), th, f.X, f.Y, css('--curve'), 2);
+    // message
+    if (!trained) { $('fMsg').innerHTML = 'Untrained. The dashed lines are the true model, which the network never sees. Press Train.'; return; }
+    const col = lp.map(p => p[hz - 1]), pPos = col.filter(v => v > 0).length / col.length, tPos = tp.map(p => p[hz - 1]).filter(v => v > 0).length / NP;
+    const med = qOf(col, 0.5), nearMed = col.filter(v => Math.abs(v - med) < 0.5).length / col.length;
+    let cross = 0, tot = 0; for (let x = lo; x <= hi; x += 0.25) { let prev = -Infinity; for (let k = 1; k < 40; k++) { const v = fwd(fc.net.P, x, k / 40); if (v < prev) cross++; prev = v; tot++; } }
+    $('fMsg').innerHTML = `At ${hz} step${hz > 1 ? 's' : ''} from y<sub>T</sub> = ${fmt(x0, 2)}: P(y > 0) is <b>${fmt(pPos, 2)}</b> from the learned map and ${fmt(tPos, 2)} from the true model. ${nearMed < 0.2 && pPos > 0.15 && pPos < 0.85 ? `Only ${fmt(100 * nearMed, 0)}% of paths end within 0.5 of the median ${fmt(med, 2)}: the median is a value the series rarely takes.` : `The median path ends at ${fmt(med, 2)}.`} Raw quantile crossings on a 39-level grid inside the data range: ${fmt(100 * cross / tot, 1)}%. Grey shading on the one-step panel marks x values never seen in the history.`;
+  }
+  function loop() {
+    if (!running) return;
+    const L = trainSteps(25);
+    fc.loss = isNaN(fc.loss) ? L : 0.95 * fc.loss + 0.05 * L;
+    $('fSteps').textContent = fmtInt(fc.net.t); $('fLoss').textContent = fmt(fc.loss, 3);
+    if (fc.net.t % 100 === 0) drawFc();
+    if (fc.net.t >= 4000) { running = false; $('fTrain').textContent = 'Train more'; drawFc(); return; }
+    requestAnimationFrame(loop);
+  }
+
+  /* PART III: GBC VERSUS GAN */
+  const GG = window.GBC_GAN;
+  // Dirac GAN against check-loss descent
+  function drawDirac() {
+    const h = +$('dStep').value, n = +$('dSteps').value; $('dStepO').textContent = fmt(h, 2); $('dStepsO').textContent = n;
+    const fp = t => 1 / (1 + Math.exp(t));
+    let th = 1, ps = 0, q = 1; const T = [th], P = [ps], Q = [q];
+    for (let k = 0; k < n; k++) { const c = h * fp(ps * th), t2 = th - c * ps, p2 = ps + c * th; th = t2; ps = p2; T.push(th); P.push(ps); q -= h * (q > 0 ? 0.5 : -0.5); Q.push(q); }
+    const rad = Math.hypot(th, ps), lim = Math.max(1.2, ...T.map(Math.abs), ...P.map(Math.abs)) * 1.05;
+    let f = frame($('cvDir'), [-lim, lim], [-lim, lim], { pad: [36, 10, 10, 26] });
+    const ang = Array.from({ length: 101 }, (_, i) => 2 * Math.PI * i / 100);
+    line(f.ctx, ang.map(Math.cos), ang.map(Math.sin), f.X, f.Y, css('--ink'), 1.2, [4, 4]);
+    line(f.ctx, T, P, f.X, f.Y, css('--curve'), 1.6);
+    f.ctx.fillStyle = css('--ball'); f.ctx.font = '16px ' + css('--font-body'); f.ctx.textAlign = 'center'; f.ctx.textBaseline = 'middle'; f.ctx.fillText('★', f.X(0), f.Y(0));
+    f.ctx.fillStyle = css('--muted'); f.ctx.font = '11px ' + css('--font-mono'); f.ctx.textAlign = 'left'; f.ctx.fillText('θ →', f.w - 40, f.Y(0) - 8); f.ctx.fillText('ψ ↑', f.X(0) + 6, 18);
+    const ks = Q.map((_, i) => i), lo = Math.min(-1.2, ...T), hi = Math.max(1.2, ...T);
+    f = frame($('cvDirQ'), [0, n], [lo, hi], { pad: [36, 10, 10, 26] });
+    line(f.ctx, [0, n], [0, 0], f.X, f.Y, css('--muted'), 1);
+    line(f.ctx, ks, T, f.X, f.Y, css('--curve'), 1.5);
+    line(f.ctx, ks, Q, f.X, f.Y, css('--fit'), 2.5);
+    const hit = Q.findIndex(v => Math.abs(v) <= h / 2 + 1e-12);
+    $('dirMsg').innerHTML = `After ${n} steps the GAN is at distance <b>${fmt(rad, 2)}</b> from equilibrium (it started at 1) and is still orbiting. The check-loss quantile reached the target within h/2 at step <b>${hit}</b> and stays there, jittering by at most h.`;
+  }
+  // What each loss charges
+  function drawCharge() {
+    const a = +$('tA').value, c = +$('cS').value; $('tAO').textContent = fmt(a, 1); $('cSO').textContent = fmt(c, 2);
+    const JS = 0.25 * Math.log(2) + 0.25 * Math.log(2 / 3) + 0.5 * Math.log(4 / 3);
+    const as = Array.from({ length: 101 }, (_, i) => i / 10);
+    let f = frame($('cvTwo'), [0, 10], [0, 2.6], { pad: [36, 10, 10, 26] });
+    line(f.ctx, as, as.map(v => v / 4), f.X, f.Y, css('--fit'), 2.5);
+    line(f.ctx, [0.0001, 10], [JS, JS], f.X, f.Y, css('--curve'), 2.5);
+    f.ctx.fillStyle = css('--point'); for (const v of [a / 4, JS]) { f.ctx.beginPath(); f.ctx.arc(f.X(a), f.Y(v), 4, 0, 7); f.ctx.fill(); }
+    const ex = c2 => 0.5 * (Math.sqrt(2 / Math.PI) * Math.sqrt(1 + c2 * c2) - c2 / Math.sqrt(Math.PI) - 1 / Math.sqrt(Math.PI));
+    const cs = Array.from({ length: 126 }, (_, i) => i / 50);
+    f = frame($('cvDisp'), [0, 2.5], [0, 0.13], { pad: [44, 10, 10, 26], yf: v => v.toFixed(2) });
+    line(f.ctx, cs, cs.map(ex), f.X, f.Y, css('--fit'), 2.5);
+    f.ctx.fillStyle = css('--point'); f.ctx.beginPath(); f.ctx.arc(f.X(c), f.Y(ex(c)), 5, 0, 7); f.ctx.fill();
+    const minR = 1 / (2 * Math.sqrt(Math.PI));
+    $('chMsg').innerHTML = `Missing mode at distance ${fmt(2 * a, 1)}: Jensen–Shannon ${fmt(JS, 4)} (the same for every a), GBC excess <b>${fmt(a / 4, 3)}</b>. A generator with scale ${fmt(c, 2)}·s pays an excess of <b>${fmt(ex(c), 4)}·s</b>, ${fmt(100 * ex(c) / minR, 1)}% of the minimal risk 0.2821·s. Gradient of a constant: zero; gradient of a/4: always toward the missing mode.`;
+  }
+  // Live race
+  class MLP {
+    constructor(sizes, seed, lr, b1 = 0.9, b2 = 0.999) {
+      const Rr = mulberry32(seed), Nn = () => { let u = 0, v = 0; while (!u) u = Rr(); while (!v) v = Rr(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+      this.s = sizes; this.lr = lr; this.b1 = b1; this.b2 = b2; this.t = 0;
+      this.W = []; this.b = []; this.gW = []; this.gb = []; this.m = []; this.v = [];
+      for (let l = 0; l < sizes.length - 1; l++) {
+        const nin = sizes[l], nout = sizes[l + 1], W = new Float64Array(nin * nout);
+        const sc = Math.sqrt(2 / nin); for (let i = 0; i < W.length; i++) W[i] = Nn() * sc;
+        this.W.push(W); this.b.push(new Float64Array(nout)); this.gW.push(new Float64Array(nin * nout)); this.gb.push(new Float64Array(nout));
+        this.m.push([new Float64Array(nin * nout), new Float64Array(nout)]); this.v.push([new Float64Array(nin * nout), new Float64Array(nout)]);
+      }
+    }
+    // X: array of Float64Array inputs; returns outputs, caches activations
+    forward(X, keep = true) {
+      const L = this.s.length - 1, acts = [X], pre = [];
+      let A = X;
+      for (let l = 0; l < L; l++) {
+        const nin = this.s[l], nout = this.s[l + 1], W = this.W[l], b = this.b[l], Z = [], H = [];
+        for (const a of A) {
+          const z = new Float64Array(nout);
+          for (let j = 0; j < nout; j++) { let s = b[j]; const o = j * nin; for (let i = 0; i < nin; i++) s += W[o + i] * a[i]; z[j] = s; }
+          Z.push(z);
+          if (l < L - 1) { const h = new Float64Array(nout); for (let j = 0; j < nout; j++) h[j] = z[j] > 0 ? z[j] : 0.2 * z[j]; H.push(h); } else H.push(z);
+        }
+        pre.push(Z); acts.push(H); A = H;
+      }
+      if (keep) { this.acts = acts; this.pre = pre; }
+      return A;
+    }
+    // dOut: gradients wrt outputs (array of Float64Array); accumulates grads, returns dInput
+    backward(dOut) {
+      const L = this.s.length - 1; let D = dOut;
+      for (let l = L - 1; l >= 0; l--) {
+        const nin = this.s[l], nout = this.s[l + 1], W = this.W[l], gW = this.gW[l], gb = this.gb[l], A = this.acts[l], Z = this.pre[l], Dn = [];
+        for (let n = 0; n < D.length; n++) {
+          const d = D[n], z = Z[n], a = A[n], dz = new Float64Array(nout), da = new Float64Array(nin);
+          for (let j = 0; j < nout; j++) dz[j] = l < L - 1 ? (z[j] > 0 ? d[j] : 0.2 * d[j]) : d[j];
+          for (let j = 0; j < nout; j++) { const g = dz[j]; if (!g) continue; gb[j] += g; const o = j * nin; for (let i = 0; i < nin; i++) { gW[o + i] += g * a[i]; da[i] += g * W[o + i]; } }
+          Dn.push(da);
+        }
+        D = Dn;
+      }
+      return D;
+    }
+    zero() { for (let l = 0; l < this.W.length; l++) { this.gW[l].fill(0); this.gb[l].fill(0); } }
+    step() {
+      this.t++; const c1 = 1 - this.b1 ** this.t, c2 = 1 - this.b2 ** this.t;
+      for (let l = 0; l < this.W.length; l++) for (const [p, g, m, v] of [[this.W[l], this.gW[l], this.m[l][0], this.v[l][0]], [this.b[l], this.gb[l], this.m[l][1], this.v[l][1]]])
+        for (let i = 0; i < p.length; i++) { m[i] = this.b1 * m[i] + (1 - this.b1) * g[i]; v[i] = this.b2 * v[i] + (1 - this.b2) * g[i] * g[i]; p[i] -= this.lr * (m[i] / c1) / (Math.sqrt(v[i] / c2) + 1e-8); }
+    }
+  }
+  const NCOS = 16;
+  const cosf = (t, out, off) => { for (let k = 0; k < NCOS; k++) out[off + k] = Math.cos(Math.PI * (k + 1) * t); return out; };
+  const RING_R = 2, RING_SD = 0.05;
+  const ringDraw = () => { const k = Math.floor(R() * 8), a = 2 * Math.PI * k / 8; return [RING_R * Math.cos(a) + RING_SD * N(), RING_R * Math.sin(a) + RING_SD * N()]; };
+  function makeRace(lrG, lrA, seed, width) {
+    const W = width;
+    const q1 = new MLP([NCOS, W, W, 1], seed + 1, lrG), q2 = new MLP([NCOS + 1, W, W, 1], seed + 2, lrG);
+    const G = new MLP([2, W, W, 2], seed + 3, lrA, 0.5), D = new MLP([2, W, W, 1], seed + 4, lrA, 0.5);
+    const sig = z => 1 / (1 + Math.exp(-z));
+    function gbcStep(bs) {
+      const xs = Array.from({ length: bs }, ringDraw), t1 = [], t2 = [];
+      const in1 = xs.map(() => { const t = R(); t1.push(t); return cosf(t, new Float64Array(NCOS), 0); });
+      const in2 = xs.map(x => { const t = R(); t2.push(t); const v = cosf(t, new Float64Array(NCOS + 1), 1); v[0] = x[0] / 2; return v; });
+      q1.zero(); q2.zero();
+      const o1 = q1.forward(in1), o2 = q2.forward(in2);
+      let L = 0;
+      const d1 = o1.map((o, n) => { const r = xs[n][0] - o[0]; L += Math.max(t1[n] * r, (t1[n] - 1) * r); return Float64Array.of((r < 0 ? 1 - t1[n] : -t1[n]) / bs); });
+      const d2 = o2.map((o, n) => { const r = xs[n][1] - o[0]; L += Math.max(t2[n] * r, (t2[n] - 1) * r); return Float64Array.of((r < 0 ? 1 - t2[n] : -t2[n]) / bs); });
+      q1.backward(d1); q2.backward(d2); q1.step(); q2.step();
+      return L / bs;
+    }
+    function ganStep(bs) {
+      const xs = Array.from({ length: bs }, ringDraw).map(x => Float64Array.from(x)), zs = Array.from({ length: bs }, () => Float64Array.of(N(), N()));
+      const fake = G.forward(zs);
+      // discriminator: real -> 1, fake -> 0
+      D.zero();
+      let lD = 0;
+      const or = D.forward(xs); D.backward(or.map(o => { const p = sig(o[0]); lD -= Math.log(p + 1e-12); return Float64Array.of((p - 1) / bs); }));
+      const of = D.forward(fake.map(f => Float64Array.from(f))); D.backward(of.map(o => { const p = sig(o[0]); lD -= Math.log(1 - p + 1e-12); return Float64Array.of(p / bs); }));
+      D.step();
+      // generator: non-saturating, -log D(G(z))
+      G.zero(); D.zero();
+      const og = D.forward(fake.map(f => Float64Array.from(f)));
+      let lG = 0;
+      const dx = D.backward(og.map(o => { const p = sig(o[0]); lG -= Math.log(p + 1e-12); return Float64Array.of((p - 1) / bs); }));
+      G.backward(dx); G.step(); D.zero();
+      return [lD / bs, lG / bs];
+    }
+    const sampleGBC = n => { const out = []; for (let i = 0; i < n; i++) { const x1 = q1.forward([cosf(R(), new Float64Array(NCOS), 0)], false)[0][0]; const v = cosf(R(), new Float64Array(NCOS + 1), 1); v[0] = x1 / 2; out.push([x1, q2.forward([v], false)[0][0]]); } return out; };
+    const sampleGAN = n => G.forward(Array.from({ length: n }, () => Float64Array.of(N(), N())), false).map(o => [o[0], o[1]]);
+    return { gbcStep, ganStep, sampleGBC, sampleGAN };
+  }
+  function ringMetrics(x) {
+    const cnt = new Array(8).fill(0); let hq = 0;
+    for (const p of x) for (let k = 0; k < 8; k++) { const a = 2 * Math.PI * k / 8, d = Math.hypot(p[0] - RING_R * Math.cos(a), p[1] - RING_R * Math.sin(a)); if (d < 3 * RING_SD) { cnt[k]++; hq++; break; } }
+    const modes = cnt.filter(c => c >= 0.01 * x.length).length;
+    let kl = 0; const tot = cnt.reduce((a, b) => a + b, 0); if (tot) for (const c of cnt) { const p = (c + 1e-9) / tot; kl += p * Math.log(p * 8); }
+    return { modes, hq: hq / x.length, kl };
+  }
+  let race = null, raceRun = false, raceLr = 'tuned', raceHist = { s: [], g: [], a: [] }, raceLast = null;
+  function raceNew() {
+    const lrG = raceLr === 'tuned' ? 1e-3 : +raceLr, lrA = raceLr === 'tuned' ? 2e-4 : +raceLr;
+    race = makeRace(lrG, lrA, Math.floor(R() * 1e6), 32); race.steps = 0; raceHist = { s: [0], g: [0], a: [0] }; raceLast = null;
+    raceEval(); drawRace();
+  }
+  function raceEval() { const sg = race.sampleGBC(1500), sa = race.sampleGAN(1500); raceLast = { sg, sa, mg: ringMetrics(sg), ma: ringMetrics(sa) }; if (race.steps) { raceHist.s.push(race.steps); raceHist.g.push(raceLast.mg.modes); raceHist.a.push(raceLast.ma.modes); } }
+  function drawRace() {
+    if (!raceLast) return;
+    const cen = Array.from({ length: 8 }, (_, k) => [2 * Math.cos(Math.PI * k / 4), 2 * Math.sin(Math.PI * k / 4)]);
+    for (const [id, S, col] of [['cvRG', raceLast.sg, css('--fit')], ['cvRA', raceLast.sa, css('--curve')]]) {
+      const f = frame($(id), [-3, 3], [-3, 3], { pad: [28, 8, 8, 22], xt: [-2, 0, 2], yt: [-2, 0, 2] });
+      f.ctx.fillStyle = alpha(col, .35); for (const p of S) { if (Math.abs(p[0]) > 3 || Math.abs(p[1]) > 3) continue; f.ctx.fillRect(f.X(p[0]) - 1, f.Y(p[1]) - 1, 2.2, 2.2); }
+      f.ctx.strokeStyle = css('--ink'); f.ctx.lineWidth = 1.2; for (const c of cen) { f.ctx.beginPath(); f.ctx.arc(f.X(c[0]), f.Y(c[1]), 5, 0, 7); f.ctx.stroke(); }
+    }
+    const f = frame($('cvRM'), [0, 3000], [0, 8.5], { pad: [28, 10, 8, 24], yt: [0, 2, 4, 6, 8] });
+    line(f.ctx, raceHist.s, raceHist.a, f.X, f.Y, css('--curve'), 2); line(f.ctx, raceHist.s, raceHist.g.map(v => v + 0.08), f.X, f.Y, css('--fit'), 2.5);
+    const { mg, ma } = raceLast;
+    $('rcTab').innerHTML = `<tr><td>Steps</td><td colspan="2">${fmtInt(race.steps)}</td></tr><tr><td>Modes covered (of 8)</td><td>${mg.modes}</td><td>${ma.modes}</td></tr><tr><td>Within 3 sd of a centre</td><td>${fmt(mg.hq, 2)}</td><td>${fmt(ma.hq, 2)}</td></tr><tr><td>KL of mode weights to uniform</td><td>${fmt(mg.kl, 3)}</td><td>${fmt(ma.kl, 3)}</td></tr>`;
+    if (race.steps) {
+      const first = arr => { const i = arr.findIndex(v => v === 8); return i < 0 ? null : raceHist.s[i]; };
+      const fg = first(raceHist.g), fa = first(raceHist.a);
+      $('rcMsg').innerHTML = `All eight modes first covered: GBC ${fg === null ? '<b>not yet</b>' : 'at step <b>' + fmtInt(fg) + '</b>'}, GAN ${fa === null ? '<b>not yet</b>' : 'at step <b>' + fmtInt(fa) + '</b>'}. ${mg.hq < ma.hq ? 'The GAN has more draws near the centres; the GBC quantile map has to jump between modes and a smooth network leaves thin bridges, the one place the paper finds GANs ahead.' : ''}`;
+    }
+  }
+  function raceLoop() {
+    if (!raceRun) return;
+    for (let k = 0; k < 10; k++) { race.gbcStep(128); race.ganStep(128); race.steps++; }
+    if (race.steps % 100 === 0) { raceEval(); drawRace(); }
+    if (race.steps >= 3000) { raceRun = false; $('rcGo').textContent = 'Finished'; return; }
+    requestAnimationFrame(raceLoop);
+  }
+  // Evidence
+  let evE = 'post', evYv = '1.0';
+  const ms = (v, d = 3) => `${fmt(v[0], d)} <span style="color:var(--muted)">(${fmt(v[1], d)})</span>`;
+  function bars(cv, groups, A, B, ref, yr, yf) {
+    const f = frame(cv, [0, groups.length], yr, { pad: [44, 8, 10, 26], xt: [], yf });
+    const bw = 0.32;
+    groups.forEach((g, i) => {
+      [[A[i], css('--fit'), -bw], [B[i], css('--curve'), 0]].forEach(([v, col, off]) => {
+        f.ctx.fillStyle = alpha(col, .55); f.ctx.fillRect(f.X(i + 0.5 + off), f.Y(v[0]), f.X(i + 0.5 + off + bw) - f.X(i + 0.5 + off), f.Y(yr[0]) - f.Y(v[0]));
+        f.ctx.strokeStyle = col; f.ctx.lineWidth = 1.5; const xm = f.X(i + 0.5 + off + bw / 2); f.ctx.beginPath(); f.ctx.moveTo(xm, f.Y(v[0] - v[1])); f.ctx.lineTo(xm, f.Y(v[0] + v[1])); f.ctx.stroke();
+      });
+      f.ctx.fillStyle = css('--muted'); f.ctx.textAlign = 'center'; f.ctx.textBaseline = 'top'; f.ctx.font = '11px ' + css('--font-mono'); f.ctx.fillText(g, f.X(i + 0.5), f.h - f.p[3] + 6);
+    });
+    if (ref !== null) line(f.ctx, [0, groups.length], [ref, ref], f.X, f.Y, css('--ink'), 1.3, [5, 4]);
+  }
+  function scatter(cv, S, col, lim, centres) {
+    const f = frame(cv, [-lim, lim], [-lim, lim], { pad: [30, 8, 8, 22] });
+    f.ctx.fillStyle = alpha(col, .35); for (const p of S) f.ctx.fillRect(f.X(p[0]) - 1, f.Y(p[1]) - 1, 2.2, 2.2);
+    f.ctx.strokeStyle = css('--ink'); f.ctx.lineWidth = 1; for (const c of centres) { f.ctx.beginPath(); f.ctx.arc(f.X(c[0]), f.Y(c[1]), 4, 0, 7); f.ctx.stroke(); }
+  }
+  function drawEv() {
+    if (!GG) { $('evMsg').innerHTML = '<b>Results file missing</b> (gbc-gan-data.js).'; return; }
+    $('evY').hidden = evE !== 'post';
+    const fitC = css('--fit'), redC = css('--curve');
+    const leg = (a, b) => `<span><i class="sw"></i>${a}</span><span><i class="sw red"></i>${b}</span>`;
+    if (evE === 'post') {
+      const y = +evYv, th = []; for (let t = -2.6; t <= 2.6; t += 0.01) th.push(t);
+      const un = th.map(t => Math.exp(-0.5 * t * t - 0.5 * ((y - t * t) / 0.25) ** 2)), Z = un.reduce((s, v) => s + v, 0) * 0.01, ex = un.map(v => v / Z);
+      const ym = Math.max(...ex) * 1.25;
+      [['cvE1', GG.post.GBC.samp[evYv], fitC], ['cvE2', GG.post.GAN.samp[evYv], redC]].forEach(([id, S, col]) => {
+        const bw = 0.1, edges = []; for (let e = -2.6; e < 2.6; e += bw) edges.push(e);
+        const cnt = edges.map(e => S.filter(v => v >= e && v < e + bw).length / (S.length * bw));
+        const f = frame($(id), [-2.6, 2.6], [0, Math.max(ym, ...cnt) * 1.02], { pad: [36, 8, 10, 26], yf: v => v.toFixed(1) });
+        f.ctx.fillStyle = alpha(col, .45); edges.forEach((e, i) => { if (cnt[i]) f.ctx.fillRect(f.X(e) + .5, f.Y(cnt[i]), f.X(e + bw) - f.X(e) - 1, f.Y(0) - f.Y(cnt[i])); });
+        line(f.ctx, th, ex, f.X, f.Y, css('--ink'), 2);
+      });
+      $('evCap').textContent = `Posterior of θ given y = ${fmt(y, 2)}: GBC (left) and GAN (right) draws, seed 0, against the exact posterior (black)`;
+      $('evLeg').innerHTML = leg('GBC draws', 'GAN draws') + '<span><i class="sw dash"></i>exact posterior</span>';
+      const G = GG.post.GBC.tab, A = GG.post.GAN.tab;
+      $('evTab').innerHTML = `<thead><tr><th></th><th>GBC</th><th>GAN</th></tr></thead><tbody>${[['W₁, y = 0.25', 'w1_0.25'], ['W₁, y = 1', 'w1_1.0'], ['W₁, y = 2', 'w1_2.0'], ['KS of PIT', 'ks_pit'], ['90% coverage', 'cov90']].map(([l, k]) => `<tr><td>${l}</td><td>${ms(G[k])}</td><td>${ms(A[k])}</td></tr>`).join('')}</tbody>`;
+      $('evMsg').innerHTML = 'θ ~ N(0,1), y | θ ~ N(θ², 0.25²): two modes near ±√y. Both methods split the mass evenly; the GAN is too concentrated at each mode, so its 90% intervals undercover, and its seeds disagree two to five times more.';
+    } else if (evE === 'ring' || evE === 'grid') {
+      const cen = evE === 'ring' ? Array.from({ length: 8 }, (_, k) => [2 * Math.cos(Math.PI * k / 4), 2 * Math.sin(Math.PI * k / 4)]) : [].concat(...[-4, -2, 0, 2, 4].map(a => [-4, -2, 0, 2, 4].map(b => [a, b])));
+      const lim = evE === 'ring' ? 2.8 : 5.5;
+      scatter($('cvE1'), GG[evE].GBC.samp, fitC, lim, cen); scatter($('cvE2'), GG[evE].GAN.samp, redC, lim, cen);
+      $('evCap').textContent = `${evE === 'ring' ? 'Ring of eight' : 'Grid of 25'} Gaussians, seed 0: GBC (left), GAN (right)`;
+      $('evLeg').innerHTML = leg('GBC draws', 'GAN draws') + '<span><i class="sw pt"></i>mode centres</span>';
+      const G = GG[evE].GBC.tab, A = GG[evE].GAN.tab;
+      $('evTab').innerHTML = `<thead><tr><th></th><th>GBC</th><th>GAN</th></tr></thead><tbody><tr><td>Modes covered</td><td>${ms(G.modes, 1)}</td><td>${ms(A.modes, 1)}</td></tr><tr><td>Near a centre</td><td>${ms(G.hq)}</td><td>${ms(A.hq)}</td></tr><tr><td>KL to uniform weights</td><td>${ms(G.kl)}</td><td>${ms(A.kl)}</td></tr><tr><td>Sliced W₁</td><td>${ms(G.sw1)}</td><td>${ms(A.sw1)}</td></tr></tbody>`;
+      $('evMsg').innerHTML = evE === 'ring' ? 'Both find all eight modes with a well tuned GAN, but GBC does so at the first evaluation (250 steps) in every seed, balances the weights eight times better and halves the sliced Wasserstein distance. The GAN has more draws near the centres: the gap effect of a smooth quantile map.' : 'GBC finds all 25 modes in every seed with thin bridges along the grid lines. The GAN covers 14 to 19 and spreads its mass over the square, a failure a mode count understates: only a quarter of its draws are near any centre.';
+    } else if (evE === 'sweep') {
+      const lrs = ['0.0001', '0.0005', '0.002'], lab = ['1e-4', '5e-4', '2e-3'];
+      bars($('cvE1'), lab, lrs.map(l => GG.sweep['GBC_' + l].modes), lrs.map(l => GG.sweep['GAN_' + l].modes), 8, [0, 8.8], v => v.toFixed(0));
+      bars($('cvE2'), lab, lrs.map(l => GG.sweep['GBC_' + l].kl), lrs.map(l => GG.sweep['GAN_' + l].kl), null, [0, 0.42], v => v.toFixed(2));
+      $('evCap').textContent = 'Ring of eight across learning rates (same rate for both): modes covered (left), KL of mode weights to uniform (right)';
+      $('evLeg').innerHTML = leg('GBC', 'GAN') + '<span><i class="sw dash"></i>all 8 modes</span>';
+      $('evTab').innerHTML = `<thead><tr><th>rate</th><th>GBC modes</th><th>GAN modes</th></tr></thead><tbody>${lrs.map((l, i) => `<tr><td>${lab[i]}</td><td>${ms(GG.sweep['GBC_' + l].modes, 1)}</td><td>${ms(GG.sweep['GAN_' + l].modes, 1)}</td></tr>`).join('')}</tbody>`;
+      $('evMsg').innerHTML = 'GBC covers every mode at every rate and improves as the rate rises. The GAN is competitive only near its tuned default and loses modes as the step grows, with KL forty times that of GBC at 2e-3. A loss that is minimized is robust to the step size in a way a game is not.';
+    } else if (evE === 'nig') {
+      const G = GG.nig.GBC, A = GG.nig.GAN;
+      bars($('cvE1'), ['μ', 'log σ'], [G.cov_mu, G.cov_logsig], [A.cov_mu, A.cov_logsig], 0.9, [0, 1], v => v.toFixed(1));
+      bars($('cvE2'), ['μ', 'log σ'], [G.width_mu, G.width_logsig], [A.width_mu, A.width_logsig], 1, [0, 1.2], v => v.toFixed(1));
+      $('evCap').textContent = 'Normal model with unknown mean and variance: coverage of 90% intervals (left), interval width relative to exact (right)';
+      $('evLeg').innerHTML = leg('GBC', 'GAN') + '<span><i class="sw dash"></i>target</span>';
+      $('evTab').innerHTML = `<thead><tr><th></th><th>GBC</th><th>GAN</th></tr></thead><tbody>${[['W₁ to exact, μ', 'w1_mu'], ['W₁ to exact, log σ', 'w1_logsig'], ['Width ratio, μ', 'width_mu'], ['Coverage, μ', 'cov_mu'], ['Energy distance', 'energy']].map(([l, k]) => `<tr><td>${l}</td><td>${ms(G[k])}</td><td>${ms(A[k])}</td></tr>`).join('')}</tbody>`;
+      $('evMsg').innerHTML = 'Exact two-dimensional posterior with dependent coordinates; GBC orders μ before log σ. GBC widths are within 3% of exact; the GAN intervals for μ are 35% too narrow and cover the true mean half the time.';
+    } else {
+      const G = GG.gk.GBC, A = GG.gk.GAN, ps = ['a', 'b', 'g', 'k'];
+      bars($('cvE1'), ps, ps.map(p => G['cov_' + p]), ps.map(p => A['cov_' + p]), 0.9, [0, 1], v => v.toFixed(1));
+      bars($('cvE2'), ps, ps.map(p => G['crps_' + p]), ps.map(p => A['crps_' + p]), null, [0, 0.27], v => v.toFixed(2));
+      $('evCap').textContent = 'g-and-k distribution, no closed-form likelihood: coverage of 90% intervals (left), CRPS at the true value in prior sd units (right)';
+      $('evLeg').innerHTML = leg('GBC', 'GAN') + '<span><i class="sw dash"></i>nominal 0.90</span>';
+      $('evTab').innerHTML = `<thead><tr><th></th><th>GBC RMSE</th><th>GAN RMSE</th></tr></thead><tbody>${ps.map(p => `<tr><td>${p}</td><td>${ms(G['rmse_' + p])}</td><td>${ms(A['rmse_' + p])}</td></tr>`).join('')}</tbody>`;
+      $('evMsg').innerHTML = 'Four dependent parameters, 200 observations, fifteen quantile summaries. GBC covers at 0.88 to 0.91 for all four; the GAN undercovers every one, worst for the location a. Point errors are closer, since both see the same summaries.';
+    }
+  }
+
+  /* WIRING */
+  ['bw', 'kb'].forEach(id => $(id).addEventListener('input', drawData));
+  $('eps').addEventListener('input', () => $('epsO').textContent = fmt(+$('eps').value, 1));
+  $('simOne').onclick = () => { simCur = priorDraw(); drawSim(`One draw from the prior. ${simCur.occ} of the ${K} slots received at least one of the 82 simulated galaxies.`); };
+  $('simClose').onclick = () => {
+    const eps = +$('eps').value, t0 = performance.now(); let tries = 0, d;
+    do { d = priorDraw(); tries++; } while (d.dist > eps && tries < 300000 && performance.now() - t0 < 4000);
+    simCur = d;
+    drawSim(d.dist <= eps ? `Found a draw within ${fmt(eps, 1)} after <b>${fmtInt(tries)}</b> prior draws (${fmt((performance.now() - t0) / 1000, 1)} s). Rejection ABC pays this for <i>every</i> posterior sample, and again for every new data set.` : `<b>Gave up</b> after ${fmtInt(tries)} draws in 4 s without getting within ${fmt(eps, 1)}. Showing the last draw.`);
+  };
+  ['aM', 'aD', 'aH2', 'aL', 'aK', 'aQ', 'aFrz'].forEach(id => $(id).addEventListener('input', drawArch));
+  $('rM').addEventListener('input', () => $('rMO').textContent = `2^${$('rM').value} = ${fmtInt(2 ** +$('rM').value)}`);
+  $('rD').addEventListener('input', () => $('rDO').textContent = $('rD').value);
+  ['rM', 'rD'].forEach(id => $(id).addEventListener('change', newR)); $('rNew').onclick = newR;
+  ['pwH', 'pwOpt'].forEach(id => $(id).addEventListener('input', drawPw));
+  $('mSeg').querySelectorAll('button').forEach(b => b.onclick = () => { method = b.dataset.m; $('mSeg').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); drawRes(); });
+  $('copyP').onclick = () => { navigator.clipboard.writeText($('promptTxt').textContent).then(() => { $('copyP').textContent = 'Copied'; setTimeout(() => $('copyP').textContent = 'Copy the prompt', 1500); }); };
+  $('fTrain').onclick = () => { running = !running; $('fTrain').textContent = running ? 'Pause' : 'Train more'; if (running) loop(); };
+  $('fReset').onclick = () => { running = false; $('fTrain').textContent = 'Train'; newHistory(); };
+  $('fT').addEventListener('input', () => $('fTO').textContent = fmtInt(+$('fT').value));
+  $('fT').addEventListener('change', () => { running = false; $('fTrain').textContent = 'Train'; newHistory(); });
+  ['fX0', 'fHz', 'fMono'].forEach(id => $(id).addEventListener('input', drawFc));
+
+  ['dStep', 'dSteps'].forEach(id => $(id).addEventListener('input', drawDirac));
+  ['tA', 'cS'].forEach(id => $(id).addEventListener('input', drawCharge));
+  $('rcGo').onclick = () => { if (race.steps >= 3000) return; raceRun = !raceRun; $('rcGo').textContent = raceRun ? 'Pause' : 'Resume'; if (raceRun) raceLoop(); };
+  $('rcReset').onclick = () => { raceRun = false; $('rcGo').textContent = 'Start the race'; raceNew(); };
+  $('rcLr').querySelectorAll('button').forEach(b => b.onclick = () => { raceLr = b.dataset.lr; $('rcLr').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); raceRun = false; $('rcGo').textContent = 'Start the race'; raceNew(); });
+  $('evSeg').querySelectorAll('button').forEach(b => b.onclick = () => { evE = b.dataset.e; $('evSeg').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); drawEv(); });
+  $('evY').querySelectorAll('button').forEach(b => b.onclick = () => { evYv = b.dataset.y; $('evY').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); drawEv(); });
+
+  $('mSeg').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === method));
+  function all() { drawData(); drawSim(); drawArch(); drawR(); drawPw(); drawRes(); drawFc(); drawDirac(); drawCharge(); drawRace(); drawEv(); }
+  $('epsO').textContent = fmt(+$('eps').value, 1);
+  simCur = priorDraw(); newR(); newHistory(); raceNew(); all();
+  drawSim('One draw from the prior. Press the button for another.');
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(all, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+})();
+</script>
+</body></html>
