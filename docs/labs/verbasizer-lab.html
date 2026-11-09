@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Verbasizer Lab</title>
+<script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, chtml: { scale: 1, matchFontHeight: false }, options: { enableMenu: false } };</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header with three framing cards; cut, shuffle and criticize, select (Beta posteriors), simulated artist, the real critic prompt; lesson, notes, class exercises. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
+  --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+    --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+  --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); }
+.src a { color: var(--accent); }
+.part { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); margin: 12px 0 0; border-top: 2px solid var(--line); padding-top: 18px; }
+.part small { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.dash { border-top: 2px dashed var(--ink); }
+.sw.red { border-top: 2.5px solid var(--curve); }
+.sw.acc { border-top: 2.5px solid var(--accent); }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
+.sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
+.sw.bar.ball { background: var(--ball); } .sw.bar.acc2 { background: var(--accent); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
+.sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.msg.warn { border-color: var(--curve); }
+.msg.warn b { color: var(--curve); }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-left: 0; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--curve); } .stat .v.good { color: var(--fit); }
+
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 88ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+.sec .head p + p { margin-top: 4px; }
+.tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
+mjx-container { font-size: 105%; }
+.frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame .note h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; }
+.frame .note p { margin: 0; font-size: 14px; }
+
+.arch { overflow-x: auto; }
+.prompt { font-family: var(--font-mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; margin: 0; }
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; overflow-x: auto; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.note a { color: var(--accent); }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+code { font-family: var(--font-mono); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.srcs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+@media (max-width: 800px) { .srcs { grid-template-columns: minmax(0, 1fr); } }
+.srcs label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.srcs textarea { font: 13px/1.45 var(--font-body); padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
+.frags { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.frags p { margin: 2px 0 0; line-height: 1.9; }
+.fr { border-radius: 4px; padding: 1px 4px; white-space: nowrap; }
+.fr.s0 { background: color-mix(in srgb, var(--accent) 18%, transparent); } .fr.s1 { background: color-mix(in srgb, var(--fit) 20%, transparent); } .fr.s2 { background: color-mix(in srgb, var(--ball) 24%, transparent); }
+.lines { margin: 4px 0 10px; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.lines li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: center; font-size: 15px; line-height: 1.8; }
+.lines .meta { grid-column: 2; font: 11px var(--font-mono); color: var(--muted); }
+.lines.small li { display: block; font-size: 14px; }
+.lines.small .meta { display: inline; margin-left: 6px; }
+.keep { min-width: 64px; }
+.keep[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.sw.bar.fitb { background: var(--fit); } .sw.bar.ball { background: var(--ball); } .sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Generation and selection</span>
+    <h1>Verbasizer Lab: random lines, chosen with feeling</h1>
+    <p class="lead">In 1995, recording <i>Outside</i> with Brian Eno, David Bowie used a Mac program written with Ty Roberts, the Verbasizer. It cut sentences from newspapers, diaries and an invented story into fragments and reshuffled them into new lines. Bowie crossed out most of them and kept a few that carried feeling. The program had no model of language at all. It split writing into a cheap random generator and an expensive human selector, and the feeling lived in the selector. A language model fuses the two and pulls toward the most probable line. This lab rebuilds the split: a random shuffler, a critic that only scores, and you as the selector, with a Bayesian update that learns what you keep.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Polson and Sokolov, <i>Verbasizer 3.0: Random Generation, Emotional Selection</i> (implementation note and slides, November 2026), and its prototype <code>verbasizer.py</code>. The critic in this page is a stub that runs in your browser: a hand-made emotion lexicon, a bigram language model of the source texts for surprisal, and a score for how well fragments join. The source texts were written for this lab.</p>
+  </header>
+
+  <section class="frame">
+    <div class="note"><h3>The cut-up as a sampler</h3><p>Sources \(s = 1, \dots, S\), each cut into fragments \(\mathcal F_s\). A line of \(k\) fragments:\[ s_j \sim \mathrm{Cat}(w), \quad f_j \sim \mathrm{Unif}(\mathcal F_{s_j}), \quad L = (f_1, \dots, f_k). \]The weights \(w\) were Bowie's sliders: how much newspaper, how much diary.</p></div>
+    <div class="note"><h3>Taste as a rejection rule</h3><p>The artist keeps a line with probability \(\pi(\text{keep} \mid L)\), a rule that lives in the artist's head. The final lyric is a draw from the generator reweighted by \(\pi\): a rejection sampler whose acceptance function is taste.</p></div>
+    <div class="note"><h3>Verbasizer 3.0</h3><p>Keep the randomizer random. Add a critic that scores each line for emotion, coherence and surprise, and never rewrites. Rank inside a coherence band, strange but singable. Learn the source weights and the target emotion from what the artist keeps.</p></div>
+  </section>
+
+  <section class="sec" aria-labelledby="ctH">
+    <div class="head">
+      <h2 id="ctH">Step 1. Cut</h2>
+      <p>Three sources, as on the album: news, a diary, and an invented story. The cutter walks through each text and snips it into windows of one to \(K\) words, the scissors of Burroughs and Gysin. Edit any source and cut again; every fragment keeps its source tag.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <div class="srcs">
+          <label class="src1"><span class="label"><i class="sw bar"></i> news</span><textarea id="src0" rows="7"></textarea></label>
+          <label class="src2"><span class="label"><i class="sw bar fitb"></i> diary</span><textarea id="src1" rows="7"></textarea></label>
+          <label class="src3"><span class="label"><i class="sw bar ball"></i> story</span><textarea id="src2" rows="7"></textarea></label>
+        </div>
+        <span class="cap">Fragments, by source</span>
+        <div id="frags" class="frags"></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="ctK">Longest fragment K, words</label><output id="ctKO"></output></div><input id="ctK" type="range" min="1" max="6" step="1" value="4"></div>
+          <div class="btns"><button class="primary" id="ctGo">Cut again</button><button id="ctReset">Original texts</button></div>
+        </div>
+        <div class="group"><p class="msg" id="ctMsg"></p><p class="hint">Short fragments give strange lines and long ones give prose with seams. The note suggests a second cutter that ends fragments on clause boundaries found by a parser.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="shH">
+    <div class="head">
+      <h2 id="shH">Step 2. Shuffle, and Step 3. Criticize</h2>
+      <p>Each round draws source weights, then \(n\) candidate lines of \(k\) fragments with no fragment repeated. The critic scores every line: an emotion vector \(e(L)\) on four axes (valence, arousal, dread, longing), a coherence \(c(L) \in [0, 1]\), and a surprisal \(u(L)\) in bits per word. The ranking is\[ \mathrm{score}(L) = \lambda \cos\bigl(e(L), e^\ast\bigr) + \gamma\, z\bigl(u(L)\bigr), \qquad c_{\min} \le c(L) \le c_{\max}, \]with \(z\) the surprisal standardized within the batch. Above \(c_{\max}\) a line is ordinary prose; below \(c_{\min}\) it is noise.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap">Every candidate: coherence against surprisal</span><canvas id="cvSc" height="290"></canvas>
+        <div class="legend"><span><i class="sw band"></i>coherence band</span><span><i class="sw pt"></i>candidate</span><span><i class="sw acc"></i>shown to you</span><span><i class="sw red"></i>an LLM's choice: most probable</span></div>
+        <span class="cap">What a probability maximizer would pick (lowest surprisal, no band)</span><ol id="llmList" class="lines small"></ol>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="shN">Candidates per round n</label><output id="shNO"></output></div><input id="shN" type="range" min="50" max="2000" step="50" value="500"></div>
+          <div class="slider"><div class="top"><label for="shKf">Fragments per line k</label><output id="shKfO"></output></div><input id="shKf" type="range" min="2" max="6" step="1" value="4"></div>
+          <div class="slider"><div class="top"><label for="shLo">Coherence band, low</label><output id="shLoO"></output></div><input id="shLo" type="range" min="0" max="1" step="0.05" value="0.3"></div>
+          <div class="slider"><div class="top"><label for="shHi">Coherence band, high</label><output id="shHiO"></output></div><input id="shHi" type="range" min="0" max="1" step="0.05" value="0.8"></div>
+          <div class="slider"><div class="top"><label for="shG">Weight on surprise γ (λ = 1)</label><output id="shGO"></output></div><input id="shG" type="range" min="0" max="1" step="0.05" value="0.3"></div>
+        </div>
+        <div class="group">
+          <span class="label">Target emotion e*</span>
+          <div class="slider"><div class="top"><label for="e0">Valence</label><output id="e0O"></output></div><input id="e0" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+          <div class="slider"><div class="top"><label for="e1">Arousal</label><output id="e1O"></output></div><input id="e1" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+          <div class="slider"><div class="top"><label for="e2">Dread</label><output id="e2O"></output></div><input id="e2" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+          <div class="slider"><div class="top"><label for="e3">Longing</label><output id="e3O"></output></div><input id="e3" type="range" min="0" max="1" step="0.01" value="0.5"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="slH">
+    <div class="head">
+      <h2 id="slH">Step 4. Select: you are the Verbasizer's other half</h2>
+      <p>The top \(m = 8\) lines of the round. Mark the ones you would keep and submit. Each source gets a Beta prior on the chance that a line using it is kept; a kept line adds one to \(a_s\) for each source in it, a discarded line one to \(b_s\). Next round the weights are a Thompson draw, \(\theta_s \sim \mathrm{Beta}(a_s, b_s)\), \(w_s \propto \theta_s\): sources you like get used more, and every source keeps some chance. The target emotion moves toward what you keep, \(e^\ast \leftarrow (e^\ast + \eta\, e(L)) / (1 + \eta)\), \(\eta = 0.2\).</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap" id="slCap">Round 1</span>
+        <ol id="slList" class="lines"></ol>
+        <div class="btns"><button class="primary" id="slGo">Submit and shuffle again</button><button id="slReset">Forget everything</button></div>
+      </div>
+      <div class="panel">
+        <div class="group"><span class="label">Beta posterior for each source</span><canvas id="cvBe" height="170"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>news</span><span><i class="sw"></i>diary</span><span><i class="sw ballc"></i>story</span></div></div>
+        <div class="group"><table class="stats" id="slTab"></table></div>
+        <div class="group"><p class="msg" id="slMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="smH">
+    <div class="head">
+      <h2 id="smH">Can taste be learned? A simulated artist</h2>
+      <p>The prototype tests the loop with an artist whose rule is known. Pick a rule, run 30 rounds of 20 shown lines each, and watch what the two updates learn. The rule is hidden from the learner; it only sees keeps and discards. Watch the target emotion as well as the weights: when the rule is about content, the emotion target is what carries it.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">Thompson weights, posterior means a/(a+b), by round</span><canvas id="cvSm1" height="240"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>news</span><span><i class="sw"></i>diary</span><span><i class="sw ballc"></i>story</span></div></div>
+        <div class="board"><span class="cap">Target emotion e*, by round</span><canvas id="cvSm2" height="240"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>valence</span><span><i class="sw red"></i>arousal</span><span><i class="sw altc"></i>dread</span><span><i class="sw ballc"></i>longing</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <span class="label">The artist keeps a line when</span>
+          <div class="seg" id="smR" style="grid-template-columns:repeat(2,1fr)"><button data-r="long" aria-pressed="true">longing &gt; 0.6</button><button data-r="dread" aria-pressed="false">dread &gt; 0.6</button><button data-r="diary" aria-pressed="false" style="border-left:0;border-top:1px solid var(--line)">it is mostly diary</button><button data-r="surp" aria-pressed="false" style="border-top:1px solid var(--line)">it is surprising</button></div>
+          <div class="btns"><button class="primary" id="smGo">Run 30 rounds</button></div>
+        </div>
+        <div class="group"><table class="stats" id="smTab"></table></div>
+        <div class="group"><p class="msg" id="smMsg">Press Run.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="pmH">
+    <div class="head">
+      <h2 id="pmH">Plugging in a real critic</h2>
+      <p>In the full design an LLM replaces the stub's emotion and coherence and a small open model supplies surprisal from token log probabilities. The critic never writes; it scores. A prompt in the spirit of the note, to run at temperature zero on batches of twenty lines:</p>
+    </div>
+    <div class="grid">
+      <pre class="prompt" id="pmTxt">You are a critic, not a writer. Do not rewrite, complete or improve any line.
+
+For each numbered line below, return one JSON object per line, and nothing else:
+{"id": <number>,
+ "emotion": {"valence": 0-1, "arousal": 0-1, "dread": 0-1, "longing": 0-1,
+             "alienation": 0-1, "tenderness": 0-1},
+ "coherence": 0-1}
+
+Axis definitions: valence = pleasant (1) to unpleasant (0); arousal = calm (0) to agitated (1);
+dread = a sense of threat; longing = missing someone or something; alienation = being apart or
+estranged; tenderness = gentle care. Coherence = how far the line reads as grammatical English
+that a singer could deliver: 0 is word salad, 1 is ordinary prose.
+
+Lines:
+1. ...
+2. ...</pre>
+      <div class="panel">
+        <button id="pmCopy">Copy the prompt</button>
+        <div class="group"><span class="label">Implementation notes from the paper</span>
+          <p class="hint"><b>Surprisal</b> needs token log probabilities: \(u(L) = \frac{1}{|L|}\sum_t \log 1/p(t \mid \text{prefix})\) from a local open model.</p>
+          <p class="hint"><b>Cache</b> scores by fragment tuple. Fragments recur; lines do not.</p>
+          <p class="hint"><b>Log everything</b>: every candidate, its scores, what was shown, what was kept. The keep log is the data for learning \(\pi\).</p>
+          <p class="hint"><b>Richer selector</b>: \(\Pr(\text{keep} \mid L) = \sigma(\beta^\top \phi(L))\) on features \(\phi = (e, c, u, \text{source counts})\), with a horseshoe prior on \(\beta\), ranking by posterior predictive keep probability.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head"><h2>Generation and selection</h2></div>
+    <ol class="steps">
+      <li><div><h3>Separate the proposal from the judgement</h3><p>A cheap generator that is allowed to be wrong, and a selector that decides. Rejection sampling, Metropolis–Hastings and Bowie at a PowerBook share the shape.</p></div></li>
+      <li><div><h3>The most probable line is the least interesting</h3><p>Ranking by probability alone drives a language model to the mode: grammatical, familiar, flat. The coherence band and the surprise term are there to keep the selection off the mode.</p></div></li>
+      <li><div><h3>Learn the selector, not the text</h3><p>Each keep or discard is one Bernoulli observation. Beta updates per source and Thompson draws turn them into a policy that exploits what is liked and keeps exploring.</p></div></li>
+      <li><div><h3>Test against the obvious alternatives</h3><p>Three arms: raw cut-ups, the Verbasizer with an artist selecting, and pure LLM lyrics written to the same brief. The hypothesis is that the second beats the first on feeling and the third on surprise.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cp">The shuffler</div>\[ s_j \sim \mathrm{Cat}(w), \quad f_j \sim \mathrm{Unif}(\mathcal F_{s_j}) \]</div>
+      <div class="eq"><div class="cp">The kept lyric</div>\[ p(L \mid \text{kept}) \propto p_w(L)\, \pi(\text{keep} \mid L) \]</div>
+      <div class="eq"><div class="cp">Thompson sampling over sources</div>\[ \theta_s \sim \mathrm{Beta}(a_s, b_s), \quad w_s \propto \theta_s \]</div>
+      <div class="eq"><div class="cp">Surprisal under the bigram model</div>\[ u(L) = \tfrac{1}{|L|}\textstyle\sum_t -\log_2 p(t \mid t_{-1}) \]</div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note"><h2>What the stub critic does</h2><p><b>Emotion</b>: the average of hand-made four-axis vectors for the words of the line found in a small lexicon (words outside it are ignored; a line with none gets 0.25 on every axis, as in the prototype). <b>Surprisal</b>: a bigram model of the three sources plus a page of plain English, interpolated with add-one unigrams. <b>Coherence</b>: at each seam between fragments, how much more likely the next word is after the last word than on its own, mapped into [0, 1] and averaged. Seams that happen to read as English score high.</p></div>
+    <div class="note"><h2>Optimize toward e*, or wander?</h2><p>The note leaves this open. Moving \(e^\ast\) toward kept lines narrows what is shown; the artist meets fewer lines he would not have asked for. A variant draws the target itself from a distribution around \(e^\ast\) each round, Thompson sampling on emotions as well as on sources.</p></div>
+    <div class="note"><h2>Is the keep rule learnable?</h2><p>Hold out ten rounds of keep decisions and ask whether the learned selector predicts them. If it does, part of the artist's taste is a function of features you can measure. If it does not, the note asks the better question: whether the point of the selector is that it cannot be learned. And Bowie added emotion in performance as well, which no critic of text can see.</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Set K to 1, then to 6, and shuffle a few rounds each. Where do the candidates move in the coherence–surprisal plot? Which setting gives lines you would sing?</li>
+      <li>Close the coherence band to 0.8 to 1.0, then to 0 to 0.2. Read the top lines each time. Then compare with the red points, the lines a probability-maximizer would pick.</li>
+      <li>Set γ to 0 and then to 1. What happens to the shown lines when surprise counts as much as fit to the target emotion?</li>
+      <li>Play the selector for five rounds, keeping only lines about weather and the sea. Which source did the Beta posteriors learn to favour, and did the target emotion follow you?</li>
+      <li>Run the simulated artist with "it is mostly diary", then with "longing &gt; 0.6". In which case do the source weights learn the rule and in which does the target emotion carry it? Why can't source weights alone learn a rule about content?</li>
+      <li>Rewrite the diary source in a cheerful voice and rerun "longing &gt; 0.6". What happens to the diary's keep rate, and what does that say about learning taste from source tags?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
+  const fmtInt = v => Math.round(v).toLocaleString('en-US');
+
+  /* RANDOM NUMBERS */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  let R = mulberry32(1995);
+  const N = () => { let u = 0, v = 0; while (!u) u = R(); while (!v) v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  /* CANVAS */
+  function setup(cv) {
+    if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    return { ctx, w, h };
+  }
+  // A plot frame: returns mappers. pad = [left, right, top, bottom]
+  function frame(cv, xr, yr, o = {}) {
+    const { ctx, w, h } = setup(cv), p = o.pad || [42, 12, 10, 30];
+    const X = x => p[0] + (x - xr[0]) / (xr[1] - xr[0]) * (w - p[0] - p[1]);
+    const Y = y => h - p[3] - (y - yr[0]) / (yr[1] - yr[0]) * (h - p[2] - p[3]);
+    ctx.font = '11px ' + css('--font-mono'); ctx.fillStyle = css('--muted'); ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1;
+    const xt = o.xt || nice(xr, 6), yt = o.yt || nice(yr, 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const t of xt) { ctx.beginPath(); ctx.moveTo(X(t), p[2]); ctx.lineTo(X(t), h - p[3]); ctx.stroke(); ctx.fillText(o.xf ? o.xf(t) : t, X(t), h - p[3] + 5 + (o.rug ? 10 : 0)); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const t of yt) { ctx.beginPath(); ctx.moveTo(p[0], Y(t)); ctx.lineTo(w - p[1], Y(t)); ctx.stroke(); ctx.fillText(o.yf ? o.yf(t) : t, p[0] - 6, Y(t)); }
+    return { ctx, w, h, X, Y, p };
+  }
+  function nice(r, n) { const span = r[1] - r[0], raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= raw); const out = []; for (let v = Math.ceil(r[0] / st) * st; v <= r[1] + 1e-9; v += st) out.push(+v.toFixed(10)); return out; }
+  function line(ctx, xs, ys, X, Y, color, wdt = 2, dash) { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = wdt; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(X(x), Y(ys[i])) : ctx.moveTo(X(x), Y(ys[i]))); ctx.stroke(); ctx.restore(); }
+  function area(ctx, xs, lo, hi, X, Y, color) { ctx.save(); ctx.fillStyle = color; ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(X(x), Y(hi[i])) : ctx.moveTo(X(x), Y(hi[i]))); for (let i = xs.length - 1; i >= 0; i--) ctx.lineTo(X(xs[i]), Y(lo[i])); ctx.closePath(); ctx.fill(); ctx.restore(); }
+  const alpha = (c, a) => `color-mix(in srgb, ${c} ${Math.round(a * 100)}%, transparent)`;
+  function rug(ctx, ys, X, h, p, color) { ctx.save(); ctx.strokeStyle = color; ctx.globalAlpha = .7; ctx.lineWidth = 1; for (const v of ys) { ctx.beginPath(); ctx.moveTo(X(v), h - p[3] + 1); ctx.lineTo(X(v), h - p[3] + 9); ctx.stroke(); } ctx.restore(); }
+
+  const G = a => { if (a < 1) return G(a + 1) * Math.pow(R(), 1 / a); const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d); for (;;) { let x, v; do { x = N(); v = 1 + c * x; } while (v <= 0); v = v * v * v; const u = R(); if (u < 1 - .0331 * x ** 4 || Math.log(u) < .5 * x * x + d * (1 - v + Math.log(v))) return d * v; } };
+  const SRC0 = [
+    'Power failed across the east side of the city last night as the storm pulled down lines along the river. Markets opened lower and kept falling until noon. Officials said the machines in the old station would run again by morning, but crowds waited in the cold for buses that never came. A tower of glass and gold stood dark above the harbour, and the sirens did not stop.',
+    'I walked alone by the river after midnight and counted the windows still burning. My heart is a small animal that will not sleep. I wrote you a letter and did not send it. The rain smelled of iron and old summers. I miss the house with the blue door, the kitchen light, your voice on the stairs. Tomorrow I will be braver, or I will be gone.',
+    'The detective found the painter\'s studio empty except for a mirror turned to the wall. Someone had left a glass of red wine and a map of the harbour with one street burned out. Outside, a boy in a silver coat watched the tower and would not say his name. The city kept its secret the way the sea keeps a ship, quietly and for ever.'];
+  // Plain English, used only to train the bigram model of the critic, never as a source of fragments.
+  const BG = 'It was late in the day when we came back to the house. The light in the kitchen was on and the door was open. She said that the train would be late again and that we should wait for her at the station. We sat by the window and watched the rain on the street. In the morning the sky was clear and the river was high. He told me that he had never been to the sea, and that he would like to go there one day with his father. The city was quiet at night. I could hear the wind in the trees and a dog somewhere far away. We talked about the old days and the people we used to know. Nobody came to the door. I went up the stairs to my room and lay down in the dark. There is a time for everything, she said, and then she was gone.';
+  const AX = ['valence', 'arousal', 'dread', 'longing'];
+  // Hand-made stub lexicon: valence, arousal, dread, longing (as in the prototype, a stand-in for the LLM critic)
+  const LEX = { power: [.4, .7, .4, .2], failed: [.1, .5, .6, .3], city: [.4, .6, .3, .3], night: [.2, .3, .6, .5], storm: [.2, .9, .7, .2], river: [.6, .3, .2, .6], markets: [.4, .5, .3, .1], falling: [.2, .7, .7, .5], noon: [.6, .4, .1, .2], machines: [.3, .5, .6, .2], station: [.4, .4, .3, .3], morning: [.7, .4, .1, .4], crowds: [.4, .7, .4, .2], cold: [.2, .3, .5, .5], buses: [.4, .4, .2, .2], tower: [.4, .5, .5, .3], glass: [.5, .3, .3, .3], gold: [.8, .4, .1, .4], dark: [.1, .4, .8, .4], harbour: [.6, .3, .2, .7], sirens: [.1, .9, .8, .2], walked: [.5, .3, .2, .4], alone: [.1, .2, .5, .9], midnight: [.2, .4, .6, .6], windows: [.5, .3, .2, .6], burning: [.3, .8, .6, .5], heart: [.6, .5, .2, .9], animal: [.4, .6, .4, .4], sleep: [.6, .1, .2, .5], letter: [.6, .3, .2, .9], send: [.5, .4, .2, .6], rain: [.3, .3, .4, .7], iron: [.3, .5, .5, .2], summers: [.8, .4, .1, .9], miss: [.2, .3, .3, 1], house: [.7, .2, .1, .7], blue: [.5, .2, .3, .7], door: [.5, .3, .3, .5], kitchen: [.7, .2, .1, .6], light: [.8, .4, .1, .5], voice: [.6, .4, .2, .8], stairs: [.5, .3, .3, .4], tomorrow: [.6, .5, .3, .6], braver: [.7, .7, .3, .3], gone: [.1, .3, .6, .9], detective: [.4, .6, .5, .2], painter: [.6, .4, .2, .5], studio: [.6, .3, .2, .4], empty: [.1, .2, .6, .7], mirror: [.4, .3, .5, .5], wall: [.3, .2, .5, .3], red: [.4, .8, .5, .3], wine: [.7, .4, .1, .5], map: [.5, .4, .2, .5], street: [.4, .5, .3, .3], burned: [.1, .8, .8, .3], boy: [.6, .5, .3, .5], silver: [.7, .4, .1, .5], coat: [.5, .2, .2, .4], watched: [.4, .4, .5, .4], secret: [.3, .5, .6, .6], sea: [.6, .4, .3, .8], ship: [.5, .4, .3, .7], quietly: [.5, .1, .3, .5], ever: [.5, .3, .3, .8], name: [.5, .3, .3, .6], waited: [.3, .3, .4, .6], never: [.2, .4, .5, .8], stop: [.3, .6, .5, .3], lines: [.4, .4, .3, .3], lower: [.3, .3, .5, .3], small: [.5, .3, .3, .5], old: [.4, .2, .3, .7], someone: [.4, .4, .5, .5], outside: [.4, .4, .4, .5], wrote: [.5, .3, .2, .6], counted: [.4, .3, .3, .4], smelled: [.5, .4, .2, .6], keeps: [.5, .3, .3, .5], turned: [.4, .4, .4, .4], east: [.5, .3, .2, .4] };
+  const SCOL = () => [css('--accent'), css('--fit'), css('--ball')], SNAME = ['news', 'diary', 'story'];
+  const toks = t => (t.toLowerCase().match(/[a-z']+/g) || []);
+  let store = [[], [], []], lm = null;
+  function cutAll() {
+    const K = +$('ctK').value;
+    store = [0, 1, 2].map(s => { const w = toks($('src' + s).value), out = []; let i = 0; while (i < w.length) { const n = 1 + Math.floor(R() * K); out.push(w.slice(i, i + n)); i += n; } return out; });
+    const sents = [0, 1, 2].map(s => $('src' + s).value).concat([BG]).join(' ').split(/[.!?]+/).map(toks).filter(a => a.length);
+    const uni = {}, bi = {}; let NT = 0;
+    for (const s of sents) s.forEach((w, i) => { uni[w] = (uni[w] || 0) + 1; NT++; if (i) { const k = s[i - 1] + ' ' + w; bi[k] = (bi[k] || 0) + 1; } });
+    lm = { uni, bi, NT, V: Object.keys(uni).length };
+  }
+  const pUni = w => ((lm.uni[w] || 0) + 1) / (lm.NT + lm.V + 1);
+  const pBi = (a, b) => { const ca = lm.uni[a] || 0; return (ca ? 0.7 * (lm.bi[a + ' ' + b] || 0) / ca : 0) + (ca ? 0.3 : 1) * pUni(b); };
+  function critic(frs) {
+    const w = [].concat(...frs);
+    let u = -Math.log2(pUni(w[0])); for (let i = 1; i < w.length; i++) u -= Math.log2(pBi(w[i - 1], w[i])); u /= w.length;
+    let c = 0; for (let j = 1; j < frs.length; j++) { const a = frs[j - 1][frs[j - 1].length - 1], b = frs[j][0], r = pBi(a, b) / pUni(b); c += 1 - Math.exp(-r / 2); } c /= Math.max(1, frs.length - 1);
+    const vs = w.filter(t => LEX[t]).map(t => LEX[t]), e = vs.length ? AX.map((_, i) => vs.reduce((s, v) => s + v[i], 0) / vs.length) : AX.map(() => 0.25);
+    return { u, c, e, hits: vs.length };
+  }
+  const cosv = (a, b) => { const d = a.reduce((s, x, i) => s + x * b[i], 0), na = Math.hypot(...a), nb = Math.hypot(...b); return na && nb ? d / (na * nb) : 0; };
+  const betaDraw = (a, b) => { const x = G(a); return x / (x + G(b)); };
+  function propose(wts, k) {
+    const frs = [], src = [], used = new Set();
+    for (let j = 0; j < k; j++) { let u = R(), s = 0; while (s < 2 && u > wts[s]) { u -= wts[s]; s++; } const pool = store[s].map((f, i) => i).filter(i => !used.has(s + ':' + i)); const i = pool.length ? pool[Math.floor(R() * pool.length)] : Math.floor(R() * store[s].length); used.add(s + ':' + i); frs.push(store[s][i]); src.push(s); }
+    return { frs, src, ...critic(frs) };
+  }
+  function makeRound(st, n, k, lo, hi, gam, m) {
+    const th = st.beta.map(([a, b]) => betaDraw(a, b)), z = th.reduce((x, y) => x + y, 0), wts = th.map(t => t / z);
+    const C = Array.from({ length: n }, () => propose(wts, k)), mu = C.reduce((s, c) => s + c.u, 0) / n, sd = Math.sqrt(C.reduce((s, c) => s + (c.u - mu) ** 2, 0) / n) || 1;
+    C.forEach(c => c.score = cosv(c.e, st.target) + gam * (c.u - mu) / sd);
+    const inBand = C.filter(c => c.c >= lo && c.c <= hi).sort((a, b) => b.score - a.score), shown = inBand.slice(0, m);
+    const llm = C.slice().sort((a, b) => a.u - b.u).slice(0, m);
+    return { C, shown, llm, wts, nBand: inBand.length };
+  }
+  // Interactive state
+  const st = { beta: [[1, 1], [1, 1], [1, 1]], target: [.5, .5, .5, .5], round: 1 };
+  let cur = null;
+  const fragHTML = c => c.frs.map((f, j) => `<span class="fr s${c.src[j]}">${f.join(' ')}</span>`).join(' ');
+  function drawCut() {
+    $('ctKO').textContent = $('ctK').value;
+    $('frags').innerHTML = store.map((fs, s) => `<div><span class="label">${SNAME[s]}, ${fs.length} fragments</span><p>${fs.map(f => `<span class="fr s${s}">${f.join(' ')}</span>`).join(' ')}</p></div>`).join('');
+    const nf = store.reduce((a, f) => a + f.length, 0);
+    $('ctMsg').innerHTML = `${nf} fragments in all. With four fragments per line drawn from them there are on the order of ${sciN(nf ** 4)} possible lines, almost all of them never read by anyone.`;
+  }
+  const sciN = v => { const e = Math.floor(Math.log10(v)); return `${fmt(v / 10 ** e, 1)}×10<sup>${e}</sup>`; };
+  function readSh() { ['shN', 'shKf', 'shLo', 'shHi', 'shG'].forEach(id => $(id + 'O').textContent = (id === 'shN' || id === 'shKf') ? fmtInt(+$(id).value) : fmt(+$(id).value, 2)); AX.forEach((_, i) => $('e' + i + 'O').textContent = fmt(+$('e' + i).value, 2)); st.target = AX.map((_, i) => +$('e' + i).value); }
+  function newRound() { readSh(); let lo = +$('shLo').value, hi = +$('shHi').value; if (lo > hi) [lo, hi] = [hi, lo]; cur = makeRound(st, +$('shN').value, +$('shKf').value, lo, hi, +$('shG').value, 8); cur.kept = new Set(); drawSc(); drawSel(); }
+  function rescore() { if (!cur) return; readSh(); let lo = +$('shLo').value, hi = +$('shHi').value; if (lo > hi) [lo, hi] = [hi, lo]; const n = cur.C.length, mu = cur.C.reduce((s, c) => s + c.u, 0) / n, sd = Math.sqrt(cur.C.reduce((s, c) => s + (c.u - mu) ** 2, 0) / n) || 1, gam = +$('shG').value; cur.C.forEach(c => c.score = cosv(c.e, st.target) + gam * (c.u - mu) / sd); const inB = cur.C.filter(c => c.c >= lo && c.c <= hi).sort((a, b) => b.score - a.score); cur.shown = inB.slice(0, 8); cur.nBand = inB.length; cur.kept = new Set(); drawSc(); drawSel(); }
+  function drawSc() {
+    const C = cur.C, umax = Math.max(...C.map(c => c.u)) * 1.04, umin = Math.min(...C.map(c => c.u)) * 0.96;
+    let lo = +$('shLo').value, hi = +$('shHi').value; if (lo > hi) [lo, hi] = [hi, lo];
+    const f = frame($('cvSc'), [0, 1], [umin, umax], { pad: [42, 12, 10, 30], yf: v => v.toFixed(0) });
+    f.ctx.fillStyle = alpha(css('--fit'), .13); f.ctx.fillRect(f.X(lo), f.p[2], f.X(hi) - f.X(lo), f.h - f.p[2] - f.p[3]);
+    f.ctx.fillStyle = alpha(css('--point'), .3); C.forEach(c => f.ctx.fillRect(f.X(c.c) - 1.5, f.Y(c.u) - 1.5, 3, 3));
+    f.ctx.fillStyle = css('--curve'); cur.llm.forEach(c => { f.ctx.beginPath(); f.ctx.arc(f.X(c.c), f.Y(c.u), 4.5, 0, 7); f.ctx.fill(); });
+    f.ctx.fillStyle = css('--accent'); cur.shown.forEach(c => { f.ctx.beginPath(); f.ctx.arc(f.X(c.c), f.Y(c.u), 5, 0, 7); f.ctx.fill(); });
+    f.ctx.fillStyle = css('--muted'); f.ctx.font = '11px ' + css('--font-mono'); f.ctx.textAlign = 'center'; f.ctx.fillText('coherence c(L)', f.X(0.5), f.h - 4); f.ctx.save(); f.ctx.translate(11, f.h / 2); f.ctx.rotate(-Math.PI / 2); f.ctx.fillText('surprisal u(L), bits/word', 0, 0); f.ctx.restore();
+    $('llmList').innerHTML = cur.llm.slice(0, 4).map(c => `<li>${fragHTML(c)} <span class="meta">c ${fmt(c.c, 2)} · u ${fmt(c.u, 1)}</span></li>`).join('');
+  }
+  function drawSel() {
+    $('slCap').textContent = `Round ${st.round}: the top ${cur.shown.length} of ${fmtInt(cur.nBand)} lines inside the coherence band (of ${fmtInt(cur.C.length)} drawn)`;
+    $('slList').innerHTML = cur.shown.map((c, i) => `<li><button class="keep" data-i="${i}" aria-pressed="${cur.kept.has(i)}">${cur.kept.has(i) ? 'Kept' : 'Keep'}</button><span class="ln">${fragHTML(c)}</span><span class="meta">score ${fmt(c.score, 2)} · c ${fmt(c.c, 2)} · u ${fmt(c.u, 1)} · ${AX.map((a, j) => `${a[0]} ${fmt(c.e[j], 2)}`).join(' ')}</span></li>`).join('') || '<li>No line falls inside the coherence band. Widen it.</li>';
+    $('slList').querySelectorAll('.keep').forEach(b => b.onclick = () => { const i = +b.dataset.i; cur.kept.has(i) ? cur.kept.delete(i) : cur.kept.add(i); b.setAttribute('aria-pressed', cur.kept.has(i)); b.textContent = cur.kept.has(i) ? 'Kept' : 'Keep'; });
+    drawBeta();
+  }
+  function drawBeta() {
+    const xs = Array.from({ length: 199 }, (_, i) => (i + 1) / 200), dens = st.beta.map(([a, b]) => xs.map(x => Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) + lgam(a + b) - lgam(a) - lgam(b))));
+    const ym = Math.max(1.2, ...dens.flat()) * 1.08, f = frame($('cvBe'), [0, 1], [0, ym], { pad: [30, 8, 8, 22], yt: [0], xt: [0, 0.25, 0.5, 0.75, 1] });
+    dens.forEach((d, s) => line(f.ctx, xs, d, f.X, f.Y, SCOL()[s], 2.2));
+    $('slTab').innerHTML = `<thead><tr><th>source</th><th>kept a</th><th>discarded b</th><th>mean</th><th>weight now</th></tr></thead><tbody>${st.beta.map(([a, b], s) => `<tr><td>${SNAME[s]}</td><td>${a - 1}</td><td>${b - 1}</td><td>${fmt(a / (a + b), 2)}</td><td>${fmt(cur.wts[s], 2)}</td></tr>`).join('')}</tbody>`;
+  }
+  function submit() {
+    if (!cur) return;
+    let nk = 0;
+    cur.shown.forEach((c, i) => { const kept = cur.kept.has(i); new Set(c.src).forEach(s => st.beta[s][kept ? 0 : 1]++); if (kept) { nk++; st.target = st.target.map((t, j) => (t + 0.2 * c.e[j]) / 1.2); } });
+    st.target.forEach((t, j) => $('e' + j).value = t);
+    $('slMsg').innerHTML = `Round ${st.round}: you kept ${nk} of ${cur.shown.length}. ${nk ? `The target emotion moved to ${AX.map((a, j) => `${a} ${fmt(st.target[j], 2)}`).join(', ')}.` : 'Nothing kept: every source used in the shown lines gets one more discard.'}`;
+    st.round++; newRound();
+  }
+  function lgam(z) { if (z < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * z))) - lgam(1 - z); z -= 1; const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]; let x = c[0]; for (let i = 1; i < 9; i++) x += c[i] / (z + i); const t = z + 7.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x); }
+  // Simulated artist
+  let smRule = 'long', smRes = null;
+  function simulate() {
+    const S = { beta: [[1, 1], [1, 1], [1, 1]], target: [.5, .5, .5, .5] }, hist = [], keepRate = [];
+    for (let r = 0; r < 30; r++) {
+      const rd = makeRound(S, 300, 4, 0.3, 0.8, 0.3, 20), us = rd.shown.map(c => c.u).sort((a, b) => a - b), med = us[Math.floor(us.length / 2)] || 0;
+      const rule = c => smRule === 'long' ? c.e[3] > 0.6 : smRule === 'dread' ? c.e[2] > 0.6 : smRule === 'diary' ? c.src.filter(s => s === 1).length > c.src.length / 2 : c.u > med;
+      let nk = 0;
+      rd.shown.forEach(c => { const k = rule(c); if (k) nk++; new Set(c.src).forEach(s => S.beta[s][k ? 0 : 1]++); if (k) S.target = S.target.map((t, j) => (t + 0.2 * c.e[j]) / 1.2); });
+      hist.push({ m: S.beta.map(([a, b]) => a / (a + b)), t: S.target.slice() }); keepRate.push(nk / Math.max(1, rd.shown.length));
+    }
+    smRes = { hist, keepRate }; drawSm();
+  }
+  function drawSm() {
+    const rs = Array.from({ length: 30 }, (_, i) => i + 1);
+    const f1 = frame($('cvSm1'), [1, 30], [0, 1], { pad: [36, 10, 10, 26], yf: v => v.toFixed(1) }), f2 = frame($('cvSm2'), [1, 30], [0, 1], { pad: [36, 10, 10, 26], yf: v => v.toFixed(1) });
+    if (!smRes) return;
+    [0, 1, 2].forEach(s => line(f1.ctx, rs, smRes.hist.map(h => h.m[s]), f1.X, f1.Y, SCOL()[s], 2.2));
+    [css('--accent'), css('--curve'), css('--alt'), css('--ball')].forEach((col, j) => line(f2.ctx, rs, smRes.hist.map(h => h.t[j]), f2.X, f2.Y, col, 2.2));
+    const last = smRes.hist[29], k0 = smRes.keepRate.slice(0, 5).reduce((a, b) => a + b, 0) / 5, k1 = smRes.keepRate.slice(25).reduce((a, b) => a + b, 0) / 5;
+    $('smTab').innerHTML = `<thead><tr><th>after 30 rounds</th><th></th></tr></thead><tbody>${SNAME.map((n, s) => `<tr><td>keep rate, ${n}</td><td>${fmt(last.m[s], 2)}</td></tr>`).join('')}${AX.map((a, j) => `<tr><td>target ${a}</td><td>${fmt(last.t[j], 2)}</td></tr>`).join('')}<tr><td>share kept, rounds 1–5 → 26–30</td><td>${fmt(k0, 2)} → ${fmt(k1, 2)}</td></tr></tbody>`;
+    const best = last.m.indexOf(Math.max(...last.m));
+    $('smMsg').innerHTML = `The source learned to be most liked is <b>${SNAME[best]}</b>, and the share of shown lines the artist keeps went from ${fmt(k0, 2)} to ${fmt(k1, 2)}. ` + ({ long: 'Longing is a property of words, not of sources. Sources rich in it gain a little weight, but most of the learning shows up in the target emotion, which drifts toward high longing.', dread: 'Dread is a property of words spread over the news and the story, so the source weights move little; the target emotion moves toward dread.', diary: 'A rule about sources is exactly what the Beta updates can learn, so the weights learn it fast. The target emotion drifts toward the diary\'s mood as a side effect.', surp: 'Surprise is relative to the batch and spread across all sources, so neither update can learn it: the keep rate does not rise. This is the case for the richer logistic selector, with surprisal as a feature.' })[smRule];
+  }
+
+  /* WIRING */
+  const recut = () => { cutAll(); drawCut(); newRound(); };
+  $('ctGo').onclick = recut; $('ctK').addEventListener('input', () => $('ctKO').textContent = $('ctK').value); $('ctK').addEventListener('change', recut);
+  $('ctReset').onclick = () => { [0, 1, 2].forEach(s => $('src' + s).value = SRC0[s]); recut(); };
+  [0, 1, 2].forEach(s => $('src' + s).addEventListener('change', recut));
+  ['shN', 'shKf'].forEach(id => { $(id).addEventListener('input', readSh); $(id).addEventListener('change', newRound); });
+  ['shLo', 'shHi', 'shG', 'e0', 'e1', 'e2', 'e3'].forEach(id => $(id).addEventListener('input', rescore));
+  $('slGo').onclick = submit;
+  $('slReset').onclick = () => { st.beta = [[1, 1], [1, 1], [1, 1]]; st.round = 1; [0, 1, 2, 3].forEach(j => $('e' + j).value = 0.5); $('slMsg').textContent = ''; newRound(); };
+  $('smR').querySelectorAll('button').forEach(b => b.onclick = () => { smRule = b.dataset.r; $('smR').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); simulate(); });
+  $('smGo').onclick = simulate;
+  $('pmCopy').onclick = () => { navigator.clipboard.writeText($('pmTxt').textContent).then(() => { $('pmCopy').textContent = 'Copied'; setTimeout(() => $('pmCopy').textContent = 'Copy the prompt', 1500); }); };
+  [0, 1, 2].forEach(s => $('src' + s).value = SRC0[s]);
+  cutAll(); drawCut(); newRound(); simulate();
+  function all() { drawCut(); drawSc(); drawSel(); drawSm(); }
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(all, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+})();
+</script>
+</body></html>
