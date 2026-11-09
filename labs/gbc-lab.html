@@ -7,11 +7,12 @@
 <script src="gbc-galaxy-data.js"></script>
 <script src="gbc-gan-data.js"></script>
 <script src="gbc-abc-data.js"></script>
+<script src="gbc-funds-data.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: header with the Y = F(X, U) frame; Part I galaxy mixture (data, simulate, architecture, R, one uniform, results, prompt); Part II live forecasting; Part III GBC vs GAN; Part IV GBC vs ABC; lesson, notes, class exercises. */
+/* Layout: header with the Y = F(X, U) frame; Part I galaxy mixture (data, simulate, architecture, R, one uniform, results, prompt); Part II live forecasting; Part III GBC vs GAN; Part IV GBC vs ABC; Part V mutual fund skill; lesson, notes, class exercises. */
 :root {
   --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
   --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
@@ -61,7 +62,7 @@ canvas { display: block; width: 100%; }
 .sw.acc { border-top: 2.5px solid var(--accent); }
 .sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
 .sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
-.sw.bar.ball { background: var(--ball); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
+.sw.bar.ball { background: var(--ball); } .sw.bar.acc2 { background: var(--accent); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
 .sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
 .sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
 
@@ -148,7 +149,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <header>
     <span class="eyebrow">Polson–Sokolov Lab · Generative Bayesian Computation</span>
     <h1>GBC Architecture Lab: \(Y = F(X, U)\)</h1>
-    <p class="lead">Generative Bayesian computation writes every uncertain quantity as a deterministic function of what you know and of noise you draw yourself: \(Y = F(X, U)\), with \(U\) independent of \(X\). Learn \(F\) from simulated or historical pairs \((X, Y)\), and every fresh draw of \(U\) is a draw of \(Y\) given \(X\). This lab takes the map apart on the galaxy velocities, where \(Y\) is a mixture's parameters and \(X\) a summary of the data, and on a time series, where \(Y\) is tomorrow's value and \(X\) is today's. A third part trains the same kind of map two ways, by the check loss and as a GAN, and asks why one minimization beats a saddle point. A fourth gives GBC and rejection ABC the same simulations and watches ABC widen as the summary grows.</p>
+    <p class="lead">Generative Bayesian computation writes every uncertain quantity as a deterministic function of what you know and of noise you draw yourself: \(Y = F(X, U)\), with \(U\) independent of \(X\). Learn \(F\) from simulated or historical pairs \((X, Y)\), and every fresh draw of \(U\) is a draw of \(Y\) given \(X\). This lab takes the map apart on the galaxy velocities, where \(Y\) is a mixture's parameters and \(X\) a summary of the data, and on a time series, where \(Y\) is tomorrow's value and \(X\) is today's. A third part trains the same kind of map two ways, by the check loss and as a GAN, and asks why one minimization beats a saddle point. A fourth gives GBC and rejection ABC the same simulations and watches ABC widen as the summary grows. A fifth asks how many fund managers can pick stocks, and learns a map for a Dirichlet process posterior.</p>
     <a class="back" href="index.html">← All labs</a>
     <p class="src">Based on Polson and Sokolov, <i>Generative Bayesian Computation: Quantile Neural Networks for Inference and Surrogates</i> (2026; <a href="https://github.com/VadimSokolov/gbc-book">github.com/VadimSokolov/gbc-book</a>), chapters 4 (noise outsourcing), 5 (the quantile network), 10 (Bayesian inference) and 11 (prediction). Data: the 82 galaxy velocities of Roeder (1990), <code>MASS::galaxies</code>. The galaxy fits in Part I were run offline by <a href="gbc-galaxy-lab.py">gbc-galaxy-lab.py</a>; everything else runs in this page. Part III follows Polson and Sokolov, <i>GBC versus GANs: Why a Minimization Beats a Saddle Point</i> (working paper, November 2026); its tables are recomputed from the paper's result files by <a href="gbc-gan-extract.py">gbc-gan-extract.py</a>.</p>
   </header>
@@ -602,6 +603,80 @@ Give me the code and the two figures.</pre>
     </div>
   </section>
 
+  <h2 class="part"><small>Part V</small>Who can pick stocks? A map for a Dirichlet process</h2>
+
+  <section class="sec" aria-labelledby="fuH">
+    <div class="head">
+      <h2 id="fuH">Estimate = truth + noise, a thousand times</h2>
+      <p>Of the thousands of actively managed mutual funds, how many managers have real skill? Barras, Scaillet and Wermers (2010) estimate that about three quarters have zero alpha net of fees, about a quarter are unskilled, and a sliver are skilled. The sliver is what an investor wants, and it is what the data speak to least. This part follows Polson's slides <i>Who Can Actually Pick Stocks?</i> (41916 Bayes, AI and Deep Learning, Chicago Booth), after Fisher and Jensen (2022). The slides came without code; the numbers here are from an independent rerun, <code>gbc-funds-lab.py</code>, and from the code in this page.</p>
+    </div>
+    <div class="frame">
+      <div class="note"><h3>The hierarchy</h3><p>\[ \hat\alpha_i \mid \alpha_i \sim N(\alpha_i, s_i^2), \quad \alpha_i \mid G \sim G, \quad G \sim \mathrm{DP}(\theta, G_0). \]\(G\), the distribution of skill across the industry, is the parameter, and it is infinite dimensional. Here \(G_0 = N(0, 3^2)\), \(\theta \sim \text{Gamma}(2, 1)\), \(s_i \sim U(1, 2)\) per cent a year.</p></div>
+      <div class="note"><h3>The target</h3><p>One curve, the skill tail of this panel of funds:\[ \pi(c) = \tfrac{1}{n}\#\{i : \alpha_i > c\} \]at \(c = -3, -2, -1, -\tfrac12, 0, \tfrac12, 1, 2, 3\) per cent a year. Nine monotone numbers. A functional of \(G\) and of the allocations, with no closed-form posterior.</p></div>
+      <div class="note"><h3>The map</h3><p>\[ Y = F(X, Z), \quad Y = \pi(\cdot), \quad Z \sim N(0, I_6), \]with \(X\) 34 summaries of the panel: quantiles of \(\hat\alpha_i\) and of \(t_i = \hat\alpha_i / s_i\), their mean and spread, the shares with \(|t_i| > 2\). Trained once on \(2 \times 10^5\) panels simulated from the prior by the energy score.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="fu1H">
+    <div class="head">
+      <h2 id="fu1H">The blur and the winner's curse</h2>
+      <p>The true skill sits on three points; the estimates are those points blurred by standard errors of 1 to 2 per cent a year, the same size as the effects. Counting the funds whose estimate beats a threshold counts the lucky with the good: with a thousand noisy estimates, the top of the ranking fills with zero-alpha funds that had a good draw.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">Estimated alphas of the panel, per cent a year</span><canvas id="cvFu1" height="270"></canvas>
+        <div class="legend"><span><i class="sw bar"></i>estimates \(\hat\alpha_i\)</span><span><i class="sw dash"></i>true skill groups</span><span><i class="sw red"></i>threshold c</span></div></div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="fuSk">Skilled share</label><output id="fuSkO"></output></div><input id="fuSk" type="range" min="0" max="5" step="0.1" value="0.6"></div>
+          <div class="slider"><div class="top"><label for="fuSa">Skilled alpha</label><output id="fuSaO"></output></div><input id="fuSa" type="range" min="1" max="6" step="0.5" value="3"></div>
+          <div class="slider"><div class="top"><label for="fuUn">Unskilled share (alpha −3)</label><output id="fuUnO"></output></div><input id="fuUn" type="range" min="0" max="50" step="1" value="24"></div>
+          <div class="slider"><div class="top"><label for="fuC">Threshold c</label><output id="fuCO"></output></div><input id="fuC" type="range" min="0" max="8" step="1" value="7"></div>
+          <div class="btns"><button class="primary" id="fuNew">New panel</button><button id="fuSlide">The run's example panel</button></div>
+        </div>
+        <div class="group"><table class="stats" id="fu1Tab"></table></div>
+        <div class="group"><p class="msg" id="fu1Msg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="fu2H">
+    <div class="head">
+      <h2 id="fu2H">Two routes to the posterior, on this panel</h2>
+      <p>Route one is a Markov chain: a collapsed Gibbs sampler for the hierarchy, which visits every fund each sweep and reassigns it to a cluster (Escobar–West update for \(\theta\)). It runs here in your browser, 1,500 sweeps after 300 of burn-in. Route two is the trained map: compute the 34 summaries, draw 2,000 vectors \(Z\), and push them through \(F\). Both rerun whenever the panel changes.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">The skill tail π(c): fraction of funds with true alpha above c</span><canvas id="cvFu2" height="280"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>Gibbs, mean and 90%</span><span><i class="sw ballc"></i>map, mean and 90%</span><span><i class="sw red"></i>naive count</span><span><i class="sw pt"></i>truth</span></div></div>
+        <div class="board"><span class="cap">Deconvolved: posterior mean of G from the chain</span><canvas id="cvFu3" height="280"></canvas>
+          <div class="legend"><span><i class="sw bar"></i>mass per 0.1 per cent</span><span><i class="sw dash"></i>true groups</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group"><table class="stats" id="fu2Tab"></table></div>
+        <div class="group"><p class="msg" id="fu2Msg"></p><p class="hint">At \(c = 0\) both routes are wide on purpose: three quarters of the funds sit at exactly zero and the data cannot say on which side of zero each one falls. A wide posterior is the right answer there.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="fu3H">
+    <div class="head">
+      <h2 id="fu3H">Calibration and cost: why train a map at all</h2>
+      <p>A chain is a per-data-set computation; a map is paid for once. Checking a map does not use convergence diagnostics: draw fresh panels from the prior, where the truth is known, and ask whether the 90% bands contain it 90% of the time. With 200 panels a coverage of 0.90 has a standard error of 0.021.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">Coverage of the map's 90% bands over 200 fresh panels</span><canvas id="cvFu4" height="250"></canvas>
+          <div class="legend"><span><i class="sw ballc"></i>map coverage</span><span><i class="sw dash"></i>nominal 0.90</span><span><i class="sw band"></i>± 2 standard errors</span></div></div>
+        <div class="board"><span class="cap">Example panel: posterior of π(2), the share beating 2% a year (top 1% of draws in the last bin)</span><canvas id="cvFu5" height="250"></canvas>
+          <div class="legend"><span><i class="sw bar acc2"></i>Gibbs, 2,500 draws</span><span><i class="sw bar ball"></i>map, 1,500 draws</span><span><i class="sw dash"></i>truth</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group"><table class="stats" id="fu3Tab"></table></div>
+        <div class="group"><p class="msg" id="fu3Msg"></p></div>
+      </div>
+    </div>
+  </section>
+
   <section class="lesson">
     <div class="head"><h2>Generative Bayesian computation in four moves</h2></div>
     <ol class="steps">
@@ -649,6 +724,8 @@ Give me the code and the two figures.</pre>
       <li>In the evidence panel, compare the GAN's coverage in studies 1, 4 and 5 with its point errors. Why can a method with nearly the right point estimates still give intervals that miss half the time?</li>
       <li>In Part IV, step the dimension from 1 to 10 at test data set 1. Before each click, predict the ABC width from \(\epsilon\) in the table. Why does ABC's interval still cover the truth 98% of the time at d = 10, and why is that no comfort?</li>
       <li>Run the live ABC at 10⁴, 10⁵ and 4×10⁵ simulations. At d = 10, how much does forty times the budget shrink \(\epsilon\)? Compare with \(N^{-1/d}\) and with the rate \(N^{-4/(d+4)}\). Then explain why the regression adjustment fixes everything here, and invent a model where it would not.</li>
+      <li>In Part V, set the skilled share to 0 and press New panel a few times. What does the naive count above +2% say, and what do the chain and the map say? Then set it to 3% at +2 and ask which of the three numbers an allocator should act on.</li>
+      <li>Time the two routes in Part V for one panel, then for the 200 panels of the calibration check. At how many panels does training the map pay for itself, and what would change if the chain were written in plain Python?</li>
     </ol>
   </section>
 </div>
@@ -1390,6 +1467,132 @@ Give me the code and the two figures.</pre>
     $('ab3Msg').innerHTML = `N = ${fmtInt(abLive.N)}, keeping ${fmtInt(abLive.N / 100)} per data set (${fmt(abLive.sec, 1)} s). Mean ε rises from <b>${fmt(avg(r1.eps), 3)}</b> at d = 1 to <b>${fmt(avg(r10.eps), 2)}</b> at d = 10, and the ABC sd ratio from ${fmt(avg(r1.sdr))} to <b>${fmt(avg(r10.sdr))}</b>; the uniform-ball formula gives ${fmt(avg(r10.ball))}, an overstatement because the kept draws are not spread evenly over the ball. With the regression adjustment: ${fmt(avg(r10.adj))}.`;
   }
 
+  /* PART V: WHO CAN PICK STOCKS (map from gbc-funds-lab.py, Gibbs sampler ported from it) */
+  const GF = window.GBC_FUNDS, FCS = [-3, -2, -1, -0.5, 0, 0.5, 1, 2, 3], FLEV = [.01, .025, .05, .1, .2, .3, .4, .5, .6, .7, .8, .9, .95, .975, .99], FN = 1000, FTAU2 = 9;
+  let fu = null;   // current panel and its two posteriors
+  const qtl = (sorted, p) => { const h = (sorted.length - 1) * p, i = Math.floor(h); return sorted[i] + (h - i) * (sorted[Math.min(i + 1, sorted.length - 1)] - sorted[i]); };
+  const tailOf = al => FCS.map(c => al.filter(v => v > c).length / al.length);
+  function fuSummaries(ah, s) {
+    const t = ah.map((v, i) => v / s[i]), ts = t.slice().sort((a, b) => a - b), as = ah.slice().sort((a, b) => a - b);
+    const m = ah.reduce((a, b) => a + b, 0) / ah.length, sd = Math.sqrt(ah.reduce((a, b) => a + (b - m) ** 2, 0) / (ah.length - 1));
+    return [...FLEV.map(p => qtl(ts, p)), ...FLEV.map(p => qtl(as, p)), m, sd, t.filter(v => v > 2).length / t.length, t.filter(v => v < -2).length / t.length];
+  }
+  function fuMap(ah, s, k = 2000) {
+    const net = GF.net, x = fuSummaries(ah, s).map((v, i) => (v - net.xm[i]) / net.xs[i]), [W1, b1, W2, b2, W3, b3] = net.W, H1 = b1.length, H2 = b2.length, NO = b3.length;
+    const out = [], inp = new Float64Array(x.length + GF.nz), h1 = new Float64Array(H1), h2 = new Float64Array(H2), o = new Float64Array(NO);
+    inp.set(x);
+    for (let r = 0; r < k; r++) {
+      for (let j = 0; j < GF.nz; j++) inp[x.length + j] = N();
+      for (let a = 0; a < H1; a++) { let v = b1[a]; const w = W1[a]; for (let i = 0; i < inp.length; i++) v += w[i] * inp[i]; h1[a] = v > 0 ? v : 0; }
+      for (let a = 0; a < H2; a++) { let v = b2[a]; const w = W2[a]; for (let i = 0; i < H1; i++) v += w[i] * h1[i]; h2[a] = v > 0 ? v : 0; }
+      let mx = -Infinity; for (let a = 0; a < NO; a++) { let v = b3[a]; const w = W3[a]; for (let i = 0; i < H2; i++) v += w[i] * h2[i]; o[a] = v; if (v > mx) mx = v; }
+      let z = 0; for (let a = 0; a < NO; a++) { o[a] = Math.exp(o[a] - mx); z += o[a]; }
+      const y = new Array(NO - 1); let acc = 0; for (let a = NO - 1; a >= 1; a--) { acc += o[a] / z; y[a - 1] = acc; }
+      out.push(y);
+    }
+    return out;
+  }
+  function fuGibbs(ah, s, sweeps = 1800, burn = 300) {
+    const n = ah.length, z = new Int32Array(n), cnt = new Float64Array(n + 1), sp = new Float64Array(n + 1), sw = new Float64Array(n + 1), pr = new Float64Array(n + 1);
+    let K = 1, theta = 1; for (let i = 0; i < n; i++) { cnt[0]++; sp[0] += 1 / s[i] ** 2; sw[0] += ah[i] / s[i] ** 2; }
+    const Y = [], Ks = [], Gm = new Float64Array(120);
+    const g0 = Array.from({ length: 120 }, (_, b) => Phi((-6 + 0.1 * (b + 1)) / 3) - Phi((-6 + 0.1 * b) / 3));
+    const gam = a => a > 0 ? G(a) : 0;
+    const beta = (a, b) => { const x = G(a); return x / (x + G(b)); };
+    for (let it = 0; it < sweeps; it++) {
+      for (let i = 0; i < n; i++) {
+        let k = z[i]; const pi_ = 1 / s[i] ** 2, wi = ah[i] * pi_;
+        cnt[k]--; sp[k] -= pi_; sw[k] -= wi;
+        if (cnt[k] === 0) { K--; if (k !== K) { cnt[k] = cnt[K]; sp[k] = sp[K]; sw[k] = sw[K]; for (let j = 0; j < n; j++) if (z[j] === K) z[j] = k; } cnt[K] = 0; sp[K] = 0; sw[K] = 0; }
+        let tot = 0;
+        for (let c = 0; c < K; c++) { const P = 1 / FTAU2 + sp[c], m = sw[c] / P, v = 1 / P + s[i] ** 2; pr[c] = cnt[c] * Math.exp(-0.5 * (ah[i] - m) ** 2 / v) / Math.sqrt(v); tot += pr[c]; }
+        const v0 = FTAU2 + s[i] ** 2; pr[K] = theta * Math.exp(-0.5 * ah[i] ** 2 / v0) / Math.sqrt(v0); tot += pr[K];
+        let u = R() * tot, c = 0; while (c < K && u > pr[c]) { u -= pr[c]; c++; }
+        if (c === K) K++;
+        z[i] = c; cnt[c]++; sp[c] += pi_; sw[c] += wi;
+      }
+      const eta = beta(theta + 1, n), bb = 1 - Math.log(eta), odds = (1 + K) / (n * bb);
+      theta = G(R() < odds / (1 + odds) ? 2 + K : 1 + K) / bb;
+      if (it >= burn) {
+        const mus = [], g = []; let gs = 0;
+        for (let c = 0; c < K; c++) { const P = 1 / FTAU2 + sp[c]; mus.push(sw[c] / P + N() / Math.sqrt(P)); g.push(gam(cnt[c])); gs += g[c]; }
+        const gnew = gam(theta); gs += gnew;
+        Y.push(FCS.map(cc => { let a = 0; for (let c = 0; c < K; c++) if (mus[c] > cc) a += cnt[c]; return a / n; }));
+        for (let c = 0; c < K; c++) { const bi = Math.floor((mus[c] + 6) / 0.1); if (bi >= 0 && bi < 120) Gm[bi] += g[c] / gs; }
+        for (let b = 0; b < 120; b++) Gm[b] += gnew / gs * g0[b];
+        Ks.push(K);
+      }
+    }
+    return { Y, Ks, G: Array.from(Gm, v => v / Y.length) };
+  }
+  const colQ = (D, j, p) => qtl(D.map(r => r[j]).sort((a, b) => a - b), p);
+  const colM = (D, j) => D.reduce((a, r) => a + r[j], 0) / D.length;
+  function fuPanel(fromRun) {
+    let al, ah, s;
+    if (fromRun && GF) { al = GF.panel.alpha.slice(); ah = GF.panel.ah.slice(); s = GF.panel.s.slice(); }
+    else {
+      const nsk = Math.round(FN * +$('fuSk').value / 100), nun = Math.round(FN * +$('fuUn').value / 100), sa = +$('fuSa').value;
+      al = []; for (let i = 0; i < FN; i++) al.push(i < nsk ? sa : i < nsk + nun ? -3 : 0);
+      s = al.map(() => 1 + R()); ah = al.map((a, i) => a + s[i] * N());
+    }
+    const t0 = performance.now(), mp = GF ? fuMap(ah, s) : null, tMap = performance.now() - t0;
+    const t1 = performance.now(), gb = fuGibbs(ah, s), tG = performance.now() - t1;
+    fu = { al, ah, s, truth: tailOf(al), naive: FCS.map(c => ah.filter(v => v > c).length / FN), mp, gb, tMap, tG, fromRun };
+  }
+  function drawFu1() {
+    if (!fu) return;
+    $('fuSkO').textContent = fmt(+$('fuSk').value, 1) + '%'; $('fuSaO').textContent = '+' + fmt(+$('fuSa').value, 1) + '%'; $('fuUnO').textContent = $('fuUn').value + '%';
+    const j = +$('fuC').value, c = FCS[j]; $('fuCO').textContent = (c > 0 ? '+' : '') + c + '%';
+    const xr = [-10, 10], bw = 0.5, nb = 40, cnt = new Array(nb).fill(0); for (const v of fu.ah) { const b = Math.floor((v - xr[0]) / bw); if (b >= 0 && b < nb) cnt[b]++; }
+    const f = frame($('cvFu1'), xr, [0, Math.max(...cnt) * 1.15], { pad: [38, 10, 10, 26] });
+    f.ctx.fillStyle = alpha(css('--accent'), .4); cnt.forEach((k, b) => { if (k) f.ctx.fillRect(f.X(xr[0] + b * bw) + .5, f.Y(k), f.X(xr[0] + (b + 1) * bw) - f.X(xr[0] + b * bw) - 1, f.Y(0) - f.Y(k)); });
+    const grp = {}; fu.al.forEach(a => grp[a] = (grp[a] || 0) + 1);
+    f.ctx.font = '600 11px ' + css('--font-mono'); f.ctx.textAlign = 'center'; f.ctx.fillStyle = css('--ink');
+    Object.entries(grp).forEach(([a, k]) => { line(f.ctx, [+a, +a], [0, Math.max(...cnt) * 1.15], f.X, f.Y, css('--ink'), 1.2, [4, 4]); f.ctx.fillText(`${fmt(100 * k / FN, 1)}%`, f.X(+a), 12); });
+    line(f.ctx, [c, c], [0, Math.max(...cnt) * 1.15], f.X, f.Y, css('--curve'), 2);
+    const top = fu.ah.map((v, i) => [v, fu.al[i]]).sort((a, b) => b[0] - a[0]).slice(0, 20), good = top.filter(p => p[1] > 0).length;
+    $('fu1Tab').innerHTML = `<thead><tr><th>above c = ${c}%</th><th>share</th></tr></thead><tbody><tr><td>truth</td><td>${fmt(fu.truth[j], 3)}</td></tr><tr><td>naive count of estimates</td><td>${fmt(fu.naive[j], 3)}</td></tr><tr><td>skilled among the top 20</td><td>${good} of 20</td></tr></tbody>`;
+    $('fu1Msg').innerHTML = `${fmtInt(fu.naive[j] * FN)} funds have an estimate above ${c}%; ${fmtInt(fu.truth[j] * FN)} truly do. ` + (fu.truth[j] > 0 && fu.naive[j] > 2 * fu.truth[j] ? `The naive count overstates the share <b>${fmt(fu.naive[j] / fu.truth[j], 0)}-fold</b>. ` : '') + `Of the 20 best estimates, ${good} belong to skilled funds. More data on any one fund does not fix this; the fix has to borrow strength across funds.`;
+  }
+  function band(f, D, col) {
+    const lo = FCS.map((_, j) => colQ(D, j, .05)), hi = FCS.map((_, j) => colQ(D, j, .95)), m = FCS.map((_, j) => colM(D, j));
+    area(f.ctx, FCS, lo, hi, f.X, f.Y, alpha(col, .18)); line(f.ctx, FCS, m, f.X, f.Y, col, 2.2); return { lo, hi, m };
+  }
+  function drawFu2() {
+    if (!fu) return;
+    const f = frame($('cvFu2'), [-3.2, 3.2], [0, 1], { pad: [38, 10, 10, 26], xt: [-3, -2, -1, 0, 1, 2, 3] });
+    const g = band(f, fu.gb.Y, css('--accent')), m = fu.mp ? band(f, fu.mp, css('--ball')) : null;
+    line(f.ctx, FCS, fu.naive, f.X, f.Y, css('--curve'), 1.8, [5, 3]);
+    f.ctx.fillStyle = css('--ink'); FCS.forEach((c, j) => { f.ctx.beginPath(); f.ctx.arc(f.X(c), f.Y(fu.truth[j]), 3.5, 0, 7); f.ctx.fill(); });
+    const G3 = fu.gb.G, h = frame($('cvFu3'), [-6, 6], [0, Math.max(...G3) * 1.12], { pad: [44, 10, 10, 26], yf: v => v.toFixed(2) });
+    h.ctx.fillStyle = alpha(css('--accent'), .55); G3.forEach((v, b) => { const x0 = -6 + 0.1 * b; h.ctx.fillRect(h.X(x0), h.Y(v), Math.max(1, h.X(x0 + 0.1) - h.X(x0) - .3), h.Y(0) - h.Y(v)); });
+    const grp = {}; fu.al.forEach(a => grp[a] = (grp[a] || 0) + 1);
+    Object.keys(grp).forEach(a => line(h.ctx, [+a, +a], [0, Math.max(...G3) * 1.12], h.X, h.Y, css('--ink'), 1.2, [4, 4]));
+    const mass = (lo, hi) => G3.reduce((acc, v, b) => { const x = -6 + 0.1 * b + 0.05; return acc + (x > lo && x <= hi ? v : 0); }, 0);
+    const show = [2, 4, 6, 7].map(j => [FCS[j], j]);
+    $('fu2Tab').innerHTML = `<thead><tr><th>above</th><th>truth</th><th>naive</th><th>Gibbs</th><th>map</th></tr></thead><tbody>${show.map(([c, j]) => `<tr><td>${c > 0 ? '+' : ''}${c}%</td><td>${fmt(fu.truth[j], 3)}</td><td>${fmt(fu.naive[j], 3)}</td><td>${fmt(g.m[j], 3)}<br><span style="color:var(--muted)">${fmt(g.lo[j], 3)}–${fmt(g.hi[j], 3)}</span></td><td>${m ? fmt(m.m[j], 3) + '<br><span style="color:var(--muted)">' + fmt(m.lo[j], 3) + '–' + fmt(m.hi[j], 3) + '</span>' : '–'}</td></tr>`).join('')}</tbody>`;
+    const kAvg = fu.gb.Ks.reduce((a, b) => a + b, 0) / fu.gb.Ks.length;
+    $('fu2Msg').innerHTML = `Gibbs: ${fmtInt(fu.gb.Y.length)} kept sweeps in <b>${fmt(fu.tG / 1000, 2)} s</b>, ${fmt(kAvg, 1)} occupied clusters on average. Map: 2,000 draws in <b>${fmt(fu.tMap, 0)} ms</b>. The chain puts ${fmt(100 * mass(-6, -1.5), 0)}% of G below −1.5, ${fmt(100 * mass(-1.5, 1.5), 0)}% near zero and ${fmt(100 * mass(1.5, 6), 1)}% above +1.5: the groups the histogram blurred into one hump come back.` + (fu.fromRun ? '' : ' Panels you build with the sliders are within the prior, but the map was never shown this particular one; it has to generalize.');
+  }
+  function drawFu3() {
+    if (!GF) { $('fu3Msg').innerHTML = '<b>Results file missing</b> (gbc-funds-data.js).'; return; }
+    const f = frame($('cvFu4'), [-3.5, 3.5], [0.5, 1], { pad: [38, 10, 10, 26], xt: [-3, -2, -1, 0, 1, 2, 3], yf: v => v.toFixed(1) });
+    area(f.ctx, [-3.5, 3.5], [0.9 - 0.042, 0.9 - 0.042], [0.9 + 0.042, 0.9 + 0.042], f.X, f.Y, alpha(css('--fit'), .15));
+    line(f.ctx, [-3.5, 3.5], [0.9, 0.9], f.X, f.Y, css('--ink'), 1.2, [5, 4]);
+    line(f.ctx, FCS, GF.cov, f.X, f.Y, css('--ball'), 2.2); f.ctx.fillStyle = css('--ball'); FCS.forEach((c, j) => { f.ctx.beginPath(); f.ctx.arc(f.X(c), f.Y(GF.cov[j]), 3.5, 0, 7); f.ctx.fill(); });
+    const A = GF.gibbs.y2, B = GF.map.y2, tr = GF.panel.truth[7], hi = Math.max(0.02, qtl(A.concat(B).sort((a, b) => a - b), 0.99)) * 1.1, nb = 30;
+    const cntA = new Array(nb).fill(0), cntB = new Array(nb).fill(0); A.forEach(v => cntA[Math.min(nb - 1, Math.floor(v / hi * nb))]++); B.forEach(v => cntB[Math.min(nb - 1, Math.floor(v / hi * nb))]++);
+    const dA = cntA.map(k => k / A.length), dB = cntB.map(k => k / B.length);
+    const h = frame($('cvFu5'), [0, hi], [0, Math.max(...dA, ...dB) * 1.12], { pad: [44, 10, 10, 26], xf: v => (100 * v).toFixed(1) + '%', yf: v => v.toFixed(2) });
+    const bwd = hi / nb;
+    [[dA, css('--accent'), 0], [dB, css('--ball'), 0.5]].forEach(([d, col, off]) => { h.ctx.fillStyle = alpha(col, .55); d.forEach((v, b) => { if (v) { const x0 = b * bwd + off * bwd; h.ctx.fillRect(h.X(x0), h.Y(v), h.X(x0 + bwd / 2) - h.X(x0), h.Y(0) - h.Y(v)); } }); });
+    line(h.ctx, [tr, tr], [0, Math.max(...dA, ...dB) * 1.12], h.X, h.Y, css('--ink'), 1.5, [4, 4]);
+    const P = GF.panel, gm = GF.gibbs.mean, mm = GF.map.mean, T = GF.train;
+    $('fu3Tab').innerHTML = `<thead><tr><th>example panel, above</th><th>−1%</th><th>0</th><th>+1%</th><th>+2%</th></tr></thead><tbody>${[['truth', P.truth], ['naive count', P.naive], ['Gibbs mean', gm], ['map mean', mm]].map(([l, v]) => `<tr><td>${l}</td>${[2, 4, 6, 7].map(j => `<td>${fmt(v[j], 3)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    const cmin = Math.min(...GF.cov), cmax = Math.max(...GF.cov);
+    $('fu3Msg').innerHTML = `Offline: Gibbs took ${fmt(GF.gibbs.sec, 1)} s for ${fmtInt(GF.gibbs.sweeps)} sweeps (compiled); the map ${fmt(GF.map.ms, 0)} ms for 4,000 draws, and ${fmt(GF.cov_sec, 1)} s for all 200 coverage panels. Training cost ${fmtInt(T.sims)} simulated panels and ${fmt(T.sec / 60, 1)} minutes. Coverage runs from <b>${fmt(cmin, 2)} to ${fmt(cmax, 2)}</b> across the nine thresholds. ${cmin < 0.858 ? 'Where it falls below two standard errors of 0.90, the map is overconfident: its bands are narrower than the exact posterior\'s, the usual failure of a network that has not fully learned the spread.' : 'That is within two standard errors of nominal everywhere.'} Above 2% the naive count says ${fmt(100 * P.naive[7], 1)}%, the chain ${fmt(100 * gm[7], 1)}% and the map ${fmt(100 * mm[7], 1)}%, against a truth of ${fmt(100 * P.truth[7], 1)}%.`;
+  }
+
   /* WIRING */
   ['bw', 'kb'].forEach(id => $(id).addEventListener('input', drawData));
   $('eps').addEventListener('input', () => $('epsO').textContent = fmt(+$('eps').value, 1));
@@ -1426,11 +1629,16 @@ Give me the code and the two figures.</pre>
   $('abN').querySelectorAll('button').forEach(b => b.onclick = () => { $('abN').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); });
   $('abGo').onclick = () => { $('abGo').disabled = true; $('ab3Msg').textContent = 'Simulating…'; setTimeout(() => { runAbc(); drawAb3(); $('abGo').disabled = false; }, 30); };
   $('abHd').addEventListener('input', drawAb3);
+  ['fuSk', 'fuSa', 'fuUn'].forEach(id => $(id).addEventListener('input', () => { $('fuSkO').textContent = fmt(+$('fuSk').value, 1) + '%'; $('fuSaO').textContent = '+' + fmt(+$('fuSa').value, 1) + '%'; $('fuUnO').textContent = $('fuUn').value + '%'; }));
+  ['fuSk', 'fuSa', 'fuUn'].forEach(id => $(id).addEventListener('change', () => { fuPanel(false); drawFu1(); drawFu2(); }));
+  $('fuC').addEventListener('input', drawFu1);
+  $('fuNew').onclick = () => { fuPanel(false); drawFu1(); drawFu2(); };
+  $('fuSlide').onclick = () => { fuPanel(true); drawFu1(); drawFu2(); };
 
   $('mSeg').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === method));
-  function all() { drawData(); drawSim(); drawArch(); drawR(); drawPw(); drawRes(); drawFc(); drawDirac(); drawCharge(); drawRace(); drawEv(); drawAb1(); drawAb2(); drawAb3(); }
+  function all() { drawData(); drawSim(); drawArch(); drawR(); drawPw(); drawRes(); drawFc(); drawDirac(); drawCharge(); drawRace(); drawEv(); drawAb1(); drawAb2(); drawAb3(); drawFu1(); drawFu2(); drawFu3(); }
   $('epsO').textContent = fmt(+$('eps').value, 1);
-  simCur = priorDraw(); newR(); newHistory(); raceNew(); all();
+  simCur = priorDraw(); newR(); newHistory(); raceNew(); fuPanel(true); all();
   drawSim('One draw from the prior. Press the button for another.');
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(all, 120); });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
