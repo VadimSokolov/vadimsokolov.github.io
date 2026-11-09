@@ -6,11 +6,12 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
 <script src="gbc-galaxy-data.js"></script>
 <script src="gbc-gan-data.js"></script>
+<script src="gbc-abc-data.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: header with the Y = F(x, U) frame; Part I galaxy mixture (data, simulate, architecture, R, one uniform, results, prompt); Part II live forecasting; lesson, notes, class exercises. */
+/* Layout: header with the Y = F(X, U) frame; Part I galaxy mixture (data, simulate, architecture, R, one uniform, results, prompt); Part II live forecasting; Part III GBC vs GAN; Part IV GBC vs ABC; lesson, notes, class exercises. */
 :root {
   --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
   --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
@@ -60,6 +61,8 @@ canvas { display: block; width: 100%; }
 .sw.acc { border-top: 2.5px solid var(--accent); }
 .sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
 .sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
+.sw.bar.ball { background: var(--ball); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
+.sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
 .sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
 
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -144,16 +147,16 @@ code { font-family: var(--font-mono); font-size: 13px; }
 <div class="wrap">
   <header>
     <span class="eyebrow">Polson–Sokolov Lab · Generative Bayesian Computation</span>
-    <h1>GBC Architecture Lab: \(Y = F(x, U)\)</h1>
-    <p class="lead">Generative Bayesian computation writes every uncertain quantity as a deterministic function of what you know and of noise you draw yourself: \(Y = F(x, U)\), with \(U\) independent of \(x\). Learn \(F\) from simulated or historical pairs \((x, Y)\), and every fresh draw of \(U\) is a draw of \(Y\) given \(x\). This lab takes the map apart on the galaxy velocities, where \(Y\) is a mixture's parameters and \(x\) a summary of the data, and on a time series, where \(Y\) is tomorrow's value and \(x\) is today's. A third part trains the same kind of map two ways, by the check loss and as a GAN, and asks why one minimization beats a saddle point.</p>
+    <h1>GBC Architecture Lab: \(Y = F(X, U)\)</h1>
+    <p class="lead">Generative Bayesian computation writes every uncertain quantity as a deterministic function of what you know and of noise you draw yourself: \(Y = F(X, U)\), with \(U\) independent of \(X\). Learn \(F\) from simulated or historical pairs \((X, Y)\), and every fresh draw of \(U\) is a draw of \(Y\) given \(X\). This lab takes the map apart on the galaxy velocities, where \(Y\) is a mixture's parameters and \(X\) a summary of the data, and on a time series, where \(Y\) is tomorrow's value and \(X\) is today's. A third part trains the same kind of map two ways, by the check loss and as a GAN, and asks why one minimization beats a saddle point. A fourth gives GBC and rejection ABC the same simulations and watches ABC widen as the summary grows.</p>
     <a class="back" href="index.html">← All labs</a>
     <p class="src">Based on Polson and Sokolov, <i>Generative Bayesian Computation: Quantile Neural Networks for Inference and Surrogates</i> (2026; <a href="https://github.com/VadimSokolov/gbc-book">github.com/VadimSokolov/gbc-book</a>), chapters 4 (noise outsourcing), 5 (the quantile network), 10 (Bayesian inference) and 11 (prediction). Data: the 82 galaxy velocities of Roeder (1990), <code>MASS::galaxies</code>. The galaxy fits in Part I were run offline by <a href="gbc-galaxy-lab.py">gbc-galaxy-lab.py</a>; everything else runs in this page. Part III follows Polson and Sokolov, <i>GBC versus GANs: Why a Minimization Beats a Saddle Point</i> (working paper, November 2026); its tables are recomputed from the paper's result files by <a href="gbc-gan-extract.py">gbc-gan-extract.py</a>.</p>
   </header>
 
   <section class="frame">
-    <div class="note"><h3>One equation</h3><p>The noise outsourcing theorem (Kallenberg, 1997) says such an \(F\) always exists: for any pair \((x, Y)\) there is a measurable \(F\) with \(Y = F(x, U)\) almost surely, \(U \sim U(0,1)\) independent of \(x\). For scalar \(Y\) it is the conditional quantile function, \(F(x, \tau) = Q_{Y\mid x}(\tau)\).</p></div>
-    <div class="note"><h3>Inference: Part I</h3><p>\(Y = \theta\), the parameters. \(x = S(y)\), a summary of a data set. Pairs come from the prior and the simulator. Fix \(x\) at the observed data and draw \(U\): each draw is a posterior sample.</p></div>
-    <div class="note"><h3>Forecasting: Part II</h3><p>\(Y = y_{t+1}\), the next value. \(x = y_t\), the present. Pairs come from history. Feed a draw back in as the next \(x\) and you have a simulated future path; a thousand paths are a forecast distribution.</p></div>
+    <div class="note"><h3>One equation</h3><p>The noise outsourcing theorem (Kallenberg, 1997) says such an \(F\) always exists: for any pair \((X, Y)\) there is a measurable \(F\) with \(Y = F(X, U)\) almost surely, \(U \sim U(0,1)\) independent of \(X\). For scalar \(Y\) it is the conditional quantile function, \(F(X, \tau) = Q_{Y\mid X}(\tau)\).</p></div>
+    <div class="note"><h3>Inference: Part I</h3><p>\(Y = \theta\), the parameters. \(X = S(y)\), a summary of a data set. Pairs come from the prior and the simulator. Fix \(X\) at the observed data and draw \(U\): each draw is a posterior sample.</p></div>
+    <div class="note"><h3>Forecasting: Part II</h3><p>\(Y = y_{t+1}\), the next value. \(X = y_t\), the present. Pairs come from history. Feed a draw back in as the next \(X\) and you have a simulated future path; a thousand paths are a forecast distribution.</p></div>
   </section>
 
   <h2 class="part"><small>Part I</small>Inference: how many groups of galaxies?</h2>
@@ -184,8 +187,8 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <!-- SIMULATE -->
   <section class="sec" aria-labelledby="sH">
     <div class="head">
-      <h2 id="sH">Step 1. Simulate: the pairs \((x, Y)\) come from the prior</h2>
-      <p>One draw: weights \(w \sim \text{Dirichlet}(0.3, \dots, 0.3)\) on \(K = 10\) slots, means \(\mu_k \sim N(21, 8^2)\), variances \(\sigma_k^2 \sim \text{InvGamma}(2, 2)\), then 82 velocities from the mixture, reduced to \(x = S\), their 32 sample quantiles at levels \((i - \tfrac12)/32\). The slots are sorted by mean in every draw, so "slot 1" means "the lowest mean" and a label is never a parameter. The offline run repeats this \(10^5\) times.</p>
+      <h2 id="sH">Step 1. Simulate: the pairs \((X, Y)\) come from the prior</h2>
+      <p>One draw: weights \(w \sim \text{Dirichlet}(0.3, \dots, 0.3)\) on \(K = 10\) slots, means \(\mu_k \sim N(21, 8^2)\), variances \(\sigma_k^2 \sim \text{InvGamma}(2, 2)\), then 82 velocities from the mixture, reduced to \(X = S\), their 32 sample quantiles at levels \((i - \tfrac12)/32\). The slots are sorted by mean in every draw, so "slot 1" means "the lowest mean" and a label is never a parameter. The offline run repeats this \(10^5\) times.</p>
     </div>
     <div class="grid">
       <div class="duo">
@@ -195,7 +198,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
           <div class="legend"><span><i class="sw acc"></i>mixture density</span><span><i class="sw bar"></i>simulated data</span><span><i class="sw pt"></i>observed (rug)</span></div>
         </div>
         <div class="board">
-          <span class="cap">The summary x = S: 32 quantiles, simulated against observed</span>
+          <span class="cap">The summary X = S: 32 quantiles, simulated against observed</span>
           <canvas id="cvQ" height="250"></canvas>
           <div class="legend"><span><i class="sw acc"></i>S(simulated)</span><span><i class="sw dash"></i>S(observed)</span></div>
         </div>
@@ -281,7 +284,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <section class="sec" aria-labelledby="uH">
     <div class="head">
       <h2 id="uH">How wide should \(U\) be? Modes need pieces, not dimensions</h2>
-      <p>Noise outsourcing needs one uniform per parameter: draw \(\theta_1 = F_1(x, U_1)\), then \(\theta_2 = F_2(x, \theta_1, U_2)\), and so on. Fifteen numbers for a five-component mixture, thirty for ten slots. Can one uniform carry several modes? Take the quantile function of the galaxy kernel density, approximate it by a ReLU network with \(H\) units (at most \(H + 1\) linear pieces in one input), and push a single uniform through it. A gap between modes is a steep piece; a mode is a flat one.</p>
+      <p>Noise outsourcing needs one uniform per parameter: draw \(\theta_1 = F_1(X, U_1)\), then \(\theta_2 = F_2(X, \theta_1, U_2)\), and so on. Fifteen numbers for a five-component mixture, thirty for ten slots. Can one uniform carry several modes? Take the quantile function of the galaxy kernel density, approximate it by a ReLU network with \(H\) units (at most \(H + 1\) linear pieces in one input), and push a single uniform through it. A gap between modes is a steep piece; a mode is a flat one.</p>
     </div>
     <div class="grid">
       <div class="duo">
@@ -311,7 +314,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <!-- RESULTS -->
   <section class="sec" aria-labelledby="eH">
     <div class="head">
-      <h2 id="eH">Step 3. Evaluate: fix \(x = S(y_{\text{obs}})\) and draw \(U\) again and again</h2>
+      <h2 id="eH">Step 3. Evaluate: fix \(X = S(y_{\text{obs}})\) and draw \(U\) again and again</h2>
       <p id="resIntro">Each draw of \(U\) gives one \(\theta\), so 5,000 draws are 5,000 posterior samples from one forward pass. Two losses were trained on the same \(10^5\) pairs and the same network, and both are checked against a Gibbs sampler under the same prior (exact up to Monte Carlo error).</p>
     </div>
     <div id="resMissing" class="msg warn" hidden><b>Results file missing.</b> Run <code>python gbc-galaxy-lab.py</code> next to this page to produce <code>gbc-galaxy-data.js</code>.</div>
@@ -378,7 +381,7 @@ Give me the code and the two figures.</pre>
   <section class="sec" aria-labelledby="fH">
     <div class="head">
       <h2 id="fH">A series with two regimes</h2>
-      <p>The history is simulated from \(y_{t+1} = 0.6\,y_t + 0.8\tanh(1.5\,y_t) + 0.6\,\varepsilon_t\), \(\varepsilon_t \sim N(0,1)\). It wanders around \(+2\) or \(-2\) and now and then jumps between them. The network does not know this formula. It sees only the pairs \((y_t, y_{t+1})\) and fits \(F(x, \tau)\) by the pinball loss \(\rho_\tau(y - F(x, \tau))\) with a fresh \(\tau \sim U(0,1)\) for every pair. This is the book's quantile network: \(x\) and \(\tau\) (through 16 cosine features) each pass a layer of 32 ReLU units, the two are multiplied element by element, then one more layer of 32 and a linear output.</p>
+      <p>The history is simulated from \(y_{t+1} = 0.6\,y_t + 0.8\tanh(1.5\,y_t) + 0.6\,\varepsilon_t\), \(\varepsilon_t \sim N(0,1)\). It wanders around \(+2\) or \(-2\) and now and then jumps between them. The network does not know this formula. It sees only the pairs \((y_t, y_{t+1})\) and fits \(F(X, \tau)\) by the pinball loss \(\rho_\tau(y - F(X, \tau))\) with a fresh \(\tau \sim U(0,1)\) for every pair. This is the book's quantile network: \(X\) and \(\tau\) (through 16 cosine features) each pass a layer of 32 ReLU units, the two are multiplied element by element, then one more layer of 32 and a linear output.</p>
       <p>Then the generative step: start at \(y_T\), draw \(U\), compute \(y_{T+1} = F(y_T, U)\), feed it back, repeat. One-step quantile forecasts are what any quantile regression gives; paths are what a generative map gives, and from a start near zero they split into two regimes, which no single interval can describe.</p>
     </div>
     <div class="grid">
@@ -387,7 +390,7 @@ Give me the code and the two figures.</pre>
         <canvas id="cvFan" height="270"></canvas>
         <div class="legend"><span><i class="sw pt"></i>history</span><span><i class="sw band"></i>learned 50% and 90% bands</span><span><i class="sw"></i>learned median</span><span><i class="sw dash"></i>true 5%, 50%, 95%</span><span><i class="sw acc"></i>three learned paths</span></div>
         <div class="duo">
-          <div><span class="cap">One step: F(x, τ) at τ = .05, .25, .5, .75, .95</span><canvas id="cvFq" height="230"></canvas>
+          <div><span class="cap">One step: F(X, τ) at τ = .05, .25, .5, .75, .95</span><canvas id="cvFq" height="230"></canvas>
             <div class="legend"><span><i class="sw pt"></i>pairs (yₜ, yₜ₊₁)</span><span><i class="sw"></i>learned</span><span><i class="sw dash"></i>true</span></div></div>
           <div><span class="cap" id="hCap">Forecast distribution at the horizon</span><canvas id="cvFh" height="230"></canvas>
             <div class="legend"><span><i class="sw bar"></i>learned paths</span><span><i class="sw red"></i>true model paths</span></div></div>
@@ -417,12 +420,12 @@ Give me the code and the two figures.</pre>
   <section class="sec" aria-labelledby="gH">
     <div class="head">
       <h2 id="gH">Same map, two ways to train it</h2>
-      <p>A generative adversarial network also learns \(Y = F(x, U)\): a generator pushes noise onto the target. It finds \(F\) by playing it against a discriminator, a saddle point problem whose inner maximization is never solved exactly. GBC finds \(F\) by one minimization of the check loss. The network can be identical; the loss, and with it the geometry of optimization, differs. This part follows Polson and Sokolov, <i>Generative Bayesian Computation versus Generative Adversarial Networks: Why a Minimization Beats a Saddle Point</i> (working paper, November 2026).</p>
+      <p>A generative adversarial network also learns \(Y = F(X, U)\): a generator pushes noise onto the target. It finds \(F\) by playing it against a discriminator, a saddle point problem whose inner maximization is never solved exactly. GBC finds \(F\) by one minimization of the check loss. The network can be identical; the loss, and with it the geometry of optimization, differs. This part follows Polson and Sokolov, <i>Generative Bayesian Computation versus Generative Adversarial Networks: Why a Minimization Beats a Saddle Point</i> (working paper, November 2026).</p>
     </div>
     <div class="frame">
-      <div class="note"><h3>GAN</h3><p>\[ \min_G \max_D\ \mathbb{E}\log D(Y) + \mathbb{E}\log\bigl(1 - D(G(x, U))\bigr) \]With the best discriminator this is \(2\,\mathrm{JS}(P, Q_G) - \log 4\), but the generator only ever sees the current, partly trained \(D\).</p></div>
-      <div class="note"><h3>GBC</h3><p>\[ \min_F\ \mathbb{E}\,\rho_\tau\bigl(Y - F(x, \tau)\bigr), \quad \tau \sim U(0,1) \]Pointwise convex in the output, minimized by the conditional quantile function, with expected gradient \(F_x(F) - \tau\), zero only at the truth.</p></div>
-      <div class="note"><h3>The key identity</h3><p>Integrated over \(\tau\), the check loss is half the CRPS, so the excess risk is half the squared Cramér distance:\[ R(F) - R(F^\star) = \tfrac12\,\mathbb{E}_x\!\int (F_x - G_x)^2\,dz. \]The training loss is itself a distance between the learned and the true distribution.</p></div>
+      <div class="note"><h3>GAN</h3><p>\[ \min_G \max_D\ \mathbb{E}\log D(Y) + \mathbb{E}\log\bigl(1 - D(G(X, U))\bigr) \]With the best discriminator this is \(2\,\mathrm{JS}(P, Q_G) - \log 4\), but the generator only ever sees the current, partly trained \(D\).</p></div>
+      <div class="note"><h3>GBC</h3><p>\[ \min_F\ \mathbb{E}\,\rho_\tau\bigl(Y - F(X, \tau)\bigr), \quad \tau \sim U(0,1) \]Pointwise convex in the output, minimized by the conditional quantile function, with expected gradient \(F_X(F) - \tau\), zero only at the truth.</p></div>
+      <div class="note"><h3>The key identity</h3><p>Integrated over \(\tau\), the check loss is half the CRPS, so the excess risk is half the squared Cramér distance:\[ R(F) - R(F^\star) = \tfrac12\,\mathbb{E}_X\!\int (F_X - G_X)^2\,dz. \]The training loss is itself a distance between the learned and the true distribution.</p></div>
     </div>
   </section>
 
@@ -523,18 +526,94 @@ Give me the code and the two figures.</pre>
     </div>
   </section>
 
+  <h2 class="part"><small>Part IV</small>GBC versus ABC: regression instead of rejection</h2>
+
+  <section class="sec" aria-labelledby="abH">
+    <div class="head">
+      <h2 id="abH">One reference table, two ways to use it</h2>
+      <p>Both methods start from the same \(N\) simulations \((\theta_i, X_i)\), \(\theta_i \sim \pi\), \(X_i = S(y_i)\), \(y_i \sim p(y \mid \theta_i)\). Rejection ABC keeps the few \(\theta_i\) whose \(X_i\) lands near \(X_{\text{obs}}\) and throws the rest away. GBC fits \(\theta = F(X, \tau)\) on all \(N\) pairs and then evaluates it at \(X_{\text{obs}}\). The example is a Gaussian location model with an exact answer, chosen to give ABC its best case: the summary is sufficient. This part follows Polson's slides <i>When GBC Beats ABC</i> (41916 Bayes, AI and Deep Learning, Chicago Booth), and reruns their code.</p>
+    </div>
+    <div class="frame">
+      <div class="note"><h3>ABC</h3><p>Accept \(\theta_i\) when \(\lVert X_i - X_{\text{obs}}\rVert \le \epsilon\). The draws come from\[ p_\epsilon(\theta \mid X_{\text{obs}}) \propto \pi(\theta)\, P\bigl(\lVert X - X_{\text{obs}}\rVert \le \epsilon \mid \theta\bigr), \]wider than the posterior, with bias of order \(\epsilon^2\). Fix the acceptance rate at 1% and \(\epsilon\) must grow with the dimension of \(X\).</p></div>
+      <div class="note"><h3>GBC</h3><p>Noise outsourcing gives \(\theta = F(X, \tau)\), \(\tau \sim U(0,1)\), with \(F\) the posterior quantile function, the minimizer of\[ \mathbb{E}\,\rho_\tau\bigl(\theta - F(X, \tau)\bigr). \]A two-layer ReLU network of width 128 is fitted once on all \(10^5\) pairs; a posterior draw is one forward pass at \(X_{\text{obs}}\).</p></div>
+      <div class="note"><h3>The rate</h3><p>The acceptance rate of an \(\epsilon\) ball in \(\mathbb{R}^d\) is of order \(\epsilon^d\). Balancing that variance against the \(\epsilon^2\) bias gives ABC a mean squared error of order\[ N^{-4/(d+4)}, \]so each extra summary dimension costs ABC a power of \(N\). GBC's error depends on how smooth \(F\) is in \(X\), not on the volume of a ball.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="ab1H">
+    <div class="head">
+      <h2 id="ab1H">One data set: the marginal of \(\theta_1\)</h2>
+      <p>Model: \(\theta \sim N(0, I_d)\), \(y_1, \dots, y_{20} \mid \theta \sim N(\theta, I_d)\), summary \(X = \bar y\). The exact posterior is \(\theta_j \mid X \sim N\bigl(\tfrac{20}{21} X_j, \tfrac{1}{21}\bigr)\), independent over \(j\). Both methods get the same \(10^5\) simulations; ABC keeps the nearest 1,000 (1%). Pick a dimension and one of the first four test data sets of the run.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap" id="ab1Cap"></span><canvas id="cvAb1" height="290"></canvas>
+        <div class="legend"><span><i class="sw bar ball"></i>ABC, nearest 1%</span><span><i class="sw bar fitb"></i>GBC</span><span><i class="sw"></i>exact posterior</span><span><i class="sw dash"></i>true θ₁</span></div></div>
+      <div class="panel">
+        <div class="group">
+          <span class="label">Dimension d of θ and of X</span>
+          <div class="seg" id="abD" style="grid-template-columns:repeat(4,1fr)"><button data-d="1" aria-pressed="false">1</button><button data-d="2" aria-pressed="false">2</button><button data-d="5" aria-pressed="false">5</button><button data-d="10" aria-pressed="true">10</button></div>
+          <span class="label">Test data set</span>
+          <div class="seg" id="abS" style="grid-template-columns:repeat(4,1fr)"><button data-s="0" aria-pressed="true">1</button><button data-s="1" aria-pressed="false">2</button><button data-s="2" aria-pressed="false">3</button><button data-s="3" aria-pressed="false">4</button></div>
+        </div>
+        <div class="group"><table class="stats" id="ab1Tab"></table></div>
+        <div class="group"><p class="msg" id="ab1Msg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="ab2H">
+    <div class="head">
+      <h2 id="ab2H">Across dimensions: ABC inflates, GBC stays put</h2>
+      <p>Averages over 100 fresh test data sets per dimension, all coordinates of \(\theta\): the posterior sd relative to the exact \(1/\sqrt{21}\), the Wasserstein distance \(W_1\) to the exact posterior in units of that sd, and the coverage of 90% intervals.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">Posterior sd / exact sd</span><canvas id="cvAbS" height="240"></canvas></div>
+        <div class="board"><span class="cap">W₁ to the exact posterior / exact sd</span><canvas id="cvAbW" height="240"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="group"><table class="stats" id="ab2Tab"></table></div>
+        <div class="group"><p class="msg" id="ab2Msg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="ab3H">
+    <div class="head">
+      <h2 id="ab3H">Run ABC yourself: where the width comes from</h2>
+      <p>This panel builds the reference table in your browser for \(d = 1, \dots, 10\), keeps the nearest 1% for five fresh data sets per dimension, and records \(\epsilon\), the distance of the last accepted draw. If the accepted \(X_i\) filled the ball of radius \(\epsilon\) around \(X_{\text{obs}}\) uniformly, each coordinate would vary by \(\epsilon^2/(d+2)\) and the accepted \(\theta_1\) by \((\tfrac{20}{21})^2\) times that on top of the posterior variance:\[ \frac{\text{sd}_{\text{ABC}}}{\text{sd}} \approx \sqrt{1 + 21\,\bigl(\tfrac{20}{21}\bigr)^2\, \frac{\epsilon^2}{d+2}}. \]In fact the density of \(X\) changes across a ball this wide and the kept draws crowd toward the side nearer the prior mean, so the formula overstates the width at large \(d\); it still explains where the width comes from. The regression adjustment of Beaumont, Zhang and Balding (2002) replaces each accepted \(\theta_i\) by \(\theta_i - \hat\beta^\top (X_i - X_{\text{obs}})\), with \(\hat\beta\) from a least squares fit on the accepted pairs.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">Posterior sd / exact sd against d</span><canvas id="cvAbL" height="260"></canvas>
+          <div class="legend"><span><i class="sw ballc"></i>ABC, live</span><span><i class="sw dash"></i>uniform-ball formula from ε</span><span><i class="sw altc"></i>ABC + regression adjustment</span><span><i class="sw"></i>GBC (offline run)</span></div></div>
+        <div class="board"><span class="cap" id="abHCap">θ₁ for one data set</span><canvas id="cvAbH" height="260"></canvas>
+          <div class="legend"><span><i class="sw bar ball"></i>ABC</span><span><i class="sw bar altb"></i>adjusted</span><span><i class="sw"></i>exact</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <span class="label">Simulations N</span>
+          <div class="seg" id="abN"><button data-n="10000" aria-pressed="false">10⁴</button><button data-n="100000" aria-pressed="true">10⁵</button><button data-n="400000" aria-pressed="false">4×10⁵</button></div>
+          <div class="btns"><button class="primary" id="abGo">Run ABC for d = 1 to 10</button></div>
+          <div class="slider"><div class="top"><label for="abHd">Histogram for d</label><output id="abHdO"></output></div><input id="abHd" type="range" min="1" max="10" step="1" value="10"></div>
+        </div>
+        <div class="group"><p class="msg" id="ab3Msg">Press Run. At N = 4×10⁵ it takes a few seconds.</p><p class="hint">Quadrupling N shrinks ε only by a factor of about \(4^{1/d}\): at d = 10 that is 15%. Here the adjustment is exact, because the posterior mean is linear in \(X\) and the posterior variance does not depend on \(X\). It fails when either is false, which is the case GBC is built for: a network learns the nonlinear mean and the changing spread.</p></div>
+      </div>
+    </div>
+  </section>
+
   <section class="lesson">
     <div class="head"><h2>Generative Bayesian computation in four moves</h2></div>
     <ol class="steps">
-      <li><div><h3>Write the unknown as a function of noise</h3><p>\(Y = F(x, U)\) with \(U\) independent of \(x\) always exists. For scalar \(Y\) it is the conditional quantile function; for a vector, a chain of them. Modes and gaps are steep and flat stretches of \(F\), not extra noise dimensions.</p></div></li>
-      <li><div><h3>Get pairs, not likelihoods</h3><p>For inference the pairs come from the prior and a simulator, \(\theta \sim \pi\), \(y \sim p(y\mid\theta)\), \(x = S(y)\). For forecasting they come from history. Nothing is ever evaluated as a density.</p></div></li>
+      <li><div><h3>Write the unknown as a function of noise</h3><p>\(Y = F(X, U)\) with \(U\) independent of \(X\) always exists. For scalar \(Y\) it is the conditional quantile function; for a vector, a chain of them. Modes and gaps are steep and flat stretches of \(F\), not extra noise dimensions.</p></div></li>
+      <li><div><h3>Get pairs, not likelihoods</h3><p>For inference the pairs come from the prior and a simulator, \(\theta \sim \pi\), \(y \sim p(y\mid\theta)\), \(X = S(y)\). For forecasting they come from history. Nothing is ever evaluated as a density.</p></div></li>
       <li><div><h3>Fit F by a proper loss</h3><p>The pinball loss at a random \(\tau\) recovers the conditional quantile function of a scalar. For several outputs at once, use a chain of quantile maps or a joint proper score such as the energy score. A loss that scores each coordinate alone learns the margins and loses the dependence.</p></div></li>
-      <li><div><h3>Evaluate by forward passes</h3><p>Fix \(x\) at what you observed and draw \(U\). Posterior samples, forecast paths and the occupied-components count are all averages over those draws. Training was paid once, so a new data set or a new start value costs one pass, not a new chain.</p></div></li>
+      <li><div><h3>Evaluate by forward passes</h3><p>Fix \(X\) at what you observed and draw \(U\). Posterior samples, forecast paths and the occupied-components count are all averages over those draws. Training was paid once, so a new data set or a new start value costs one pass, not a new chain.</p></div></li>
     </ol>
     <div class="eqs">
-      <div class="eq"><div class="cp">Noise outsourcing</div>\[ Y \overset{a.s.}{=} F(x, U), \quad U \perp x \]</div>
+      <div class="eq"><div class="cp">Noise outsourcing</div>\[ Y \overset{a.s.}{=} F(X, U), \quad U \perp X \]</div>
       <div class="eq"><div class="cp">Pinball (check) loss, minimized at the τ-quantile</div>\[ \rho_\tau(u) = \max\{\tau u, (\tau - 1)u\} \]</div>
-      <div class="eq"><div class="cp">Energy score, a joint proper scoring rule</div>\[ \text{ES} = \mathbb{E}\lVert F(x,U) - Y\rVert - \tfrac12\,\mathbb{E}\lVert F(x,U) - F(x,U')\rVert \]</div>
+      <div class="eq"><div class="cp">Energy score, a joint proper scoring rule</div>\[ \text{ES} = \mathbb{E}\lVert F(X,U) - Y\rVert - \tfrac12\,\mathbb{E}\lVert F(X,U) - F(X,U')\rVert \]</div>
       <div class="eq"><div class="cp">A frozen random projection</div>\[ RU \sim N(0, RR^\top), \quad RR^\top \to I_d \ \text{ as } M \to \infty \]</div>
       <div class="eq"><div class="cp">Forecast paths</div>\[ y_{T+h} = F(y_{T+h-1}, U_h), \quad U_h \overset{iid}{\sim} U(0,1) \]</div>
     </div>
@@ -547,7 +626,7 @@ Give me the code and the two figures.</pre>
     </div>
     <div class="note">
       <h2>Where the pinball loss falls short</h2>
-      <p>Score each of the 30 outputs with its own \(\tau_j = \Phi(U_j)\) and the best the network can do is the marginal quantile of each parameter, drawn independently of the others. The weights then no longer sum to one and a weight need not belong with its mean. The energy score scores the whole vector, so it rewards getting the dependence right. The book's remedy for vectors is the autoregressive chain \(\theta_j = F_j(x, \theta_{&lt;j}, \tau_j)\).</p>
+      <p>Score each of the 30 outputs with its own \(\tau_j = \Phi(U_j)\) and the best the network can do is the marginal quantile of each parameter, drawn independently of the others. The weights then no longer sum to one and a weight need not belong with its mean. The energy score scores the whole vector, so it rewards getting the dependence right. The book's remedy for vectors is the autoregressive chain \(\theta_j = F_j(X, \theta_{&lt;j}, \tau_j)\).</p>
     </div>
     <div class="note">
       <h2>What R really costs</h2>
@@ -564,10 +643,12 @@ Give me the code and the two figures.</pre>
       <li>In the R panel, hold d = 32 and raise M from 2⁴ to 2¹⁶. Predict the off-diagonal spread at each step from \(1/\sqrt M\) before you look.</li>
       <li>With equally spaced knots, how many ReLU units does a single uniform need before the group near 9.7 separates from the main body? With knots placed by velocity?</li>
       <li>Switch Step 3 between the global energy-score fit and the pinball fit. Compare the sum of the raw weights and the occupied count with Gibbs. Which part of the posterior did the pinball fit get right? Then switch to the local fit: what changed, and why is it still the same posterior?</li>
-      <li>Train the forecaster with 100 points of history and then with 3,000. Where in x do the learned one-step quantiles go wrong with little data? Set the start value to 0.1 and the horizon to 20: why is the median path a poor forecast?</li>
+      <li>Train the forecaster with 100 points of history and then with 3,000. Where in X do the learned one-step quantiles go wrong with little data? Set the start value to 0.1 and the horizon to 20: why is the median path a poor forecast?</li>
       <li>Run the Dirac GAN at h = 0.5 and h = 0.05 for 1,500 steps. Ask before revealing: will the smaller step converge? Then read off the radius and check it against the product of \(1 + h^2 f'^2\).</li>
       <li>Start the ring race at the tuned rates, then at "Both 2e-3". Record when each method first covers all eight modes. Which method needed its learning rate tuned, and how would you know without the true answer?</li>
       <li>In the evidence panel, compare the GAN's coverage in studies 1, 4 and 5 with its point errors. Why can a method with nearly the right point estimates still give intervals that miss half the time?</li>
+      <li>In Part IV, step the dimension from 1 to 10 at test data set 1. Before each click, predict the ABC width from \(\epsilon\) in the table. Why does ABC's interval still cover the truth 98% of the time at d = 10, and why is that no comfort?</li>
+      <li>Run the live ABC at 10⁴, 10⁵ and 4×10⁵ simulations. At d = 10, how much does forty times the budget shrink \(\epsilon\)? Compare with \(N^{-1/d}\) and with the rate \(N^{-4/(d+4)}\). Then explain why the regression adjustment fixes everything here, and invent a model where it would not.</li>
     </ol>
   </section>
 </div>
@@ -841,10 +922,10 @@ Give me the code and the two figures.</pre>
       <tr><td>Raw weight sum, mean ± sd</td><td>${method === 'gibbs' ? '1 ± 0' : fmt(mean(ws), 2) + ' ± ' + fmt(sdv(ws), 2)}</td><td>1 ± 0</td></tr>
       <tr><td>Run time</td><td>${r.seconds} s</td><td>${g.seconds} s</td></tr></tbody>`;
     const c = D.config;
-    $('resIntro').innerHTML = `Each draw of \\(U\\) gives one \\(\\theta\\), so ${fmtInt(c.draws)} draws are ${fmtInt(c.draws)} posterior samples from one forward pass. Two losses were trained on the same ${fmtInt(c.n_sim)} simulated pairs and the same network (\\(U\\) of width ${c.u_dim}, three ReLU layers of ${c.width}, ${fmtInt(c.steps)} Adam steps of batch 1,024 on ${c.device === 'mps' ? 'an Apple M2 laptop GPU' : c.device}), and both are checked against a Gibbs sampler under the same prior. The pinball fit uses \\(\\tau_j = \\Phi(U_j)\\) for output \\(j\\). A third fit trains the energy-score network only on simulations whose summary lands near the observed one: the posterior given \\(x\\) is unchanged by a restriction on \\(x\\), and the network no longer has to be accurate everywhere at once.`;
+    $('resIntro').innerHTML = `Each draw of \\(U\\) gives one \\(\\theta\\), so ${fmtInt(c.draws)} draws are ${fmtInt(c.draws)} posterior samples from one forward pass. Two losses were trained on the same ${fmtInt(c.n_sim)} simulated pairs and the same network (\\(U\\) of width ${c.u_dim}, three ReLU layers of ${c.width}, ${fmtInt(c.steps)} Adam steps of batch 1,024 on ${c.device === 'mps' ? 'an Apple M2 laptop GPU' : c.device}), and both are checked against a Gibbs sampler under the same prior. The pinball fit uses \\(\\tau_j = \\Phi(U_j)\\) for output \\(j\\). A third fit trains the energy-score network only on simulations whose summary lands near the observed one: the posterior given \\(X\\) is unchanged by a restriction on \\(X\\), and the network no longer has to be accurate everywhere at once.`;
     if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('resIntro')]);
     const L = D.res.energy_local && D.res.energy_local.local, tvG = m => 0.5 * gr.reduce((s, _, i) => s + Math.abs(D.res[m].band.mean[i] - g.band.mean[i]), 0) * (gr[1] - gr[0]);
-    if (method === 'energy_local' && L) { $('resMsg').innerHTML = `Kept ${fmtInt(L.kept)} of ${fmtInt(L.n_prior)} prior simulations (${fmt(100 * L.kept / L.n_prior, 1)}%), all with an RMS quantile gap to the observed data of at most ${fmt(L.max_dist, 2)} thousand km/s. Raw weights sum to <b>${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}</b>. Distance of the mean density to Gibbs: <b>${fmt(tv, 3)}</b> here against ${fmt(tvG('energy'), 3)} when trained on the whole prior. Restricting the pairs on x, never on θ, leaves the posterior given x unchanged, so the target is the same. The occupied count now matches Gibbs closely, but the density is still smoother: even the closest 0.5% of prior data sets sit ${fmt(L.median_dist, 1)} thousand km/s from the observed quantiles (median RMS gap), so the network still interpolates to these 82 velocities. Closing the rest of the gap would take more rounds of localization or a better summary than 32 quantiles; we report the gap rather than hide it.`; return; }
+    if (method === 'energy_local' && L) { $('resMsg').innerHTML = `Kept ${fmtInt(L.kept)} of ${fmtInt(L.n_prior)} prior simulations (${fmt(100 * L.kept / L.n_prior, 1)}%), all with an RMS quantile gap to the observed data of at most ${fmt(L.max_dist, 2)} thousand km/s. Raw weights sum to <b>${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}</b>. Distance of the mean density to Gibbs: <b>${fmt(tv, 3)}</b> here against ${fmt(tvG('energy'), 3)} when trained on the whole prior. Restricting the pairs on X, never on θ, leaves the posterior given X unchanged, so the target is the same. The occupied count now matches Gibbs closely, but the density is still smoother: even the closest 0.5% of prior data sets sit ${fmt(L.median_dist, 1)} thousand km/s from the observed quantiles (median RMS gap), so the network still interpolates to these 82 velocities. Closing the rest of the gap would take more rounds of localization or a better summary than 32 quantiles; we report the gap rather than hide it.`; return; }
     $('resMsg').innerHTML = method === 'energy' ? `Trained on the whole prior, the network spends its capacity on data sets that look nothing like these 82 velocities, and its posterior at the observed summary is too smooth: distance <b>${fmt(tv, 3)}</b> to Gibbs, with the group near 9.7 blurred into the gap. The weights do move together (raw sum ${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}). Compare the localized fit.` : method === 'gibbs' ? 'Gibbs draws are proper mixtures, so the weights sum to one exactly.' : method === 'energy' ? `The network outputs ten weights with no constraint. Under the energy score their sum is <b>${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}</b>: the fit learned that weights move together. They are clipped at zero and renormalized before use.` : `Under the pinball loss the ten weights are drawn as independent marginal quantiles, so their sum is <b>${fmt(mean(ws), 2)} ± ${fmt(sdv(ws), 2)}</b>. Each margin can be right while the joint is wrong; the renormalization then hides the damage.`;
   }
 
@@ -1218,6 +1299,97 @@ Give me the code and the two figures.</pre>
     }
   }
 
+  /* PART IV: GBC VERSUS ABC (offline results from gbc-abc-lab.py, live ABC below) */
+  const GA = window.GBC_ABC, AB_DIMS = ['1', '2', '5', '10'], NOBS4 = 20, PSD = 1 / Math.sqrt(NOBS4 + 1);
+  let abD = '10', abS = 0;
+  const normPdf = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * Math.sqrt(2 * Math.PI));
+  const sdOf = a => { const m = a.reduce((s, v) => s + v, 0) / a.length; return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+  function histOver(f, S, lo, hi, nb, col, op) {
+    const bw = (hi - lo) / nb, cnt = new Array(nb).fill(0); for (const v of S) { const i = Math.floor((v - lo) / bw); if (i >= 0 && i < nb) cnt[i]++; }
+    f.ctx.fillStyle = alpha(col, op); cnt.forEach((c, i) => { if (c) { const y = c / (S.length * bw); f.ctx.fillRect(f.X(lo + i * bw) + .5, f.Y(y), f.X(lo + (i + 1) * bw) - f.X(lo + i * bw) - 1, f.Y(0) - f.Y(y)); } });
+    return cnt.map(c => c / (S.length * bw));
+  }
+  function drawAb1() {
+    if (!GA) { $('ab1Msg').innerHTML = '<b>Results file missing</b> (gbc-abc-data.js).'; return; }
+    const e = GA.examples[abD][abS], all = e.abc.concat(e.gbc, [e.theta, e.mu - 4 * PSD, e.mu + 4 * PSD]);
+    const lo = Math.min(...all), hi = Math.max(...all), pad = 0.05 * (hi - lo), xr = [lo - pad, hi + pad];
+    const xs = []; for (let i = 0; i <= 300; i++) xs.push(xr[0] + (xr[1] - xr[0]) * i / 300);
+    const ex = xs.map(x => normPdf(x, e.mu, PSD)), ym = Math.max(...ex) * 1.15;
+    const f = frame($('cvAb1'), xr, [0, ym], { pad: [38, 10, 10, 26], yf: v => v.toFixed(1) });
+    histOver(f, e.abc, xr[0], xr[1], 45, css('--ball'), .45); histOver(f, e.gbc, xr[0], xr[1], 45, css('--fit'), .45);
+    line(f.ctx, xs, ex, f.X, f.Y, css('--ink'), 2.2);
+    line(f.ctx, [e.theta, e.theta], [0, ym], f.X, f.Y, css('--ink'), 1.3, [4, 4]);
+    const sa = sdOf(e.abc) / PSD, sg = sdOf(e.gbc) / PSD;
+    $('ab1Cap').textContent = `Marginal posterior of θ₁, d = ${abD}, test data set ${abS + 1}`;
+    $('ab1Tab').innerHTML = `<thead><tr><th>this data set</th><th>ABC</th><th>GBC</th></tr></thead><tbody><tr><td>sd / exact sd</td><td>${fmt(sa)}</td><td>${fmt(sg)}</td></tr><tr><td>mean − exact mean</td><td>${fmt(e.abc.reduce((s, v) => s + v, 0) / e.abc.length - e.mu)}</td><td>${fmt(e.gbc.reduce((s, v) => s + v, 0) / e.gbc.length - e.mu)}</td></tr><tr><td>ABC radius ε</td><td colspan="2">${fmt(e.eps, 3)}</td></tr></tbody>`;
+    $('ab1Msg').innerHTML = abD === '1' ? 'In one dimension the nearest 1% of 10⁵ simulations lie within a tiny ε of the observed mean, and ABC is as good as the network, slightly better in W₁ (0.04 against 0.09 averaged over 100 data sets).' : `To keep 1,000 of 10⁵ draws in ${abD} dimensions the ball must reach out to ε = ${fmt(e.eps, 2)}, against a posterior sd of ${fmt(PSD, 2)}. Everything inside the ball is accepted, so ABC reports a posterior ${fmt(sa, 1)} times too wide. GBC used the same table and sits on the exact curve.`;
+  }
+  function dimPlot(cv, key, yr, ref) {
+    const ds = AB_DIMS.map(Number), f = frame(cv, [0, 11], yr, { pad: [38, 10, 10, 26], xt: [1, 2, 5, 10] });
+    line(f.ctx, [0, 11], [ref, ref], f.X, f.Y, css('--ink'), 1.2, [5, 4]);
+    [['ABC', css('--ball')], ['GBC', css('--fit')]].forEach(([m, col]) => {
+      const ys = AB_DIMS.map(d => GA.results[d][m][key]); line(f.ctx, ds, ys, f.X, f.Y, col, 2.2);
+      f.ctx.fillStyle = col; ds.forEach((d, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(d), f.Y(ys[i]), 4, 0, 7); f.ctx.fill(); });
+      f.ctx.font = '600 12px ' + css('--font-mono'); f.ctx.textAlign = 'right'; f.ctx.textBaseline = 'bottom'; f.ctx.fillText(m, f.X(10) - 6, f.Y(ys[3]) - 4);
+    });
+  }
+  function drawAb2() {
+    if (!GA) return;
+    dimPlot($('cvAbS'), 'sdr', [0, 3.2], 1); dimPlot($('cvAbW'), 'w1', [0, 2.4], 0);
+    $('ab2Tab').innerHTML = `<thead><tr><th>d</th><th>sd ABC</th><th>sd GBC</th><th>W₁ ABC</th><th>W₁ GBC</th><th>90% ABC</th><th>90% GBC</th></tr></thead><tbody>${AB_DIMS.map(d => { const r = GA.results[d]; return `<tr><td>${d}</td><td>${fmt(r.ABC.sdr)}</td><td>${fmt(r.GBC.sdr)}</td><td>${fmt(r.ABC.w1)}</td><td>${fmt(r.GBC.w1)}</td><td>${fmt(r.ABC.cov)}</td><td>${fmt(r.GBC.cov)}</td></tr>`; }).join('')}</tbody>`;
+    $('ab2Msg').innerHTML = 'From d = 2 on, ABC inflates the posterior: at d = 10 it is 2.9 times too wide and its 90% intervals cover 98% of the time, honest but uninformative. GBC stays within 5% of the exact width at every d, with coverage near 0.90. The small W₁ floor of GBC (about 0.1 sd) is the network\'s approximation error, the price of a small model trained for six thousand steps.';
+  }
+  // Live ABC
+  let abLive = null;
+  function runAbc() {
+    const Nn = +$('abN').querySelector('[aria-pressed="true"]').dataset.n, k = Math.round(0.01 * Nn), t0 = performance.now(), rows = [];
+    for (let d = 1; d <= 10; d++) {
+      const th = new Float64Array(Nn * d), xs = new Float64Array(Nn * d), sq = 1 / Math.sqrt(NOBS4);
+      for (let i = 0; i < Nn * d; i++) { th[i] = N(); xs[i] = th[i] + sq * N(); }
+      const rec = { d, sdr: [], adj: [], ball: [], eps: [] };
+      for (let rep = 0; rep < 5; rep++) {
+        const xo = Array.from({ length: d }, () => { const t = N(); return t + sq * N(); });
+        const dist = new Float64Array(Nn); for (let i = 0; i < Nn; i++) { let s = 0; for (let j = 0; j < d; j++) { const u = xs[i * d + j] - xo[j]; s += u * u; } dist[i] = s; }
+        const thr = dist.slice().sort()[k - 1], idx = []; for (let i = 0; i < Nn && idx.length < k; i++) if (dist[i] <= thr) idx.push(i); const eps = Math.sqrt(thr);
+        const acc = idx.map(i => th[i * d]);
+        // regression adjustment for theta_1 on X - X_obs (all d coordinates), by normal equations
+        const p = d + 1, A = Array.from({ length: p }, () => new Float64Array(p)), b = new Float64Array(p);
+        for (const i of idx) { const z = [1]; for (let j = 0; j < d; j++) z.push(xs[i * d + j] - xo[j]); for (let r = 0; r < p; r++) { b[r] += z[r] * th[i * d]; for (let c = 0; c < p; c++) A[r][c] += z[r] * z[c]; } }
+        for (let c = 0; c < p; c++) { let piv = c; for (let r = c + 1; r < p; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r; [A[c], A[piv]] = [A[piv], A[c]]; [b[c], b[piv]] = [b[piv], b[c]]; for (let r = 0; r < p; r++) if (r !== c) { const m = A[r][c] / A[c][c]; for (let cc = c; cc < p; cc++) A[r][cc] -= m * A[c][cc]; b[r] -= m * b[c]; } }
+        const beta = b.map((v, r) => v / A[r][r]);
+        const adj = idx.map(i => { let v = th[i * d]; for (let j = 0; j < d; j++) v -= beta[j + 1] * (xs[i * d + j] - xo[j]); return v; });
+        rec.sdr.push(sdOf(acc) / PSD); rec.adj.push(sdOf(adj) / PSD); rec.eps.push(eps);
+        rec.ball.push(Math.sqrt(1 + 21 * (20 / 21) ** 2 * eps * eps / (d + 2)));
+        if (rep === 0) Object.assign(rec, { acc, adjS: adj, mu: 20 / 21 * xo[0] });
+      }
+      rows.push(rec);
+    }
+    abLive = { N: Nn, rows, sec: (performance.now() - t0) / 1000 };
+  }
+  const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
+  function drawAb3() {
+    $('abHdO').textContent = $('abHd').value;
+    const ds = Array.from({ length: 10 }, (_, i) => i + 1);
+    const top = abLive ? Math.max(3.2, ...abLive.rows.map(r => avg(r.sdr))) * 1.08 : 3.4;
+    const f = frame($('cvAbL'), [0.5, 10.5], [0, top], { pad: [38, 10, 10, 26], xt: ds });
+    line(f.ctx, [0.5, 10.5], [1, 1], f.X, f.Y, css('--muted'), 1, [2, 3]);
+    if (GA) { const gd = AB_DIMS.map(Number), gy = AB_DIMS.map(d => GA.results[d].GBC.sdr); line(f.ctx, gd, gy, f.X, f.Y, css('--fit'), 2.2); f.ctx.fillStyle = css('--fit'); gd.forEach((d, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(d), f.Y(gy[i]), 4, 0, 7); f.ctx.fill(); }); }
+    if (!abLive) return;
+    const R = abLive.rows;
+    line(f.ctx, ds, R.map(r => avg(r.ball)), f.X, f.Y, css('--ink'), 1.4, [5, 4]);
+    [['sdr', css('--ball')], ['adj', css('--alt')]].forEach(([k, col]) => { const ys = R.map(r => avg(r[k])); line(f.ctx, ds, ys, f.X, f.Y, col, 2.2); f.ctx.fillStyle = col; ds.forEach((d, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(d), f.Y(ys[i]), 3.5, 0, 7); f.ctx.fill(); }); });
+    const r = R[+$('abHd').value - 1], all = r.acc.concat(r.adjS, [r.mu - 4 * PSD, r.mu + 4 * PSD]);
+    const lo = Math.min(...all), hi = Math.max(...all), xr = [lo - 0.05 * (hi - lo), hi + 0.05 * (hi - lo)];
+    const xs = []; for (let i = 0; i <= 300; i++) xs.push(xr[0] + (xr[1] - xr[0]) * i / 300);
+    const ex = xs.map(x => normPdf(x, r.mu, PSD));
+    const g = frame($('cvAbH'), xr, [0, Math.max(...ex) * 1.15], { pad: [38, 10, 10, 26], yf: v => v.toFixed(1) });
+    histOver(g, r.acc, xr[0], xr[1], 40, css('--ball'), .45); histOver(g, r.adjS, xr[0], xr[1], 40, css('--alt'), .45);
+    line(g.ctx, xs, ex, g.X, g.Y, css('--ink'), 2.2);
+    $('abHCap').textContent = `θ₁ for one data set at d = ${r.d}: ε = ${fmt(r.eps[0], 2)}`;
+    const r10 = R[9], r1 = R[0];
+    $('ab3Msg').innerHTML = `N = ${fmtInt(abLive.N)}, keeping ${fmtInt(abLive.N / 100)} per data set (${fmt(abLive.sec, 1)} s). Mean ε rises from <b>${fmt(avg(r1.eps), 3)}</b> at d = 1 to <b>${fmt(avg(r10.eps), 2)}</b> at d = 10, and the ABC sd ratio from ${fmt(avg(r1.sdr))} to <b>${fmt(avg(r10.sdr))}</b>; the uniform-ball formula gives ${fmt(avg(r10.ball))}, an overstatement because the kept draws are not spread evenly over the ball. With the regression adjustment: ${fmt(avg(r10.adj))}.`;
+  }
+
   /* WIRING */
   ['bw', 'kb'].forEach(id => $(id).addEventListener('input', drawData));
   $('eps').addEventListener('input', () => $('epsO').textContent = fmt(+$('eps').value, 1));
@@ -1249,8 +1421,14 @@ Give me the code and the two figures.</pre>
   $('evSeg').querySelectorAll('button').forEach(b => b.onclick = () => { evE = b.dataset.e; $('evSeg').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); drawEv(); });
   $('evY').querySelectorAll('button').forEach(b => b.onclick = () => { evYv = b.dataset.y; $('evY').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); drawEv(); });
 
+  $('abD').querySelectorAll('button').forEach(b => b.onclick = () => { abD = b.dataset.d; $('abD').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); drawAb1(); });
+  $('abS').querySelectorAll('button').forEach(b => b.onclick = () => { abS = +b.dataset.s; $('abS').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); drawAb1(); });
+  $('abN').querySelectorAll('button').forEach(b => b.onclick = () => { $('abN').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); });
+  $('abGo').onclick = () => { $('abGo').disabled = true; $('ab3Msg').textContent = 'Simulating…'; setTimeout(() => { runAbc(); drawAb3(); $('abGo').disabled = false; }, 30); };
+  $('abHd').addEventListener('input', drawAb3);
+
   $('mSeg').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o.dataset.m === method));
-  function all() { drawData(); drawSim(); drawArch(); drawR(); drawPw(); drawRes(); drawFc(); drawDirac(); drawCharge(); drawRace(); drawEv(); }
+  function all() { drawData(); drawSim(); drawArch(); drawR(); drawPw(); drawRes(); drawFc(); drawDirac(); drawCharge(); drawRace(); drawEv(); drawAb1(); drawAb2(); drawAb3(); }
   $('epsO').textContent = fmt(+$('eps').value, 1);
   simCur = priorDraw(); newR(); newHistory(); raceNew(); all();
   drawSim('One draw from the prior. Press the button for another.');
