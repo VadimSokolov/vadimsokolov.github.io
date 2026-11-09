@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Elements of Bayes and Information Theory](https://vsokolov.org/books/elements_bayes_information/) <small>A Predictive Theory of Inference: Information, Algorithms, and Large Deviations</small>
+
+[![Elements of Bayes and Information Theory: A Predictive Theory of Inference: Information, Algorithms, and Large Deviations](https://vsokolov.org/books/elements_bayes_information/cover.jpg)](https://vsokolov.org/books/elements_bayes_information/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+A Bayesian statistics monograph built on de Finetti, Sanov and Bayes: exchangeable prediction under moment constraints gives maximum entropy laws, and testing, shrinkage, asymptotics and decision are read on one moderate deviation scale.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/elements_bayes_information/releases/download/v1.0.0/elements_bayes_information.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/elements_bayes_information "Source on GitHub") [![DOI 10.5281/zenodo.24067804](https://zenodo.org/badge/DOI/10.5281/zenodo.24067804.svg)](https://doi.org/10.5281/zenodo.24067804)
+
 ## [Bayes, AI and Deep Learning](https://vsokolov.org/books/bayes_ai_deep_learning/) <small>Foundations of Data Science</small>
 
 [![Bayes, AI and Deep Learning: Foundations of Data Science](https://vsokolov.org/books/bayes_ai_deep_learning/cover.jpg)](https://vsokolov.org/books/bayes_ai_deep_learning/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
