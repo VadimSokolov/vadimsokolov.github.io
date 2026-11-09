@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Shakespeare Lab</title>
+<script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, chtml: { scale: 1, matchFontHeight: false }, options: { enableMenu: false } };</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header with three framing cards; Part I the Shakespeare word spectrum (spectrum fits, unseen words, the 1987 poem test); Part II attention as kernel smoothing (Nadaraya-Watson, the cat sat, architecture, form without reference); lesson, notes, class exercises. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
+  --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+    --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+  --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); }
+.src a { color: var(--accent); }
+.part { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); margin: 12px 0 0; border-top: 2px solid var(--line); padding-top: 18px; }
+.part small { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.dash { border-top: 2px dashed var(--ink); }
+.sw.red { border-top: 2.5px solid var(--curve); }
+.sw.acc { border-top: 2.5px solid var(--accent); }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
+.sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
+.sw.bar.ball { background: var(--ball); } .sw.bar.acc2 { background: var(--accent); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
+.sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.msg.warn { border-color: var(--curve); }
+.msg.warn b { color: var(--curve); }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-left: 0; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--curve); } .stat .v.good { color: var(--fit); }
+
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 88ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+.sec .head p + p { margin-top: 4px; }
+.tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
+mjx-container { font-size: 105%; }
+.frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame .note h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; }
+.frame .note p { margin: 0; font-size: 14px; }
+
+.arch { overflow-x: auto; }
+.prompt { font-family: var(--font-mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; margin: 0; }
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; overflow-x: auto; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.note a { color: var(--accent); }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+code { font-family: var(--font-mono); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.num { width: 100%; box-sizing: border-box; font: 13px var(--font-mono); padding: 3px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink); }
+.sw.bar.ff { background: var(--fit); } .sw.bar.emb { background: var(--ball); }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Words, rare words and attention</span>
+    <h1>Shakespeare Lab: unseen words and a kernel smoother</h1>
+    <p class="lead">Two questions about the same body of text. How many words did Shakespeare know but never write, and did he write a poem found in 1985? Efron and Thisted answered both from one table: how many word types he used once, twice, three times. Then a character-level transformer, trained on the same text, writes fluent pseudo-Shakespeare. Its core operation, attention, is an old statistical tool, the kernel smoother, applied to learned features.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on two notes by Nick Polson for 41916 Bayes, AI and Deep Learning (Chicago Booth, November 2026): <i>Efron and Thisted, Shakespeare, and the Species Problem</i> and <i>The Transformer as a Kernel Smoother: A Very Simple Explanation</i>. Data: the frequency spectrum of the canon, \(n_1, \dots, n_{100}\), from Efron and Thisted (1976, Biometrika 63), Table 1. The counts plus the 846 types used more than 100 times give exactly the 31,534 types of the canon.</p>
+  </header>
+
+  <section class="frame">
+    <div class="note"><h3>Words as species</h3><p>Treat each word type as a species and the canon's 884,647 tokens as a sample. \(n_x\) is the number of types seen exactly \(x\) times. The question of unseen species, posed by Fisher for butterflies, becomes: how many types would a second canon add?</p></div>
+    <div class="note"><h3>A fingerprint for authorship</h3><p>A new poem of 429 tokens is a tiny further sample. How many of its words should be new to the canon, used once, used twice? The predictions come from the low end of the same table.</p></div>
+    <div class="note"><h3>Attention is a smoother</h3><p>A transformer replaces each token's vector with a weighted average of the others, with weights from an exponential kernel on learned features. That is the Nadaraya–Watson estimator, with a learned metric and stacked many times.</p></div>
+  </section>
+
+  <h2 class="part"><small>Part I</small>How many words did Shakespeare know?</h2>
+
+  <section class="sec" aria-labelledby="spH">
+    <div class="head">
+      <h2 id="spH">The frequency spectrum</h2>
+      <p>14,376 types appear once in the canon, 4,343 twice, 2,292 three times. On a log–log scale the spectrum is close to a straight line, a power law. A model for it is a model for how new words arrive. The Ewens sampling formula, the one-parameter Dirichlet process partition, predicts \(n_x \approx \theta / x\). The two-parameter Pitman–Yor version adds a discount \(\sigma\) and predicts \(n_{x+1} / n_x = (x - \sigma)/(x + 1)\). Fit by eye with the slider.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">Number of types used exactly x times, log–log</span><canvas id="cvSp" height="300"></canvas>
+        <div class="legend"><span><i class="sw pt"></i>canon, \(n_x\)</span><span><i class="sw red"></i>Ewens, \(\theta = n_1\)</span><span><i class="sw acc"></i>Pitman–Yor, your σ</span><span><i class="sw dash"></i>gamma mixture fit</span></div></div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="spS">Discount σ</label><output id="spSO"></output></div><input id="spS" type="range" min="0" max="0.8" step="0.01" value="0.2"></div>
+        </div>
+        <div class="group"><table class="stats" id="spTab"></table></div>
+        <div class="group"><p class="msg" id="spMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="gtH">
+    <div class="head">
+      <h2 id="gtH">Words he knew and never used</h2>
+      <p>Suppose type \(i\) arrives at Poisson rate \(\lambda_i\) per canon. It is missing from the canon with probability \(e^{-\lambda_i}\) and present in a new sample of \(tN\) tokens with probability \(1 - e^{-t\lambda_i}\). Expanding gives the Good–Toulmin estimator of the number of new types,\[ \Delta(t) = \sum_i e^{-\lambda_i}\bigl(1 - e^{-t\lambda_i}\bigr) \;\approx\; \sum_{x \ge 1} (-1)^{x+1}\, t^x\, n_x, \]with no assumption about the rates. Its standard error is about \(\bigl(\sum_x t^{2x} n_x\bigr)^{1/2}\). For \(t &gt; 1\) the terms grow and the alternating series is useless. Two repairs: a parametric mixture of rates (Efron and Thisted's gamma), or a smoothed series that damps the high terms (Efron and Thisted's binomial tilt, sharpened by Orlitsky, Suresh and Wu, 2016).</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">New types in a further sample of t canons, thousands</span><canvas id="cvGt" height="300"></canvas>
+        <div class="legend"><span><i class="sw acc"></i>Good–Toulmin ± 2 s.e.</span><span><i class="sw dash"></i>gamma mixture</span><span><i class="sw"></i>smoothed Good–Toulmin</span><span><i class="sw red"></i>your t</span></div></div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="gtT">Size of the new sample, t canons</label><output id="gtTO"></output></div><input id="gtT" type="range" min="0.05" max="10" step="0.05" value="1"></div>
+        </div>
+        <div class="group"><table class="stats" id="gtTab"></table></div>
+        <div class="group"><p class="msg" id="gtMsg"></p><p class="hint">Terms with \(x &gt; 100\) are not in the table; at \(t \le 1\) they move \(\Delta(t)\) by at most a few tens. Efron and Thisted's own bound, optimizing over every mixing distribution consistent with the counts, gave the headline: at least 35,000 words he knew and never wrote.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="poH">
+    <div class="head">
+      <h2 id="poH">The 1987 test: "Shall I die? Shall I fly"</h2>
+      <p>In 1985 Gary Taylor found a nine-stanza poem in the Bodleian and attributed it to Shakespeare. Thisted and Efron (1987) asked whether its rare-word use looks like his. The poem has 429 tokens, so \(t = 429 / 884{,}647 \approx 4.85 \times 10^{-4}\). To first order in \(t\), the expected number of the poem's types used exactly \(x\) times in the canon is\[ m_x \approx t\,(x + 1)\, n_{x+1}, \]the Good–Turing relation, and \(x = 0\) gives the types new to the canon, \(t\,n_1\). Each type turns up in the poem with small probability, so each count is close to Poisson around \(m_x\). That gives intervals the 1987 comparison did not report.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">Predictive distribution of each count, with the poem's value</span><canvas id="cvPo" height="270"></canvas>
+        <div class="legend"><span><i class="sw bar"></i>Poisson(\(m_x\))</span><span><i class="sw red"></i>observed in the poem</span></div></div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="poN">Poem length, tokens</label><output id="poNO"></output></div><input id="poN" type="range" min="100" max="3000" step="1" value="429"></div>
+          <p class="hint">Observed counts are shown only at 429 tokens, the Taylor poem. They are quoted in Polson's note from Thisted and Efron (1987); the note itself asks that they be checked against the paper.</p>
+        </div>
+        <div class="group"><table class="stats" id="poTab"></table></div>
+        <div class="group"><p class="msg" id="poMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part II</small>Attention is kernel smoothing</h2>
+
+  <section class="sec" aria-labelledby="nwH">
+    <div class="head">
+      <h2 id="nwH">Nadaraya–Watson in one line, attention in one line</h2>
+      <p>Given pairs \((x_j, y_j)\) and a kernel \(K\), the Nadaraya–Watson estimate at \(x\) is a weighted average of the responses, \(\hat m(x) = \sum_j w_j(x)\, y_j\) with \(w_j(x) = K(x, x_j) / \sum_l K(x, x_l)\). Attention computes, for token \(i\),\[ \text{out}_i = \sum_j \frac{\exp(q_i^\top k_j / \sqrt d)}{\sum_l \exp(q_i^\top k_l / \sqrt d)}\, v_j, \qquad q_i = W_Q x_i,\ k_j = W_K x_j,\ v_j = W_V x_j. \]Query for evaluation point, keys for design points, values for responses, \(\sqrt d\) for the bandwidth. Move the query and the bandwidth and watch the weights.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">Kernel smoother: dot size is the weight on each point</span><canvas id="cvNw" height="260"></canvas>
+        <span class="cap">Weights \(w_j(x)\), which sum to one: the attention row for this query</span><canvas id="cvNwW" height="110"></canvas>
+        <div class="legend"><span><i class="sw pt"></i>data \((x_j, y_j)\)</span><span><i class="sw acc"></i>\(\hat m(x)\)</span><span><i class="sw red"></i>query x</span></div></div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="nwX">Query x</label><output id="nwXO"></output></div><input id="nwX" type="range" min="0" max="1" step="0.005" value="0.3"></div>
+          <div class="slider"><div class="top"><label for="nwH2">Bandwidth h</label><output id="nwHO"></output></div><input id="nwH2" type="range" min="0.01" max="0.4" step="0.005" value="0.05"></div>
+        </div>
+        <div class="group"><table class="stats"><thead><tr><th>Kernel smoothing</th><th>Attention</th></tr></thead><tbody><tr><td>evaluation point x</td><td>query \(q_i\)</td></tr><tr><td>design points \(x_j\)</td><td>keys \(k_j\)</td></tr><tr><td>responses \(y_j\)</td><td>values \(v_j\)</td></tr><tr><td>kernel \(K(x, x_j)\)</td><td>\(\exp(q_i^\top k_j/\sqrt d)\)</td></tr><tr><td>bandwidth h</td><td>temperature \(\sqrt d\)</td></tr><tr><td>weights \(w_j(x)\)</td><td>softmax row</td></tr></tbody></table></div>
+        <div class="group"><p class="msg" id="nwMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="csH">
+    <div class="head">
+      <h2 id="csH">"The cat sat" by hand</h2>
+      <p>Embeddings in \(d = 2\): the = (1, 0), cat = (0, 1), sat = (1, 1). Set \(W_Q = W_K = I\) so queries and keys are the embeddings, and give the words scalar values 1, 2, 3. Then score, softmax each row, and average. Edit any number. The defaults reproduce the note: out = (2.000, 2.203, 2.255).</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <div class="duo">
+          <div><span class="cap">Embeddings, and the weights of the selected query</span><canvas id="cvCs" height="260"></canvas></div>
+          <div><span class="cap">Attention weights W, row = query word</span><canvas id="cvCsW" height="260"></canvas></div>
+        </div>
+        <div class="duo">
+          <div><span class="label">Scores \(S = q_i^\top k_j / \tau\)</span><table class="stats" id="csS"></table></div>
+          <div><span class="label">Output: out = W v</span><table class="stats" id="csO"></table></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <span class="label">Embeddings and values</span>
+          <table class="stats" id="csIn"><thead><tr><th>word</th><th>x₁</th><th>x₂</th><th>v</th></tr></thead><tbody></tbody></table>
+          <div class="slider"><div class="top"><label for="csT">Temperature τ</label><output id="csTO"></output></div><input id="csT" type="range" min="0.1" max="5" step="any" value="1.4142"></div>
+          <span class="label">Selected query</span>
+          <div class="seg" id="csQ"><button data-q="0" aria-pressed="false">the</button><button data-q="1" aria-pressed="false">cat</button><button data-q="2" aria-pressed="true">sat</button></div>
+          <div class="checks"><label><input type="checkbox" id="csM"> Causal mask: a word attends only to itself and earlier words</label><label><input type="checkbox" id="csG"> Gaussian kernel \(\exp(-\lVert q - k\rVert^2 / 2\tau)\) instead of \(\exp(q^\top k / \tau)\)</label></div>
+          <div class="btns"><button id="csReset">Back to the note's numbers</button></div>
+        </div>
+        <div class="group"><p class="msg" id="csMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="arH">
+    <div class="head">
+      <h2 id="arH">From one smoother to a model of Shakespeare</h2>
+      <p>A transformer learns the metric (\(W_Q\), \(W_K\)), learns what is averaged (\(W_V\)), runs several smoothers at once (heads), and stacks them with a small feed-forward network and a residual connection between passes:\[ F = \mathrm{softmax} \circ W_U \circ \mathrm{LN} \circ B_L \circ \cdots \circ B_1 \circ (E + P), \qquad B_l = (I + \mathrm{FF}_l)(I + \mathrm{Attn}_l). \]Four numbers fix it: width \(d\), blocks \(L\), heads \(h\), context \(T\). Each block carries about \(4d^2\) parameters in attention and \(8d^2\) in the feed-forward. Width is expensive and depth is cheap.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">Where the parameters and the compute go</span><canvas id="cvAr" height="250"></canvas>
+        <div class="legend"><span><i class="sw bar"></i>attention \(4d^2L\)</span><span><i class="sw bar ff"></i>feed-forward \(8d^2L\)</span><span><i class="sw bar emb"></i>embeddings \((V + T)d\)</span></div></div>
+      <div class="panel">
+        <div class="group">
+          <div class="btns"><button id="arSh">Shakespeare, characters</button><button id="arFr">A frontier model</button></div>
+          <div class="slider"><div class="top"><label for="arD">Width d</label><output id="arDO"></output></div><input id="arD" type="range" min="6" max="14" step="any" value="8.585"></div>
+          <div class="slider"><div class="top"><label for="arL">Blocks L</label><output id="arLO"></output></div><input id="arL" type="range" min="1" max="128" step="1" value="6"></div>
+          <div class="slider"><div class="top"><label for="arT">Context T</label><output id="arTO"></output></div><input id="arT" type="range" min="6" max="17" step="1" value="8"></div>
+          <div class="slider"><div class="top"><label for="arV">Vocabulary V</label><output id="arVO"></output></div><input id="arV" type="range" min="6" max="17" step="any" value="6.022"></div>
+        </div>
+        <div class="group"><table class="stats" id="arTab"></table></div>
+        <div class="group"><p class="msg" id="arMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="fmH">
+    <div class="head">
+      <h2 id="fmH">Form without reference, and what that does to the 1987 test</h2>
+      <p>A six-block character model learns scene headings, speaker names, line breaks, turn taking and a metre that scans, all from predicting one character at a time. It does not learn who anyone is. Polson's note shows the failure mode with lines written by hand in such a model's manner (an illustration, not a sample from a trained run):</p>
+    </div>
+    <div class="grid">
+      <pre class="prompt">ACT III. SCENE II. Another part of the field.
+
+GLOUCESTER
+Now is the hour that hath no master in it,
+And all my fathers in the open air
+Did bid me take the country for a wife.
+What say the lords? They say the morning comes.
+
+MESSENGER
+My lord, the sea hath answered for the king,
+And I have seen the second of his name
+Lie down upon the honour of the hour.</pre>
+      <div class="panel"><div class="group"><p class="msg">Every line is well formed and refers to nothing. If such text is cheap, statistics of surface regularity are weaker evidence of authorship than in 1987. The rare-word test holds up better than most: to match the far tail of the spectrum a generator needs Shakespeare's vocabulary, not only his cadence. Whether a model trained on the canon passes it is an open question in the note: generate poems, run the test, and measure its power against a modern imitator.</p></div></div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head"><h2>What carries over</h2></div>
+    <ol class="steps">
+      <li><div><h3>Counts of counts are the data</h3><p>For species, words or anything else sampled with repetition, the spectrum \(n_x\) is what you keep. Unseen mass, new types and authorship predictions are all read off its low end.</p></div></li>
+      <li><div><h3>Extrapolation needs a model or a damper</h3><p>Good–Toulmin is model-free and exact in expectation up to \(t = 1\), and explodes after. Beyond it you choose: a mixing distribution for the rates, or a smoothed series with a stated range of validity (about \(t \approx \log N\)).</p></div></li>
+      <li><div><h3>A test needs an interval and an alternative</h3><p>Expected counts with no spread cannot reject anything. Poisson intervals give the spread; a Bayes factor against a named author, with his own spectrum, gives the alternative.</p></div></li>
+      <li><div><h3>Attention is a smoother you can read</h3><p>Each row of attention weights is a set of Nadaraya–Watson weights, or a posterior over which token is relevant. The output is a posterior mean of the values. What the transformer adds is learning the metric and stacking.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cp">Good–Toulmin</div>\[ \Delta(t) = \sum_{x \ge 1} (-1)^{x+1} t^x n_x \]</div>
+      <div class="eq"><div class="cp">Good–Turing, for a small new sample</div>\[ m_x \approx t\,(x + 1)\, n_{x+1}, \quad m_0 \approx t\, n_1 \]</div>
+      <div class="eq"><div class="cp">Pitman–Yor spectrum</div>\[ n_{x+1} / n_x = (x - \sigma) / (x + 1) \]</div>
+      <div class="eq"><div class="cp">Attention as a posterior mean</div>\[ P(J = j \mid q_i) = w_{ij}, \quad \text{out}_i = \mathbb{E}[v_J \mid q_i] \]</div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note"><h2>Why the exponential kernel is Gaussian</h2><p>\(\exp(-\tfrac12\lVert q - k\rVert^2) = \exp(-\tfrac12\lVert q\rVert^2)\,\exp(q^\top k)\,\exp(-\tfrac12\lVert k\rVert^2)\). The first factor cancels in the normalization. If the keys have equal length, which layer normalization encourages, so does the last, and softmax attention is a Gaussian kernel smoother. Tick both boxes in the "cat sat" panel with equal-length keys to see the weights coincide.</p></div>
+    <div class="note"><h2>Ewens, Pitman–Yor and the gamma fit</h2><p>Ewens' \(n_x \approx \theta/x\) is the Dirichlet process; it puts too many words at \(x = 2\) and beyond. The gamma mixture of Poisson rates fitted to the 100 counts has shape \(\alpha = -0.40\), and a Pitman–Yor discount of about 0.40 fits by eye: the same power-law tail, seen two ways. With a negative shape the fitted vocabulary is unbounded, which is why the 1976 headline is a lower bound.</p></div>
+    <div class="note"><h2>What the 1987 test does not do</h2><p>It is a fingerprint, not an attribution. A forger, an imitator or a contemporary with similar reading would pass it. Thisted and Efron found that poems by Jonson, Marlowe and Donne fitted worse and held-out Shakespeare poems about as well; a test that fails to reject does not confirm, and most editors still doubt the attribution on literary grounds.</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>In the spectrum panel, set σ = 0 (Ewens). How badly does it miss \(n_2\)? Find the σ that matches \(n_2/n_1\) and check what it predicts for \(n_{10}\).</li>
+      <li>Move t from 0.5 to 2. Where does the Good–Toulmin band stop being informative? Compare the gamma fit and the smoothed estimator at t = 5: why do they disagree, and which assumption is each making?</li>
+      <li>For the Taylor poem, compute by hand \(m_0 = t\,n_1\) and check it against the table. Which observed count is furthest out in its predictive distribution? Would you reject at the 10% level?</li>
+      <li>Lengthen the poem to 3,000 tokens. How do the expected counts and the width of the intervals scale? How long would a poem need to be before a 30% excess of rare words became detectable?</li>
+      <li>Drag the bandwidth of the kernel smoother to its smallest and largest values. Which limit is "attend only to yourself" and which is "average everything"? What plays the role of h in attention?</li>
+      <li>In "the cat sat", raise τ to 5 and lower it to 0.1. Describe the weight matrix in each limit. Then turn on the causal mask: why does "the" now return exactly its own value?</li>
+      <li>Set the width to 4,096 with 32 blocks. What fraction of the parameters sits in the feed-forward layers? Double the context: what changes in the parameter count, and what in the compute?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
+  const fmtInt = v => Math.round(v).toLocaleString('en-US');
+
+  /* RANDOM NUMBERS */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  let R = mulberry32(19761987);
+  /* CANVAS */
+  function setup(cv) {
+    if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    return { ctx, w, h };
+  }
+  // A plot frame: returns mappers. pad = [left, right, top, bottom]
+  function frame(cv, xr, yr, o = {}) {
+    const { ctx, w, h } = setup(cv), p = o.pad || [42, 12, 10, 30];
+    const X = x => p[0] + (x - xr[0]) / (xr[1] - xr[0]) * (w - p[0] - p[1]);
+    const Y = y => h - p[3] - (y - yr[0]) / (yr[1] - yr[0]) * (h - p[2] - p[3]);
+    ctx.font = '11px ' + css('--font-mono'); ctx.fillStyle = css('--muted'); ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1;
+    const xt = o.xt || nice(xr, 6), yt = o.yt || nice(yr, 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const t of xt) { ctx.beginPath(); ctx.moveTo(X(t), p[2]); ctx.lineTo(X(t), h - p[3]); ctx.stroke(); ctx.fillText(o.xf ? o.xf(t) : t, X(t), h - p[3] + 5 + (o.rug ? 10 : 0)); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const t of yt) { ctx.beginPath(); ctx.moveTo(p[0], Y(t)); ctx.lineTo(w - p[1], Y(t)); ctx.stroke(); ctx.fillText(o.yf ? o.yf(t) : t, p[0] - 6, Y(t)); }
+    return { ctx, w, h, X, Y, p };
+  }
+  function nice(r, n) { const span = r[1] - r[0], raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= raw); const out = []; for (let v = Math.ceil(r[0] / st) * st; v <= r[1] + 1e-9; v += st) out.push(+v.toFixed(10)); return out; }
+  function line(ctx, xs, ys, X, Y, color, wdt = 2, dash) { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = wdt; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(X(x), Y(ys[i])) : ctx.moveTo(X(x), Y(ys[i]))); ctx.stroke(); ctx.restore(); }
+  function area(ctx, xs, lo, hi, X, Y, color) { ctx.save(); ctx.fillStyle = color; ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(X(x), Y(hi[i])) : ctx.moveTo(X(x), Y(hi[i]))); for (let i = xs.length - 1; i >= 0; i--) ctx.lineTo(X(xs[i]), Y(lo[i])); ctx.closePath(); ctx.fill(); ctx.restore(); }
+  const alpha = (c, a) => `color-mix(in srgb, ${c} ${Math.round(a * 100)}%, transparent)`;
+  function rug(ctx, ys, X, h, p, color) { ctx.save(); ctx.strokeStyle = color; ctx.globalAlpha = .7; ctx.lineWidth = 1; for (const v of ys) { ctx.beginPath(); ctx.moveTo(X(v), h - p[3] + 1); ctx.lineTo(X(v), h - p[3] + 9); ctx.stroke(); } ctx.restore(); }
+
+  const N = () => { let u = 0, v = 0; while (!u) u = R(); while (!v) v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const lgam = z => { if (z < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * z))) - lgam(1 - z); z -= 1; const g = 7, c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]; let x = c[0]; for (let i = 1; i < g + 2; i++) x += c[i] / (z + i); const t = z + g + 0.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x); };
+  const gammaFn = z => z > 0 ? Math.exp(lgam(z)) : gammaFn(z + 1) / z;
+  const logFact = k => lgam(k + 1);
+
+  /* DATA: Efron and Thisted (1976), Table 1 */
+  const NX = [14376, 4343, 2292, 1463, 1043, 837, 638, 519, 430, 364, 305, 259, 242, 223, 187, 181, 179, 130, 127, 128, 104, 105, 99, 112, 93, 74, 83, 76, 72, 63, 73, 47, 56, 59, 53, 45, 34, 49, 45, 52, 49, 41, 30, 35, 37, 21, 41, 30, 28, 19, 25, 19, 28, 27, 31, 19, 19, 22, 23, 14, 30, 19, 21, 18, 15, 10, 15, 14, 11, 16, 13, 12, 10, 16, 18, 11, 8, 15, 12, 7, 13, 12, 11, 8, 10, 11, 7, 12, 9, 8, 4, 7, 6, 7, 10, 10, 15, 7, 7, 5];
+  const NTOK = 884647, NTYPE = 31534, XS = NX.map((_, i) => i + 1);
+  // Gamma mixture of Poisson rates, fitted to n_1..n_100 by Poisson maximum likelihood (see the notes)
+  const GF = { lc: 9.184066, a: -0.399119, b: 121.6385 }, GG = GF.b / (1 + GF.b);
+  const gamN = x => Math.exp(GF.lc + lgam(x + GF.a) + (x + GF.a) * Math.log(GG) - logFact(x));
+  const gamD = t => Math.exp(GF.lc) * gammaFn(GF.a) * (GG ** GF.a - (1 / (1 + 1 / GF.b + t)) ** GF.a);
+  const GT = t => NX.reduce((s, n, i) => s - (-t) ** (i + 1) * n, 0);
+  const GTse = t => Math.sqrt(NX.reduce((s, n, i) => s + t ** (2 * (i + 1)) * n, 0));
+  const binTail = (k, q) => { const pm = []; for (let j = 0; j <= k; j++) pm.push(Math.exp(logFact(k) - logFact(j) - logFact(k - j) + j * Math.log(q) + (k - j) * Math.log(1 - q))); const tail = new Array(k + 2).fill(0); for (let j = k; j >= 0; j--) tail[j] = tail[j + 1] + pm[j]; return x => x <= k ? tail[x] : 0; };
+  const SGT = t => { if (t <= 1) return GT(t); const k = Math.ceil(0.5 * Math.log(NTOK * t * t / (t - 1)) / Math.log(3)), P = binTail(k, 2 / (2 + t)); return NX.reduce((s, n, i) => s - (-t) ** (i + 1) * P(i + 1) * n, 0); };
+
+  function drawSp() {
+    const sg = +$('spS').value; $('spSO').textContent = fmt(sg, 2);
+    const py = [NX[0]]; for (let x = 1; x < 100; x++) py.push(py[x - 1] * (x - sg) / (x + 1));
+    const ew = XS.map(x => NX[0] / x), ga = XS.map(gamN);
+    const lx = v => Math.log10(v), f = frame($('cvSp'), [0, 2], [0, 4.6], { pad: [52, 12, 10, 30], xt: [0, 1, 2], yt: [0, 1, 2, 3, 4], xf: v => (10 ** v).toLocaleString('en-US'), yf: v => (10 ** v).toLocaleString('en-US') });
+    line(f.ctx, XS.map(lx), ew.map(lx), f.X, f.Y, css('--curve'), 2);
+    line(f.ctx, XS.map(lx), ga.map(lx), f.X, f.Y, css('--ink'), 1.5, [5, 4]);
+    line(f.ctx, XS.map(lx), py.map(v => lx(Math.max(v, 0.5))), f.X, f.Y, css('--accent'), 2.4);
+    f.ctx.fillStyle = alpha(css('--point'), .8); XS.forEach((x, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(lx(x)), f.Y(lx(NX[i])), 2.6, 0, 7); f.ctx.fill(); });
+    const sse = arr => Math.sqrt(XS.reduce((s, _, i) => s + (Math.log(arr[i]) - Math.log(NX[i])) ** 2, 0) / 100);
+    const rows = [[1, 0], [2, 1], [3, 2], [10, 9], [50, 49], [100, 99]];
+    $('spTab').innerHTML = `<thead><tr><th>x</th><th>canon</th><th>Ewens</th><th>P–Y</th><th>gamma</th></tr></thead><tbody>${rows.map(([x, i]) => `<tr><td>${x}</td><td>${fmtInt(NX[i])}</td><td>${fmtInt(ew[i])}</td><td>${fmtInt(py[i])}</td><td>${fmtInt(ga[i])}</td></tr>`).join('')}<tr><td>RMS log error</td><td></td><td>${fmt(sse(ew))}</td><td>${fmt(sse(py))}</td><td>${fmt(sse(ga))}</td></tr></tbody>`;
+    $('spMsg').innerHTML = `Ewens forces the slope to −1 and overpredicts every count after the first: ${fmtInt(ew[1])} words used twice against ${fmtInt(NX[1])}. ${Math.abs(sg - 0.4) < 0.05 ? 'At σ near 0.40 Pitman–Yor tracks the whole spectrum, the same tail the gamma fit finds with shape −0.40.' : `At σ = ${fmt(sg, 2)} Pitman–Yor ${sg < 0.4 ? 'still overpredicts' : 'now underpredicts'} the middle of the spectrum; matching \\(n_2/n_1 = 0.302\\) needs σ = 0.40.`} The Good–Turing estimate of the chance that the next token is a new word is \\(n_1/N\\) = ${fmt(100 * NX[0] / NTOK, 2)}%.`;
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('spMsg')]);
+  }
+
+  function drawGt() {
+    const t0 = +$('gtT').value; $('gtTO').textContent = fmt(t0, 2);
+    const ts = []; for (let t = 0; t <= 10.0001; t += 0.05) ts.push(+t.toFixed(2));
+    const ymax = 70, f = frame($('cvGt'), [0, 10], [0, ymax], { pad: [42, 12, 10, 28] });
+    const okT = ts.filter(t => t <= 1.25), gt = okT.map(t => GT(t) / 1000), se = okT.map(t => 2 * GTse(t) / 1000);
+    const clip = v => Math.max(0, Math.min(ymax, v));
+    area(f.ctx, okT, gt.map((v, i) => clip(v - se[i])), gt.map((v, i) => clip(v + se[i])), f.X, f.Y, alpha(css('--accent'), .2));
+    line(f.ctx, okT, gt.map(clip), f.X, f.Y, css('--accent'), 2.2);
+    line(f.ctx, ts, ts.map(t => gamD(t) / 1000), f.X, f.Y, css('--ink'), 1.6, [5, 4]);
+    line(f.ctx, ts, ts.map(t => SGT(t) / 1000), f.X, f.Y, css('--fit'), 2.2);
+    line(f.ctx, [t0, t0], [0, ymax], f.X, f.Y, css('--curve'), 1.6);
+    const g = GT(t0), s = GTse(t0), gd = gamD(t0), sm = SGT(t0);
+    $('gtTab').innerHTML = `<thead><tr><th>new types at t = ${fmt(t0, 2)}</th><th></th></tr></thead><tbody><tr><td>Good–Toulmin</td><td>${Math.abs(g) < 1e7 ? fmtInt(g) : '–'} <span style="color:var(--muted)">± ${s < 1e7 ? fmtInt(s) : '∞'}</span></td></tr><tr><td>gamma mixture</td><td>${fmtInt(gd)}</td></tr><tr><td>smoothed Good–Toulmin</td><td>${fmtInt(sm)}</td></tr></tbody>`;
+    $('gtMsg').innerHTML = t0 <= 1 ? `Up to t = 1 the three agree. A second canon of ${fmtInt(NTOK * t0)} tokens would bring about <b>${fmtInt(g)}</b> types not in the first, with a standard error of ${fmtInt(s)} (11,486 at t = 1 from these counts; the note quotes 11,430).` : `Past t = 1 the raw series has a standard error of ${s < 1e6 ? fmtInt(s) : 'more than a million'} and says nothing. The gamma fit gives ${fmtInt(gd)} and the smoothed series ${fmtInt(sm)}. They drift apart as t grows: the fit assumes its power-law tail continues for ever, the smoothed series assumes nothing and is only trusted up to about \\(t \\approx \\log N\\).`;
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('gtMsg')]);
+  }
+
+  const OBS = [9, 7, 5];
+  const pois = (k, m) => Math.exp(-m + k * Math.log(m) - logFact(k));
+  const poisQ = (m, p) => { let c = 0; for (let k = 0; ; k++) { c += pois(k, m); if (c >= p) return k; } };
+  const poisSf = (k, m) => { let c = 0; for (let j = 0; j < k; j++) c += pois(j, m); return 1 - c; };
+  function drawPo() {
+    const L = +$('poN').value, t = L / NTOK; $('poNO').textContent = fmtInt(L);
+    const m = [t * NX[0], t * 2 * NX[1], t * 3 * NX[2]], show = L === 429, lab = ['new to the canon', 'used once', 'used twice'];
+    const kmax = Math.max(14, Math.ceil(m[0] + 4 * Math.sqrt(m[0]) + 2));
+    const cv = $('cvPo'), { ctx, w, h } = setup(cv), pw = (w - 20) / 3;
+    lab.forEach((lb, i) => {
+      const x0 = 10 + i * pw, X = k => x0 + 30 + (k + 0.5) / (kmax + 1) * (pw - 40), pmax = Math.max(...Array.from({ length: kmax + 1 }, (_, k) => pois(k, m[i]))) * 1.15;
+      const Y = p => h - 28 - p / pmax * (h - 60), bw = (pw - 40) / (kmax + 1);
+      ctx.strokeStyle = css('--grid'); ctx.beginPath(); ctx.moveTo(x0 + 30, h - 28); ctx.lineTo(x0 + pw - 10, h - 28); ctx.stroke();
+      ctx.fillStyle = alpha(css('--accent'), .45); for (let k = 0; k <= kmax; k++) ctx.fillRect(X(k) - bw / 2 + 1, Y(pois(k, m[i])), bw - 2, h - 28 - Y(pois(k, m[i])));
+      ctx.fillStyle = css('--muted'); ctx.font = '11px ' + css('--font-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let k = 0; k <= kmax; k += kmax > 20 ? 5 : 2) ctx.fillText(k, X(k), h - 24);
+      ctx.fillStyle = css('--ink'); ctx.font = '600 12px ' + css('--font-body'); ctx.fillText(`${lb}, m = ${fmt(m[i], 2)}`, x0 + pw / 2 + 10, 6);
+      if (show) { ctx.strokeStyle = css('--curve'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(OBS[i]), 26); ctx.lineTo(X(OBS[i]), h - 28); ctx.stroke(); ctx.lineWidth = 1; }
+    });
+    $('poTab').innerHTML = `<thead><tr><th>types in the poem</th><th>expected</th><th>90% interval</th>${show ? '<th>observed</th><th>P(≥ obs)</th>' : ''}</tr></thead><tbody>${lab.map((lb, i) => `<tr><td>${lb}</td><td>${fmt(m[i], 2)}</td><td>${poisQ(m[i], .05)}–${poisQ(m[i], .95)}</td>${show ? `<td>${OBS[i]}</td><td>${fmt(poisSf(OBS[i], m[i]), 2)}</td>` : ''}</tr>`).join('')}</tbody>`;
+    const tot = m[0] + m[1] + m[2];
+    $('poMsg').innerHTML = show ? `All three observed counts sit inside their 90% intervals. The poem is rich in rare words, 21 against an expected ${fmt(tot, 1)}, and a total that large or larger has probability ${fmt(poisSf(21, tot), 2)} under the prediction (treating the three counts as independent Poisson). Consistent with Shakespeare, which is not the same as by Shakespeare.` : `A poem of ${fmtInt(L)} tokens should contain about ${fmt(m[0], 1)} words new to the canon. The expected counts grow in proportion to the length, the interval widths only with its square root, so longer texts make a sharper test.`;
+  }
+
+  // Kernel smoother
+  const NWX = Array.from({ length: 40 }, () => R()).sort((a, b) => a - b), NWY = NWX.map(x => Math.sin(2 * Math.PI * x) + 0.5 * x + 0.3 * N());
+  function drawNw() {
+    const q = +$('nwX').value, hb = +$('nwH2').value; $('nwXO').textContent = fmt(q, 3); $('nwHO').textContent = fmt(hb, 3);
+    const K = (a, b) => Math.exp(-0.5 * ((a - b) / hb) ** 2), mh = x => { let s = 0, sy = 0; NWX.forEach((xj, j) => { const k = K(x, xj); s += k; sy += k * NWY[j]; }); return sy / s; };
+    const wq = NWX.map(xj => K(q, xj)), Z = wq.reduce((a, b) => a + b, 0), W = wq.map(v => v / Z), wmax = Math.max(...W);
+    const f = frame($('cvNw'), [0, 1], [-1.8, 2.2], { pad: [36, 10, 10, 26] });
+    const xs = Array.from({ length: 201 }, (_, i) => i / 200);
+    line(f.ctx, xs, xs.map(mh), f.X, f.Y, css('--accent'), 2.4);
+    line(f.ctx, [q, q], [-1.8, 2.2], f.X, f.Y, css('--curve'), 1.5);
+    NWX.forEach((x, j) => { f.ctx.fillStyle = alpha(css('--point'), .25 + .75 * W[j] / wmax); f.ctx.beginPath(); f.ctx.arc(f.X(x), f.Y(NWY[j]), 2.5 + 8 * Math.sqrt(W[j] / wmax), 0, 7); f.ctx.fill(); });
+    const yq = mh(q); f.ctx.fillStyle = css('--curve'); f.ctx.beginPath(); f.ctx.arc(f.X(q), f.Y(yq), 5, 0, 7); f.ctx.fill();
+    const g = frame($('cvNwW'), [0, 1], [0, wmax * 1.1], { pad: [36, 10, 8, 22], yt: [0], xt: [0, 0.25, 0.5, 0.75, 1] });
+    g.ctx.fillStyle = alpha(css('--accent'), .7); NWX.forEach((x, j) => g.ctx.fillRect(g.X(x) - 2, g.Y(W[j]), 4, g.Y(0) - g.Y(W[j])));
+    const eff = 1 / W.reduce((a, b) => a + b * b, 0);
+    $('nwMsg').innerHTML = `At x = ${fmt(q, 2)} the estimate is ${fmt(yq, 2)}, an average over an effective <b>${fmt(eff, 1)}</b> of the 40 points (1 / Σ w²). Small h: attend to the nearest point. Large h: average everything. In attention the temperature \\(\\sqrt d\\) plays the same role, and the metric itself is learned.`;
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('nwMsg')]);
+  }
+
+  // The cat sat
+  const WORDS = ['the', 'cat', 'sat'], CS0 = [[1, 0, 1], [0, 1, 2], [1, 1, 3]];
+  let csQ = 2;
+  function csBuild() {
+    $('csIn').querySelector('tbody').innerHTML = WORDS.map((wd, i) => `<tr><td>${wd}</td>${[0, 1, 2].map(j => `<td><input class="num" type="number" step="0.1" id="cs${i}${j}" value="${CS0[i][j]}" aria-label="${wd} ${j < 2 ? 'x' + (j + 1) : 'value'}"></td>`).join('')}</tr>`).join('');
+    WORDS.forEach((_, i) => [0, 1, 2].forEach(j => $(`cs${i}${j}`).addEventListener('input', drawCs)));
+  }
+  function drawCs() {
+    const tau = +$('csT').value; $('csTO').textContent = fmt(tau, 2);
+    const X = WORDS.map((_, i) => [+$(`cs${i}0`).value || 0, +$(`cs${i}1`).value || 0]), v = WORDS.map((_, i) => +$(`cs${i}2`).value || 0);
+    const gauss = $('csG').checked, mask = $('csM').checked;
+    const S = X.map(q => X.map(k => gauss ? -((q[0] - k[0]) ** 2 + (q[1] - k[1]) ** 2) / (2 * tau) : (q[0] * k[0] + q[1] * k[1]) / tau));
+    const W = S.map((row, i) => { const e = row.map((s, j) => mask && j > i ? 0 : Math.exp(s)), z = e.reduce((a, b) => a + b, 0); return e.map(x => x / z); });
+    const out = W.map(row => row.reduce((s, w, j) => s + w * v[j], 0));
+    const mt = (M, f) => `<thead><tr><th></th>${WORDS.map(w => `<th>${w}</th>`).join('')}</tr></thead><tbody>${M.map((r, i) => `<tr><td>${WORDS[i]}</td>${r.map((x, j) => `<td>${mask && j > i ? '–' : f(x)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    $('csS').innerHTML = mt(S, x => fmt(x, 3));
+    $('csO').innerHTML = `<thead><tr><th>word</th><th>value v</th><th>out</th></tr></thead><tbody>${WORDS.map((w, i) => `<tr><td>${w}</td><td>${fmt(v[i], 2)}</td><td><b>${fmt(out[i], 3)}</b></td></tr>`).join('')}</tbody>`;
+    // heatmap
+    { const { ctx, w, h } = setup($('cvCsW')), m = 46, cs = Math.min((w - m - 10) / 3, (h - m - 10) / 3);
+      ctx.font = '12px ' + css('--font-mono'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      W.forEach((row, i) => row.forEach((x, j) => { ctx.fillStyle = alpha(css('--accent'), 0.08 + 0.85 * x); ctx.fillRect(m + j * cs + 1, m + i * cs + 1, cs - 2, cs - 2); ctx.fillStyle = x > .5 ? css('--on-accent') : css('--ink'); ctx.fillText(mask && j > i ? '0' : fmt(x, 3), m + (j + .5) * cs, m + (i + .5) * cs); if (i === csQ) { ctx.strokeStyle = css('--curve'); ctx.lineWidth = 2; ctx.strokeRect(m + j * cs + 1, m + i * cs + 1, cs - 2, cs - 2); ctx.lineWidth = 1; } }));
+      ctx.fillStyle = css('--muted'); WORDS.forEach((wd, k) => { ctx.fillText(wd, m + (k + .5) * cs, m - 14); ctx.textAlign = 'right'; ctx.fillText(wd, m - 8, m + (k + .5) * cs); ctx.textAlign = 'center'; });
+      ctx.fillText('key j →', m + 1.5 * cs, 10); }
+    // embedding plot
+    { const xsA = X.map(p => p[0]), ysA = X.map(p => p[1]), lo = Math.min(-0.5, ...xsA, ...ysA) - 0.3, hi = Math.max(1.5, ...xsA, ...ysA) + 0.3;
+      const f = frame($('cvCs'), [lo, hi], [lo, hi], { pad: [34, 10, 10, 24] }), q = X[csQ];
+      X.forEach((p, j) => { const wj = W[csQ][j]; if (mask && j > csQ) return; f.ctx.strokeStyle = alpha(css('--curve'), .25 + .75 * wj); f.ctx.lineWidth = 1 + 8 * wj; f.ctx.beginPath(); f.ctx.moveTo(f.X(q[0]), f.Y(q[1])); f.ctx.lineTo(f.X(p[0]), f.Y(p[1])); f.ctx.stroke(); });
+      f.ctx.lineWidth = 1;
+      X.forEach((p, j) => { f.ctx.fillStyle = j === csQ ? css('--curve') : css('--accent'); f.ctx.beginPath(); f.ctx.arc(f.X(p[0]), f.Y(p[1]), 7, 0, 7); f.ctx.fill(); f.ctx.fillStyle = css('--ink'); f.ctx.font = '600 13px ' + css('--font-body'); f.ctx.textAlign = 'left'; f.ctx.textBaseline = 'bottom'; f.ctx.fillText(`${WORDS[j]} (${fmt(W[csQ][j], 2)})`, f.X(p[0]) + 9, f.Y(p[1]) - 4); }); }
+    const r = W[csQ], qn = WORDS[csQ];
+    $('csMsg').innerHTML = `"${qn}" puts weight ${r.map((x, j) => `${fmt(x, 3)} on ${WORDS[j]}`).join(', ')}, so its new value is ${r.map((x, j) => `${fmt(x, 3)}×${fmt(v[j], 1)}`).join(' + ')} = <b>${fmt(out[csQ], 3)}</b>. Read the row as a posterior over which word is relevant, given the query; the output is the posterior mean of the value.` + (gauss ? ' With the Gaussian kernel the weights depend on distance, not on the dot product; they agree with the dot-product weights when all keys have the same length.' : '');
+  }
+
+  // Architecture calculator
+  const sci = v => { if (v < 1e3) return fmtInt(v); const e = Math.floor(Math.log10(v)); return `${fmt(v / 10 ** e, 2)}×10${String(e).split('').map(c => '⁰¹²³⁴⁵⁶⁷⁸⁹'[c]).join('')}`; };
+  function drawAr() {
+    const d = Math.round(2 ** +$('arD').value), L = +$('arL').value, T = 2 ** +$('arT').value, V = Math.round(2 ** +$('arV').value);
+    $('arDO').textContent = fmtInt(d); $('arLO').textContent = L; $('arTO').textContent = fmtInt(T); $('arVO').textContent = fmtInt(V);
+    const att = 4 * d * d * L, ff = 8 * d * d * L, emb = (V + T) * d, P = att + ff + emb, flopP = 2 * P, flopT = 4 * L * T * d;
+    const { ctx, w, h } = setup($('cvAr')), x0 = 150, bw = w - x0 - 20, bars = [['parameters', [[att, css('--accent')], [ff, css('--fit')], [emb, css('--ball')]]], ['compute per token', [[flopP, css('--alt')], [flopT, css('--curve')]]]];
+    bars.forEach(([lb, parts], i) => {
+      const y = 40 + i * 100, tot = parts.reduce((a, p) => a + p[0], 0); let x = x0;
+      ctx.fillStyle = css('--ink'); ctx.font = '600 13px ' + css('--font-body'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(lb, x0 - 10, y + 22);
+      parts.forEach(([val, col]) => { const ww = val / tot * bw; ctx.fillStyle = alpha(col, .6); ctx.fillRect(x, y, ww, 44); if (ww > 46) { ctx.fillStyle = css('--ink'); ctx.font = '12px ' + css('--font-mono'); ctx.textAlign = 'center'; ctx.fillText(`${fmt(100 * val / tot, 0)}%`, x + ww / 2, y + 22); } x += ww; });
+      ctx.fillStyle = css('--muted'); ctx.font = '11px ' + css('--font-mono'); ctx.textAlign = 'left'; ctx.fillText(i === 0 ? `total ${sci(tot)}` : `total ${sci(tot)} flops: weights 2P (violet) + attention 4LTd (red)`, x0, y + 58);
+    });
+    $('arTab').innerHTML = `<tbody><tr><td>attention, 4d²L</td><td>${sci(att)}</td></tr><tr><td>feed-forward, 8d²L</td><td>${sci(ff)}</td></tr><tr><td>embeddings, (V + T)d</td><td>${sci(emb)}</td></tr><tr><td><b>parameters</b></td><td><b>${sci(P)}</b></td></tr><tr><td>attention scores per sequence, L·T²</td><td>${sci(L * T * T)}</td></tr></tbody>`;
+    $('arMsg').innerHTML = `${fmt(100 * (att + ff) / P, 1)}% of the parameters are in the blocks, which grow with d²; the context T adds only T·d of positions but a T² term to every attention layer's compute, ${fmt(100 * flopT / (flopP + flopT), 1)}% of the work per token here. Heads split d into h pieces and do not change the count; the unembedding \\(W_U\\) adds V·d more unless it is tied to E.`;
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([$('arMsg')]);
+  }
+  const arSet = (d, L, T, V) => { $('arD').value = Math.log2(d); $('arL').value = L; $('arT').value = Math.log2(T); $('arV').value = Math.log2(V); drawAr(); };
+
+  /* WIRING */
+  $('spS').addEventListener('input', drawSp); $('gtT').addEventListener('input', drawGt); $('poN').addEventListener('input', drawPo);
+  ['nwX', 'nwH2'].forEach(id => $(id).addEventListener('input', drawNw));
+  ['csT', 'csM', 'csG'].forEach(id => $(id).addEventListener('input', drawCs));
+  $('csQ').querySelectorAll('button').forEach(b => b.onclick = () => { csQ = +b.dataset.q; $('csQ').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); drawCs(); });
+  $('csReset').onclick = () => { WORDS.forEach((_, i) => [0, 1, 2].forEach(j => $(`cs${i}${j}`).value = CS0[i][j])); $('csT').value = Math.SQRT2; $('csM').checked = false; $('csG').checked = false; drawCs(); };
+  ['arD', 'arL', 'arT', 'arV'].forEach(id => $(id).addEventListener('input', drawAr));
+  $('arSh').onclick = () => arSet(384, 6, 256, 65); $('arFr').onclick = () => arSet(12288, 96, 131072, 100000);
+  csBuild(); $('csT').value = Math.SQRT2;
+  function all() { drawSp(); drawGt(); drawPo(); drawNw(); drawCs(); drawAr(); }
+  arSet(384, 6, 256, 65); all();
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(all, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+})();
+</script>
+</body></html>
