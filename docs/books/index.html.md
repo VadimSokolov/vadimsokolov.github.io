@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
+
+[![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an optimizer and a Diophantine problem; proofs that fixed horizon monotone Lyapunov certificates and finite residue sieves cannot settle it and the cycle inequality cannot exclude all cycles; a momentum method from log2 3.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.4.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.24113412](https://zenodo.org/badge/DOI/10.5281/zenodo.24113412.svg)](https://doi.org/10.5281/zenodo.24113412) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8TS5N8 "Paperback on Amazon")
+
 ## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
 
 [![Computing the Riemann Hypothesis, Volume I: Representations of Xi, Thorin Measures and the Reciprocal Xi Function](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.2.0/pdf/cover_vol1.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
@@ -49,14 +57,6 @@ A textbook that builds one Bayesian model of outcomes given treatment and covari
 Clinical trials as science and as regulated operations: design and statistics, the daily work of a Phase III study from site selection to the trial master file, regulatory submission, and what AI agents may and may not do in regulated research.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice/releases/download/v1.2.0/clinical_trials_in_practice.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/clinical_trials_in_practice/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/clinical_trials_in_practice "Source on GitHub") [![DOI 10.5281/zenodo.23933570](https://zenodo.org/badge/DOI/10.5281/zenodo.23933570.svg)](https://doi.org/10.5281/zenodo.23933570) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HNRVSW18 "Paperback on Amazon")
-
-## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
-
-[![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
-
-Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an optimizer and a Diophantine problem; proofs that fixed horizon monotone Lyapunov certificates and finite residue sieves cannot settle it and the cycle inequality cannot exclude all cycles; a momentum method from log2 3.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.3.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.23905381](https://zenodo.org/badge/DOI/10.5281/zenodo.23905381.svg)](https://doi.org/10.5281/zenodo.23905381) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8TS5N8 "Paperback on Amazon")
 
 ## [On Langlands Conjectures](https://vsokolov.org/books/langlands/) <small>Probabilistic Methods</small>
 
