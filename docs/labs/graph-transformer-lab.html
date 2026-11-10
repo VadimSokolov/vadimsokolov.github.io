@@ -160,7 +160,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
     <h1>Graph Transformer Lab: the Medici and the Ambanis</h1>
     <p class="lead">In 1434 Cosimo de' Medici took control of Florence. His family was not the richest and did not hold the most council seats. Padgett and Ansell's answer is position: in the marriage network the Medici sat between families that had no other way to reach each other. This lab trains nothing in Florence. Four small transformers learned to predict betweenness on random graphs and are applied, unchanged and live in your browser, to the Florentine families, then to the Ambani family and Reliance six centuries later. They differ only in where the graph enters the attention step. Edit the networks and watch all four answer.</p>
     <a class="back" href="index.html">← All labs</a>
-    <p class="src">Based on Nick Polson's Week 8 deck for 41916 Bayes, AI and Deep Learning (Chicago Booth, November 2026), <i>Graph Transformers and the Medici Marriage Network</i>, its companion <i>From Florence to Mumbai: the Ambani Family as a Graph</i>, and the code <code>graph_transformer_medici.py</code>. The four models were retrained with that code (seed 41916, 3,000 steps of 64 random graphs) and their weights run here in JavaScript. Florentine data: Padgett, as distributed in the R package ergm (wealth, priorates and the 15 business ties checked against ergm's <code>florentine</code> file); marriages from networkx. The Ambani graphs are the companion deck's hand coding from press reports and company announcements through 2026.</p>
+    <p class="src">Based on Polson and Sokolov, <i>Graph Transformers and the Structure of Family Power: From the Medici to the Ambanis</i> (second draft, November 2026), Nick Polson's Week 8 deck for 41916 Bayes, AI and Deep Learning (Chicago Booth), <i>Graph Transformers and the Medici Marriage Network</i>, and its companion <i>From Florence to Mumbai</i>. The weights of the paper's four models from each of its five training seeds (3,000 steps of 64 random graphs each) run here in JavaScript; the first seed loads with the page and the other four when you ask for them. Florentine data: Padgett, as distributed in the R package ergm (wealth, priorates and the 15 business ties checked against ergm's <code>florentine</code> file); marriages from networkx. The Ambani graphs are the companion deck's hand coding from press reports and company announcements through 2026.</p>
   </header>
 
   <section class="frame">
@@ -215,12 +215,15 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <section class="sec" aria-labelledby="mdH">
     <div class="head">
       <h2 id="mdH">Four ways to let the graph in</h2>
-      <p>Each model is 4 attention layers of width 64 with 4 heads, about 139 thousand parameters, fed each node's degree and nothing else about the families. The attention score between nodes \(i\) and \(j\) is\[ a_{ij} = \operatorname{softmax}_j\Bigl( \tfrac{q_i \cdot k_j}{\sqrt{d}} + b_{\mathrm{dist}(i,j)} \Bigr), \]with \(b \equiv 0\) for Set and Laplacian, \(b = -\infty\) beyond distance one for Local, and \(b\) learned for Distance bias. Laplacian adds the first 8 nontrivial eigenvectors of the normalized Laplacian to the input. The bars are the exact betweenness of the graph above, the dots the four predictions, computed now in your browser.</p><p>An eigenvector is defined only up to sign, and when an eigenvalue repeats only up to rotation. This page flips each so its largest entry is positive; the deck's run used whatever its solver returned and got a Florence RMSE of 0.029 for the Laplacian model, against 0.035 here. The other three models match the Python run exactly.</p>
+      <p>Each model is 4 attention layers of width 64 with 4 heads, about 139 thousand parameters, fed each node's degree and nothing else about the families. The attention score between nodes \(i\) and \(j\) is\[ a_{ij} = \operatorname{softmax}_j\Bigl( \tfrac{q_i \cdot k_j}{\sqrt{d}} + b_{\mathrm{dist}(i,j)} \Bigr), \]with \(b \equiv 0\) for Set and Laplacian, \(b = -\infty\) beyond distance one for Local, and \(b\) learned for Distance bias. Laplacian adds the first 8 nontrivial eigenvectors of the normalized Laplacian to the input. The bars are the exact betweenness of the graph above, the dots the four predictions, computed now in your browser.</p><p>Pick a single trained model or the mean of all five seeds; with all five, a line through each dot spans the seeds, and the hub column counts the seeds that name the exact most-between node. The last row ranks nodes by degree alone, the baseline the Set model reproduces. An eigenvector is defined only up to sign, and when an eigenvalue repeats only up to rotation: this page flips each so its largest entry is positive, so the Laplacian model's numbers can differ a little from the paper's. The other three match the Python runs.</p>
     </div>
     <div class="grid">
       <div class="board"><span class="cap" id="mdCap"></span><canvas id="mdP" height="380"></canvas>
         <div class="legend"><span><i class="sw tru"></i>exact</span><span><i class="sw dot set"></i>Set</span><span><i class="sw dot local"></i>Local</span><span><i class="sw dot lappe"></i>Laplacian</span><span><i class="sw dot graph"></i>Distance bias</span></div></div>
       <div class="panel">
+        <div class="group"><span class="label">Trained model</span>
+          <div class="seg seedSeg" style="grid-template-columns:repeat(6,1fr)"><button data-v="41916" aria-pressed="true">Seed 1</button><button data-v="41917" aria-pressed="false">2</button><button data-v="41918" aria-pressed="false">3</button><button data-v="41919" aria-pressed="false">4</button><button data-v="41920" aria-pressed="false">5</button><button data-v="all" aria-pressed="false">All five</button></div>
+          <p class="hint seedNote"></p></div>
         <div class="group"><table class="stats" id="mdTab"></table></div>
         <div class="group"><p class="msg" id="mdMsg"></p></div>
       </div>
@@ -250,7 +253,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <section class="sec" aria-labelledby="trH">
     <div class="head">
       <h2 id="trH">Training on random graphs</h2>
-      <p>All four models saw the same stream of graphs: uniform random graphs, preferential attachment, and random trees with a few chords, 10 to 20 nodes each. The loss is squared error on every node's betweenness. Error is measured on 500 held-out random graphs, in units of betweenness.</p>
+      <p>All four models saw the same stream of graphs: uniform random graphs, preferential attachment, and random trees with a few chords, 10 to 20 nodes each. The loss is squared error on every node's betweenness. Error is measured on 500 held-out random graphs, in units of betweenness. The paper trains each model from five seeds; the table reports the mean and the spread.</p>
     </div>
     <div class="grid">
       <div class="board"><span class="cap">Held-out RMSE by training step, log scale</span><canvas id="trC" height="290"></canvas>
@@ -260,6 +263,30 @@ code { font-family: var(--font-mono); font-size: 13px; }
         <div class="group"><p class="msg" id="trMsg"></p></div>
       </div>
     </div>
+  </section>
+
+
+  <section class="sec" aria-labelledby="stH">
+    <div class="head">
+      <h2 id="stH">Where transfer breaks</h2>
+      <p>Florence and Mumbai are single graphs. To see how each architecture fails, the paper scores the same trained models on random graphs that differ from the training graphs in one respect each: <b>larger</b> (25 to 40 nodes against 10 to 20), <b>denser</b> (1.8 to 2.6 ties per node, beyond the training maximum of 1.8), and <b>role graphs</b> that imitate a control network, people tied to businesses at random with a small, densely tied kin group. Draw one and read the scatter, or score forty and compare with the paper's 300 graphs and five seeds. The models never saw a graph with more than 20 nodes; in the browser they run on any size.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap" id="stCap"></span><canvas id="stG" height="300"></canvas></div>
+        <div class="board"><span class="cap">Predicted against exact betweenness, one dot per node and model</span><canvas id="stS" height="300"></canvas>
+          <div class="legend"><span><i class="sw dot set"></i>Set</span><span><i class="sw dot local"></i>Local</span><span><i class="sw dot lappe"></i>Laplacian</span><span><i class="sw dot graph"></i>Distance bias</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group"><span class="label">Kind of graph</span>
+          <div class="seg four" id="stF"><button data-v="train" aria-pressed="true">As trained</button><button data-v="larger" aria-pressed="false">Larger</button><button data-v="denser" aria-pressed="false">Denser</button><button data-v="roles" aria-pressed="false">Roles</button></div>
+          <div class="btns"><button id="stNew">Draw another</button><button id="stGo" class="primary">Score 40 graphs</button></div>
+        </div>
+        <div class="group"><table class="stats" id="stMany"></table></div>
+        <div class="group"><p class="msg" id="stMsg"></p></div>
+      </div>
+    </div>
+    <div class="board"><span class="cap">This graph, model by model</span><table class="stats" id="stTab"></table></div>
   </section>
 
   <h2 class="part"><small>Part II</small>Mumbai, 2026</h2>
@@ -278,6 +305,9 @@ code { font-family: var(--font-mono); font-size: 13px; }
         <div class="legend"><span><i class="sw tru"></i>exact</span><span><i class="sw dot set"></i>Set</span><span><i class="sw dot local"></i>Local</span><span><i class="sw dot lappe"></i>Laplacian</span><span><i class="sw dot graph"></i>Distance bias</span></div>
       </div>
       <div class="panel">
+        <div class="group"><span class="label">Trained model</span>
+          <div class="seg seedSeg" style="grid-template-columns:repeat(6,1fr)"><button data-v="41916" aria-pressed="true">Seed 1</button><button data-v="41917" aria-pressed="false">2</button><button data-v="41918" aria-pressed="false">3</button><button data-v="41919" aria-pressed="false">4</button><button data-v="41920" aria-pressed="false">5</button><button data-v="all" aria-pressed="false">All five</button></div>
+          <p class="hint seedNote"></p></div>
         <div class="group"><span class="label">A click on the graph</span>
           <div class="seg" id="hoMode"><button data-v="look" aria-pressed="true">Selects</button><button data-v="tie" aria-pressed="false">Toggles a tie</button><button data-v="drop" aria-pressed="false">Removes</button></div>
           <div class="btns"><button id="hoReset">Restore</button><button id="hoDropF">Remove founder</button></div>
@@ -304,6 +334,9 @@ code { font-family: var(--font-mono); font-size: 13px; }
         <div class="legend"><span><i class="sw tru"></i>exact</span><span><i class="sw dot set"></i>Set</span><span><i class="sw dot local"></i>Local</span><span><i class="sw dot lappe"></i>Laplacian</span><span><i class="sw dot graph"></i>Distance bias</span></div>
       </div>
       <div class="panel">
+        <div class="group"><span class="label">Trained model</span>
+          <div class="seg seedSeg" style="grid-template-columns:repeat(6,1fr)"><button data-v="41916" aria-pressed="true">Seed 1</button><button data-v="41917" aria-pressed="false">2</button><button data-v="41918" aria-pressed="false">3</button><button data-v="41919" aria-pressed="false">4</button><button data-v="41920" aria-pressed="false">5</button><button data-v="all" aria-pressed="false">All five</button></div>
+          <p class="hint seedNote"></p></div>
         <div class="group"><span class="label">A click on the graph</span>
           <div class="seg" id="coMode"><button data-v="look" aria-pressed="true">Selects</button><button data-v="tie" aria-pressed="false">Toggles a tie</button><button data-v="drop" aria-pressed="false">Removes</button></div>
           <div class="btns"><button id="coReset">Restore</button><button id="coDropM" class="primary">Remove Mukesh</button></div>
@@ -322,7 +355,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
       <li><div><h3>Position, not attributes</h3><p>The Medici were neither the richest nor the most seated family. They were the only route between groups. Betweenness sees that; a model of each family's own row cannot.</p></div></li>
       <li><div><h3>Where A enters is the design</h3><p>Same width, depth, optimiser and training graphs; only the way the graph enters changes. That is an ablation, and it is the honest way to compare architectures.</p></div></li>
       <li><div><h3>A mask is a dogmatic prior</h3><p>Attention is a learned kernel. The distance bias is a prior on that kernel that lets the data say how much distance matters. The mask sets every \(b\) beyond distance one to \(-\infty\) before seeing any data.</p></div></li>
-      <li><div><h3>Know the answer before you trust the network</h3><p>Betweenness has an exact algorithm that runs in microseconds. The toy is worth it because we can check whether \(F\) found the answer, and where it fails: denser graphs, repeated eigenvalues, nodes it never saw.</p></div></li>
+      <li><div><h3>No architecture dominates</h3><p>The distance bias model is best on held-out graphs and role graphs, the Local model is the only one that names the right hub of the Reliance control graph in every seed, and the Local model is the worst on larger graphs, where four layers of message passing cannot see across. Which one transfers best depends on how the new graph differs from the training graphs, which is rarely known in advance. Betweenness has an exact algorithm that runs in microseconds: check before you trust.</p></div></li>
     </ol>
     <div class="eqs">
       <div class="eq"><div class="cp">The model</div>\[ Y = F(X, A), \quad F = F_{L+1} \circ F_L \circ \cdots \circ F_1 \]</div>
@@ -348,6 +381,8 @@ code { font-family: var(--font-mono); font-size: 13px; }
       <li>Look at the learned distance bias for each layer. Which distances does the model look at hardest, and does that change with depth? How would you have to set \(b\) to reproduce the Local model?</li>
       <li>In the houses graph, remove the founder house. What happens to the graph and to the betweenness of Mukesh's house? Relate it to 2002 and 2005.</li>
       <li>In the control graph, remove Mukesh. Does the top of the ranking change? Which single further removal disconnects the graph? Which model's error grows most on these denser graphs, and why?</li>
+      <li>Choose "All five" seeds. On the marriage graph, which model's predictions vary most across seeds? On the houses graph, why does ranking by degree have the highest rank correlation and still name the wrong hub?</li>
+      <li>In "Where transfer breaks", score forty larger graphs, then forty denser ones. Which model loses most with size, and why does density do no harm?</li>
       <li>Relational attention, on paper: add a second bias indexed by the kind of tie (none, marriage, business, both). Write the new score \(a_{ij}\) and count the extra parameters.</li>
     </ol>
   </section>
@@ -387,17 +422,25 @@ code { font-family: var(--font-mono); font-size: 13px; }
   /* WEIGHTS: int8 with one scale per output row, or float32 for small tensors */
   const C = GT.cfg, D = C.D, NH = C.H, DK = D / NH, NL = C.L, KPE = C.K_PE;
   const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-  const WT = {};
-  for (const m in GT.models) {
-    WT[m] = {};
-    for (const k in GT.models[m]) {
-      const e = GT.models[m][k];
-      if (e.f) { WT[m][k] = new Float32Array(b64(e.f).buffer); continue; }
-      const q = new Int8Array(b64(e.q).buffer), cols = q.length / e.c.length, out = new Float32Array(q.length);
-      for (let r = 0; r < e.c.length; r++) for (let j = 0; j < cols; j++) out[r * cols + j] = q[r * cols + j] * e.c[r];
-      WT[m][k] = out;
+  function decode(models) {
+    const WT = {};
+    for (const m in models) {
+      WT[m] = {};
+      for (const k in models[m]) {
+        const e = models[m][k];
+        if (e.f) { WT[m][k] = new Float32Array(b64(e.f).buffer); continue; }
+        const q = new Int8Array(b64(e.q).buffer), cols = q.length / e.c.length, out = new Float32Array(q.length);
+        for (let r = 0; r < e.c.length; r++) for (let j = 0; j < cols; j++) out[r * cols + j] = q[r * cols + j] * e.c[r];
+        WT[m][k] = out;
+      }
     }
+    return WT;
   }
+  const SEEDS = GT.seeds, WTS = { [SEEDS[0]]: decode(GT.models) };
+  let SEL = SEEDS[0];
+  const activeSeeds = () => SEL === 'all' ? SEEDS : [SEL];
+  const loadSeed = sd => WTS[sd] ? Promise.resolve() : new Promise((ok, bad) => { const s = document.createElement('script'); s.src = `graph-transformer-seed-${sd}.js`; s.onload = () => { WTS[sd] = decode(window.GT_SEEDS[sd]); delete window.GT_SEEDS[sd]; ok(); }; s.onerror = () => bad(new Error('could not load seed ' + sd)); document.head.appendChild(s); });
+  const WT = WTS[SEEDS[0]];
   const MODES = ['set', 'local', 'lappe', 'graph'], MNAME = { set: 'Set', local: 'Local', lappe: 'Laplacian', graph: 'Distance bias' };
   const MCOL = () => ({ set: css('--point'), local: css('--ball'), lappe: css('--fit'), graph: css('--accent') });
   const NPAR = {}; for (const m of MODES) NPAR[m] = Object.values(WT[m]).reduce((s, a) => s + a.length, 0);
@@ -407,8 +450,8 @@ code { font-family: var(--font-mono); font-size: 13px; }
   const gelu = x => 0.5 * x * (1 + erf(x / Math.SQRT2));
   function lin(W, b, x, nin, nout) { const o = new Float32Array(nout); for (let r = 0; r < nout; r++) { let s = b ? b[r] : 0; const off = r * nin; for (let k = 0; k < nin; k++) s += W[off + k] * x[k]; o[r] = s; } return o; }
   function ln(x, w, b) { let mu = 0; for (const v of x) mu += v; mu /= x.length; let va = 0; for (const v of x) va += (v - mu) ** 2; va /= x.length; const sd = Math.sqrt(va + 1e-5), o = new Float32Array(x.length); for (let i = 0; i < x.length; i++) o[i] = (x[i] - mu) / sd * w[i] + b[i]; return o; }
-  function forward(m, an) {
-    const P = WT[m], n = an.n, att = [];
+  function forward(m, an, W = WT) {
+    const P = W[m], n = an.n, att = [];
     let x = an.deg.map(d => P['deg_emb.weight'].slice(Math.min(d, C.MAX_DEG) * D, (Math.min(d, C.MAX_DEG) + 1) * D));
     if (m === 'lappe') x = x.map((h, i) => { const pe = lin(P['pe_lin.weight'], P['pe_lin.bias'], an.pe[i], KPE, D); return h.map((v, j) => v + pe[j]); });
     for (let l = 0; l < NL; l++) {
@@ -477,8 +520,14 @@ code { font-family: var(--font-mono); font-size: 13px; }
     const E = jacobi(L), k = Math.min(KPE, n - 1), pe = idx.map((_, i) => { const r = new Float32Array(KPE); for (let j = 0; j < k; j++) r[j] = E.vec[j + 1][i]; return r; });
     const seen = new Array(n).fill(-1); let comp = 0; for (let s = 0; s < n; s++) if (seen[s] < 0) { for (let v = 0; v < n; v++) if (dist[s][v] < Infinity) seen[v] = comp; comp++; }
     const an = { idx, n, adj, deg, spd, dist, bc: bc.map(b => b / norm), thru, tot, pe, comp, nEdge: deg.reduce((a, b) => a + b, 0) / 2 };
-    an.pred = {}; an.att = {};
-    for (const m of MODES) { const r = forward(m, an); an.pred[m] = r.y; an.att[m] = r.att; }
+    an.pred = {}; an.att = {}; an.per = SEL === 'all' ? {} : null;
+    const act = activeSeeds().filter(sd => WTS[sd]);
+    for (const m of MODES) {
+      const runs = act.map((sd, k) => { const r = forward(m, an, WTS[sd]); if (k === 0) an.att[m] = r.att; return r.y; });
+      an.pred[m] = runs[0].map((_, i) => runs.reduce((s, y) => s + y[i], 0) / runs.length);
+      if (an.per) an.per[m] = runs;
+    }
+    an.seedLabel = SEL === 'all' ? `mean of ${act.length} seeds` : `seed ${SEL}`;
     return an;
   }
   function ranks(a) { const o = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]), r = new Array(a.length); for (let i = 0; i < o.length;) { let j = i; while (j + 1 < o.length && o[j + 1][0] === o[i][0]) j++; for (let k = i; k <= j; k++) r[o[k][1]] = (i + j) / 2; i = j + 1; } return r; }
@@ -546,19 +595,26 @@ code { font-family: var(--font-mono); font-size: 13px; }
   function drawPred(cv, an, names, capId, label) {
     const n = an.n, order = an.bc.map((b, i) => [b, i]).sort((p, q) => q[0] - p[0]).map(p => p[1]);
     cv.dataset.h = 30 + n * 22;
-    const hi = Math.max(0.1, ...an.bc, ...MODES.flatMap(m => an.pred[m])) * 1.06, lo = Math.min(0, ...MODES.flatMap(m => an.pred[m]));
+    const allP = MODES.flatMap(m => an.per ? an.per[m].flat() : an.pred[m]), hi = Math.max(0.1, ...an.bc, ...allP) * 1.06, lo = Math.min(0, ...allP);
     const f = frame(cv, [lo, hi], [0, n], { pad: [128, 14, 4, 24], yt: [], xt: nice([lo, hi], 5), xf: v => v.toFixed(1) });
     const RH = (f.h - 28) / n, col = MCOL();
     order.forEach((i, r) => {
       const yc = 4 + (r + 0.5) * RH;
       f.ctx.fillStyle = alpha(css('--point'), .22); f.ctx.fillRect(f.X(0), yc - RH * .38, f.X(an.bc[i]) - f.X(0), RH * .76);
       f.ctx.fillStyle = css('--ink'); f.ctx.font = '12px ' + css('--font-body'); f.ctx.textAlign = 'right'; f.ctx.textBaseline = 'middle'; f.ctx.fillText(names[an.idx[i]], f.p[0] - 8, yc);
-      MODES.forEach((m, k) => { f.ctx.fillStyle = col[m]; f.ctx.beginPath(); f.ctx.arc(f.X(an.pred[m][i]), yc + (k - 1.5) * RH * .17, 3.6, 0, 7); f.ctx.fill(); });
+      MODES.forEach((m, k) => { const yy = yc + (k - 1.5) * RH * .17; if (an.per) { const v = an.per[m].map(y => y[i]); f.ctx.strokeStyle = col[m]; f.ctx.lineWidth = 1.4; f.ctx.beginPath(); f.ctx.moveTo(f.X(Math.min(...v)), yy); f.ctx.lineTo(f.X(Math.max(...v)), yy); f.ctx.stroke(); } f.ctx.fillStyle = col[m]; f.ctx.beginPath(); f.ctx.arc(f.X(an.pred[m][i]), yy, 3.6, 0, 7); f.ctx.fill(); });
     });
-    if (capId) $(capId).textContent = label;
+    if (capId) $(capId).textContent = label + ` (${an.seedLabel}${an.per ? ', lines span the five seeds' : ''})`;
+  }
+  const argmax = v => v.reduce((b, x, i) => x > v[b] ? i : b, 0);
+  function hubCell(an, m) {
+    const h = argmax(an.bc);
+    if (an.per) { const k = an.per[m].filter(y => argmax(y) === h).length; return `${k}/${an.per[m].length}`; }
+    return argmax(an.pred[m]) === h ? '✓' : '✗';
   }
   function predTable(id, an, names) {
-    $(id).innerHTML = `<thead><tr><th>model</th><th>RMSE</th><th>rank r</th><th>top three</th></tr></thead><tbody><tr><td>exact</td><td></td><td></td><td style="font-family:var(--font-body);font-size:12px">${topK(an, an.bc, names).join(', ')}</td></tr>${MODES.map(m => `<tr><td><i class="sw dot ${m}"></i> ${MNAME[m]}</td><td>${fmt(rmse(an.pred[m], an.bc), 3)}</td><td>${fmt(spear(an.pred[m], an.bc), 2)}</td><td style="font-family:var(--font-body);font-size:12px">${topK(an, an.pred[m], names).join(', ')}</td></tr>`).join('')}</tbody>`;
+    const tt = 'style="font-family:var(--font-body);font-size:12px"', degTop = topK(an, an.deg, names);
+    $(id).innerHTML = `<thead><tr><th>model</th><th>RMSE</th><th>rank r</th><th>hub</th><th>top three</th></tr></thead><tbody><tr><td>exact</td><td></td><td></td><td></td><td ${tt}>${topK(an, an.bc, names).join(', ')}</td></tr>${MODES.map(m => `<tr><td><i class="sw dot ${m}"></i> ${MNAME[m]}</td><td>${fmt(rmse(an.pred[m], an.bc), 3)}</td><td>${fmt(spear(an.pred[m], an.bc), 2)}</td><td>${hubCell(an, m)}</td><td ${tt}>${topK(an, an.pred[m], names).join(', ')}</td></tr>`).join('')}<tr><td>ranking by degree</td><td>–</td><td>${fmt(spear(an.deg, an.bc), 2)}</td><td>${argmax(an.deg) === argmax(an.bc) ? '✓' : '✗'}</td><td ${tt}>${degTop.join(', ')}</td></tr></tbody>`;
   }
   function infoHTML(ex, extra) {
     const an = ex.an, gi = ex.sel; if (gi < 0) return '<span class="hint">Nothing selected.</span>';
@@ -646,10 +702,66 @@ code { font-family: var(--font-mono); font-size: 13px; }
     const lg = GT.logs, all = MODES.flatMap(m => lg[m].map(p => p[1])), smax = Math.max(...lg.set.map(p => p[0]));
     const l10 = Math.log10, f = frame($('trC'), [0, smax], [l10(Math.min(...all) * 0.9), l10(Math.max(...all) * 1.1)], { pad: [46, 14, 10, 30], yt: [0.02, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5].map(l10).filter(v => v >= l10(Math.min(...all) * 0.9) && v <= l10(Math.max(...all) * 1.1)), yf: v => (+(10 ** v).toPrecision(2)).toString() });
     const col = MCOL(); MODES.forEach(m => line(f.ctx, lg[m].map(p => p[0]), lg[m].map(p => l10(p[1])), f.X, f.Y, col[m], 2));
-    $('trTab').innerHTML = `<thead><tr><th>model</th><th>params</th><th>RMSE</th><th>rank r</th></tr></thead><tbody>${MODES.map(m => `<tr><td>${MNAME[m]}</td><td>${fmtInt(NPAR[m])}</td><td>${fmt(GT.val[m].rmse, 3)}</td><td>${fmt(GT.val[m].spearman, 2)}</td></tr>`).join('')}</tbody>`;
-    const v = GT.val, best = MODES.slice().sort((a, b) => v[a].rmse - v[b].rmse);
-    $('trMsg').innerHTML = `On 500 held-out random graphs the order is ${best.map(m => `${MNAME[m]} ${fmt(v[m].rmse, 3)}`).join(', ')}. Degree alone (Set) only goes so far. One seed: treat small gaps as noise.`;
+    const v = GT.summary.heldout, best = MODES.slice().sort((a, b) => v[a].rmse[0] - v[b].rmse[0]);
+    $('trTab').innerHTML = `<thead><tr><th>model</th><th>params</th><th>RMSE</th><th>rank r</th></tr></thead><tbody>${MODES.map(m => `<tr><td>${MNAME[m]}</td><td>${fmtInt(NPAR[m])}</td><td>${fmt(v[m].rmse[0], 3)} <span class="hint">(${fmt(v[m].rmse[1], 3)})</span></td><td>${fmt(v[m].spearman[0], 2)}</td></tr>`).join('')}</tbody>`;
+    $('trMsg').innerHTML = `Mean over five seeds (standard deviation in brackets) on 500 held-out random graphs: ${best.map(m => `${MNAME[m]} ${fmt(v[m].rmse[0], 3)}`).join(', ')}. The curves are the first seed. The Set model, which sees only degrees, reproduces the ranking by degree exactly.`;
   }
+
+
+  /* SEED SELECTOR: one trained model, or the mean of the five */
+  function syncSeed() { document.querySelectorAll('.seedSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v) === String(SEL))); }
+  function refreshAll() { fl.update(); ho.update(); co.update(); if (ST.g) scoreOne(); }
+  function setSeed(v) {
+    SEL = v === 'all' ? 'all' : +v; syncSeed();
+    const need = activeSeeds().filter(sd => !WTS[sd]);
+    if (!need.length) { refreshAll(); return; }
+    document.querySelectorAll('.seedNote').forEach(e => e.textContent = `Loading ${need.length} more trained ${need.length === 1 ? 'model set' : 'model sets'} (about 0.8 MB each)…`);
+    Promise.all(need.map(loadSeed)).then(() => { document.querySelectorAll('.seedNote').forEach(e => e.textContent = ''); refreshAll(); }).catch(e => { document.querySelectorAll('.seedNote').forEach(x => x.textContent = String(e.message)); SEL = SEEDS[0]; syncSeed(); refreshAll(); });
+  }
+  document.querySelectorAll('.seedSeg').forEach(sg => sg.querySelectorAll('button').forEach(b => b.onclick = () => setSeed(b.dataset.v)));
+
+  /* STRESS TEST: random graphs unlike the training graphs */
+  const ST = { fam: 'train', seed: 1, g: null };
+  const ri = (R, a, b) => a + Math.floor(R() * (b - a + 1));
+  function gnm(R, n, m) { const E = new Set(), max = n * (n - 1) / 2; m = Math.min(m, max); while (E.size < m) { const a = Math.floor(R() * n), b = Math.floor(R() * n); if (a !== b) E.add(Math.min(a, b) + '|' + Math.max(a, b)); } return [...E].map(k => k.split('|').map(Number)); }
+  function ba(R, n, m) { const E = []; for (let i = 1; i <= m; i++) E.push([0, i]); const rep = []; E.forEach(([a, b]) => rep.push(a, b)); for (let v = m + 1; v < n; v++) { const T = new Set(); while (T.size < m) T.add(rep[Math.floor(R() * rep.length)]); for (const t of T) { E.push([t, v]); rep.push(t, v); } } return E; }
+  function tree(R, n) { const P = Array.from({ length: n - 2 }, () => Math.floor(R() * n)), deg = new Array(n).fill(1), E = []; P.forEach(v => deg[v]++); for (const v of P) { const leaf = deg.findIndex(d => d === 1); E.push([leaf, v]); deg[leaf]--; deg[v]--; } const r = deg.map((d, i) => d === 1 ? i : -1).filter(i => i >= 0); E.push([r[0], r[1]]); return E; }
+  function familyGraph(R, lo, hi) { const n = ri(R, lo, hi), k = R(); if (k < 0.4) return { n, E: gnm(R, n, ri(R, n, Math.floor(1.8 * n))) }; if (k < 0.7) return { n, E: ba(R, n, R() < 0.5 ? 1 : 2) }; const E = tree(R, n); for (let c = ri(R, 0, Math.floor(n / 2)); c > 0; c--) { const a = Math.floor(R() * n); let b = Math.floor(R() * n); if (a !== b) E.push([a, b]); } return { n, E }; }
+  function roleGraph(R) { const p = ri(R, 5, 9), b = ri(R, 5, 9), E = []; for (let j = p; j < p + b; j++) { const k = ri(R, 1, 3), S = new Set(); while (S.size < k) S.add(Math.floor(R() * p)); S.forEach(i => E.push([i, j])); } const kin = []; const K = ri(R, 3, 5); while (kin.length < K) { const i = Math.floor(R() * p); if (!kin.includes(i)) kin.push(i); } for (let a = 0; a < kin.length; a++) for (let c = a + 1; c < kin.length; c++) if (R() < 0.7) E.push([kin[a], kin[c]]); return { n: p + b, E }; }
+  const draw1 = R => ST.fam === 'train' ? familyGraph(R, 10, 20) : ST.fam === 'larger' ? familyGraph(R, 25, 40) : ST.fam === 'denser' ? (n => ({ n, E: gnm(R, n, ri(R, Math.floor(1.8 * n), Math.floor(2.6 * n))) }))(ri(R, 10, 20)) : roleGraph(R);
+  function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function layout(n, E, R) { const P = Array.from({ length: n }, (_, i) => [Math.cos(2 * Math.PI * i / n) + 0.1 * R(), Math.sin(2 * Math.PI * i / n) + 0.1 * R()]), k = 1 / Math.sqrt(n); for (let it = 0; it < 300; it++) { const t = 0.1 * (1 - it / 300) + 0.005, F = P.map(() => [0, 0]); for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const dx = P[i][0] - P[j][0], dy = P[i][1] - P[j][1], d = Math.hypot(dx, dy) + 1e-6, r = k * k / d; F[i][0] += dx / d * r; F[i][1] += dy / d * r; F[j][0] -= dx / d * r; F[j][1] -= dy / d * r; } for (const [a, b] of E) { const dx = P[a][0] - P[b][0], dy = P[a][1] - P[b][1], d = Math.hypot(dx, dy) + 1e-6, at = d * d / k; F[a][0] -= dx / d * at; F[a][1] -= dy / d * at; F[b][0] += dx / d * at; F[b][1] += dy / d * at; } P.forEach((p, i) => { const L = Math.hypot(...F[i]) + 1e-9; p[0] += F[i][0] / L * Math.min(L, t); p[1] += F[i][1] / L * Math.min(L, t); }); } const xs = P.map(p => p[0]), ys = P.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys); return P.map(([x, y]) => [(x - x0) / (x1 - x0 || 1), (y - y0) / (y1 - y0 || 1)]); }
+  function newStress() { const R = mulberry(9000 + ST.seed * 31 + ['train', 'larger', 'denser', 'roles'].indexOf(ST.fam)), G = draw1(R); ST.g = { n: G.n, E: G.E, pos: layout(G.n, G.E, R) }; scoreOne(); }
+  function scoreOne() {
+    const { n, E, pos } = ST.g, an = analyze(Array.from({ length: n }, (_, i) => i), E); ST.an = an;
+    const { ctx, w, h } = setup($('stG')), px = 18, X = x => px + x * (w - 2 * px), Y = y => px + y * (h - 2 * px);
+    ctx.strokeStyle = css('--muted'); ctx.lineWidth = 1.1; for (const [a, b] of E) { ctx.beginPath(); ctx.moveTo(X(pos[a][0]), Y(pos[a][1])); ctx.lineTo(X(pos[b][0]), Y(pos[b][1])); ctx.stroke(); }
+    pos.forEach((p, i) => { ctx.fillStyle = css('--accent'); ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 3 + 14 * Math.sqrt(an.bc[i]), 0, 7); ctx.fill(); });
+    const allP = MODES.flatMap(m => an.pred[m]), hi = Math.max(0.1, ...an.bc, ...allP) * 1.08, lo = Math.min(0, ...allP), f = frame($('stS'), [0, hi], [lo, hi], { pad: [40, 10, 8, 28], xf: v => v.toFixed(1), yf: v => v.toFixed(1) });
+    f.ctx.strokeStyle = css('--muted'); f.ctx.setLineDash([4, 3]); f.ctx.beginPath(); f.ctx.moveTo(f.X(0), f.Y(0)); f.ctx.lineTo(f.X(hi), f.Y(hi)); f.ctx.stroke(); f.ctx.setLineDash([]);
+    const col = MCOL(); MODES.forEach(m => { f.ctx.fillStyle = alpha(col[m], .8); an.bc.forEach((b, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(b), f.Y(an.pred[m][i]), 3.2, 0, 7); f.ctx.fill(); }); });
+    f.ctx.fillStyle = css('--muted'); f.ctx.textAlign = 'center'; f.ctx.fillText('exact betweenness', f.X(hi / 2), f.h - 4);
+    $('stCap').textContent = `${{ train: 'As in training', larger: 'Larger', denser: 'Denser', roles: 'Role graph' }[ST.fam]}: ${n} nodes, ${an.nEdge} ties, ${an.comp === 1 ? 'connected' : an.comp + ' pieces'} (${an.seedLabel})`;
+    predTable('stTab', an, Array.from({ length: n }, (_, i) => 'node ' + (i + 1)));
+  }
+  function scoreMany() {
+    const K = 40, R = mulberry(5000 + ST.seed + 97 * ['train', 'larger', 'denser', 'roles'].indexOf(ST.fam)), se = Object.fromEntries(MODES.map(m => [m, 0])); let nn = 0, k = 0;
+    $('stGo').disabled = true;
+    const step = () => {
+      for (let c = 0; c < 4 && k < K; c++, k++) { const G = draw1(R), an = analyze(Array.from({ length: G.n }, (_, i) => i), G.E); MODES.forEach(m => an.pred[m].forEach((p, i) => se[m] += (p - an.bc[i]) ** 2)); nn += G.n; }
+      $('stMsg').textContent = `Scoring ${k} of ${K} graphs…`;
+      if (k < K) { setTimeout(step, 0); return; }
+      $('stGo').disabled = false;
+      const key = { train: 'heldout', larger: 'larger', denser: 'denser', roles: 'roles' }[ST.fam], P = GT.summary[key];
+      $('stMany').innerHTML = `<thead><tr><th>model</th><th>here, ${K} graphs</th><th>paper, 300 graphs × 5 seeds</th></tr></thead><tbody>${MODES.map(m => `<tr><td><i class="sw dot ${m}"></i> ${MNAME[m]}</td><td>${fmt(Math.sqrt(se[m] / nn), 3)}</td><td>${fmt(P[m].rmse[0], 3)} <span class="hint">(${fmt(P[m].rmse[1], 3)})</span></td></tr>`).join('')}</tbody>`;
+      const order = MODES.slice().sort((a, b) => se[a] - se[b]).map(m => MNAME[m]);
+      $('stMsg').innerHTML = `RMSE pooled over the nodes of ${K} new graphs (${SEL === 'all' ? 'mean of five seeds' : 'seed ' + SEL}), best first: ${order.join(', ')}. ${{ train: 'These are the conditions the models were trained in.', larger: 'Size is what hurts: four layers of the Local model reach four steps, and these graphs extend well beyond that.', denser: 'Density does no harm: betweenness is smaller and more evenly spread in dense graphs.', roles: 'On role graphs the distance bias model is clearly best, yet on the one real control graph it is not. Averages over many graphs can hide a single one.' }[ST.fam]}`;
+    };
+    step();
+  }
+  segInit('stF', v => { ST.fam = v; $('stMany').innerHTML = ''; $('stMsg').textContent = 'Press "Score 40 graphs" for the error over many graphs.'; newStress(); });
+  $('stNew').onclick = () => { ST.seed++; newStress(); };
+  $('stGo').onclick = scoreMany;
 
   /* PART II: MUMBAI */
   function simpleEx(p, data, padX, styleE, styleN, msgFn) {
@@ -687,14 +799,15 @@ code { font-family: var(--font-mono); font-size: 13px; }
       const errs = MODES.map(md => [rmse(an.pred[md], an.bc), md]).sort((a, b) => a[0] - b[0]);
       let s = `Top four by betweenness: <b>${t[0]}</b>, ${t.slice(1).join(', ')}. `;
       s += m >= 0 ? `Mukesh scores ${fmt(an.bc[m], 3)}: every route he carries is also carried by a child or by the parent company. ` : `With Mukesh removed the graph is ${comps(an)}. `;
-      s += `Smallest error here: ${MNAME[errs[0][1]]} (${fmt(errs[0][0], 3)}); largest: ${MNAME[errs[3][1]]} (${fmt(errs[3][0], 3)}). These graphs are denser than most training graphs, and the errors are larger than in Florence.`;
+      const h = argmax(an.bc), first = MODES.filter(md => argmax(an.pred[md]) === h).map(md => MNAME[md]);
+      s += `Smallest error here: ${MNAME[errs[0][1]]} (${fmt(errs[0][0], 3)}); largest: ${MNAME[errs[3][1]]} (${fmt(errs[3][0], 3)}). ${first.length ? first.join(', ') + (first.length === 1 ? ' names' : ' name') : 'No model names'} ${names[an.idx[h]]} first. On the unedited graph the paper finds only the Local model names Isha first in all five seeds, and it has no full explanation: on denser random graphs, and on random graphs of people and businesses, the distance bias model does as well or better.`;
       return s;
     });
   $('coDropM').onclick = () => { const i = co.I.Mukesh; co.removed.has(i) ? co.removed.delete(i) : co.removed.add(i); $('coDropM').textContent = co.removed.has(i) ? 'Bring Mukesh back' : 'Remove Mukesh'; co.update(); };
 
-  function all() { renderFl(); renderTr(); ho.o.render(); co.o.render(); }
-  fl.update(); ho.update(); co.update(); renderTr();
-  window.__GTcheck = () => ({ fl: fl.an, ho: ho.an, co: co.an });
+  function all() { renderFl(); renderTr(); ho.o.render(); co.o.render(); if (ST.g) scoreOne(); }
+  fl.update(); ho.update(); co.update(); renderTr(); newStress(); $('stMsg').textContent = 'Press "Score 40 graphs" for the error over many graphs.';
+  window.__GTcheck = () => ({ fl: fl.an, ho: ho.an, co: co.an, st: ST.an, sel: SEL, loaded: Object.keys(WTS) });
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(all, 120); });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
 })();
