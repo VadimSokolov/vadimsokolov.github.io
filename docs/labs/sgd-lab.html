@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>SGD Lab</title>
+<script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, chtml: { scale: 1, matchFontHeight: false }, options: { enableMenu: false } };</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header with three framing cards; Part I paths on a loss surface (GD, SGD, momentum, Adam, averaging); Part II the noise ball and step-size schedules; Part III SGD as a sampler (SGLD); lesson, notes, class exercises. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
+  --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+    --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+  --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); }
+.src a { color: var(--accent); }
+.part { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); margin: 12px 0 0; border-top: 2px solid var(--line); padding-top: 18px; }
+.part small { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.dash { border-top: 2px dashed var(--ink); }
+.sw.red { border-top: 2.5px solid var(--curve); }
+.sw.acc { border-top: 2.5px solid var(--accent); }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
+.sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
+.sw.bar.ball { background: var(--ball); } .sw.bar.acc2 { background: var(--accent); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
+.sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.msg.warn { border-color: var(--curve); }
+.msg.warn b { color: var(--curve); }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-left: 0; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--curve); } .stat .v.good { color: var(--fit); }
+
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 88ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+.sec .head p + p { margin-top: 4px; }
+.tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
+mjx-container { font-size: 105%; }
+.frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame .note h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; }
+.frame .note p { margin: 0; font-size: 14px; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; overflow-x: auto; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.note a { color: var(--accent); }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+code { font-family: var(--font-mono); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.sw.dot { width: 9px; height: 9px; border: 0; border-radius: 50%; }
+.sw.ell { width: 16px; height: 10px; border: 2px solid var(--curve); border-radius: 50%; }
+.sw.ell2 { width: 16px; height: 10px; border: 2px dashed var(--ink); border-radius: 50%; }
+.methods label { justify-content: space-between; }
+.methods label span { display: inline-flex; gap: 8px; align-items: center; }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Optimization</span>
+    <h1>SGD Lab: noisy steps downhill</h1>
+    <p class="lead">Every network in these labs is trained by stochastic gradient descent: estimate the gradient of the loss from a small random batch, take a step against it, repeat. The estimate is noisy, and the noise is not a nuisance to be averaged away. It decides how close SGD gets to the optimum, how the step size should shrink, and, with a little added noise, turns the optimizer into a sampler from the Bayes posterior. Everything here runs on a two-parameter regression, so the whole loss surface fits on the screen.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">The data: \(n = 200\) points \(y_i = 1 + 2x_i + \varepsilon_i\), \(\varepsilon_i \sim N(0, 1)\), and the squared-error loss of the line \(\theta_1 + \theta_2 x\). All computation is in your browser. References: Robbins and Monro (1951); Polyak and Juditsky (1992); Kingma and Ba (2015) for Adam; Welling and Teh (2011) for stochastic gradient Langevin dynamics; Mandt, Hoffman and Blei (2017) for SGD as approximate Bayesian inference.</p>
+  </header>
+
+  <section class="frame">
+    <div class="note"><h3>An unbiased, noisy gradient</h3><p>The loss is an average over data, \(L(\theta) = \frac1n \sum_i \ell_i(\theta)\). A random batch \(B\) gives \(g = \frac1{|B|}\sum_{i \in B} \nabla \ell_i(\theta)\), with \(\mathbb E\, g = \nabla L(\theta)\) and a variance that shrinks like \(1/|B|\). One pass over the data buys \(n/|B|\) steps instead of one.</p></div>
+    <div class="note"><h3>Robbins and Monro, 1951</h3><p>To find the root of a function you can only observe with noise, step with sizes \(\eta_t\) that satisfy \(\sum_t \eta_t = \infty\) (you can reach anywhere) and \(\sum_t \eta_t^2 &lt; \infty\) (the noise adds up to something finite). \(\eta_t = \eta_0/(1 + t/\tau)\) qualifies. A constant step does not.</p></div>
+    <div class="note"><h3>Noise as a feature</h3><p>With a constant step SGD never settles: it wanders in a ball around the optimum whose size is set by \(\eta\) and the batch size. Add Gaussian noise of the right size and the wandering becomes a draw from the posterior. That is stochastic gradient Langevin dynamics.</p></div>
+  </section>
+
+  <h2 class="part"><small>Part I</small>Paths on a loss surface</h2>
+
+  <section class="sec" aria-labelledby="paH">
+    <div class="head">
+      <h2 id="paH">Five optimizers from the same start</h2>
+      <p>The contours are the full-data loss \(L(\theta_1, \theta_2)\); the cross is its minimum, the least squares fit. Each path is one optimizer with the same learning rate \(\eta\) and the same batches: full-batch gradient descent, minibatch SGD, SGD with momentum \(v \leftarrow \beta v + (1 - \beta) g,\ \theta \leftarrow \theta - \eta v\) with \(\beta = 0.9\), Adam, and the average of the SGD iterates over the second half of the run (Polyak–Ruppert). Click the contour plot to move the start. Move the mean of \(x\) away from zero and the intercept and slope become correlated: the valley turns into a long narrow trough, and gradient descent starts to zigzag.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap" id="paCap"></span>
+        <canvas id="paC" height="440" style="cursor:crosshair"></canvas>
+        <div class="legend" id="paLeg"></div>
+        <span class="cap">Loss above the minimum, L(θₜ) − L(θ̂), by step, log scale</span>
+        <canvas id="paL" height="220"></canvas>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="paEta">Learning rate η</label><output id="paEtaO"></output></div><input id="paEta" type="range" min="-3" max="0.3" step="0.01" value="-1.3"></div>
+          <div class="slider"><div class="top"><label for="paB">Batch size</label><output id="paBO"></output></div><input id="paB" type="range" min="0" max="7" step="1" value="0"></div>
+          <div class="slider"><div class="top"><label for="paT">Steps</label><output id="paTO"></output></div><input id="paT" type="range" min="1" max="4" step="0.05" value="2.7"></div>
+          <div class="slider"><div class="top"><label for="paM">Mean of x (conditioning)</label><output id="paMO"></output></div><input id="paM" type="range" min="0" max="4" step="0.1" value="1"></div>
+        </div>
+        <div class="group">
+          <span class="label">Step size for SGD, momentum and Adam</span>
+          <div class="seg" id="paS"><button data-v="const" aria-pressed="true">Constant</button><button data-v="rm" aria-pressed="false">η₀/(1 + t/τ)</button><button data-v="step" aria-pressed="false">Halve every 25%</button></div>
+        </div>
+        <div class="group checks methods" id="paShow"></div>
+        <div class="group">
+          <div class="btns"><button id="paNew">New batches</button><button id="paRe">Reset start</button></div>
+          <table class="stats" id="paTab"></table>
+        </div>
+        <div class="group"><p class="msg" id="paMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part II</small>The noise ball</h2>
+
+  <section class="sec" aria-labelledby="nbH">
+    <div class="head">
+      <h2 id="nbH">Constant steps hover, shrinking steps converge</h2>
+      <p>Run 300 independent SGD chains from the same start and plot where they are after \(t\) steps. With a constant step the cloud stops shrinking: near the optimum the loss is a quadratic with Hessian \(H\), and the stationary spread \(\Sigma\) of SGD solves \(H\Sigma + \Sigma H = \eta\, C / |B|\), with \(C\) the covariance of one example's gradient. In this regression \(C \approx \sigma^2 H\), so \(\Sigma \approx \frac{\eta \sigma^2}{2|B|} I\): a circle, whatever the shape of the valley. With \(\eta_t = \eta_0 / (1 + t/\tau)\) the cloud keeps shrinking, and averaging the iterates shrinks it faster still.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap" id="nbCap"></span><canvas id="nbC" height="320"></canvas>
+          <div class="legend"><span><i class="sw dot" style="background:var(--accent)"></i>chain after t steps</span><span><i class="sw ell"></i>theory, 2 sd</span><span><i class="sw ell2"></i>sampling uncertainty of θ̂, 2 sd</span></div></div>
+        <div class="board"><span class="cap">Mean squared distance to θ̂ over the 300 chains, by step (log–log)</span><canvas id="nbD" height="320"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>constant η</span><span><i class="sw ballc"></i>η₀/(1 + t/τ)</span><span><i class="sw"></i>average of the constant-η iterates</span><span><i class="sw dash"></i>theory ησ²/|B|</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="nbEta">Learning rate η (and η₀)</label><output id="nbEtaO"></output></div><input id="nbEta" type="range" min="-3" max="-0.7" step="0.01" value="-1.5"></div>
+          <div class="slider"><div class="top"><label for="nbB">Batch size</label><output id="nbBO"></output></div><input id="nbB" type="range" min="0" max="6" step="1" value="0"></div>
+          <div class="slider"><div class="top"><label for="nbT">Show the cloud at step t</label><output id="nbTO"></output></div><input id="nbT" type="range" min="1" max="3.5" step="0.05" value="3.5"></div>
+          <div class="slider"><div class="top"><label for="nbTau">τ for the shrinking step</label><output id="nbTauO"></output></div><input id="nbTau" type="range" min="1" max="3" step="0.1" value="2"></div>
+        </div>
+        <div class="group"><span class="label">Cloud of</span>
+          <div class="seg" id="nbW"><button data-v="c" aria-pressed="true">Constant η</button><button data-v="r" aria-pressed="false">Shrinking η</button><button data-v="a" aria-pressed="false">Averaged</button></div></div>
+        <div class="group"><table class="stats" id="nbTab"></table></div>
+        <div class="group"><p class="msg" id="nbMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part III</small>SGD as a sampler</h2>
+
+  <section class="sec" aria-labelledby="lgH">
+    <div class="head">
+      <h2 id="lgH">Stochastic gradient Langevin dynamics</h2>
+      <p>Write the posterior under a flat prior as \(p(\theta \mid y) \propto e^{-U(\theta)}\) with \(U(\theta) = \frac{1}{2\sigma^2}\sum_i (y_i - \theta_1 - \theta_2 x_i)^2\). Langevin dynamics steps \(\theta \leftarrow \theta - \epsilon \nabla U(\theta) + \sqrt{2\epsilon}\, \xi\), \(\xi \sim N(0, I)\), and for small \(\epsilon\) its draws come from the posterior. Welling and Teh replace \(\nabla U\) by the batch estimate \(\frac{n}{|B|}\sum_{i \in B} \nabla U_i\) and skip the accept–reject step. The extra noise from the batch adds to the injected noise, so the cloud is too wide unless \(\epsilon\) is small. Turn the injected noise off and you are back to plain SGD, whose cloud is the wrong size and shape for a posterior.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap" id="lgCap"></span><canvas id="lgC" height="400"></canvas>
+        <div class="legend"><span><i class="sw dot" style="background:var(--accent)"></i>draws, after burn-in</span><span><i class="sw ell2"></i>exact posterior, 1 and 2 sd</span><span><i class="sw ell"></i>covariance of the draws, 2 sd</span></div></div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="lgEps">Step ε, as a fraction of the stability limit</label><output id="lgEpsO"></output></div><input id="lgEps" type="range" min="-3" max="-0.4" step="0.01" value="-2"></div>
+          <div class="slider"><div class="top"><label for="lgB">Batch size</label><output id="lgBO"></output></div><input id="lgB" type="range" min="0" max="7" step="1" value="2"></div>
+          <div class="slider"><div class="top"><label for="lgMx">Mean of x</label><output id="lgMxO"></output></div><input id="lgMx" type="range" min="0" max="4" step="0.1" value="1"></div>
+          <div class="checks"><label><input type="checkbox" id="lgNo" checked> Inject the Langevin noise √(2ε) ξ</label></div>
+        </div>
+        <div class="group"><table class="stats" id="lgTab"></table></div>
+        <div class="group"><button id="lgGo" class="primary">Draw again</button></div>
+        <div class="group"><p class="msg" id="lgMsg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head"><h2>What carries over</h2></div>
+    <ol class="steps">
+      <li><div><h3>The step size has a ceiling</h3><p>On a quadratic with largest curvature \(\lambda_{\max}\), gradient descent converges only when \(\eta &lt; 2/\lambda_{\max}\), and the flattest direction converges at rate \(1 - \eta\lambda_{\min}\). The ratio \(\lambda_{\max}/\lambda_{\min}\), the condition number, is why a long narrow valley is slow: centring and scaling the inputs is the cheapest optimizer there is.</p></div></li>
+      <li><div><h3>Constant steps buy speed and a floor</h3><p>A constant \(\eta\) gets near the optimum fast, then hovers at a mean squared distance of about \(\eta \sigma^2/|B|\) in this problem. Halve \(\eta\) or double the batch and the floor halves. Step-decay schedules in deep learning are this trade, made by hand.</p></div></li>
+      <li><div><h3>Average the iterates</h3><p>Polyak–Ruppert averaging of a constant-step or slowly decaying SGD reaches the best possible rate, the sampling error of \(\hat\theta\) itself, without tuning the decay. The average is less noisy than any single iterate because consecutive iterates are noisy in nearly independent directions.</p></div></li>
+      <li><div><h3>An optimizer is a sampler with the wrong temperature</h3><p>SGD with constant step is a Markov chain with a stationary distribution. Add noise of variance \(2\epsilon\) and the stationary distribution is the posterior, provided the batch noise is small next to it. Momentum and Adam change the path, not the target.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cp">Minibatch SGD</div>\[ \theta_{t+1} = \theta_t - \eta_t \tfrac{1}{|B_t|} \textstyle\sum_{i \in B_t} \nabla \ell_i(\theta_t) \]</div>
+      <div class="eq"><div class="cp">Robbins–Monro conditions</div>\[ \textstyle\sum_t \eta_t = \infty, \qquad \sum_t \eta_t^2 &lt; \infty \]</div>
+      <div class="eq"><div class="cp">Stationary spread of constant-step SGD</div>\[ H\Sigma + \Sigma H = \tfrac{\eta}{|B|} C \;\Rightarrow\; \Sigma \approx \tfrac{\eta\sigma^2}{2|B|} I \]</div>
+      <div class="eq"><div class="cp">SGLD</div>\[ \theta \leftarrow \theta - \epsilon \tfrac{n}{|B|}\textstyle\sum_{i\in B} \nabla U_i(\theta) + \sqrt{2\epsilon}\,\xi \]</div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note"><h2>Momentum and Adam</h2><p>Heavy-ball momentum keeps a running sum of past gradients, so steps across a narrow valley cancel and steps along it add up; on a quadratic it improves the dependence on the condition number from \(\kappa\) to \(\sqrt\kappa\). Adam divides each coordinate's step by a running root mean square of its gradients, which undoes bad scaling of the inputs coordinate by coordinate, but not correlation between them.</p></div>
+    <div class="note"><h2>Why not always full batch?</h2><p>Per pass over the data, full-batch gradient descent takes one step and SGD with batch size 1 takes \(n\). Early in training, when the gradient is large compared with its noise, the cheap noisy steps win by a wide margin. Near the optimum the noise dominates and the batch should grow or the step shrink: the two are nearly interchangeable, since the floor depends on \(\eta/|B|\).</p></div>
+    <div class="note"><h2>The exact answer, for checking</h2><p>The loss here is a quadratic, so \(\hat\theta = (X^\top X)^{-1}X^\top y\) and \(H = X^\top X / n\) are known exactly, and the posterior under a flat prior is \(N(\hat\theta, \sigma^2 (X^\top X)^{-1})\). A deep network has none of these in closed form, which is why it pays to see the behaviour first where the answer is known.</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Raise η until gradient descent diverges. Compare the value with \(2/\lambda_{\max}\) shown in the table. Then move the mean of \(x\) to 3 and repeat: why does the limit drop?</li>
+      <li>With the mean of \(x\) at 3, how many steps does gradient descent need to reach the minimum? Which of momentum and Adam helps more, and why does Adam not fully fix it?</li>
+      <li>Set batch size 1 and a constant η. Where does the SGD path end up after 10,000 steps? Switch the schedule to η₀/(1 + t/τ) and compare the end points. Then look at the Polyak average.</li>
+      <li>In Part II, read the mean squared distance at the plateau for η = 0.03 and batch size 1. Double the batch, then halve η instead. Does the plateau follow \(\eta\sigma^2/|B|\)?</li>
+      <li>In Part II, compare the constant-η cloud with the dashed ellipse of the sampling uncertainty of \(\hat\theta\). Which is larger at η = 0.1, and what value of η would make them about the same size?</li>
+      <li>In Part III, turn off the injected noise. What is the cloud now, and why does it not match the posterior? Turn the noise back on and raise ε towards the stability limit: in which direction does the cloud become too wide first?</li>
+    </ol>
+  </section>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
+  const fmtInt = v => Math.round(v).toLocaleString('en-US');
+  const sci = v => !Number.isFinite(v) ? '∞' : v === 0 ? '0' : Math.abs(v) >= 0.01 && Math.abs(v) < 1000 ? (+v.toPrecision(3)).toString() : v.toExponential(1).replace('e', '×10^').replace(/\^\+?(-?\d+)/, (m, e) => '<sup>' + e + '</sup>');
+  const alpha = (c, a) => `color-mix(in srgb, ${c} ${Math.round(a * 100)}%, transparent)`;
+  const segInit = (id, f) => $(id).querySelectorAll('button').forEach(b => b.onclick = () => { $(id).querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); f(b.dataset.v); });
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const gauss = R => { let u = 0, v = 0; while (!u) u = R(); while (!v) v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  function setup(cv) {
+    if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return { ctx, w, h };
+  }
+  function nice(r, n) { const span = r[1] - r[0], raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= raw); const out = []; for (let v = Math.ceil(r[0] / st) * st; v <= r[1] + 1e-9; v += st) out.push(+v.toFixed(10)); return out; }
+  function frame(cv, xr, yr, o = {}) {
+    const { ctx, w, h } = setup(cv), p = o.pad || [46, 12, 10, 30];
+    const X = x => p[0] + (x - xr[0]) / (xr[1] - xr[0]) * (w - p[0] - p[1]);
+    const Y = y => h - p[3] - (y - yr[0]) / (yr[1] - yr[0]) * (h - p[2] - p[3]);
+    ctx.font = '11px ' + css('--font-mono'); ctx.fillStyle = css('--muted'); ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1;
+    const xt = o.xt || nice(xr, 6), yt = o.yt || nice(yr, 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const t of xt) { ctx.beginPath(); ctx.moveTo(X(t), p[2]); ctx.lineTo(X(t), h - p[3]); ctx.stroke(); ctx.fillText(o.xf ? o.xf(t) : t, X(t), h - p[3] + 5); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const t of yt) { ctx.beginPath(); ctx.moveTo(p[0], Y(t)); ctx.lineTo(w - p[1], Y(t)); ctx.stroke(); ctx.fillText(o.yf ? o.yf(t) : t, p[0] - 6, Y(t)); }
+    return { ctx, w, h, X, Y, p };
+  }
+  function path(ctx, pts, X, Y, color, wdt = 2, dash) { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = wdt; ctx.lineJoin = 'round'; if (dash) ctx.setLineDash(dash); ctx.beginPath(); let on = false; for (const [a, b] of pts) { if (!Number.isFinite(a) || !Number.isFinite(b) || Math.abs(a) > 1e6 || Math.abs(b) > 1e6) { on = false; continue; } on ? ctx.lineTo(X(a), Y(b)) : ctx.moveTo(X(a), Y(b)); on = true; } ctx.stroke(); ctx.restore(); }
+  // 2 x 2 symmetric eigen decomposition
+  function eig2(a, b, d) { const tr = a + d, det = a * d - b * b, disc = Math.sqrt(Math.max(0, tr * tr / 4 - det)), l1 = tr / 2 + disc, l2 = tr / 2 - disc; let v1 = Math.abs(b) > 1e-14 ? [l1 - d, b] : (a >= d ? [1, 0] : [0, 1]); const nv = Math.hypot(...v1); v1 = [v1[0] / nv, v1[1] / nv]; return { l: [l1, l2], v: [v1, [-v1[1], v1[0]]] }; }
+  // ellipse {x : (x-m)' S^{-1} (x-m) = r^2} for covariance S
+  function ellipse(ctx, m, S, r, X, Y, color, dash, wdt = 1.8) { const E = eig2(S[0], S[1], S[2]), pts = []; for (let k = 0; k <= 96; k++) { const t = k / 96 * 2 * Math.PI, a = r * Math.sqrt(Math.max(E.l[0], 0)) * Math.cos(t), b = r * Math.sqrt(Math.max(E.l[1], 0)) * Math.sin(t); pts.push([m[0] + a * E.v[0][0] + b * E.v[1][0], m[1] + a * E.v[0][1] + b * E.v[1][1]]); } path(ctx, pts, X, Y, color, wdt, dash); }
+
+  /* DATA: y = 1 + 2x + e, x ~ N(m, 1), n = 200 */
+  const n = 200, XZ = [], EZ = []; { const R = mulberry32(19510601); for (let i = 0; i < n; i++) { XZ.push(gauss(R)); EZ.push(gauss(R)); } }
+  function data(m) {
+    const x = XZ.map(z => m + z), y = x.map((v, i) => 1 + 2 * v + EZ[i]);
+    let sx = 0, sxx = 0, sy = 0, sxy = 0; for (let i = 0; i < n; i++) { sx += x[i]; sxx += x[i] * x[i]; sy += y[i]; sxy += x[i] * y[i]; }
+    const H = [1, sx / n, sxx / n], det = H[0] * H[2] - H[1] * H[1], b = [sy / n, sxy / n];
+    const th = [(H[2] * b[0] - H[1] * b[1]) / det, (H[0] * b[1] - H[1] * b[0]) / det];
+    const r = y.map((v, i) => v - th[0] - th[1] * x[i]), s2 = r.reduce((s, v) => s + v * v, 0) / (n - 2);
+    let C = [0, 0, 0]; for (let i = 0; i < n; i++) { const e2 = r[i] * r[i]; C[0] += e2; C[1] += e2 * x[i]; C[2] += e2 * x[i] * x[i]; } C = C.map(v => v / n);
+    const L = t => { let s = 0; for (let i = 0; i < n; i++) { const e = y[i] - t[0] - t[1] * x[i]; s += e * e; } return s / (2 * n); };
+    return { x, y, H, th, s2, C, L, Lmin: L(th), E: eig2(...H) };
+  }
+  const grad = (D, t, idx) => { let g0 = 0, g1 = 0; for (const i of idx) { const e = D.y[i] - t[0] - t[1] * D.x[i]; g0 -= e; g1 -= e * D.x[i]; } return [g0 / idx.length, g1 / idx.length]; };
+  const BS = [1, 2, 5, 10, 20, 50, 100, 200];
+
+  /* PART I: five optimizers */
+  const MET = [['gd', 'Gradient descent (full batch)', '--ink'], ['sgd', 'Minibatch SGD', '--accent'], ['mom', 'SGD with momentum', '--ball'], ['adam', 'Adam', '--alt'], ['avg', 'Average of SGD iterates', '--fit']];
+  const PA = { show: { gd: true, sgd: true, mom: true, adam: false, avg: true }, sched: 'const', seed: 1, start: null };
+  $('paShow').innerHTML = MET.map(([k, nm, c]) => `<label><span><input type="checkbox" data-k="${k}" ${PA.show[k] ? 'checked' : ''}> ${nm}</span><i class="sw" style="border-top-color:var(${c})${k === 'avg' ? ';border-top-style:dashed' : ''}"></i></label>`).join('');
+  $('paShow').querySelectorAll('input').forEach(c => c.onchange = () => { PA.show[c.dataset.k] = c.checked; drawPa(); });
+  let paRes = null;
+  function runPa() {
+    const eta = 10 ** +$('paEta').value, B = BS[+$('paB').value], T = Math.round(10 ** +$('paT').value), m = +$('paM').value, D = data(m);
+    if (!PA.start) PA.start = [D.th[0] - 3, D.th[1] - 2.5];
+    const R = mulberry32(1000 + PA.seed), batches = Array.from({ length: T }, () => Array.from({ length: B }, () => Math.floor(R() * n)));
+    const all = Array.from({ length: n }, (_, i) => i), tau = T / 10;
+    const lr = t => PA.sched === 'const' ? eta : PA.sched === 'rm' ? eta / (1 + t / tau) : eta * 0.5 ** Math.floor(4 * t / T);
+    const out = {}, rec = (k, th) => { out[k].push([th[0], th[1]]); };
+    const bad = th => !Number.isFinite(th[0]) || Math.abs(th[0]) > 1e8 || Math.abs(th[1]) > 1e8;
+    // gradient descent, full batch, constant eta
+    out.gd = []; let th = PA.start.slice(); rec('gd', th);
+    for (let t = 0; t < T && !bad(th); t++) { const g = grad(D, th, all); th = [th[0] - eta * g[0], th[1] - eta * g[1]]; rec('gd', th); }
+    out.sgd = []; out.avg = []; th = PA.start.slice(); rec('sgd', th); let sum = [0, 0], cnt = 0;
+    for (let t = 0; t < T && !bad(th); t++) { const g = grad(D, th, batches[t]), a = lr(t); th = [th[0] - a * g[0], th[1] - a * g[1]]; rec('sgd', th); if (t + 1 >= T / 2) { sum[0] += th[0]; sum[1] += th[1]; cnt++; out.avg.push([sum[0] / cnt, sum[1] / cnt]); } }
+    out.mom = []; th = PA.start.slice(); rec('mom', th); let v = [0, 0];
+    for (let t = 0; t < T && !bad(th); t++) { const g = grad(D, th, batches[t]), a = lr(t); v = [0.9 * v[0] + 0.1 * g[0], 0.9 * v[1] + 0.1 * g[1]]; th = [th[0] - a * v[0], th[1] - a * v[1]]; rec('mom', th); }
+    out.adam = []; th = PA.start.slice(); rec('adam', th); let mm = [0, 0], vv = [0, 0];
+    for (let t = 0; t < T && !bad(th); t++) { const g = grad(D, th, batches[t]), a = lr(t); for (let j = 0; j < 2; j++) { mm[j] = 0.9 * mm[j] + 0.1 * g[j]; vv[j] = 0.999 * vv[j] + 0.001 * g[j] * g[j]; } const c1 = 1 - 0.9 ** (t + 1), c2 = 1 - 0.999 ** (t + 1); th = th.map((x, j) => x - a * (mm[j] / c1) / (Math.sqrt(vv[j] / c2) + 1e-8)); rec('adam', th); }
+    paRes = { D, eta, B, T, m, out };
+  }
+  function drawPa() {
+    const { D, eta, B, T, out } = paRes, st = PA.start, c = D.th;
+    const hw = Math.max(1.5, Math.abs(st[0] - c[0]) * 1.3, Math.abs(st[1] - c[1]) * 1.3);
+    const cv = $('paC'), w = cv.clientWidth, h = +cv.getAttribute('height'), asp = (w - 58) / (h - 40);
+    const xr = [c[0] - hw * Math.max(1, asp), c[0] + hw * Math.max(1, asp)], yr = [c[1] - hw * Math.max(1, 1 / asp), c[1] + hw * Math.max(1, 1 / asp)];
+    const f = frame(cv, xr, yr, { pad: [46, 12, 10, 30] });
+    // contours of L - Lmin = 0.5 d'Hd = lev: ellipse with covariance H^{-1} and radius sqrt(2 lev)
+    const det = D.H[0] * D.H[2] - D.H[1] * D.H[1], Hi = [D.H[2] / det, -D.H[1] / det, D.H[0] / det];
+    for (let k = -6; k <= 8; k++) ellipse(f.ctx, c, Hi, Math.sqrt(2 * 0.05 * 2 ** k), f.X, f.Y, alpha(css('--muted'), .45), null, 1);
+    f.ctx.fillStyle = css('--muted'); f.ctx.textAlign = 'center'; f.ctx.fillText('intercept θ₁', f.X((xr[0] + xr[1]) / 2), f.h - 6); f.ctx.save(); f.ctx.translate(11, f.h / 2); f.ctx.rotate(-Math.PI / 2); f.ctx.fillText('slope θ₂', 0, 0); f.ctx.restore();
+    f.ctx.save(); f.ctx.beginPath(); f.ctx.rect(f.p[0], f.p[2], f.w - f.p[0] - f.p[1], f.h - f.p[2] - f.p[3]); f.ctx.clip();
+    for (const [k, , col] of MET) if (PA.show[k] && out[k].length) path(f.ctx, out[k], f.X, f.Y, css(col), k === 'gd' ? 2.2 : 1.5, k === 'avg' ? [6, 3] : null);
+    f.ctx.restore();
+    f.ctx.strokeStyle = css('--curve'); f.ctx.lineWidth = 2.5; const cx = f.X(c[0]), cy = f.Y(c[1]); f.ctx.beginPath(); f.ctx.moveTo(cx - 7, cy - 7); f.ctx.lineTo(cx + 7, cy + 7); f.ctx.moveTo(cx + 7, cy - 7); f.ctx.lineTo(cx - 7, cy + 7); f.ctx.stroke();
+    f.ctx.fillStyle = css('--ink'); f.ctx.beginPath(); f.ctx.arc(f.X(st[0]), f.Y(st[1]), 5, 0, 7); f.ctx.fill();
+    PA.map = { xr, yr, f };
+    $('paCap').textContent = `Contours of the full-data loss; minimum at θ̂ = (${fmt(c[0])}, ${fmt(c[1])}); ${fmtInt(T)} steps of batch size ${B}`;
+    $('paLeg').innerHTML = MET.filter(([k]) => PA.show[k]).map(([k, nm, col]) => `<span><i class="sw" style="border-top-color:var(${col})${k === 'avg' ? ';border-top-style:dashed' : ''}"></i>${nm}</span>`).join('') + '<span><i class="sw dot" style="background:var(--ink)"></i>start (click to move)</span>';
+    // loss by step
+    const gap = k => out[k].map(t => Math.max(D.L(t) - D.Lmin, 1e-12));
+    const series = MET.filter(([k]) => PA.show[k] && out[k].length).map(([k, , col]) => { const g = gap(k), off = k === 'avg' ? Math.ceil(T / 2) : 0; return { k, col, xs: g.map((_, i) => Math.log10(i + 1 + off)), ys: g.map(v => Math.log10(Math.min(v, 1e6))) }; });
+    const yall = series.flatMap(s => s.ys), ylo = Math.max(-10, Math.floor(Math.min(...yall, 0) )), yhi = Math.ceil(Math.max(...yall, 0));
+    const g = frame($('paL'), [0, Math.log10(T + 1)], [ylo, yhi], { pad: [50, 12, 8, 28], xt: nice([0, Math.log10(T + 1)], 4).filter(v => Number.isInteger(v)), xf: v => fmtInt(10 ** v), yt: nice([ylo, yhi], 4).filter(v => Number.isInteger(v)), yf: v => v === 0 ? '1' : '10' + (v < 0 ? '⁻' : '') + String(Math.abs(v)).split('').map(d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]).join('') });
+    series.forEach(s => path(g.ctx, s.xs.map((x, i) => [x, s.ys[i]]), g.X, g.Y, css(s.col), 1.6, s.k === 'avg' ? [6, 3] : null));
+    // table
+    const lmax = D.E.l[0], lmin = D.E.l[1], last = k => out[k][out[k].length - 1], fin = k => { const t = last(k); return out[k].length === T + 1 || (k === 'avg' && out.sgd.length === T + 1) ? D.L(t) - D.Lmin : Infinity; };
+    $('paTab').innerHTML = `<thead><tr><th>method</th><th>L − L̂ at end</th><th>|θ − θ̂|</th></tr></thead><tbody>${MET.filter(([k]) => PA.show[k] && out[k].length).map(([k, nm]) => { const t = last(k), fv = fin(k); return `<tr><td>${nm.replace(' (full batch)', '').replace('Average of SGD iterates', 'SGD average')}</td><td>${Number.isFinite(fv) ? sci(fv) : 'diverged'}</td><td>${Number.isFinite(fv) ? sci(Math.hypot(t[0] - c[0], t[1] - c[1])) : '–'}</td></tr>`; }).join('')}<tr><td>λ<sub>max</sub>, λ<sub>min</sub> of H</td><td colspan="2">${fmt(lmax, 2)}, ${fmt(lmin, 3)}</td></tr><tr><td>2/λ<sub>max</sub>, κ</td><td colspan="2">${fmt(2 / lmax, 3)}, ${fmt(lmax / lmin, 1)}</td></tr></tbody>`;
+    const gdOk = Number.isFinite(fin('gd')), floorTh = eta * D.s2 / B;
+    let msg = gdOk ? `η = ${sci(eta)} is ${fmt(100 * eta * lmax / 2, 0)}% of the stability limit 2/λ<sub>max</sub> = ${fmt(2 / lmax, 3)}. ` : `<b>Gradient descent diverged</b>: η = ${sci(eta)} is above 2/λ<sub>max</sub> = ${fmt(2 / lmax, 3)}. `;
+    msg += `The slowest direction contracts by 1 − ηλ<sub>min</sub> = ${fmt(1 - eta * lmin, 4)} per step${gdOk && eta * lmin < 0.01 ? ', so gradient descent crawls along the valley' : ''}. `;
+    if (PA.sched === 'const' && B < n) msg += `With a constant step, SGD settles at a mean squared distance of about ησ²/|B| ≈ ${sci(floorTh)} from θ̂ and stays there; the average sits much closer.`;
+    else if (PA.sched !== 'const') msg += 'With a shrinking step, SGD keeps getting closer, at the price of slower progress early.';
+    $('paMsg').innerHTML = msg;
+  }
+  function readPa() { $('paEtaO').textContent = (+(10 ** +$('paEta').value).toPrecision(2)).toString(); $('paBO').textContent = BS[+$('paB').value]; $('paTO').textContent = fmtInt(10 ** +$('paT').value); $('paMO').textContent = fmt(+$('paM').value, 1); }
+  function updPa() { readPa(); runPa(); drawPa(); }
+  ['paEta', 'paB', 'paT'].forEach(id => $(id).oninput = updPa);
+  $('paM').oninput = () => { PA.start = null; updPa(); };
+  segInit('paS', v => { PA.sched = v; updPa(); });
+  $('paNew').onclick = () => { PA.seed++; updPa(); };
+  $('paRe').onclick = () => { PA.start = null; updPa(); };
+  $('paC').onclick = e => { const r = $('paC').getBoundingClientRect(), { xr, yr, f } = PA.map, mx = e.clientX - r.left, my = e.clientY - r.top; PA.start = [xr[0] + (mx - f.p[0]) / (f.w - f.p[0] - f.p[1]) * (xr[1] - xr[0]), yr[0] + (f.h - f.p[3] - my) / (f.h - f.p[2] - f.p[3]) * (yr[1] - yr[0])]; runPa(); drawPa(); };
+
+  /* PART II: the noise ball, 300 chains */
+  const NB = { which: 'c', res: null }, NC = 300, TMAX = Math.round(10 ** 3.5);
+  function runNb() {
+    const eta = 10 ** +$('nbEta').value, B = BS[+$('nbB').value], tau = 10 ** +$('nbTau').value, D = data(1), c = D.th, st = [c[0] - 2, c[1] - 1.5];
+    const cps = []; for (let k = 0; k <= 60; k++) { const t = Math.round(10 ** (k / 60 * Math.log10(TMAX))); if (!cps.includes(t)) cps.push(t); }
+    const need = new Set(cps.concat(cps.map(t => Math.floor(t / 2)))), R = mulberry32(777);
+    const C = { c: [], r: [] }, cum = new Map(), msd = { c: new Float64Array(cps.length), r: new Float64Array(cps.length), a: new Float64Array(cps.length) };
+    const snaps = { c: [], r: [], a: [] }, tShow = Math.round(10 ** +$('nbT').value);
+    for (let ch = 0; ch < NC; ch++) {
+      let a = st.slice(), b = st.slice(), s0 = 0, s1 = 0; const cs = new Map(); cs.set(0, [0, 0]);
+      let ci = 0;
+      for (let t = 1; t <= TMAX; t++) {
+        const idx = Array.from({ length: B }, () => Math.floor(R() * n));
+        let g0 = 0, g1 = 0, h0 = 0, h1 = 0;
+        for (const i of idx) { const xi = D.x[i], yi = D.y[i], e = yi - a[0] - a[1] * xi, e2 = yi - b[0] - b[1] * xi; g0 -= e; g1 -= e * xi; h0 -= e2; h1 -= e2 * xi; }
+        const lr = eta / (1 + t / tau);
+        a = [a[0] - eta * g0 / B, a[1] - eta * g1 / B]; b = [b[0] - lr * h0 / B, b[1] - lr * h1 / B];
+        s0 += a[0]; s1 += a[1]; if (need.has(t)) cs.set(t, [s0, s1]);
+        if (t === tShow) { snaps.c.push(a.slice()); snaps.r.push(b.slice()); }
+        while (ci < cps.length && cps[ci] === t) {
+          const h2 = Math.floor(t / 2), p = cs.get(h2) || [0, 0], av = [(s0 - p[0]) / (t - h2), (s1 - p[1]) / (t - h2)];
+          msd.c[ci] += ((a[0] - c[0]) ** 2 + (a[1] - c[1]) ** 2) / NC; msd.r[ci] += ((b[0] - c[0]) ** 2 + (b[1] - c[1]) ** 2) / NC; msd.a[ci] += ((av[0] - c[0]) ** 2 + (av[1] - c[1]) ** 2) / NC;
+          if (t === cps.reduce((q, u) => u <= tShow ? u : q, 1)) snaps.a.push(av);
+          ci++;
+        }
+      }
+    }
+    // exact stationary covariance of constant-step SGD on the quadratic: Sigma = M Sigma M + eta^2 C / B, M = I - eta H
+    const E = D.E, V = E.v, Cr = [0, 0, 0, 0].map((_, q) => { const i = q >> 1, j = q & 1; const vi = V[i], vj = V[j]; return vi[0] * vj[0] * D.C[0] + (vi[0] * vj[1] + vi[1] * vj[0]) * D.C[1] + vi[1] * vj[1] * D.C[2]; });
+    const mE = E.l.map(l => 1 - eta * l), Sp = [0, 1, 2, 3].map(q => { const i = q >> 1, j = q & 1; return eta * eta / B * Cr[q] / (1 - mE[i] * mE[j]); });
+    const Sig = [0, 0, 0]; for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { const s = Sp[i * 2 + j]; Sig[0] += V[i][0] * V[j][0] * s; Sig[1] += V[i][0] * V[j][1] * s; Sig[2] += V[i][1] * V[j][1] * s; }
+    const det = n * (D.H[0] * D.H[2] - D.H[1] * D.H[1]), Samp = [D.s2 * D.H[2] / det, -D.s2 * D.H[1] / det, D.s2 * D.H[0] / det];
+    NB.res = { eta, B, tau, D, cps, msd, snaps, Sig, Samp, tShow, stable: Math.abs(mE[0]) < 1 };
+  }
+  function drawNb() {
+    const { eta, B, D, cps, msd, snaps, Sig, Samp, tShow, stable } = NB.res, c = D.th, pts = snaps[NB.which];
+    const sd = Math.sqrt(Math.max(Sig[0], Sig[2], Samp[0], Samp[2])), spread = Math.max(...pts.map(p => Math.max(Math.abs(p[0] - c[0]), Math.abs(p[1] - c[1])))), hw = Math.min(Math.max(3 * sd, spread * 1.1, 0.02), 4);
+    const cv = $('nbC'), w = cv.clientWidth, h = +cv.getAttribute('height'), asp = (w - 58) / (h - 40);
+    const f = frame(cv, [c[0] - hw * asp, c[0] + hw * asp], [c[1] - hw, c[1] + hw], { pad: [46, 12, 10, 30], xf: v => (+v.toPrecision(3)).toString(), yf: v => (+v.toPrecision(3)).toString() });
+    f.ctx.save(); f.ctx.beginPath(); f.ctx.rect(f.p[0], f.p[2], f.w - f.p[0] - f.p[1], f.h - f.p[2] - f.p[3]); f.ctx.clip();
+    f.ctx.fillStyle = alpha(css('--accent'), .55); pts.forEach(p => { f.ctx.beginPath(); f.ctx.arc(f.X(p[0]), f.Y(p[1]), 2.2, 0, 7); f.ctx.fill(); });
+    if (NB.which === 'c' && stable) ellipse(f.ctx, c, Sig, 2, f.X, f.Y, css('--curve'));
+    ellipse(f.ctx, c, Samp, 2, f.X, f.Y, css('--ink'), [5, 4], 1.5);
+    f.ctx.restore();
+    const tShown = NB.which === 'a' ? cps.reduce((q, u) => u <= tShow ? u : q, 1) : tShow;
+    $('nbCap').textContent = `${{ c: 'Constant step', r: 'Shrinking step', a: 'Average of the constant-step iterates over steps t/2 to t' }[NB.which]}: 300 chains at t = ${fmtInt(tShown)}`;
+    const lx = cps.map(t => Math.log10(t)), all = [...msd.c, ...msd.r, ...msd.a].filter(v => v > 0 && Number.isFinite(v)).map(Math.log10), trS = Sig[0] + Sig[2];
+    const ylo = Math.floor(Math.min(...all, Math.log10(trS) - 0.5)), yhi = Math.ceil(Math.max(...all));
+    const sup = v => v === 0 ? '1' : '10' + (v < 0 ? '⁻' : '') + String(Math.abs(v)).split('').map(d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]).join('');
+    const g = frame($('nbD'), [0, Math.log10(TMAX)], [ylo, yhi], { pad: [50, 12, 8, 28], xt: [0, 1, 2, 3], xf: v => fmtInt(10 ** v), yt: nice([ylo, yhi], 5).filter(Number.isInteger), yf: sup });
+    const L = (arr, col, dash) => path(g.ctx, lx.map((x, i) => [x, Math.log10(Math.max(arr[i], 1e-14))]), g.X, g.Y, col, 2, dash);
+    L(msd.c, css('--accent')); L(msd.r, css('--ball')); L(msd.a, css('--fit'));
+    if (stable) path(g.ctx, [[0, Math.log10(trS)], [Math.log10(TMAX), Math.log10(trS)]], g.X, g.Y, css('--ink'), 1.3, [5, 4]);
+    g.ctx.strokeStyle = css('--muted'); g.ctx.setLineDash([2, 3]); g.ctx.beginPath(); g.ctx.moveTo(g.X(Math.log10(tShow)), g.p[2]); g.ctx.lineTo(g.X(Math.log10(tShow)), g.h - g.p[3]); g.ctx.stroke(); g.ctx.setLineDash([]);
+    const fin = a => a[a.length - 1], trSamp = Samp[0] + Samp[2];
+    $('nbTab').innerHTML = `<thead><tr><th>at t = ${fmtInt(TMAX)}</th><th>mean sq. dist.</th></tr></thead><tbody><tr><td>Constant η</td><td>${sci(fin(msd.c))}</td></tr><tr><td>Theory, exact for the quadratic</td><td>${stable ? sci(trS) : 'unstable'}</td></tr><tr><td>Approximation ησ²/|B|</td><td>${sci(eta * D.s2 / B)}</td></tr><tr><td>Shrinking η</td><td>${sci(fin(msd.r))}</td></tr><tr><td>Averaged, t/2 to t</td><td>${sci(fin(msd.a))}</td></tr><tr><td>Sampling variance of θ̂</td><td>${sci(trSamp)}</td></tr></tbody>`;
+    const ratio = fin(msd.c) / trSamp;
+    $('nbMsg').innerHTML = !stable ? '<b>Unstable</b>: η is above 2/λ<sub>max</sub>. Lower it.' : `The constant-step cloud has a mean squared distance ${fmt(ratio, ratio < 10 ? 2 : 0)} times the sampling variance of θ̂ itself${ratio > 1 ? ': the optimizer is noisier than the data' : ''}. ${fin(msd.r) < fin(msd.c) ? 'The shrinking step ends ' + fmt(fin(msd.c) / fin(msd.r), 1) + ' times closer.' : 'The shrinking step has not yet caught up: its early steps were too small.'} The average of the last half of the constant-η iterates ends ${fmt(fin(msd.c) / fin(msd.a), 0)} times closer than a single iterate.`;
+  }
+  function readNb() { $('nbEtaO').textContent = (+(10 ** +$('nbEta').value).toPrecision(2)).toString(); $('nbBO').textContent = BS[+$('nbB').value]; $('nbTO').textContent = fmtInt(10 ** +$('nbT').value); $('nbTauO').textContent = fmtInt(10 ** +$('nbTau').value); }
+  let nbTimer; const updNb = () => { readNb(); clearTimeout(nbTimer); nbTimer = setTimeout(() => { runNb(); drawNb(); }, 30); };
+  ['nbEta', 'nbB', 'nbTau', 'nbT'].forEach(id => $(id).oninput = updNb);
+  segInit('nbW', v => { NB.which = v; drawNb(); });
+
+  /* PART III: SGLD */
+  const LG = { seed: 1, res: null };
+  function runLg() {
+    const frac = 10 ** +$('lgEps').value, B = BS[+$('lgB').value], m = +$('lgMx').value, D = data(m), noise = $('lgNo').checked, s2 = 1;
+    const A = D.H.map(v => v * n / s2), EA = eig2(...A), eps = frac * 2 / EA.l[0];
+    const steps = Math.min(400000, Math.max(20000, Math.round(60 / (eps * EA.l[1])))), burn = Math.round(steps * 0.2), keep = 2000, thin = Math.max(1, Math.floor((steps - burn) / keep));
+    const R = mulberry32(4242 + LG.seed); let th = D.th.slice(); const draws = [];
+    for (let t = 0; t < steps; t++) {
+      let g0 = 0, g1 = 0; for (let k = 0; k < B; k++) { const i = Math.floor(R() * n), e = D.y[i] - th[0] - th[1] * D.x[i]; g0 -= e; g1 -= e * D.x[i]; }
+      const sc = n / B / s2; th = [th[0] - eps * sc * g0, th[1] - eps * sc * g1];
+      if (noise) { const z = Math.sqrt(2 * eps); th[0] += z * gauss(R); th[1] += z * gauss(R); }
+      if (!Number.isFinite(th[0]) || Math.abs(th[0]) > 1e6) break;
+      if (t >= burn && (t - burn) % thin === 0) draws.push(th.slice());
+    }
+    const det = A[0] * A[2] - A[1] * A[1], P = [A[2] / det, -A[1] / det, A[0] / det];
+    const k = draws.length, mu = [draws.reduce((s, p) => s + p[0], 0) / k, draws.reduce((s, p) => s + p[1], 0) / k];
+    const S = [0, 0, 0]; draws.forEach(p => { const a = p[0] - mu[0], b = p[1] - mu[1]; S[0] += a * a; S[1] += a * b; S[2] += b * b; }); for (let i = 0; i < 3; i++) S[i] /= Math.max(1, k - 1);
+    LG.res = { D, P, S, mu, draws, eps, B, noise, steps, frac };
+  }
+  function drawLg() {
+    const { D, P, S, mu, draws, eps, B, noise, steps, frac } = LG.res, c = D.th;
+    const sd = Math.sqrt(Math.max(P[0], P[2])), spread = draws.length ? Math.max(...draws.map(p => Math.max(Math.abs(p[0] - c[0]), Math.abs(p[1] - c[1])))) : sd, hw = Math.min(Math.max(3.2 * sd, spread * 1.08), 10 * sd);
+    const cv = $('lgC'), w = cv.clientWidth, h = +cv.getAttribute('height'), asp = (w - 58) / (h - 40);
+    const f = frame(cv, [c[0] - hw * asp, c[0] + hw * asp], [c[1] - hw, c[1] + hw], { pad: [50, 12, 10, 30], xf: v => (+v.toPrecision(3)).toString(), yf: v => (+v.toPrecision(3)).toString() });
+    f.ctx.save(); f.ctx.beginPath(); f.ctx.rect(f.p[0], f.p[2], f.w - f.p[0] - f.p[1], f.h - f.p[2] - f.p[3]); f.ctx.clip();
+    f.ctx.fillStyle = alpha(css('--accent'), .4); draws.forEach(p => { f.ctx.beginPath(); f.ctx.arc(f.X(p[0]), f.Y(p[1]), 1.8, 0, 7); f.ctx.fill(); });
+    ellipse(f.ctx, c, P, 1, f.X, f.Y, css('--ink'), [5, 4], 1.4); ellipse(f.ctx, c, P, 2, f.X, f.Y, css('--ink'), [5, 4], 1.4);
+    if (draws.length > 10) ellipse(f.ctx, mu, S, 2, f.X, f.Y, css('--curve'));
+    f.ctx.restore();
+    f.ctx.fillStyle = css('--muted'); f.ctx.textAlign = 'center'; f.ctx.fillText('intercept θ₁', f.X(c[0]), f.h - 6);
+    $('lgCap').textContent = `${fmtInt(draws.length)} draws from ${fmtInt(steps)} steps of ${noise ? 'SGLD' : 'plain SGD (no injected noise)'}, step ${(+eps.toPrecision(2))}, batch ${B}`;
+    const r = (S0, i) => Math.sqrt(S0[i]), cr = S0 => S0[1] / Math.sqrt(S0[0] * S0[2]);
+    $('lgTab').innerHTML = `<thead><tr><th></th><th>posterior</th><th>draws</th></tr></thead><tbody><tr><td>sd of θ₁</td><td>${fmt(r(P, 0), 3)}</td><td>${fmt(r(S, 0), 3)}</td></tr><tr><td>sd of θ₂</td><td>${fmt(r(P, 2), 3)}</td><td>${fmt(r(S, 2), 3)}</td></tr><tr><td>correlation</td><td>${fmt(cr(P), 2)}</td><td>${fmt(cr(S), 2)}</td></tr></tbody>`;
+    const vr = (S[0] + S[2]) / (P[0] + P[2]);
+    $('lgMsg').innerHTML = !noise ? `Without the injected noise this is constant-step SGD on the log posterior. Its cloud has ${fmt(vr, 3)} times the posterior's total variance: an optimizer's jitter, not a posterior.` : `The draws have ${fmt(vr, 2)} times the posterior's total variance. ${vr > 1.25 ? 'The batch noise is adding to the injected noise: shrink ε or enlarge the batch.' : vr < 0.8 ? 'Too few effective draws at this tiny step: the chain has not explored the posterior.' : 'At this step size the batch noise is small next to the injected noise, and the cloud matches the posterior.'}`;
+  }
+  function readLg() { $('lgEpsO').textContent = (+(10 ** +$('lgEps').value).toPrecision(2)).toString(); $('lgBO').textContent = BS[+$('lgB').value]; $('lgMxO').textContent = fmt(+$('lgMx').value, 1); }
+  let lgTimer; const updLg = () => { readLg(); clearTimeout(lgTimer); lgTimer = setTimeout(() => { runLg(); drawLg(); }, 30); };
+  ['lgEps', 'lgB', 'lgMx'].forEach(id => $(id).oninput = updLg); $('lgNo').onchange = updLg; $('lgGo').onclick = () => { LG.seed++; updLg(); };
+
+  readPa(); runPa(); drawPa(); readNb(); runNb(); drawNb(); readLg(); runLg(); drawLg();
+  window.__sgd = () => ({ pa: paRes && Object.fromEntries(Object.entries(paRes.out).map(([k, v]) => [k, v.length])), nb: NB.res && { tr: NB.res.Sig[0] + NB.res.Sig[2], c: NB.res.msd.c[NB.res.msd.c.length - 1] }, lg: LG.res && { S: LG.res.S, P: LG.res.P } });
+  const all = () => { drawPa(); drawNb(); drawLg(); };
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(all, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+})();
+</script>
+</body></html>
