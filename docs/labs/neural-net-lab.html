@@ -504,6 +504,81 @@ mjx-container { font-size: 105%; }
     </section>
   </section>
 
+  <section class="part" id="folds" aria-labelledby="foldsTitle">
+    <div class="parthead">
+      <span class="eyebrow">ReLU networks are folded planes</span>
+      <h2 id="foldsTitle">Three folds, seven flat pieces</h2>
+      <p>Swap the sigmoid for the ReLU, \(\mathrm{ReLU}(z) = \max(0, z)\), and the soft switches become hinges. Hidden neuron \(k\) is zero on one side of its line \(w_k \cdot x + b_k = 0\) and grows linearly on the other, so the network \(F(x) = c + \sum_k v_k\, \mathrm{ReLU}(w_k \cdot x + b_k)\) is a plane folded along those lines. The example: \(F(x) = 1 + \mathrm{ReLU}(x_1 - 2) + \mathrm{ReLU}(x_2 - 2) - \mathrm{ReLU}(x_1 + x_2 - 3)\) on the square \([0, 4]^2\), with folds \(x_1 = 2\), \(x_2 = 2\) and \(x_1 + x_2 = 3\). Drag the surface to turn it, edit any weight, or draw random neurons and count the pieces.</p>
+    </div>
+    <div class="grid">
+      <section class="board" id="foldBoard" aria-label="The graph of a one-hidden-layer ReLU network of two inputs">
+        <div class="eqn" id="fEqn"></div>
+        <div class="viz">
+          <div class="cell">
+            <div class="cap"><b>The graph of F</b> · drag to turn</div>
+            <canvas id="fcv3" height="360" role="img" aria-label="Three-dimensional graph of the network output over the square" style="cursor:grab;touch-action:none"></canvas>
+          </div>
+          <div class="cell">
+            <div class="cap"><b>The region map</b> · black lines are the folds, numbers match the table</div>
+            <canvas id="fcv2" height="360" role="img" aria-label="Top view: the square cut by the fold lines into numbered regions"></canvas>
+          </div>
+        </div>
+        <div class="legend"><span><i class="sw ln ink"></i>fold line of a hidden neuron, wₖ·x + bₖ = 0</span><span><i class="sw grey"></i>each colour is one region, where F is a single plane</span></div>
+      </section>
+
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Network</span>
+          <div class="seg c2" role="group" aria-label="Network"><button id="fEx" aria-pressed="true">The example</button><button id="fRand" aria-pressed="false">Random neurons</button></div>
+          <div class="slider" id="fNWrap" hidden><div class="top"><label for="fN">Hidden neurons n</label><output id="fNO">5</output></div><input id="fN" type="range" min="1" max="12" step="1" value="5"></div>
+          <button id="fDraw" hidden>New random draw</button>
+        </div>
+        <div class="group">
+          <span class="label">Weights: hidden neuron k computes vₖ·ReLU(wₖ₁x₁ + wₖ₂x₂ + bₖ)</span>
+          <div style="max-height:260px;overflow:auto"><table class="stats lc" id="fW"></table></div>
+          <div class="slider"><div class="top"><label for="fC">Output bias c</label><output id="fCO">1</output></div><input id="fC" type="range" min="-3" max="3" step="0.1" value="1"></div>
+        </div>
+        <div class="group">
+          <span class="label">View</span>
+          <div class="slider"><div class="top"><label for="fAz">Turn</label><output id="fAzO">145°</output></div><input id="fAz" type="range" min="0" max="360" step="1" value="145"></div>
+          <div class="slider"><div class="top"><label for="fEl">Tilt</label><output id="fElO">30°</output></div><input id="fEl" type="range" min="5" max="90" step="1" value="30"></div>
+          <div class="seg" role="group" aria-label="View presets"><button id="fV0">Reset</button><button id="fVt">Top</button><button id="fVs">Along a fold</button></div>
+          <div class="checks"><label><input type="checkbox" id="fFloor" checked> Draw the region map on the floor</label></div>
+        </div>
+        <div class="group">
+          <table class="stats"><tbody>
+            <tr><td>Regions cut by the folds</td><td id="fReg">–</td></tr>
+            <tr><td>Distinct flat pieces</td><td id="fPc">–</td></tr>
+            <tr><td>Most possible with n lines</td><td id="fMax">–</td></tr>
+          </tbody></table>
+          <p class="hint" id="fMsg"></p>
+        </div>
+      </aside>
+    </div>
+
+    <section class="lesson">
+      <ol class="steps">
+        <li><div>
+          <h3>Each ReLU neuron is one fold</h3>
+          <p>\(\mathrm{ReLU}(w_k \cdot x + b_k)\) is exactly zero on one side of its line and a tilted plane on the other. The weights \(w_k\) set the line's direction, the bias \(b_k\) slides it, and the output weight \(v_k\) sets how sharply the surface bends there: up for \(v_k > 0\), down for \(v_k < 0\). A zero weight from \(x_1\) is a line parallel to the \(x_1\) axis.</p>
+        </div></li>
+        <li><div>
+          <h3>Between the folds, F is a plane</h3>
+          <p>Inside each region the same neurons are on, so \(F(x) = c + \sum_{k\ \text{on}} v_k (w_k \cdot x + b_k)\), an affine function. Crossing a fold switches one neuron and changes the slope by \(v_k w_k\), but never the height: the pieces meet along the folds and the surface is continuous. In the example the corner \(x_1, x_2 &gt; 2\) has all three neurons on and \(F = 1 + (x_1 - 2) + (x_2 - 2) - (x_1 + x_2 - 3) = 0\).</p>
+        </div></li>
+        <li><div>
+          <h3>Counting pieces</h3>
+          <p>\(n\) lines in general position cut the plane into at most \(1 + n + \binom{n}{2}\) regions, so one hidden layer of width \(n\) on two inputs has at most that many pieces, fewer inside a window. A second layer folds the already folded surface again, and the count can grow exponentially with depth (Montúfar, Pascanu, Cho and Bengio, 2014). Training moves the folds: the gradient with respect to \(b_k\) slides line \(k\), the one with respect to \(w_k\) turns it.</p>
+        </div></li>
+      </ol>
+      <div class="eqs">
+        <div class="eq"><div class="cap">The example as weights</div><div class="m">\(W_1 = \begin{pmatrix} 1 &amp; 0 \\ 0 &amp; 1 \\ 1 &amp; 1 \end{pmatrix}, \ b_1 = (-2, -2, -3), \ W_2 = (1, 1, -1), \ b_2 = 1\)</div></div>
+        <div class="eq"><div class="cap">The plane on a region where the neurons in S are on</div><div class="m">\(F(x) = \bigl(c + \textstyle\sum_{k \in S} v_k b_k\bigr) + \bigl(\sum_{k \in S} v_k w_k\bigr) \cdot x\)</div></div>
+        <div class="eq"><div class="cap">Regions from n lines in general position</div><div class="m">\(1 + n + \binom{n}{2} = 1 + n(n+1)/2\)</div></div>
+      </div>
+    </section>
+  </section>
+
   <section class="part" id="real" aria-labelledby="realTitle">
     <div class="parthead">
       <span class="eyebrow">Real data · regression</span>
@@ -731,6 +806,8 @@ mjx-container { font-size: 105%; }
       <li>Set noise to 50% on Moons, use 3 layers × 8 with learning rate 0.03, and train for 2,000 epochs. Training loss keeps falling while test loss turns up. Raise \(\lambda\) to 0.01 and reset: the gap closes.</li>
       <li>Switch to SGD and compare learning rates 0.03, 0.3 and 3 on Circles. Watch the loss curve: slow, smooth, and jagged. Then set batch size to 1 and to 100 at \(\eta = 0.3\) and compare the noise in the curve.</li>
       <li>In "Write a network by hand", pin a point just outside one of the four lines and read the table: one unit has switched off and \(\hat p\) drops below 0.5. Then press "Train it instead" two or three times and compare the dashed lines with yours, and the weights in the table.</li>
+      <li>In "Three folds, seven flat pieces", press "Top" and write the formula of F in each of the seven regions from the map, then check it against the list under the table. Which region has all three neurons on, and why is F flat there?</li>
+      <li>In the example, change v₃ from −1 to 0. Which fold disappears from the surface, and how many distinct flat pieces are left? Then choose "Random neurons" with n = 6 and compare the region count with \(1 + n + \binom{n}{2}\).</li>
       <li>In "Real data", choose Zagat and set epochs to 1,000. Training MSE keeps falling while validation MSE turns up, and the network's test RMSE ends worse than linear regression's. Tick early stopping, or set \(\lambda\) to 1, and compare.</li>
       <li>On Zagat, ask students to guess whether the network will beat linear regression, then press "Repeat over 20 splits". Each model's test RMSE moves by more than $2 from split to split, and linear regression wins on most splits. Repeat on Boston, where the network wins on most.</li>
       <li>On Boston, pick lstat and then rm in the partial-dependence menu and point out where the network bends and the line cannot. Then untick black, and later lstat, and compare the test metrics and the importance bars.</li>
@@ -1916,6 +1993,164 @@ function netLoss(net, pts) { let L = 0, ok = 0; for (const q of pts) { const p =
     io.observe($('realBoard'));
   } else start();
   (function loop() { hFrame(); rFrame(); requestAnimationFrame(loop); })();
+})();
+</script>
+<script>
+(() => {
+  // ReLU folds: F(x) = c + sum_k v_k ReLU(w_k . x + b_k) on a window, its regions, pieces and 3D graph
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (v, d = 2) => (Math.abs(v) < 5e-13 ? 0 : v).toFixed(d).replace(/\.?0+$/, '') || '0';
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const EX = [[1, 0, -2, 1], [0, 1, -2, 1], [1, 1, -3, -1]];
+  const WIN = [0, 4];
+  const S = { mode: 'ex', neu: EX.map(r => r.slice()), c: 1, az: 145, el: 30, seed: 1 };
+  let regs = [], drag = null;
+  function setup(cv) {
+    if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return { ctx, w, h };
+  }
+  // clip a convex polygon to the half-plane a.x + b >= 0 (Sutherland-Hodgman)
+  function clip(P, a1, a2, b) {
+    const out = [], g = p => a1 * p[0] + a2 * p[1] + b;
+    for (let i = 0; i < P.length; i++) {
+      const p = P[i], q = P[(i + 1) % P.length], gp = g(p), gq = g(q);
+      if (gp >= 0) out.push(p);
+      if ((gp >= 0) !== (gq >= 0)) { const t = gp / (gp - gq); out.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]); }
+    }
+    return out;
+  }
+  const area = P => { let s = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; s += p[0] * q[1] - q[0] * p[1]; } return s / 2; };
+  function compute() {
+    const N = S.neu, G = 240, seen = new Map(), [lo, hi] = WIN;
+    for (let i = 0; i < G; i++) for (let j = 0; j < G; j++) {
+      const x = lo + (i + 0.5) / G * (hi - lo), y = lo + (j + 0.5) / G * (hi - lo);
+      const key = N.map(([a, b, c0]) => a * x + b * y + c0 > 0 ? 1 : 0).join('');
+      if (!seen.has(key)) seen.set(key, [x, y]);
+    }
+    regs = [];
+    for (const [key] of seen) {
+      let P = [[lo, lo], [hi, lo], [hi, hi], [lo, hi]];
+      N.forEach(([a, b, c0], k) => { if (key[k] === '1') P = clip(P, a, b, c0); else P = clip(P, -a, -b, -c0); });
+      if (P.length < 3 || Math.abs(area(P)) < 1e-9) continue;
+      let k0 = S.c, k1 = 0, k2 = 0;
+      N.forEach(([a, b, c0, v], k) => { if (key[k] === '1') { k0 += v * c0; k1 += v * a; k2 += v * b; } });
+      const cx = P.reduce((s, p) => s + p[0], 0) / P.length, cy = P.reduce((s, p) => s + p[1], 0) / P.length;
+      regs.push({ key, P, k0, k1, k2, cx, cy });
+    }
+    regs.sort((r, s) => (s.cy - r.cy) || (r.cx - s.cx));
+    regs.forEach((r, i) => { r.id = i + 1; r.hue = (i * 137.5 + 200) % 360; });
+  }
+  const Fv = (r, x, y) => r.k0 + r.k1 * x + r.k2 * y;
+  const sub = ['₁', '₂'];
+  function affine(r) {
+    const t = [], z = v => Math.abs(v) < 1e-9;
+    const term = (v, nm) => { if (z(v)) return; const s = v < 0 ? '−' : '+', a = Math.abs(v); t.push([s, (Math.abs(a - 1) < 1e-9 ? '' : fmt(a)) + nm]); };
+    term(r.k1, 'x' + sub[0]); term(r.k2, 'x' + sub[1]);
+    if (!z(r.k0) || !t.length) { const c = [r.k0 < 0 ? '−' : '+', fmt(Math.abs(r.k0))]; if (r.k0 > 0 && t.length && t[0][0] === '−') t.unshift(c); else t.push(c); }
+    return t.map(([s, v], i) => (i ? ' ' + s + ' ' : (s === '−' ? '−' : '')) + v).join('');
+  }
+  function draw3() {
+    const { ctx, w, h } = setup($('fcv3')), [lo, hi] = WIN, mid = (lo + hi) / 2, sp = hi - lo, N = S.neu;
+    const F = (x, y) => S.c + N.reduce((t, [a, b, c0, v]) => t + v * Math.max(0, a * x + b * y + c0), 0);
+    const allF = regs.flatMap(r => r.P.map(p => Fv(r, p[0], p[1]))), fmin = Math.min(0, ...allF), fmax = Math.max(fmin + 1, ...allF);
+    const zs = 0.75 / (fmax - fmin), az = S.az * Math.PI / 180, el = S.el * Math.PI / 180, sc = Math.min(w, h) * 0.62;
+    const proj = (x, y, f) => {
+      const X = (x - mid) / sp, Y = (y - mid) / sp, Z = (f - (fmin + fmax) / 2) * zs;
+      const u = X * Math.cos(az) - Y * Math.sin(az), vv = X * Math.sin(az) + Y * Math.cos(az);
+      return [w / 2 + sc * u, h / 2 - sc * (Z * Math.cos(el) + vv * Math.sin(el)), vv];
+    };
+    const floor = fmin - 0.02 * (fmax - fmin), ink = css('--ink'), muted = css('--muted');
+    const poly = (pts, fill, stroke, lw) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } };
+    poly([[lo, lo], [hi, lo], [hi, hi], [lo, hi]].map(p => proj(p[0], p[1], floor)), null, muted, 1);
+    if ($('fFloor').checked) regs.forEach(r => poly(r.P.map(p => proj(p[0], p[1], floor)), `hsla(${r.hue},55%,60%,.2)`, null));
+    // vertical scale at the far corner
+    const corners = [[lo, lo], [hi, lo], [hi, hi], [lo, hi]], far = corners.reduce((a, c) => proj(c[0], c[1], 0)[2] > proj(a[0], a[1], 0)[2] ? c : a);
+    ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = '11px ' + css('--font-mono');
+    const a0 = proj(far[0], far[1], floor), a1 = proj(far[0], far[1], fmax); ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.stroke();
+    for (let f = Math.ceil(fmin); f <= Math.floor(fmax); f++) { const p = proj(far[0], far[1], f); ctx.beginPath(); ctx.moveTo(p[0] - 3, p[1]); ctx.lineTo(p[0] + 3, p[1]); ctx.stroke(); ctx.fillText('F = ' + f, p[0] + 6, p[1] + 4); }
+    const lx = proj(hi + 0.3, mid, floor), ly = proj(mid, hi + 0.3, floor); ctx.fillText('x₁', lx[0] - 6, lx[1] + 4); ctx.fillText('x₂', ly[0] - 6, ly[1] + 4);
+    // the surface as a fine mesh, far cells first; fold segments are drawn just after the cells beneath them
+    const G = 56, d = sp / G, items = [], regOf = (x, y) => { const key = N.map(([a, b, c0]) => a * x + b * y + c0 > 0 ? 1 : 0).join(''); return regs.find(r => r.key === key); };
+    const shadeOf = r => { const nx = -r.k1 * zs * sp, ny = -r.k2 * zs * sp, n = Math.hypot(nx, ny, 1); return 0.55 + 0.45 * ((0.4 * nx + 0.3 * ny + 0.87) / n); };
+    for (let i = 0; i < G; i++) for (let j = 0; j < G; j++) {
+      const x0 = lo + i * d, y0 = lo + j * d, r = regOf(x0 + d / 2, y0 + d / 2); if (!r) continue;
+      const pts = [[x0, y0], [x0 + d, y0], [x0 + d, y0 + d], [x0, y0 + d]].map(p => proj(p[0], p[1], F(p[0], p[1])));
+      const L = Math.round(48 + 22 * shadeOf(r));
+      items.push({ dep: proj(x0 + d / 2, y0 + d / 2, 0)[2], k: 0, pts, col: `hsl(${r.hue},50%,${L}%)` });
+    }
+    N.forEach(([a, b, c0]) => {
+      if (Math.hypot(a, b) < 1e-9) return;
+      const seg = clip(clip([[lo, lo], [hi, lo], [hi, hi], [lo, hi]], a, b, c0 + 1e-9), -a, -b, -c0 + 1e-9).filter(p => Math.abs(a * p[0] + b * p[1] + c0) < 1e-6);
+      if (seg.length < 2) return;
+      const [p, q] = [seg[0], seg[seg.length - 1]], M = 80;
+      for (let t = 0; t < M; t++) { const s0 = t / M, s1 = (t + 1) / M, xa = p[0] + s0 * (q[0] - p[0]), ya = p[1] + s0 * (q[1] - p[1]), xb = p[0] + s1 * (q[0] - p[0]), yb = p[1] + s1 * (q[1] - p[1]); items.push({ dep: proj((xa + xb) / 2, (ya + yb) / 2, 0)[2] - d * 0.75 / sp, k: 1, pts: [proj(xa, ya, F(xa, ya)), proj(xb, yb, F(xb, yb))] }); }
+    });
+    items.sort((A, B) => B.dep - A.dep);
+    ctx.lineJoin = 'round';
+    for (const it of items) {
+      if (it.k === 0) { poly(it.pts, it.col, it.col, 0.6); }
+      else { ctx.strokeStyle = ink; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(it.pts[0][0], it.pts[0][1]); ctx.lineTo(it.pts[1][0], it.pts[1][1]); ctx.stroke(); }
+    }
+    ctx.fillStyle = ink; ctx.font = '600 12px ' + css('--font-body'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    regs.forEach(r => { if (Math.abs(area(r.P)) < 0.04) return; const p = proj(r.cx, r.cy, Fv(r, r.cx, r.cy)); ctx.fillText(r.id, p[0], p[1]); });
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+  function draw2() {
+    const { ctx, w, h } = setup($('fcv2')), [lo, hi] = WIN, pad = 26, s = Math.min(w - 2 * pad, h - 2 * pad), ox = (w - s) / 2, oy = (h - s) / 2;
+    const X = x => ox + (x - lo) / (hi - lo) * s, Y = y => oy + s - (y - lo) / (hi - lo) * s;
+    regs.forEach(r => { ctx.beginPath(); r.P.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.closePath(); ctx.fillStyle = `hsla(${r.hue},55%,62%,.75)`; ctx.fill(); });
+    ctx.strokeStyle = css('--ink'); ctx.lineWidth = 1.8;
+    S.neu.forEach(([a, b, c0]) => { let L = clip(clip([[lo, lo], [hi, lo], [hi, hi], [lo, hi]], a, b, c0 + 1e-9), -a, -b, -c0 + 1e-9); const pts = L.filter(p => Math.abs(a * p[0] + b * p[1] + c0) < 1e-6); if (pts.length >= 2) { ctx.beginPath(); ctx.moveTo(X(pts[0][0]), Y(pts[0][1])); ctx.lineTo(X(pts[pts.length - 1][0]), Y(pts[pts.length - 1][1])); ctx.stroke(); } });
+    ctx.strokeStyle = css('--muted'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, s, s);
+    ctx.fillStyle = css('--muted'); ctx.font = '11px ' + css('--font-mono'); ctx.textAlign = 'center';
+    [lo, (lo + hi) / 2, hi].forEach(v => { ctx.fillText(fmt(v), X(v), oy + s + 14); ctx.fillText(fmt(v), ox - 12, Y(v) + 4); });
+    ctx.fillText('x₁', ox + s / 2, h - 2); ctx.fillText('x₂', ox - 14, oy - 8);
+    ctx.fillStyle = css('--ink'); ctx.font = '12.5px ' + css('--font-body'); ctx.textBaseline = 'middle';
+    regs.forEach(r => { if (Math.abs(area(r.P)) < 0.03) return; ctx.fillText(r.id, X(r.cx), Y(r.cy)); });
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  }
+  function table() {
+    $('fW').innerHTML = `<thead><tr><th>k</th><th>wₖ₁</th><th>wₖ₂</th><th>bₖ</th><th>vₖ</th></tr></thead><tbody>${S.neu.map((r, k) => `<tr><td>${k + 1}</td>${r.map((v, j) => `<td><input type="number" step="0.1" data-k="${k}" data-j="${j}" value="${fmt(v)}" aria-label="neuron ${k + 1} ${['w1', 'w2', 'b', 'v'][j]}" style="width:62px;padding:3px 5px;font-size:13px"></td>`).join('')}</tr>`).join('')}</tbody>`;
+    $('fW').querySelectorAll('input').forEach(inp => inp.oninput = () => { const v = parseFloat(inp.value); if (!Number.isFinite(v)) return; S.neu[+inp.dataset.k][+inp.dataset.j] = v; update(false); });
+  }
+  function update(rebuildTable = true) {
+    compute();
+    if (rebuildTable) table();
+    const pieces = new Set(regs.map(r => [r.k0, r.k1, r.k2].map(v => v.toFixed(6)).join('|'))).size, n = S.neu.length;
+    $('fReg').textContent = regs.length; $('fPc').textContent = pieces; $('fMax').textContent = 1 + n * (n + 1) / 2;
+    const term = ([a, b, c0, v]) => { const inner = [a ? (a === 1 ? '' : fmt(a)) + 'x₁' : '', b ? (b < 0 ? ' − ' : (a ? ' + ' : '')) + (Math.abs(b) === 1 ? '' : fmt(Math.abs(b))) + 'x₂' : '', c0 ? (c0 < 0 ? ' − ' : ' + ') + fmt(Math.abs(c0)) : ''].join('').replace(/^ \+ /, '') || '0'; return { s: v < 0 ? '−' : '+', t: (Math.abs(v) === 1 ? '' : fmt(Math.abs(v)) + '·') + `ReLU(${inner})` }; };
+    $('fEqn').innerHTML = 'F(x) = <span class="a">' + fmt(S.c) + '</span>' + (n > 4 ? ` + Σ of ${n} terms vₖ·ReLU(wₖ·x + bₖ)` : S.neu.map(r => { const q = term(r); return ` ${q.s} ${q.t}`; }).join(''));
+    const show = regs.slice(0, 9).map(r => `${r.id}: ${affine(r)}`).join(' · ');
+    $('fMsg').innerHTML = (pieces < regs.length ? `${regs.length - pieces} fold${regs.length - pieces > 1 ? 's do' : ' does'} not bend the surface where its neuron's output weight is zero or cancels. ` : '') + 'Pieces: ' + show + (regs.length > 9 ? ' …' : '');
+    draw3(); draw2();
+  }
+  function random() {
+    const R = mulberry32(S.seed * 7919 + S.neu.length), n = +$('fN').value, [lo, hi] = WIN;
+    S.neu = Array.from({ length: n }, () => { const th = R() * Math.PI * 2, px = lo + 0.15 * (hi - lo) + R() * 0.7 * (hi - lo), py = lo + 0.15 * (hi - lo) + R() * 0.7 * (hi - lo), a = +Math.cos(th).toFixed(2), b = +Math.sin(th).toFixed(2), c0 = +(-(a * px + b * py)).toFixed(2), v = +((R() < 0.5 ? -1 : 1) * (0.4 + R() * 0.8)).toFixed(2); return [a, b, c0, v]; });
+    S.c = 1; $('fC').value = 1; $('fCO').textContent = '1';
+  }
+  const press = on => { $('fEx').setAttribute('aria-pressed', on === 'ex'); $('fRand').setAttribute('aria-pressed', on === 'rand'); $('fNWrap').hidden = $('fDraw').hidden = on !== 'rand'; };
+  $('fEx').onclick = () => { S.mode = 'ex'; press('ex'); S.neu = EX.map(r => r.slice()); S.c = 1; $('fC').value = 1; $('fCO').textContent = '1'; update(); };
+  $('fRand').onclick = () => { S.mode = 'rand'; press('rand'); random(); update(); };
+  $('fN').oninput = () => { $('fNO').textContent = $('fN').value; random(); update(); };
+  $('fDraw').onclick = () => { S.seed++; random(); update(); };
+  $('fC').oninput = () => { S.c = +$('fC').value; $('fCO').textContent = fmt(S.c, 1); update(false); };
+  const view = (az, el) => { S.az = (az % 360 + 360) % 360; S.el = Math.max(5, Math.min(90, el)); $('fAz').value = Math.round(S.az); $('fEl').value = Math.round(S.el); $('fAzO').textContent = Math.round(S.az) + '°'; $('fElO').textContent = Math.round(S.el) + '°'; draw3(); };
+  $('fAz').oninput = () => view(+$('fAz').value, S.el); $('fEl').oninput = () => view(S.az, +$('fEl').value);
+  $('fV0').onclick = () => view(145, 30); $('fVt').onclick = () => view(0, 90);
+  $('fVs').onclick = () => { const k = S.neu.length - 1, [a, b] = S.neu[k]; view(Math.atan2(a, b) * 180 / Math.PI + 180, 8); };
+  $('fFloor').onchange = draw3;
+  const cv = $('fcv3');
+  cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, az: S.az, el: S.el }; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; });
+  cv.addEventListener('pointermove', e => { if (!drag) return; view(drag.az - (e.clientX - drag.x) * 0.5, drag.el + (e.clientY - drag.y) * 0.4); });
+  const end = () => { drag = null; cv.style.cursor = 'grab'; }; cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  update();
+  window.__folds = () => ({ regs: regs.map(r => ({ id: r.id, f: affine(r), key: r.key })), n: regs.length });
+  let lw = -1; new ResizeObserver(() => { const w = $('foldBoard').clientWidth; if (w !== lw) { lw = w; draw3(); draw2(); } }).observe($('foldBoard'));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { draw3(); draw2(); });
 })();
 </script>
 
