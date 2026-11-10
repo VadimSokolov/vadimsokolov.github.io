@@ -152,11 +152,6 @@ code { font-family: var(--font-mono); font-size: 13px; }
 .lines.small li { display: block; font-size: 14px; }
 .lines.small .meta { display: inline; margin-left: 6px; }
 .keep { min-width: 64px; }
-.fld { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-.fld input[type=text], .fld input[type=password] { font: 13px var(--font-mono); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); min-width: 0; }
-.chk { display: flex; gap: 6px; align-items: center; font-size: 13px; }
-.lyric { font: 15px/1.7 var(--font-body); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; white-space: pre-wrap; margin: 0; min-height: 3em; }
-#lvTab { font-size: 12px; } #lvTab td { font-size: 12px; }
 .keep[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .sw.bar.fitb { background: var(--fit); } .sw.bar.ball { background: var(--ball); } .sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
 </style>
@@ -284,11 +279,11 @@ code { font-family: var(--font-mono); font-size: 13px; }
     <div class="grid">
       <pre class="prompt" id="pmTxt">You are a critic, not a writer. Do not rewrite, complete or improve any line.
 
-For each numbered line below, return a JSON array with one object per line, and nothing else:
-[{"id": <number>,
+For each numbered line below, return one JSON object per line, and nothing else:
+{"id": <number>,
  "emotion": {"valence": 0-1, "arousal": 0-1, "dread": 0-1, "longing": 0-1,
              "alienation": 0-1, "tenderness": 0-1},
- "coherence": 0-1}, ...]
+ "coherence": 0-1}
 
 Axis definitions: valence = pleasant (1) to unpleasant (0); arousal = calm (0) to agitated (1);
 dread = a sense of threat; longing = missing someone or something; alienation = being apart or
@@ -309,35 +304,6 @@ Lines:
       </div>
     </div>
   </section>
-
-  <section class="sec" aria-labelledby="lvH">
-    <div class="head">
-      <h2 id="lvH">A live critic through OpenRouter</h2>
-      <p>Send the round's lines to a real language model with the prompt above and set its scores beside the stub's. The page is static: your key goes from this browser straight to <code>openrouter.ai</code> and nowhere else, and it is kept only if you tick the box (then in this browser's local storage). A round of twelve lines with a small model costs a fraction of a cent. The second button runs the note's third arm: a lyric written by the model alone, to the same brief.</p>
-    </div>
-    <div class="grid">
-      <div class="board">
-        <span class="cap" id="lvCap">The shown lines (1 to 8) and the probability maximizer's picks (P1 to P4), scored by both critics</span>
-        <table class="stats" id="lvTab"><tbody><tr><td>Press "Score this round" to call the model.</td></tr></tbody></table>
-        <span class="cap">Pure LLM lyric to the same brief: the target emotion e* and the three source texts</span>
-        <pre class="lyric" id="lvOut">Press "Write a lyric".</pre>
-      </div>
-      <div class="panel">
-        <div class="group">
-          <label class="fld">OpenRouter API key<input id="lvKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-..."></label>
-          <label class="chk"><input id="lvRem" type="checkbox"> Remember the key in this browser</label>
-          <label class="fld">Model<input id="lvModel" type="text" list="lvModels" spellcheck="false" value="anthropic/claude-haiku-5.5"></label>
-          <datalist id="lvModels"><option value="anthropic/claude-haiku-5.5"><option value="anthropic/claude-sonnet-5.5"><option value="google/gemini-3.5-flash"><option value="openai/gpt-5.6-luna"></datalist>
-        </div>
-        <div class="group">
-          <div class="btns"><button class="primary" id="lvGo">Score this round</button><button id="lvWr">Write a lyric</button></div>
-          <label class="chk"><input id="lvUse" type="checkbox"> Use the LLM's emotions when I submit in Step 4</label>
-        </div>
-        <div class="group"><p class="msg" id="lvMsg">No key, no call. Everything above works without one.</p></div>
-      </div>
-    </div>
-  </section>
-
 
   <section class="lesson">
     <div class="head"><h2>Generation and selection</h2></div>
@@ -370,7 +336,6 @@ Lines:
       <li>Play the selector for five rounds, keeping only lines about weather and the sea. Which source did the Beta posteriors learn to favour, and did the target emotion follow you?</li>
       <li>Run the simulated artist with "it is mostly diary", then with "longing &gt; 0.6". In which case do the source weights learn the rule and in which does the target emotion carry it? Why can't source weights alone learn a rule about content?</li>
       <li>Rewrite the diary source in a cheerful voice and rerun "longing &gt; 0.6". What happens to the diary's keep rate, and what does that say about learning taste from source tags?</li>
-      <li>With an OpenRouter key, score a round with the live critic. Does the model agree with the stub on coherence? Does it rate the probability maximizer's picks as more coherent than the shown lines? Then write a lyric to the same brief and set it beside the lines you kept: which is more singable, and which is stranger?</li>
     </ol>
   </section>
 </div>
@@ -470,7 +435,7 @@ Lines:
   }
   const sciN = v => { const e = Math.floor(Math.log10(v)); return `${fmt(v / 10 ** e, 1)}×10<sup>${e}</sup>`; };
   function readSh() { ['shN', 'shKf', 'shLo', 'shHi', 'shG'].forEach(id => $(id + 'O').textContent = (id === 'shN' || id === 'shKf') ? fmtInt(+$(id).value) : fmt(+$(id).value, 2)); AX.forEach((_, i) => $('e' + i + 'O').textContent = fmt(+$('e' + i).value, 2)); st.target = AX.map((_, i) => +$('e' + i).value); }
-  function newRound() { readSh(); let lo = +$('shLo').value, hi = +$('shHi').value; if (lo > hi) [lo, hi] = [hi, lo]; cur = makeRound(st, +$('shN').value, +$('shKf').value, lo, hi, +$('shG').value, 8); cur.kept = new Set(); drawSc(); drawSel(); if ($('lvTab')) $('lvTab').innerHTML = '<tbody><tr><td>New round. Press "Score this round" to call the model.</td></tr></tbody>'; }
+  function newRound() { readSh(); let lo = +$('shLo').value, hi = +$('shHi').value; if (lo > hi) [lo, hi] = [hi, lo]; cur = makeRound(st, +$('shN').value, +$('shKf').value, lo, hi, +$('shG').value, 8); cur.kept = new Set(); drawSc(); drawSel(); }
   function rescore() { if (!cur) return; readSh(); let lo = +$('shLo').value, hi = +$('shHi').value; if (lo > hi) [lo, hi] = [hi, lo]; const n = cur.C.length, mu = cur.C.reduce((s, c) => s + c.u, 0) / n, sd = Math.sqrt(cur.C.reduce((s, c) => s + (c.u - mu) ** 2, 0) / n) || 1, gam = +$('shG').value; cur.C.forEach(c => c.score = cosv(c.e, st.target) + gam * (c.u - mu) / sd); const inB = cur.C.filter(c => c.c >= lo && c.c <= hi).sort((a, b) => b.score - a.score); cur.shown = inB.slice(0, 8); cur.nBand = inB.length; cur.kept = new Set(); drawSc(); drawSel(); }
   function drawSc() {
     const C = cur.C, umax = Math.max(...C.map(c => c.u)) * 1.04, umin = Math.min(...C.map(c => c.u)) * 0.96;
@@ -498,7 +463,7 @@ Lines:
   function submit() {
     if (!cur) return;
     let nk = 0;
-    cur.shown.forEach((c, i) => { const kept = cur.kept.has(i); new Set(c.src).forEach(s => st.beta[s][kept ? 0 : 1]++); if (kept) { nk++; const e = ($('lvUse').checked && c.llmE) ? c.llmE.slice(0, 4) : c.e; st.target = st.target.map((t, j) => (t + 0.2 * e[j]) / 1.2); } });
+    cur.shown.forEach((c, i) => { const kept = cur.kept.has(i); new Set(c.src).forEach(s => st.beta[s][kept ? 0 : 1]++); if (kept) { nk++; st.target = st.target.map((t, j) => (t + 0.2 * c.e[j]) / 1.2); } });
     st.target.forEach((t, j) => $('e' + j).value = t);
     $('slMsg').innerHTML = `Round ${st.round}: you kept ${nk} of ${cur.shown.length}. ${nk ? `The target emotion moved to ${AX.map((a, j) => `${a} ${fmt(st.target[j], 2)}`).join(', ')}.` : 'Nothing kept: every source used in the shown lines gets one more discard.'}`;
     st.round++; newRound();
@@ -540,66 +505,6 @@ Lines:
   $('slReset').onclick = () => { st.beta = [[1, 1], [1, 1], [1, 1]]; st.round = 1; [0, 1, 2, 3].forEach(j => $('e' + j).value = 0.5); $('slMsg').textContent = ''; newRound(); };
   $('smR').querySelectorAll('button').forEach(b => b.onclick = () => { smRule = b.dataset.r; $('smR').querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); simulate(); });
   $('smGo').onclick = simulate;
-
-  // Live critic via OpenRouter: the key goes only to openrouter.ai, from this browser.
-  const LVK = 'verbasizer.openrouter.key';
-  try { const k = localStorage.getItem(LVK); if (k) { $('lvKey').value = k; $('lvRem').checked = true; } } catch (e) {}
-  const lvSave = () => { try { $('lvRem').checked && $('lvKey').value ? localStorage.setItem(LVK, $('lvKey').value.trim()) : localStorage.removeItem(LVK); } catch (e) {} };
-  $('lvRem').onchange = lvSave; $('lvKey').onchange = lvSave;
-  const AX6 = ['valence', 'arousal', 'dread', 'longing', 'alienation', 'tenderness'];
-  const esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-  const lineText = c => c.frs.map(f => f.join(' ')).join(' ');
-  async function orCall(messages, temperature) {
-    const key = $('lvKey').value.trim(), model = $('lvModel').value.trim();
-    if (!key) throw new Error('Paste an OpenRouter key first.');
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'X-Title': 'Verbasizer Lab' }, body: JSON.stringify({ model, temperature, messages }) });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok || j.error) throw new Error((j.error && j.error.message) || ('HTTP ' + r.status));
-    const m = j.choices && j.choices[0] && j.choices[0].message;
-    return { text: (m && m.content) || '', model: j.model || model, usage: j.usage };
-  }
-  function parseScores(t) {
-    t = t.replace(/```(json)?/g, '');
-    const a = t.indexOf('['), b = t.lastIndexOf(']');
-    if (a >= 0 && b > a) { try { const v = JSON.parse(t.slice(a, b + 1)); if (Array.isArray(v)) return v; } catch (e) {} }
-    return (t.match(/\{[^{}]*\{[^{}]*\}[^{}]*\}/g) || []).map(x => { try { return JSON.parse(x); } catch (e) { return null; } }).filter(Boolean);
-  }
-  const pear = (x, y) => { const n = x.length; if (n < 3) return NaN; const mx = x.reduce((a, b) => a + b) / n, my = y.reduce((a, b) => a + b) / n; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) ** 2; syy += (y[i] - my) ** 2; } return sxx && syy ? sxy / Math.sqrt(sxx * syy) : NaN; };
-  const num = v => Math.min(1, Math.max(0, +v || 0));
-  let lvBusy = false, lvWBusy = false;
-  async function lvScore() {
-    if (!cur || lvBusy) return;
-    const items = cur.shown.map((c, i) => ({ c, tag: String(i + 1) })).concat(cur.llm.slice(0, 4).map((c, i) => ({ c, tag: 'P' + (i + 1) })));
-    if (!items.length) return;
-    const head = $('pmTxt').textContent.replace(/Lines:[\s\S]*$/, 'Lines:\n');
-    const prompt = head + items.map((it, i) => `${i + 1}. ${lineText(it.c)}`).join('\n');
-    lvBusy = true; $('lvGo').disabled = true; $('lvMsg').className = 'msg'; $('lvMsg').textContent = `Scoring ${items.length} lines with ${$('lvModel').value.trim()}...`;
-    const round = cur;
-    try {
-      const out = await orCall([{ role: 'user', content: prompt }], 0), arr = parseScores(out.text);
-      if (round !== cur) throw new Error('The round changed while the model was scoring. Press again.');
-      let got = 0;
-      arr.forEach(o => { const it = items[(+o.id) - 1]; if (it && o.emotion) { it.c.llmE = AX6.map(a => num(o.emotion[a])); it.c.llmC = num(o.coherence); got++; } });
-      if (!got) throw new Error('Could not read scores from the reply. Try another model. The reply began: ' + out.text.slice(0, 160));
-      drawLv(items);
-      const ok = items.filter(it => it.c.llmE), rc = pear(ok.map(it => it.c.c), ok.map(it => it.c.llmC)), rl = pear(ok.map(it => it.c.e[3]), ok.map(it => it.c.llmE[3]));
-      const sh = ok.filter(it => it.tag[0] !== 'P'), pp = ok.filter(it => it.tag[0] === 'P'), mC = a => a.length ? fmt(a.reduce((s, it) => s + it.c.llmC, 0) / a.length, 2) : 'n/a';
-      $('lvMsg').innerHTML = `${out.model} scored ${got} of ${items.length} lines${out.usage ? ` (${fmtInt(out.usage.total_tokens || 0)} tokens)` : ''}. Agreement with the stub across these lines: coherence r = ${isNaN(rc) ? 'n/a' : fmt(rc, 2)}, longing r = ${isNaN(rl) ? 'n/a' : fmt(rl, 2)}. The LLM's mean coherence is <b>${mC(sh)}</b> for the shown lines and <b>${mC(pp)}</b> for the probability maximizer's picks.`;
-    } catch (e) { $('lvMsg').className = 'msg warn'; $('lvMsg').innerHTML = '<b>Call failed.</b> ' + esc(String(e.message || e)); }
-    lvBusy = false; $('lvGo').disabled = false;
-  }
-  function drawLv(items) {
-    $('lvTab').innerHTML = `<thead><tr><th>#</th><th style="text-align:left">line</th><th>c stub</th><th>c LLM</th><th>longing stub</th><th>longing LLM</th><th>dread stub</th><th>dread LLM</th><th>alien.</th><th>tender.</th></tr></thead><tbody>${items.map(({ c, tag }) => `<tr><td>${tag}</td><td style="text-align:left;white-space:normal;font-family:var(--font-body);line-height:1.8">${fragHTML(c)}</td><td>${fmt(c.c, 2)}</td><td>${c.llmE ? fmt(c.llmC, 2) : ''}</td><td>${fmt(c.e[3], 2)}</td><td>${c.llmE ? fmt(c.llmE[3], 2) : ''}</td><td>${fmt(c.e[2], 2)}</td><td>${c.llmE ? fmt(c.llmE[2], 2) : ''}</td><td>${c.llmE ? fmt(c.llmE[4], 2) : ''}</td><td>${c.llmE ? fmt(c.llmE[5], 2) : ''}</td></tr>`).join('')}</tbody>`;
-  }
-  async function lvWrite() {
-    if (lvWBusy) return;
-    const brief = `Write an eight-line song lyric. Target mood on 0-1 scales: ${AX.map((a, j) => `${a} ${fmt(st.target[j], 2)}`).join(', ')}. Draw your images from these three texts, but write the lines yourself:\n\nNEWS: ${$('src0').value}\n\nDIARY: ${$('src1').value}\n\nSTORY: ${$('src2').value}\n\nReturn only the eight lines.`;
-    lvWBusy = true; $('lvWr').disabled = true; $('lvOut').textContent = 'Writing...';
-    try { const out = await orCall([{ role: 'user', content: brief }], 1); $('lvOut').textContent = (out.text.trim() || '(empty reply)') + `\n\n(${out.model}, temperature 1. Set it beside the lines you kept: is it more singable, and is it as strange?)`; }
-    catch (e) { $('lvOut').textContent = 'No lyric.'; $('lvMsg').className = 'msg warn'; $('lvMsg').innerHTML = '<b>Call failed.</b> ' + esc(String(e.message || e)); }
-    lvWBusy = false; $('lvWr').disabled = false;
-  }
-  $('lvGo').onclick = lvScore; $('lvWr').onclick = lvWrite;
   $('pmCopy').onclick = () => { navigator.clipboard.writeText($('pmTxt').textContent).then(() => { $('pmCopy').textContent = 'Copied'; setTimeout(() => $('pmCopy').textContent = 'Copy the prompt', 1500); }); };
   [0, 1, 2].forEach(s => $('src' + s).value = SRC0[s]);
   cutAll(); drawCut(); newRound(); simulate();
