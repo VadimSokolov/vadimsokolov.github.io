@@ -8,7 +8,7 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 
 Volume I of a two volume series. Bayesian clinical trials built up from the traditional trial and tied to regulation: calibration, monitoring, safety, borrowing, adaptive designs, and reanalyses of landmark trials, with an R package and an online lab.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials_v1/releases/download/v1.1.1/bayesian_clinical_trials_v1.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_clinical_trials_v1/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials_v1 "Source on GitHub") [![DOI 10.5281/zenodo.24139858](https://zenodo.org/badge/DOI/10.5281/zenodo.24139858.svg)](https://doi.org/10.5281/zenodo.24139858)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials_v1/releases/download/v1.1.2/bayesian_clinical_trials_v1.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_clinical_trials_v1/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials_v1 "Source on GitHub") [![DOI 10.5281/zenodo.24140149](https://zenodo.org/badge/DOI/10.5281/zenodo.24140149.svg)](https://doi.org/10.5281/zenodo.24140149)
 
 ## [Bayes and Law](https://vsokolov.org/books/bayes_law/) <small>Evidence, Expected Utility and Machines in the Courtroom</small>
 
