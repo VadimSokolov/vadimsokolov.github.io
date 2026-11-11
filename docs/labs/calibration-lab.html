@@ -201,10 +201,13 @@ details p { margin: 6px 0 0; color: var(--ink); background: var(--board); border
         <span class="cap" id="lnCap">Reliability diagram</span>
         <canvas id="ln" role="img" aria-label="Reliability diagram of predicted default probabilities against observed default rates, with the approval cutoff marked and a histogram of predictions below"></canvas>
         <div class="legend">
-          <span><i class="sw bar"></i>Observed default rate in the bin</span>
+          <span><i class="sw bar"></i>Share of the bin's loans that defaulted</span>
+          <span><i class="sw" style="width:8px;height:8px;border:0;border-radius:50%;background:var(--ink)"></i>Model's average p in the bin</span>
+          <span><i class="sw" style="width:3px;height:12px;border:0;background:var(--curve)"></i>Gap between the two</span>
           <span><i class="sw dash"></i>Perfect calibration</span>
           <span><i class="sw tw"></i>Approval cutoff g/(1 + g)</span>
         </div>
+        <p class="hint">How to read it: the loans are grouped by the model's prediction, ten points wide. In each group the dot is what the model predicted on average and the bar is what happened; the number on top is how many loans are in the group. A calibrated model has every bar reaching its dot, on the diagonal. A bar below its dot means the model expected more defaults than occurred; above, fewer. Groups with few loans (the ones on the right) are noisy.</p>
         <div style="overflow-x:auto"><table class="stats" style="min-width:560px">
           <thead><tr><th>Loans approved (p below cutoff)</th><th>Number</th><th>Predicted default rate</th><th>Actual default rate</th><th>Profit per $ the model expects</th><th>Profit per $ realized</th></tr></thead>
           <tbody id="lnT"></tbody>
@@ -1091,7 +1094,7 @@ One of 20 places      15.0%  vs  5.0%</div>
     const pl = v => fmt(Math.abs(v) < 1e-9 ? 0 : v * 100, 0) + '%';
     const { PX, PY } = frame(o, m, [0, 1], [0, 1], ticks([0, 1], 10, pl), ticks([0, 1], 5, pl), { bottom: top, noXLab: true, ylab: 'observed default rate' });
     clip(o, m, top);
-    for (const bn of s.bins) { if (!bn) continue; const x0 = PX(bn.k / 10) + 2, x1 = PX((bn.k + 1) / 10) - 2; ctx.fillStyle = C.accent; ctx.globalAlpha = .7; ctx.fillRect(x0, PY(bn.ac), x1 - x0, PY(0) - PY(bn.ac)); ctx.fillStyle = C.curve; ctx.globalAlpha = .28; const ya = PY(bn.ac), yc = PY(bn.cf); ctx.fillRect(x0, Math.min(ya, yc), x1 - x0, Math.abs(ya - yc)); ctx.globalAlpha = 1; ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc((x0 + x1) / 2, PY(bn.cf), 2.6, 0, 7); ctx.fill(); ctx.font = '10.5px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillStyle = C.muted; ctx.fillText(bn.m, (x0 + x1) / 2, Math.min(ya, yc) - 3); }
+    for (const bn of s.bins) { if (!bn) continue; const x0 = PX(bn.k / 10) + 2, x1 = PX((bn.k + 1) / 10) - 2; ctx.fillStyle = C.accent; ctx.globalAlpha = .7; ctx.fillRect(x0, PY(bn.ac), x1 - x0, PY(0) - PY(bn.ac)); ctx.globalAlpha = 1; const ya = PY(bn.ac), yc = PY(bn.cf), xm = (x0 + x1) / 2; if (Math.abs(ya - yc) > 1) { ctx.strokeStyle = C.curve; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(xm, ya); ctx.lineTo(xm, yc); ctx.stroke(); } ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0 + 3, ya); ctx.lineTo(x1 - 3, ya); ctx.stroke(); ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(xm, yc, 3.2, 0, 7); ctx.fill(); ctx.font = '10.5px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillStyle = C.muted; ctx.fillText(bn.m, (x0 + x1) / 2, Math.min(ya, yc) - 3); }
     ctx.strokeStyle = C.muted; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(PX(0), PY(0)); ctx.lineTo(PX(1), PY(1)); ctx.stroke(); ctx.setLineDash([]);
     ctx.restore();
     const sb = top + 8, se = H - m.b, nb = 50, ca = new Array(nb).fill(0); for (const p of ps) ca[Math.min(nb - 1, Math.floor(p * nb))]++;
