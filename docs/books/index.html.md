@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Bayes and Law](https://vsokolov.org/books/bayes_law/) <small>Evidence, Expected Utility and Machines in the Courtroom</small>
+
+[![Bayes and Law: Evidence, Expected Utility and Machines in the Courtroom](https://vsokolov.org/books/bayes_law/cover.jpg)](https://vsokolov.org/books/bayes_law/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
+
+A casebook for law students on reasoning under uncertainty: priors, likelihood ratios, standards of proof as decision thresholds, the classic fallacies, and the statistics, economics and machines that now enter the courtroom, taught through leading English, American and comparative cases.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayes_law/releases/download/v1.0.0/bayes_law.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayes_law "Source on GitHub") [![DOI 10.5281/zenodo.24138404](https://zenodo.org/badge/DOI/10.5281/zenodo.24138404.svg)](https://doi.org/10.5281/zenodo.24138404)
+
 ## [Bayesian Clinical Trials and Personalized Medicine](https://vsokolov.org/books/bayesian_clinical_trials_v1/) <small>Volume I: Bayesian Clinical Trials</small>
 
 [![Bayesian Clinical Trials and Personalized Medicine: Volume I: Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials_v1/cover.jpg)](https://vsokolov.org/books/bayesian_clinical_trials_v1/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
