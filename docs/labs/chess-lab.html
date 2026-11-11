@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Chess Lab</title>
+<script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, chtml: { scale: 1, matchFontHeight: false }, options: { enableMenu: false } };</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header with three framing cards; Part I play the network (board, policy arrows, value bar, search); Part II inside the ten layers; Part III how strong it is and why depth and search matter; lesson, notes, class exercises. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
+  --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+    --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+  --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); }
+.src a { color: var(--accent); }
+.part { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); margin: 12px 0 0; border-top: 2px solid var(--line); padding-top: 18px; }
+.part small { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.dash { border-top: 2px dashed var(--ink); }
+.sw.red { border-top: 2.5px solid var(--curve); }
+.sw.acc { border-top: 2.5px solid var(--accent); }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
+.sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
+.sw.bar.ball { background: var(--ball); } .sw.bar.acc2 { background: var(--accent); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
+.sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.msg.warn { border-color: var(--curve); }
+.msg.warn b { color: var(--curve); }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-left: 0; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--curve); } .stat .v.good { color: var(--fit); }
+
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 88ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+.sec .head p + p { margin-top: 4px; }
+.tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
+mjx-container { font-size: 105%; }
+.frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame .note h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; }
+.frame .note p { margin: 0; font-size: 14px; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; overflow-x: auto; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.note a { color: var(--accent); }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+code { font-family: var(--font-mono); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.bwrap { position: relative; width: min(100%, 520px); aspect-ratio: 1; margin: 0 auto; user-select: none; }
+.cb { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; height: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.fen { font: 12px var(--font-mono); width: 100%; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.sq { position: relative; display: flex; align-items: center; justify-content: center; font-size: clamp(26px, 6.2vw, 48px); line-height: 1; cursor: pointer; }
+.sq.l { background: #e9dcc4; } .sq.d { background: #b58a63; }
+:root[data-theme="dark"] .sq.l { background: #c9b99c; } :root[data-theme="dark"] .sq.d { background: #8d6847; }
+.sq .pc { pointer-events: none; text-shadow: 0 1px 1px rgba(0,0,0,.25); }
+.sq .pc.w { color: #fff; -webkit-text-stroke: 1.2px #222; } .sq .pc.b { color: #111; }
+.sq.sel { box-shadow: inset 0 0 0 4px var(--accent); }
+.sq.tgt::after { content: ''; position: absolute; width: 26%; height: 26%; border-radius: 50%; background: rgba(34, 87, 176, .45); }
+.sq.last { box-shadow: inset 0 0 0 100px rgba(240, 200, 60, .32); }
+.sq.chk { box-shadow: inset 0 0 0 100px rgba(194, 58, 46, .45); }
+.sq .co { position: absolute; font: 10px var(--font-mono); color: rgba(0,0,0,.55); pointer-events: none; }
+.sq .co.f { right: 3px; bottom: 1px; } .sq .co.r { left: 3px; top: 1px; }
+.arrows { position: absolute; inset: 0; pointer-events: none; }
+.evalbar { height: 14px; border-radius: 7px; background: #222; overflow: hidden; border: 1px solid var(--line); }
+.evalbar i { display: block; height: 100%; background: #f4f4f4; transition: width .25s; }
+.moves { font: 13px/1.7 var(--font-mono); max-height: 140px; overflow: auto; }
+.moves span { margin-right: 6px; }
+.seg.four { grid-template-columns: repeat(4, 1fr); }
+.sec a { color: var(--accent); }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Deep learning and games</span>
+    <h1>Chess Lab: a ten-layer ReLU network that plays</h1>
+    <p class="lead">In 2016 Silver and colleagues at DeepMind beat the best human Go players with three ingredients: a policy network that proposes moves, a value network that judges positions, and a tree search that lets the two check each other. This lab rebuilds that recipe for chess at a size your browser can run. One network with ten ReLU layers reads the board and outputs both a probability for every move and a probability of winning. Play against it, watch what search adds to the bare network, and look inside the ten layers while it thinks.</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Recipe: Silver et al., <i>Mastering the game of Go with deep neural networks and tree search</i>, Nature 529, 484–489 (2016); the move-selection rule is the paper's PUCT, and as in AlphaGo Zero (Nature 550, 2017) the search uses the value network alone, without rollouts. AlphaZero brought the recipe to chess (Science 362, 2018). The network here was trained for this lab on 600,000 positions from engine games with random openings, each scored by Stockfish 18 at depth 9: ten fully connected ReLU layers (nine of 256 units and a last one of 128), with skip connections around the eight 256-to-256 layers, 1.29 million parameters, 15 passes over the data on a laptop. The browser runs it with no server.</p>
+  </header>
+
+  <section class="frame">
+    <div class="note"><h3>Policy: which moves are worth a look?</h3><p>\(p_\theta(a \mid s)\), a probability over the legal moves in position \(s\). AlphaGo learned it from 30 million positions of expert games. Ours learned to predict the move Stockfish prefers. A strong policy alone already plays legal, sensible chess, and it is instant.</p></div>
+    <div class="note"><h3>Value: who is winning?</h3><p>\(v_\theta(s)\), the probability that the side to move wins. AlphaGo trained it on the outcomes of self-play games. Ours is trained on Stockfish's evaluation turned into a win probability, \(1/(1 + 10^{-\text{cp}/400})\). It replaces looking ahead to the end of the game.</p></div>
+    <div class="note"><h3>Search: let the two check each other</h3><p>Monte Carlo tree search walks down the game tree choosing \(a = \arg\max_a Q(s,a) + c\,P(s,a)\,\frac{\sqrt{N(s)}}{1 + N(s,a)}\): exploit moves that have looked good, explore moves the policy likes but has not tried. At the leaves the value network takes over.</p></div>
+  </section>
+
+  <h2 class="part"><small>Part I</small>Play the network</h2>
+
+  <section class="sec" aria-labelledby="plH">
+    <div class="head">
+      <h2 id="plH">Your move</h2>
+      <p>Click a piece, then its destination; pawns promote to a queen. Choose how the network moves: the policy alone (its single favourite move), the value one ply ahead (try every move, keep the one that leaves the opponent worst off), or a search of a given number of simulations. The arrows are the policy's three favourite moves for the side to move; the bar is the value, as White's chance of winning.</p>
+    </div>
+    <div class="grid">
+      <div class="board-col">
+        <div class="bwrap"><div class="cb" id="bd" role="grid" aria-label="Chess board"></div><svg class="arrows" id="ar" viewBox="0 0 8 8"></svg></div>
+        <div style="max-width:520px;margin:10px auto 0"><div class="evalbar" title="value: White's chance of winning"><i id="ev"></i></div><p class="hint" id="evT" style="margin-top:4px"></p></div>
+      </div>
+      <div class="panel">
+        <div class="group"><span class="label">You play</span>
+          <div class="seg two" id="side"><button data-v="w" aria-pressed="true">White</button><button data-v="b" aria-pressed="false">Black</button></div></div>
+        <div class="group"><span class="label">The network moves by</span>
+          <div class="seg" id="how"><button data-v="pol" aria-pressed="false">Policy only</button><button data-v="val" aria-pressed="false">Value, 1 ply</button><button data-v="mcts" aria-pressed="true">Search</button></div>
+          <div class="slider" id="simW"><div class="top"><label for="sims">Simulations per move</label><output id="simsO"></output></div><input id="sims" type="range" min="0" max="3" step="0.05" value="2.3"></div>
+          <div class="btns"><button id="newG" class="primary">New game</button><button id="undo">Take back</button></div>
+          <div class="btns"><button id="hint">What would it play?</button><button id="flip">Flip board</button></div>
+        </div>
+        <div class="group"><span class="label">Position (FEN)</span><input class="fen" id="fen" spellcheck="false" aria-label="Position in FEN"><button id="loadF">Load this position</button></div>
+        <div class="group"><table class="stats" id="cand"></table></div>
+        <div class="group"><p class="msg" id="stat"></p></div>
+        <div class="group"><span class="label">Moves</span><div class="moves" id="mv"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part II</small>Inside the ten layers</h2>
+
+  <section class="sec" aria-labelledby="inH">
+    <div class="head">
+      <h2 id="inH">Which ReLUs are on</h2>
+      <p>Each row is one of the ten layers for the position on the board, one cell per unit, darker for larger activations; blank cells are ReLUs at exactly zero. The pattern of which units are on fixes a single linear map from board to output, the same folded-plane picture as the <a href="neural-net-lab.html#folds">playground</a>, now in 772 dimensions. The table counts the units that switched on or off with the last move: small changes to the board move the position into a neighbouring region, and every layer refolds it.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap" id="acCap"></span><canvas id="ac" height="300"></canvas></div>
+      <div class="panel"><div class="group"><table class="stats" id="acTab"></table></div><div class="group"><p class="msg" id="acMsg"></p></div></div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part III</small>How strong, and why</h2>
+
+  <section class="sec" aria-labelledby="stH">
+    <div class="head">
+      <h2 id="stH">Depth, and search on top</h2>
+      <p>Measured offline in Python with the same networks and the same search. The first table compares networks of 2, 5 and 10 layers with about 1.3 million parameters each, all trained the same way for 15 passes, on 20,000 held-out positions: the error of the value as a win probability, and how often the policy's favourite move is Stockfish's. The second plays the ten-layer network against simple opponents with each way of choosing moves. A policy that matches Stockfish's move one time in five sounds weak, but in most positions several moves are about equally good.</p>
+    </div>
+    <div class="board" id="resA"></div>
+    <div class="board" id="resB"></div>
+    <p class="msg" id="resMsg"></p>
+  </section>
+
+  <section class="lesson">
+    <div class="head"><h2>What carries over</h2></div>
+    <ol class="steps">
+      <li><div><h3>Two heads, one trunk</h3><p>The ten layers compute one representation of the board; a linear head turns it into 4,096 move scores (from square × to square, masked to the legal ones and passed through a softmax) and another into a win probability. Sharing the trunk means each task teaches the other what features of the board matter.</p></div></li>
+      <li><div><h3>The network replaces calculation with recognition</h3><p>Stockfish's label at depth 9 summarizes millions of positions searched. The network learns to recognize the result from the board alone, in one pass of about a million multiply–adds. It is good at familiar shapes and bad at tactics it cannot see without looking ahead.</p></div></li>
+      <li><div><h3>Search fixes what recognition misses</h3><p>A few hundred simulations let the value network check the policy's suggestions a few moves deep. Blunders that hang a piece in two moves mostly disappear. This is the paper's central point: neither network alone, nor search alone, but the combination.</p></div></li>
+      <li><div><h3>Depth is not free</h3><p>Trained plainly, the ten-layer network learned worst of all: deep stacks of ReLUs are hard to optimize. Skip connections, \(h \leftarrow h + \mathrm{ReLU}(Wh + b)\), fix the optimization; they are the trick behind residual networks and AlphaGo Zero. Even then, on this task a two-layer network of the same size is as good or better. Depth pays when the problem has structure to compose; it is not a free upgrade.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cp">The network, with skips around the square layers</div>\[ h_1 = \mathrm{ReLU}(W_1 x + b_1), \quad h_\ell = h_{\ell-1} + \mathrm{ReLU}(W_\ell h_{\ell-1} + b_\ell),\ \ell = 2, \dots, 9 \]\[ h_{10} = \mathrm{ReLU}(W_{10} h_9 + b_{10}) \]</div>
+      <div class="eq"><div class="cp">Two heads</div>\[ p(a \mid s) = \operatorname{softmax}_{a\ \text{legal}}(U h_{10}), \quad v(s) = \sigma(u^\top h_{10}) \]</div>
+      <div class="eq"><div class="cp">Training loss</div>\[ \mathrm{BCE}\bigl(v(s), 1/(1 + 10^{-\text{cp}/400})\bigr) - \tfrac12 \log p(a^\ast \mid s) \]</div>
+      <div class="eq"><div class="cp">PUCT selection</div>\[ a = \arg\max_a\ Q(s,a) + c\, P(s,a) \frac{\sqrt{\sum_b N(s,b)}}{1 + N(s,a)} \]</div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note"><h2>What differs from AlphaGo</h2><p>AlphaGo's networks were convolutional, 13 layers of 3 × 3 filters on a 19 × 19 board, trained first on human games and then by self-play reinforcement learning on thousands of processors. Ours is fully connected, learns from an engine's labels instead of from self-play, and was trained in minutes on a laptop. The search is the same idea at a smaller scale.</p></div>
+    <div class="note"><h2>Why fully connected</h2><p>A convolution shares weights across the board, which suits Go, where a shape means the same thing anywhere. In chess the meaning of a piece depends on long lines across the board. Strong small chess networks, such as Stockfish's NNUE, are fully connected on sparse piece–square inputs like ours, which also makes the first layer cheap: only the 20 to 32 occupied squares contribute.</p></div>
+    <div class="note"><h2>Mirroring the board</h2><p>The network always sees the position from the side to move: when Black is to move the board is flipped top to bottom and the colours swapped. One network then serves both sides, and a position and its mirror image are the same training example. The value is always "my chance of winning".</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Set "Policy only" and play a quick game. Where does it play well, and when does it first leave a piece where it can be taken? Replay the position with "Search" at 300 simulations.</li>
+      <li>Load the position after 1. e4 e5 2. Qh5 Nc6 3. Bc4, <code>r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3</code>, and press "What would it play?" with each method. Which defends f7 with g6 or Qe7, and which plays the natural-looking Nf6, allowing Qxf7 mate?</li>
+      <li>Watch the candidate table during a search: how do the visit counts compare with the policy's prior? Find a move the search ends up preferring that the policy rated low.</li>
+      <li>In Part II, make one quiet pawn move and count the units that switch in each layer. Then capture a piece. Which change moves the position further, and in which layers?</li>
+      <li>In Part III, the two-layer network beats the plain ten-layer one of the same size, and the skip connections close most of the gap. Why is a deep plain ReLU stack harder to train? What kind of chess knowledge would you expect depth to help with, and why might 600,000 positions not be enough to show it?</li>
+      <li>The value is trained on engine evaluations, not on game results. What would change if we trained it on who actually won, as AlphaGo did? Think about the noise in a single game's result.</li>
+    </ol>
+  </section>
+</div>
+<script src="chess-net.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '–';
+  const fmtInt = v => Math.round(v).toLocaleString('en-US');
+  const segInit = (id, f) => $(id).querySelectorAll('button').forEach(b => b.onclick = () => { $(id).querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', o === b)); f(b.dataset.v); });
+  function setup(cv) {
+    if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return { ctx, w, h };
+  }
+  /* CHESS RULES: board[0..63], a1 = 0, h8 = 63; pieces 'PNBRQK' white, 'pnbrqk' black, '' empty */
+  const FILES = 'abcdefgh';
+  const sqName = s => FILES[s & 7] + ((s >> 3) + 1);
+  const isW = p => p && p === p.toUpperCase();
+  function fromFEN(f) {
+    const [pl, t, c, e, h, fu] = f.trim().split(/\s+/), b = new Array(64).fill('');
+    pl.split('/').forEach((row, ri) => { let fi = 0; for (const ch of row) { if (/\d/.test(ch)) fi += +ch; else { b[(7 - ri) * 8 + fi] = ch; fi++; } } });
+    return { b, turn: t || 'w', castle: c && c !== '-' ? c : '', ep: e && e !== '-' ? FILES.indexOf(e[0]) + 8 * (+e[1] - 1) : -1, half: +(h || 0), full: +(fu || 1) };
+  }
+  function toFEN(s) {
+    let rows = [];
+    for (let r = 7; r >= 0; r--) { let row = '', k = 0; for (let f = 0; f < 8; f++) { const p = s.b[r * 8 + f]; if (!p) k++; else { if (k) row += k; k = 0; row += p; } } if (k) row += k; rows.push(row); }
+    return `${rows.join('/')} ${s.turn} ${s.castle || '-'} ${s.ep >= 0 ? sqName(s.ep) : '-'} ${s.half} ${s.full}`;
+  }
+  const KN = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]], KG = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]], ORTH = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const at = (f, r) => f >= 0 && f < 8 && r >= 0 && r < 8 ? r * 8 + f : -1;
+  function attacked(b, sq, byWhite) {
+    const f = sq & 7, r = sq >> 3, own = p => p && (isW(p) === byWhite);
+    const pr = byWhite ? r - 1 : r + 1, pc = byWhite ? 'P' : 'p';
+    for (const df of [-1, 1]) { const s = at(f + df, pr); if (s >= 0 && b[s] === pc) return true; }
+    for (const [df, dr] of KN) { const s = at(f + df, r + dr); if (s >= 0 && b[s] === (byWhite ? 'N' : 'n')) return true; }
+    for (const [df, dr] of KG) { const s = at(f + df, r + dr); if (s >= 0 && b[s] === (byWhite ? 'K' : 'k')) return true; }
+    for (const [dirs, set] of [[DIAG, 'BQ'], [ORTH, 'RQ']]) for (const [df, dr] of dirs) { let ff = f + df, rr = r + dr; while (ff >= 0 && ff < 8 && rr >= 0 && rr < 8) { const p = b[rr * 8 + ff]; if (p) { if (own(p) && set.includes(p.toUpperCase())) return true; break; } ff += df; rr += dr; } }
+    return false;
+  }
+  function pseudo(s) {
+    const b = s.b, w = s.turn === 'w', out = [], mine = p => p && isW(p) === w, theirs = p => p && isW(p) !== w;
+    for (let sq = 0; sq < 64; sq++) {
+      const p = b[sq]; if (!mine(p)) continue;
+      const f = sq & 7, r = sq >> 3, P = p.toUpperCase();
+      if (P === 'P') {
+        const d = w ? 1 : -1, last = w ? 7 : 0, start = w ? 1 : 6, add = (to, extra = {}) => { if ((to >> 3) === last) for (const pr of 'QRBN') out.push({ from: sq, to, promo: w ? pr : pr.toLowerCase(), ...extra }); else out.push({ from: sq, to, ...extra }); };
+        const one = at(f, r + d);
+        if (one >= 0 && !b[one]) { add(one); const two = at(f, r + 2 * d); if (r === start && !b[two]) out.push({ from: sq, to: two, double: true }); }
+        for (const df of [-1, 1]) { const t = at(f + df, r + d); if (t < 0) continue; if (theirs(b[t])) add(t); else if (t === s.ep) out.push({ from: sq, to: t, enpassant: true }); }
+      } else if (P === 'N' || P === 'K') {
+        for (const [df, dr] of P === 'N' ? KN : KG) { const t = at(f + df, r + dr); if (t >= 0 && !mine(b[t])) out.push({ from: sq, to: t }); }
+        if (P === 'K') {
+          const home = w ? 4 : 60, K = w ? 'K' : 'k', Q = w ? 'Q' : 'q';
+          if (sq === home && !attacked(b, home, !w)) {
+            if (s.castle.includes(K) && !b[home + 1] && !b[home + 2] && b[home + 3] === (w ? 'R' : 'r') && !attacked(b, home + 1, !w) && !attacked(b, home + 2, !w)) out.push({ from: sq, to: home + 2, castle: 'K' });
+            if (s.castle.includes(Q) && !b[home - 1] && !b[home - 2] && !b[home - 3] && b[home - 4] === (w ? 'R' : 'r') && !attacked(b, home - 1, !w) && !attacked(b, home - 2, !w)) out.push({ from: sq, to: home - 2, castle: 'Q' });
+          }
+        }
+      } else {
+        const dirs = P === 'B' ? DIAG : P === 'R' ? ORTH : DIAG.concat(ORTH);
+        for (const [df, dr] of dirs) { let ff = f + df, rr = r + dr; while (ff >= 0 && ff < 8 && rr >= 0 && rr < 8) { const t = rr * 8 + ff; if (mine(b[t])) break; out.push({ from: sq, to: t }); if (b[t]) break; ff += df; rr += dr; } }
+      }
+    }
+    return out;
+  }
+  function make(s, m) {
+    const b = s.b.slice(), p = b[m.from], w = s.turn === 'w', cap = b[m.to] || (m.enpassant ? (w ? 'p' : 'P') : '');
+    b[m.to] = m.promo || p; b[m.from] = '';
+    if (m.enpassant) b[m.to + (w ? -8 : 8)] = '';
+    if (m.castle) { const home = w ? 4 : 60; if (m.castle === 'K') { b[home + 1] = b[home + 3]; b[home + 3] = ''; } else { b[home - 1] = b[home - 4]; b[home - 4] = ''; } }
+    let c = s.castle;
+    const strip = ch => { c = c.replace(ch, ''); };
+    if (p === 'K') { strip('K'); strip('Q'); } if (p === 'k') { strip('k'); strip('q'); }
+    for (const [sq, ch] of [[0, 'Q'], [7, 'K'], [56, 'q'], [63, 'k']]) if (m.from === sq || m.to === sq) strip(ch);
+    return { b, turn: w ? 'b' : 'w', castle: c, ep: m.double ? (m.from + m.to) / 2 : -1, half: (p.toUpperCase() === 'P' || cap) ? 0 : s.half + 1, full: s.full + (w ? 0 : 1) };
+  }
+  const kingSq = (b, w) => b.indexOf(w ? 'K' : 'k');
+  const inCheck = s => attacked(s.b, kingSq(s.b, s.turn === 'w'), s.turn !== 'w');
+  function legal(s) { const w = s.turn === 'w'; return pseudo(s).filter(m => { const t = make(s, m); return !attacked(t.b, kingSq(t.b, w), !w); }); }
+  const uci = m => sqName(m.from) + sqName(m.to) + (m.promo ? m.promo.toLowerCase() : '');
+  function perft(s, d) { if (d === 0) return 1; const ms = legal(s); if (d === 1) return ms.length; let n = 0; for (const m of ms) n += perft(make(s, m), d - 1); return n; }
+  /* THE NETWORK: weights int8 with one scale per output row; the first layer is stored as columns, since only occupied squares contribute */
+  const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const deq = e => { if (e.f) return new Float32Array(b64(e.f).buffer); const q = new Int8Array(b64(e.q).buffer), cols = q.length / e.c.length, o = new Float32Array(q.length); for (let r = 0; r < e.c.length; r++) for (let j = 0; j < cols; j++) o[r * cols + j] = q[r * cols + j] * e.c[r]; return o; };
+  const NETW = CHESSNET.layers.map(L => ({ W: deq(L.W), b: deq(L.b), nin: L.nin, nout: L.nout, cols: !!L.cols, res: !!L.res }));
+  const VH = { W: deq(CHESSNET.v.W), b: deq(CHESSNET.v.b) }, PH = { W: deq(CHESSNET.p.W), b: deq(CHESSNET.p.b) };
+  const PL = { P: 0, N: 1, B: 2, R: 3, Q: 4, K: 5 };
+  function features(s) {
+    const w = s.turn === 'w', on = [];
+    for (let sq = 0; sq < 64; sq++) { const p = s.b[sq]; if (!p) continue; const own = isW(p) === w, ss = w ? sq : sq ^ 56; on.push((PL[p.toUpperCase()] + (own ? 0 : 6)) * 64 + ss); }
+    const c = s.castle, cr = w ? ['K', 'Q', 'k', 'q'] : ['k', 'q', 'K', 'Q'];
+    cr.forEach((ch, i) => { if (c.includes(ch)) on.push(768 + i); });
+    return on;
+  }
+  function netEval(s, keep) {
+    const on = features(s), L0 = NETW[0];
+    let h = new Float32Array(L0.nout); h.set(L0.b);
+    for (const i of on) { const off = i * L0.nout; for (let j = 0; j < L0.nout; j++) h[j] += L0.W[off + j]; }
+    for (let j = 0; j < h.length; j++) if (h[j] < 0) h[j] = 0;
+    const acts = keep ? [h] : null;
+    for (let l = 1; l < NETW.length; l++) {
+      const L = NETW[l], o = new Float32Array(L.nout);
+      for (let r = 0; r < L.nout; r++) { let t = L.b[r]; const off = r * L.nin; for (let k = 0; k < L.nin; k++) t += L.W[off + k] * h[k]; o[r] = (t > 0 ? t : 0) + (L.res ? h[r] : 0); }
+      h = o; if (keep) acts.push(h);
+    }
+    let v = VH.b[0]; for (let k = 0; k < h.length; k++) v += VH.W[k] * h[k];
+    const moves = legal(s), w = s.turn === 'w', logits = moves.map(m => { const fr = w ? m.from : m.from ^ 56, to = w ? m.to : m.to ^ 56, r = fr * 64 + to; let t = PH.b[r]; const off = r * h.length; for (let k = 0; k < h.length; k++) t += PH.W[off + k] * h[k]; return t; });
+    const mx = Math.max(...logits, -1e9), ex = logits.map(t => Math.exp(t - mx)), z = ex.reduce((a, b) => a + b, 0) || 1;
+    return { value: 1 / (1 + Math.exp(-v)), moves, prior: ex.map(e => e / z), acts };
+  }
+  /* GAME STATE */
+  const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const keyOf = s => s.b.join(',') + s.turn + s.castle + s.ep;
+  const G = { hist: [fromFEN(START)], sans: [], last: null, user: 'w', how: 'mcts', flip: false, sel: -1, busy: false, prevActs: null, info: null };
+  const cur = () => G.hist[G.hist.length - 1];
+  function result(s, hist) {
+    const ms = legal(s);
+    if (!ms.length) return inCheck(s) ? { over: true, txt: (s.turn === 'w' ? 'Black' : 'White') + ' wins by checkmate.', v: 0 } : { over: true, txt: 'Draw by stalemate.', v: 0.5 };
+    if (s.half >= 100) return { over: true, txt: 'Draw by the fifty-move rule.', v: 0.5 };
+    const k = keyOf(s); if (hist && hist.filter(t => keyOf(t) === k).length >= 3) return { over: true, txt: 'Draw by threefold repetition.', v: 0.5 };
+    const pcs = s.b.filter(Boolean).map(p => p.toUpperCase()).sort().join(''); if (pcs === 'KK' || pcs === 'BKK' || pcs === 'KKN') return { over: true, txt: 'Draw: not enough material to mate.', v: 0.5 };
+    return { over: false };
+  }
+  function san(s, m) {
+    if (m.castle) return m.castle === 'K' ? 'O-O' : 'O-O-O';
+    const p = s.b[m.from].toUpperCase(), cap = !!s.b[m.to] || m.enpassant, to = sqName(m.to);
+    let out;
+    if (p === 'P') out = (cap ? FILES[m.from & 7] + 'x' : '') + to + (m.promo ? '=' + m.promo.toUpperCase() : '');
+    else {
+      const others = legal(s).filter(o => o.to === m.to && o.from !== m.from && s.b[o.from] === s.b[m.from]);
+      let dis = ''; if (others.length) { if (!others.some(o => (o.from & 7) === (m.from & 7))) dis = FILES[m.from & 7]; else if (!others.some(o => (o.from >> 3) === (m.from >> 3))) dis = String((m.from >> 3) + 1); else dis = sqName(m.from); }
+      out = p + dis + (cap ? 'x' : '') + to;
+    }
+    const t = make(s, m); if (inCheck(t)) out += legal(t).length ? '+' : '#';
+    return out;
+  }
+  /* SEARCH: PUCT as in Silver et al. (2016), value network at the leaves */
+  function mcts(root, nSim, hist) {
+    const C = 1.5, rk = new Set(hist.map(keyOf));
+    const mk = s => { const r = result(s, null); if (r.over) return { s, term: true, tv: r.v === 0.5 ? 0 : -1 }; const e = netEval(s); return { s, moves: e.moves, P: e.prior, N: new Float64Array(e.moves.length), W: new Float64Array(e.moves.length), ch: new Array(e.moves.length), v: 2 * e.value - 1 }; };
+    const R = mk(root); if (R.term) return null;
+    for (let it = 0; it < nSim; it++) {
+      let node = R; const path = [];
+      while (true) {
+        if (node.term) break;
+        const tot = node.N.reduce((a, b) => a + b, 0); let best = -1, bs = -Infinity;
+        for (let i = 0; i < node.moves.length; i++) { const q = node.N[i] ? node.W[i] / node.N[i] : 0, u = q + C * node.P[i] * Math.sqrt(tot + 1) / (1 + node.N[i]); if (u > bs) { bs = u; best = i; } }
+        path.push([node, best]);
+        if (!node.ch[best]) { const t = make(node.s, node.moves[best]); node.ch[best] = rk.has(keyOf(t)) ? { s: t, term: true, tv: 0 } : mk(t); node = node.ch[best]; break; }
+        node = node.ch[best];
+      }
+      let v = node.term ? node.tv : node.v;
+      for (let k = path.length - 1; k >= 0; k--) { const [nd, i] = path[k]; v = -v; nd.N[i] += 1; nd.W[i] += v; }
+    }
+    return R;
+  }
+  function choose(s, how, nSim) {
+    const e = netEval(s);
+    if (!e.moves.length) return null;
+    const rows = e.moves.map((m, i) => ({ m, P: e.prior[i] }));
+    if (how === 'pol') { rows.sort((a, b) => b.P - a.P); return { move: rows[0].m, rows, how }; }
+    if (how === 'val') { for (const r of rows) { const t = make(s, r.m), res = result(t, G.hist.concat([t])); r.V = res.over ? (res.v === 0.5 ? 0.5 : 1) : 1 - netEval(t).value; } rows.sort((a, b) => b.V - a.V); return { move: rows[0].m, rows, how }; }
+    const R = mcts(s, nSim, G.hist); R.moves.forEach((m, i) => { const r = rows[i]; r.N = R.N[i]; r.Q = R.N[i] ? (R.W[i] / R.N[i] + 1) / 2 : null; });
+    rows.sort((a, b) => b.N - a.N || b.P - a.P); return { move: rows[0].m, rows, how };
+  }
+  /* DRAWING */
+  const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' };
+  function drawBoard() {
+    const s = cur(), bd = $('bd'), legalFrom = G.sel >= 0 ? legal(s).filter(m => m.from === G.sel).map(m => m.to) : [], chk = inCheck(s) ? kingSq(s.b, s.turn === 'w') : -1;
+    let html = '';
+    for (let rr = 0; rr < 8; rr++) for (let ff = 0; ff < 8; ff++) {
+      const r = G.flip ? rr : 7 - rr, f = G.flip ? 7 - ff : ff, sq = r * 8 + f, p = s.b[sq], cls = ['sq', (r + f) % 2 ? 'l' : 'd'];
+      if (sq === G.sel) cls.push('sel'); if (legalFrom.includes(sq)) cls.push('tgt'); if (G.last && (sq === G.last.from || sq === G.last.to)) cls.push('last'); if (sq === chk) cls.push('chk');
+      html += `<div class="${cls.join(' ')}" data-sq="${sq}" role="gridcell" aria-label="${sqName(sq)}${p ? ' ' + p : ''}">${p ? `<span class="pc ${isW(p) ? 'w' : 'b'}">${GLYPH[p.toUpperCase()]}</span>` : ''}${ff === 7 ? `<span class="co r" style="left:auto;right:3px;top:1px"></span>` : ''}${rr === 7 ? `<span class="co f">${FILES[f]}</span>` : ''}${ff === 0 ? `<span class="co r">${r + 1}</span>` : ''}</div>`;
+    }
+    bd.innerHTML = html;
+    bd.querySelectorAll('.sq').forEach(d => d.onclick = () => clickSq(+d.dataset.sq));
+  }
+  function drawArrows(rows) {
+    const svg = $('ar'), pos = sq => { const f = sq & 7, r = sq >> 3, x = G.flip ? 7 - f : f, y = G.flip ? r : 7 - r; return [x + 0.5, y + 0.5]; };
+    if (!rows) { svg.innerHTML = ''; return; }
+    const top = rows.slice().sort((a, b) => b.P - a.P).slice(0, 3), acc = css('--accent');
+    svg.innerHTML = `<defs><marker id="ah" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3.2" markerHeight="3.2" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${acc}"/></marker></defs>` + top.map((r, k) => { const [x1, y1] = pos(r.m.from), [x2, y2] = pos(r.m.to), dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy), ex = x2 - dx / L * 0.28, ey = y2 - dy / L * 0.28; return `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="${acc}" stroke-opacity="${0.85 - 0.22 * k}" stroke-width="${0.16 - 0.03 * k}" stroke-linecap="round" marker-end="url(#ah)"/>`; }).join('');
+  }
+  function drawActs() {
+    const e = netEval(cur(), true), A = e.acts, { ctx, w, h } = setup($('ac')), L = A.length, rowH = (h - 10) / L, padL = 64;
+    ctx.font = '11px ' + css('--font-mono'); ctx.fillStyle = css('--muted'); ctx.textBaseline = 'middle';
+    const acc = css('--accent');
+    A.forEach((a, l) => {
+      const mx = Math.max(...a) || 1, cw = (w - padL - 6) / a.length, y = 4 + l * rowH;
+      ctx.fillStyle = css('--muted'); ctx.fillText(`layer ${l + 1}`, 4, y + rowH / 2);
+      for (let j = 0; j < a.length; j++) if (a[j] > 0) { ctx.globalAlpha = 0.15 + 0.85 * Math.min(1, a[j] / mx); ctx.fillStyle = acc; ctx.fillRect(padL + j * cw, y + 2, Math.max(cw - 0.3, 0.6), rowH - 4); }
+      ctx.globalAlpha = 1;
+    });
+    const prev = G.prevActs;
+    $('acTab').innerHTML = `<thead><tr><th>layer</th><th>units</th><th>on</th><th>switched</th></tr></thead><tbody>${A.map((a, l) => { const on = a.filter(x => x > 0).length, sw = prev ? a.reduce((t, x, j) => t + ((x > 0) !== (prev[l][j] > 0) ? 1 : 0), 0) : null; return `<tr><td>${l + 1}</td><td>${a.length}</td><td>${on} <span class="hint">(${fmt(100 * on / a.length, 0)}%)</span></td><td>${sw === null ? '–' : sw}</td></tr>`; }).join('')}</tbody>`;
+    const tot = A.reduce((t, a) => t + a.length, 0), onT = A.reduce((t, a) => t + a.filter(x => x > 0).length, 0);
+    $('acCap').textContent = `${onT} of ${tot} ReLUs on for the position on the board, ${cur().turn === 'w' ? 'White' : 'Black'} to move`;
+    $('acMsg').innerHTML = prev ? `The last move switched ${A.reduce((t, a, l) => t + a.reduce((u, x, j) => u + ((x > 0) !== (prev[l][j] > 0) ? 1 : 0), 0), 0)} of ${tot} units. Remember that the board is mirrored for the side to move, so consecutive positions are seen from opposite sides.` : 'Make a move to see which units switch.';
+    G.lastActs = A;
+  }
+  function drawInfo(info) {
+    const s = cur(), e = netEval(s), wv = s.turn === 'w' ? e.value : 1 - e.value;
+    $('ev').style.width = (100 * wv).toFixed(1) + '%';
+    $('evT').textContent = `Value: White wins with probability ${fmt(wv, 2)} (network's estimate for the position on the board).`;
+    $('fen').value = toFEN(s);
+    const rows = info ? info.rows : e.moves.map((m, i) => ({ m, P: e.prior[i] })).sort((a, b) => b.P - a.P);
+    drawArrows(rows);
+    const how = info ? info.how : null;
+    $('cand').innerHTML = `<thead><tr><th>move</th><th>prior P</th>${how === 'val' ? '<th>value after</th>' : ''}${how === 'mcts' ? '<th>visits N</th><th>Q</th>' : ''}</tr></thead><tbody>${rows.slice(0, 7).map(r => `<tr><td>${san(s, r.m)}</td><td>${fmt(r.P, 3)}</td>${how === 'val' ? `<td>${fmt(r.V, 3)}</td>` : ''}${how === 'mcts' ? `<td>${fmtInt(r.N)}</td><td>${r.Q === null ? '–' : fmt(r.Q, 3)}</td>` : ''}</tr>`).join('')}</tbody>`;
+    let html = ''; G.sans.forEach((t, i) => { const startBlack = G.hist[0].turn === 'b'; const k = i + (startBlack ? 1 : 0); if (k % 2 === 0) html += `<span>${G.hist[0].full + Math.floor(k / 2)}.</span>`; else if (i === 0) html += `<span>${G.hist[0].full}…</span>`; html += `<span>${t}</span>`; });
+    $('mv').innerHTML = html || '<span class="hint">No moves yet.</span>'; $('mv').scrollTop = 1e6;
+  }
+  function status(extra) {
+    const s = cur(), r = result(s, G.hist);
+    if (r.over) { $('stat').innerHTML = `<b>${r.txt}</b>`; return true; }
+    const you = s.turn === G.user;
+    $('stat').innerHTML = (extra ? extra + ' ' : '') + (inCheck(s) ? 'Check. ' : '') + (you ? 'Your move.' : 'The network is thinking…');
+    return false;
+  }
+  function render(info) { drawBoard(); drawInfo(info || G.info); drawActs(); }
+  function play(m) {
+    const s = cur(); G.prevActs = G.lastActs; G.sans.push(san(s, m)); G.hist.push(make(s, m)); G.last = m; G.sel = -1; G.info = null;
+  }
+  const nSims = () => Math.max(1, Math.round(10 ** +$('sims').value));
+  function engineMove() {
+    const s = cur(); if (s.turn === G.user || result(s, G.hist).over) return;
+    G.busy = true; status();
+    setTimeout(() => {
+      const t0 = performance.now(), info = choose(s, G.how, nSims()), dt = performance.now() - t0;
+      if (!info) { G.busy = false; status(); return; }
+      const label = san(s, info.move); play(info.move); G.info = null; G.busy = false;
+      render(null); drawCandidatesFor(s, info);
+      status(`The network played ${label} (${G.how === 'pol' ? 'policy' : G.how === 'val' ? 'value, 1 ply' : nSims() + ' simulations'}, ${fmtInt(dt)} ms).`);
+    }, 30);
+  }
+  function drawCandidatesFor(s, info) {
+    const how = info.how;
+    $('cand').innerHTML = `<thead><tr><th>its options</th><th>prior P</th>${how === 'val' ? '<th>value after</th>' : ''}${how === 'mcts' ? '<th>visits N</th><th>Q</th>' : ''}</tr></thead><tbody>${info.rows.slice(0, 7).map(r => `<tr><td>${san(s, r.m)}</td><td>${fmt(r.P, 3)}</td>${how === 'val' ? `<td>${fmt(r.V, 3)}</td>` : ''}${how === 'mcts' ? `<td>${fmtInt(r.N)}</td><td>${r.Q === null ? '–' : fmt(r.Q, 3)}</td>` : ''}</tr>`).join('')}</tbody>`;
+  }
+  function clickSq(sq) {
+    const s = cur(); if (G.busy || s.turn !== G.user || result(s, G.hist).over) return;
+    const p = s.b[sq], mine = p && (isW(p) === (s.turn === 'w'));
+    if (G.sel >= 0) {
+      const m = legal(s).filter(m => m.from === G.sel && m.to === sq);
+      if (m.length) { const pick = m.find(x => !x.promo || x.promo.toUpperCase() === 'Q'); play(pick); render(null); if (!status()) engineMove(); return; }
+    }
+    G.sel = mine ? (G.sel === sq ? -1 : sq) : -1; drawBoard();
+  }
+  function newGame(fen) {
+    let s; try { s = fromFEN(fen || START); if (kingSq(s.b, true) < 0 || kingSq(s.b, false) < 0) throw new Error('both kings needed'); } catch (e) { $('stat').innerHTML = '<b>That FEN could not be read.</b>'; return; }
+    G.hist = [s]; G.sans = []; G.last = null; G.sel = -1; G.info = null; G.prevActs = null; G.flip = G.user === 'b';
+    render(null); if (!status()) engineMove();
+  }
+  segInit('side', v => { G.user = v; G.flip = v === 'b'; render(null); if (!status()) engineMove(); });
+  segInit('how', v => { G.how = v; $('simW').style.opacity = v === 'mcts' ? 1 : 0.4; });
+  $('sims').oninput = () => $('simsO').textContent = fmtInt(nSims()); $('simsO').textContent = fmtInt(nSims());
+  $('newG').onclick = () => newGame();
+  $('loadF').onclick = () => newGame($('fen').value);
+  $('flip').onclick = () => { G.flip = !G.flip; render(null); };
+  $('undo').onclick = () => { if (G.busy) return; let k = 0; while (G.hist.length > 1 && (k === 0 || cur().turn !== G.user)) { G.hist.pop(); G.sans.pop(); k++; } G.last = null; G.prevActs = null; G.info = null; render(null); status(); };
+  $('hint').onclick = () => { if (G.busy) return; const s = cur(); if (result(s, G.hist).over) return; G.busy = true; $('stat').textContent = 'Thinking…'; setTimeout(() => { const info = choose(s, G.how, nSims()); G.busy = false; if (!info) return; G.info = info; drawInfo(info); status(`With this setting the network would play ${san(s, info.move)}.`); }, 30); };
+  /* PART III: offline results */
+  const RS = CHESSNET.results;
+  if (RS) {
+    $('resA').innerHTML = `<span class="cap">Held-out positions (20,000)</span><table class="stats"><thead><tr><th>network</th><th>parameters</th><th>value RMSE</th><th>policy top-1</th></tr></thead><tbody>${RS.nets.map(n => `<tr><td>${n.depth}</td><td>${fmtInt(n.params)}</td><td>${fmt(n.rmse, 3)}</td><td>${fmt(100 * n.acc, 1)}%</td></tr>`).join('')}</tbody></table>`;
+    $('resB').innerHTML = `<span class="label">Matches of the ten-layer network</span><table class="stats"><thead><tr><th>choosing by</th><th>opponent</th><th>score</th></tr></thead><tbody>${RS.matches.map(r => `<tr><td>${r.how}</td><td>${r.opp}</td><td>${r.w}–${r.d}–${r.l} <span class="hint">(${fmt(100 * (r.w + r.d / 2) / (r.w + r.d + r.l), 0)}%)</span></td></tr>`).join('')}</tbody></table><p class="hint">Wins–draws–losses, colours alternating, games capped at 200 plies (then scored by Stockfish's evaluation).</p>`;
+    $('resMsg').innerHTML = RS.msg || '';
+  }
+  newGame();
+  window.__chess = { perft, fromFEN, legal, netEval, choose, cur };
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => drawActs(), 120); });
+})();
+</script>
+</body></html>
