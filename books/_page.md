@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Bayesian Clinical Trials and Personalized Medicine](https://vsokolov.org/books/bayesian_clinical_trials_v1/) <small>Volume I: Bayesian Clinical Trials</small>
+
+[![Bayesian Clinical Trials and Personalized Medicine: Volume I: Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials_v1/cover.jpg)](https://vsokolov.org/books/bayesian_clinical_trials_v1/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
+
+Volume I of a two volume series. Bayesian clinical trials built up from the traditional trial and tied to regulation: calibration, monitoring, safety, borrowing, adaptive designs, and reanalyses of landmark trials, with an R package and an online lab.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials_v1/releases/download/v1.0.0/bayesian_clinical_trials_v1.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_clinical_trials_v1/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials_v1 "Source on GitHub") [![DOI 10.5281/zenodo.24122876](https://zenodo.org/badge/DOI/10.5281/zenodo.24122876.svg)](https://doi.org/10.5281/zenodo.24122876)
+
 ## [On the Collatz Conjecture](https://vsokolov.org/books/collatz/) <small>Martingales, Momentum and Continued Fractions</small>
 
 [![On the Collatz Conjecture: Martingales, Momentum and Continued Fractions](https://vsokolov.org/books/collatz/cover.jpg)](https://vsokolov.org/books/collatz/) Nick Polson and Vadim Sokolov. 2026. Edition 1.
