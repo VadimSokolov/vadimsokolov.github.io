@@ -211,8 +211,9 @@ code { font-family: var(--font-mono); font-size: 13px; }
       <div class="board">
         <span class="cap">Data, the tree's step function, and the true curve</span><canvas id="t2a" height="300"></canvas>
         <div class="legend"><span><i class="sw pt"></i>training data</span><span><i class="sw acc"></i>tree fit</span><span><i class="sw dash"></i>true mean</span><span><i class="sw red" style="border-top-style:dashed"></i>next split</span></div>
-        <span class="cap">RSS reduction for a cut at s, in every leaf</span><canvas id="t2b" height="190"></canvas>
-        <div class="legend"><span><i class="sw ballc"></i>the leaf that splits next</span><span><i class="sw" style="border-top-color:var(--muted)"></i>other leaves</span></div>
+        <span class="cap">If you cut a leaf at s, how much would the RSS drop?</span><canvas id="t2b" height="190"></canvas>
+        <div class="legend"><span><i class="sw bar" style="background:var(--muted);opacity:.25"></i>one band per leaf</span><span><i class="sw ballc"></i>the leaf that splits next</span><span><i class="sw" style="border-top-color:var(--muted)"></i>other leaves</span><span><i class="sw pt"></i>each leaf's best cut</span></div>
+        <p class="hint">Each curve belongs to one leaf and covers only that leaf's interval. A leaf needs at least 4 points to split (2 on each side), so small leaves draw no curve. The y axis rescales at every step: early splits cut the RSS by thousands, late ones by a few units.</p>
       </div>
       <div class="panel">
         <div class="group">
@@ -602,6 +603,8 @@ code { font-family: var(--font-mono); font-size: 13px; }
     { const { c, w, h } = ctxOf($('t2b')); const curves = T.leaves.map(l => ({ l, pts: gainCurve(l.idx) }));
       const mx = Math.max(1, ...curves.flatMap(cv => cv.pts.map(p => p[1]))), top = niceTop(mx);
       const f = frame(c, w, h, [0, 40], [0, top], XT, [0, top / 2, top], 's (cut point)', 'RSS drop');
+      T.leaves.slice().sort((a, b) => a.lo - b.lo).forEach((l, k) => { c.fillStyle = css('--muted'); c.globalAlpha = k % 2 ? 0.05 : 0.14; c.fillRect(f.X(l.lo), f.T, f.X(l.hi) - f.X(l.lo), f.H); c.globalAlpha = 1; });
+      dots(c, T.leaves.filter(l => l.cand && l !== next).map(l => [f.X(l.cand.s), f.Y(l.cand.gain)]), css('--point'), 3);
       for (const cv of curves) if (cv.l !== next && cv.pts.length) line(c, cv.pts.map(([x, g]) => [f.X(x), f.Y(g)]), css('--muted'), 1.3);
       if (next) { const cv = curves.find(z => z.l === next); line(c, cv.pts.map(([x, g]) => [f.X(x), f.Y(g)]), css('--ball'), 2.5); dots(c, [[f.X(next.cand.s), f.Y(next.cand.gain)]], css('--curve'), 5); } }
     const tr = T.leaves.reduce((a, l) => a + l.sse, 0) / D.n, te = testMSE(x => pr1(T.root, x));
@@ -610,7 +613,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
       (T.splits.length ? T.splits.slice(0, 6).map((s, k) => `<tr><td>${k + 1}. x &lt; s</td><td>${s.s.toFixed(1)}</td><td>${s.lv.toFixed(1)} / ${s.rv.toFixed(1)}</td><td>${Math.round(s.gain).toLocaleString('en-US')}</td></tr>`).join('') + (T.splits.length > 6 ? `<tr><td colspan="4">… and ${T.splits.length - 6} more</td></tr>` : '') : '<tr><td colspan="4">No splits yet: the root predicts the overall mean.</td></tr>') + '</tbody>';
     const K1 = T.leaves.length;
     $('t2m').innerHTML = (K1 === 1 ? `One leaf predicts the mean, ${T.root.val.toFixed(1)}, everywhere. The lower panel shows how much each cut point would reduce the RSS; the best cut, at x = <b>${next.cand.s.toFixed(1)}</b>, separates the expensive neighborhoods from the rest.` :
-      `${K1} leaves. ` + (next ? `The next split goes at x = <b>${next.cand.s.toFixed(1)}</b>, in the leaf of ${next.n} points with the highest peak, and lowers the RSS by ${Math.round(next.cand.gain).toLocaleString('en-US')}. ` : 'No leaf can be split further. ') +
+      `${K1} leaves, of which ${T.leaves.filter(l => l.cand && l.cand.gain > 1e-9).length} can still split. ` + (next ? `The next split goes at x = <b>${next.cand.s.toFixed(1)}</b>, in the leaf of ${next.n} points with the highest peak, and lowers the RSS by ${next.cand.gain < 10 ? next.cand.gain.toFixed(1) : Math.round(next.cand.gain).toLocaleString('en-US')}, against ${Math.round(T.splits[0].gain).toLocaleString('en-US')} for the first split. ` : 'No leaf can be split further. ') +
       (te > tr + 6 ? `Training MSE (${tr.toFixed(1)}) is now well below the test MSE (${te.toFixed(1)}): the small leaves are fitting noise.` : 'Training and test MSE are still close.'));
   }
   $('t2k').addEventListener('input', part2);
