@@ -76,7 +76,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <p class="lead">A model never sees a customer, a photograph, or a word. It sees a number, a row of numbers, a table of numbers, or a point that stands for a word.</p>
     <a class="back" href="index.html">← All labs</a>
   </header>
-  <p class="src">The Twenty Questions tab follows the game that opens the embeddings section of <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>; the bear, dog and cat rows are the book's, the other four rows and the extra questions are ours. The customer is invented. The word neighbors are a sketch of the idea in <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>, not a model trained on War and Peace. In that chapter, military words and social words do not fall into two neat camps.</p>
+  <p class="src">The Twenty Questions tab follows the game that opens the embeddings section of <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>; the bear, dog and cat yes/no rows are the book's; the other rows, the extra questions, the probabilities and the fruit example are ours. The customer is invented. The word neighbors are a sketch of the idea in <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>, not a model trained on War and Peace. In that chapter, military words and social words do not fall into two neat camps.</p>
   <div class="seg" role="tablist">
     <button id="t1" aria-pressed="true">One number</button>
     <button id="t2" aria-pressed="false">A row of features</button>
@@ -106,77 +106,113 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     unhappiness: ['orbit', 'kiln', 'tuesday']
   };
   const modes = ['t1', 't2', 't3', 't5', 't4'];
-  /* Twenty questions: a word as a row of yes/no answers (book, Chapter 23) */
-  const ITEMS = ['Bear', 'Dog', 'Cat', 'Teddy bear', 'Horse', 'Mouse', 'Kangaroo'];
-  const QS = [
-    { q: 'Animal?', a: [1, 1, 1, 0, 1, 1, 1], on: true },
-    { q: 'Domestic?', a: [0, 1, 1, 1, 1, 0, 0], on: true },
-    { q: 'Larger than a human?', a: [1, 0, 0, 0, 1, 0, 0], on: true },
-    { q: 'Long tail?', a: [0, 1, 1, 0, 1, 1, 1], on: true },
-    { q: 'Can move on two feet?', a: [1, 0, 0, 0, 0, 0, 1], on: true },
-    { q: 'Barks?', a: [0, 1, 0, 0, 0, 0, 0], on: false },
-    { q: 'Shaped like a bear?', a: [1, 0, 0, 1, 0, 0, 0], on: false },
-    { q: 'Smaller than a cat?', a: [0, 0, 0, 0, 0, 1, 0], on: false }];
-  let secret = Math.floor(Math.random() * 7), asked = [], focus = 3, gmode = 'answer', ans = {}, aord = [], guessDone = '', nw = {};
-  const act = () => QS.map((q, j) => j).filter(j => QS[j].on);
-  const row = i => act().map(j => QS[j].a[i]).join('');
-  const newSecret = () => { let s; do { s = Math.floor(Math.random() * ITEMS.length); } while (s === secret); secret = s; asked = []; };
-  const restart = () => { ans = {}; aord = []; guessDone = ''; nw = {}; };
+  /* Twenty questions (book, Chapter 23): a word as a row of answers. Answers are yes/no, or numbers between 0 and 1:
+     a probability of yes (animals) or a degree (fruit). The game keeps a posterior over the words by Bayes' rule. */
+  const SETS = {
+    animals: { label: 'Animals (the book)', focus: 3,
+      items: ['Bear', 'Dog', 'Cat', 'Teddy bear', 'Horse', 'Mouse', 'Kangaroo'],
+      qs: [
+        { q: 'Animal?', a: [1, 1, 1, 0, 1, 1, 1], p: [.99, .99, .99, .15, .99, .99, .99], on: true },
+        { q: 'Domestic?', a: [0, 1, 1, 1, 1, 0, 0], p: [.02, .97, .9, .9, .8, .15, .02], on: true },
+        { q: 'Larger than a human?', a: [1, 0, 0, 0, 1, 0, 0], p: [.85, .05, .01, .05, .97, .01, .35], on: true },
+        { q: 'Long tail?', a: [0, 1, 1, 0, 1, 1, 1], p: [.05, .75, .95, .02, .9, .95, .95], on: true },
+        { q: 'Can move on two feet?', a: [1, 0, 0, 0, 0, 0, 1], p: [.6, .05, .03, .05, .01, .05, .98], on: true },
+        { q: 'Barks?', a: [0, 1, 0, 0, 0, 0, 0], p: [.02, .95, .01, .01, .01, .01, .02], on: false },
+        { q: 'Shaped like a bear?', a: [1, 0, 0, 1, 0, 0, 0], p: [.99, .03, .02, .95, .01, .02, .05], on: false },
+        { q: 'Smaller than a cat?', a: [0, 0, 0, 0, 0, 1, 0], p: [.01, .1, .05, .4, .01, .98, .05], on: false }] },
+    fruit: { label: 'Fruit', focus: 0,
+      items: ['Apple', 'Pear', 'Banana', 'Lemon', 'Orange', 'Strawberry', 'Grape', 'Watermelon'],
+      qs: [
+        { q: 'Sweet?', p: [.7, .75, .8, .05, .65, .75, .8, .7], on: true },
+        { q: 'Sour?', p: [.3, .1, .05, .98, .4, .3, .2, .05], on: true },
+        { q: 'Crunchy?', p: [.9, .55, .05, .1, .05, .1, .3, .4], on: true },
+        { q: 'Juicy?', p: [.6, .7, .1, .7, .9, .7, .8, .99], on: true },
+        { q: 'Red?', p: [.45, .1, .01, .01, .05, .98, .4, .9], on: true },
+        { q: 'Bigger than a fist?', p: [.4, .4, .5, .2, .5, .01, .01, .99], on: true },
+        { q: 'Peel before eating?', p: [.1, .05, .99, .7, .95, .01, .01, .95], on: true }] } };
+  SETS.fruit.qs.forEach(q => { q.a = q.p.map(v => v >= 0.5 ? 1 : 0); });
+  let set = 'animals', soft = false, secret = Math.floor(Math.random() * 7), asked = [], focus = 3, gmode = 'answer', ans = {}, aord = [], excl = [], guessDone = '', nw = {};
+  const S = () => SETS[set], ITEMSf = () => S().items, QSf = () => S().qs;
+  const act = () => QSf().map((q, j) => j).filter(j => QSf()[j].on);
+  const val = (j, i) => soft ? QSf()[j].p[i] : QSf()[j].a[i];
+  const LV = [[1, 'Yes'], [0.75, 'Probably'], [0.5, 'Don’t know'], [0.25, 'Probably not'], [0, 'No']];
+  const lvName = r => (LV.find(l => Math.abs(l[0] - r) < 1e-9) || [r, r.toFixed(2)])[1].toLowerCase();
+  const phrase = p => p >= .85 ? 1 : p >= .6 ? .75 : p > .4 ? .5 : p > .15 ? .25 : 0;   // the page's answer about its secret
+  function posterior(answers, ex) { const n = ITEMSf().length, w = new Array(n).fill(1);
+    for (const [j, r] of answers) for (let i = 0; i < n; i++) { const v = val(j, i); w[i] *= r * v + (1 - r) * (1 - v); }
+    (ex || []).forEach(i => { w[i] = 0; }); const s = w.reduce((a, b) => a + b, 0); return s > 0 ? w.map(x => x / s) : w; }
+  const H = p => -p.reduce((a, x) => a + (x > 0 ? x * Math.log2(x) : 0), 0);
+  function bestQ(post, used) { let best = null;
+    for (const j of act()) { if (used.includes(j)) continue; const py = post.reduce((a, x, i) => a + x * val(j, i), 0); if (py < 1e-9 || py > 1 - 1e-9) continue;
+      const y = post.map((x, i) => x * val(j, i) / py), nn = post.map((x, i) => x * (1 - val(j, i)) / (1 - py)), g = H(post) - py * H(y) - (1 - py) * H(nn);
+      if (g > 1e-6 && (!best || g > best.g)) best = { j, g, py }; }
+    return best; }
+  const newSecret = () => { let s; do { s = Math.floor(Math.random() * ITEMSf().length); } while (s === secret && ITEMSf().length > 1); secret = s; asked = []; };
+  const restart = () => { ans = {}; aord = []; excl = []; guessDone = ''; nw = {}; };
+  const pct = x => x >= .995 ? '>99%' : x < .005 ? '<1%' : Math.round(100 * x) + '%';
+  const cellOf = (j, i) => soft ? `<td style="background:color-mix(in srgb, var(--fit) ${Math.round(QSf()[j].p[i] * 55)}%, transparent)">${QSf()[j].p[i].toFixed(2)}</td>` : `<td class="${QSf()[j].a[i] ? 'y' : 'n'}">${QSf()[j].a[i]}</td>`;
   function twenty() {
-    const A = act(), yn = v => v ? 'yes' : 'no';
-    const twin = i => ITEMS.find((_, k) => k !== i && row(k) === row(i));
-    const table = `<div class="scrollx"><table class="qt"><thead><tr><th>Word</th>${A.map(j => `<th>${QS[j].q}</th>`).join('')}</tr></thead><tbody>` +
-      ITEMS.map((w, i) => { const t = twin(i); return `<tr><td>${w}${t ? ` <span class="twin">(same row as ${t.toLowerCase()})</span>` : ''}</td>${A.map(j => `<td class="${QS[j].a[i] ? 'y' : 'n'}">${QS[j].a[i]}</td>`).join('')}</tr>`; }).join('') + '</tbody></table></div>';
+    const ITEMS = ITEMSf(), QS = QSf(), A = act(), N = ITEMS.length;
+    const rowStr = i => A.map(j => QS[j].a[i]).join(''), twin = i => !soft && ITEMS.find((_, k) => k !== i && rowStr(k) === rowStr(i));
+    const table = `<div class="scrollx"><table class="qt"><thead><tr><th>${set === 'fruit' ? 'Fruit' : 'Word'}</th>${A.map(j => `<th>${QS[j].q}</th>`).join('')}</tr></thead><tbody>` +
+      ITEMS.map((w, i) => { const t = twin(i); return `<tr><td>${w}${t ? ` <span class="twin">(same row as ${t.toLowerCase()})</span>` : ''}</td>${A.map(j => cellOf(j, i)).join('')}</tr>`; }).join('') + '</tbody></table></div>';
     const qbtns = QS.map((q, j) => `<button data-q="${j}" aria-pressed="${q.on}">${q.q}</button>`).join('');
-    // the game, two ways: the page thinks and you ask, or you think and the page asks
+    const chips = (post, win) => `<div class="near">${ITEMS.map((w, i) => `<span class="chip ${win === i ? 'win' : post[i] < (soft ? 0.01 : 1e-9) ? 'off' : ''}">${w}${soft ? ' ' + pct(post[i]) : ''}</span>`).join('')}</div>`;
     let game;
-    if (gmode === 'ask') {
-      const live = ITEMS.map((_, i) => asked.every(j => QS[j].a[i] === QS[j].a[secret]));
-      const left = live.filter(Boolean).length, can = A.filter(j => !asked.includes(j));
-      const splits = can.filter(j => { const v = ITEMS.map((_, i) => i).filter(i => live[i]).map(i => QS[j].a[i]); return v.some(x => x) && v.some(x => !x); });
+    if (gmode === 'ask') {   // the page thinks, you ask
+      const rs = asked.map(j => [j, soft ? phrase(QS[j].p[secret]) : QS[j].a[secret]]), post = posterior(rs), top = post.indexOf(Math.max(...post));
+      const left = post.filter(x => x > 1e-9).length, can = A.filter(j => !asked.includes(j)), useful = bestQ(post, asked);
+      const done = soft ? post[top] >= .9 || !useful : left === 1;
       let gmsg;
-      if (left === 1) gmsg = `<p class="call">It is the <b>${ITEMS[secret].toLowerCase()}</b>, found with ${asked.length} question${asked.length === 1 ? '' : 's'}. With ${ITEMS.length} words you need at least log<sub>2</sub> ${ITEMS.length} ≈ ${Math.log2(ITEMS.length).toFixed(1)}, so ${Math.ceil(Math.log2(ITEMS.length))} yes/no questions in the worst case, and only if every question splits what is left in half.</p>`;
-      else if (!splits.length) { const names = ITEMS.filter((_, i) => live[i]).map(w => w.toLowerCase()); gmsg = `<p class="call bad">No question in use can tell ${names.join(' from ')} apart: their rows are identical. Switch on another question above${names.includes('dog') && names.includes('cat') ? ', such as “Barks?”' : ''}. The book makes the same point: dog and cat need more features.</p>`; }
-      else gmsg = `<p>${left} words still fit the answers.${asked.length ? '' : ' A question that splits them about in half is the best first move.'}</p>`;
-      game = `<div class="seg">${can.map(j => `<button data-ask="${j}" ${left === 1 ? 'disabled' : ''}>${QS[j].q}</button>`).join('')}</div>
-        <div class="asked">${asked.map(j => `${QS[j].q} ${yn(QS[j].a[secret])}`).join(' · ') || 'No questions asked yet.'}</div>
-        <div class="near">${ITEMS.map((w, i) => `<span class="chip ${left === 1 && i === secret ? 'win' : live[i] ? '' : 'off'}">${w}</span>`).join('')}</div>
-        ${gmsg}<div><button id="newSecret">New secret word</button></div>`;
-    } else {
-      const live = ITEMS.map((_, i) => Object.keys(ans).every(j => QS[j].a[i] === ans[j]));
-      const ids = ITEMS.map((_, i) => i).filter(i => live[i]);
-      const can = A.filter(j => !(j in ans)).map(j => ({ j, y: ids.filter(i => QS[j].a[i]).length })).filter(o => o.y > 0 && o.y < ids.length).sort((a, b) => Math.abs(2 * a.y - ids.length) - Math.abs(2 * b.y - ids.length));
-      const hist = aord.map(j => `${QS[j].q} ${yn(ans[j])}`).join(' · ');
+      if (!soft && left === 1) gmsg = `<p class="call">It is the <b>${ITEMS[secret].toLowerCase()}</b>, found with ${asked.length} question${asked.length === 1 ? '' : 's'}. With ${N} words you need at least log<sub>2</sub> ${N} ≈ ${Math.log2(N).toFixed(1)}, so ${Math.ceil(Math.log2(N))} yes/no questions in the worst case, and only if every question splits what is left in half.</p>`;
+      else if (soft && done) gmsg = `<p class="call ${top === secret ? '' : 'bad'}">The answers point to the <b>${ITEMS[top].toLowerCase()}</b> (${pct(post[top])}). The page was thinking of the ${ITEMS[secret].toLowerCase()}${top === secret ? '.' : ': soft answers can mislead, which is why the page reports a probability, not a certainty.'}</p>`;
+      else if (!useful) { const names = ITEMS.filter((_, i) => post[i] > 1e-9).map(w => w.toLowerCase()); gmsg = `<p class="call bad">No question in use can tell ${names.join(' from ')} apart: their rows are identical. Switch on another question above${names.includes('dog') && names.includes('cat') ? ', such as “Barks?”' : ', or switch the answers to numbers between 0 and 1'}.</p>`; }
+      else gmsg = `<p>${soft ? `Most likely now: ${ITEMS[top].toLowerCase()} (${pct(post[top])}).` : `${left} still fit the answers.`}${asked.length ? '' : ' A question that splits them about in half is the best first move.'}</p>`;
+      game = `<div class="seg">${can.map(j => `<button data-ask="${j}" ${done ? 'disabled' : ''}>${QS[j].q}</button>`).join('')}</div>
+        <div class="asked">${asked.map(j => `${QS[j].q} ${soft ? lvName(phrase(QS[j].p[secret])) : QS[j].a[secret] ? 'yes' : 'no'}`).join(' · ') || 'No questions asked yet.'}</div>
+        ${chips(post, done && (soft ? top : secret) === secret ? secret : -1)}${gmsg}<div><button id="newSecret">New secret</button></div>`;
+    } else {   // you think, the page asks
+      const rs = aord.map(j => [+j, ans[j]]), post = posterior(rs, excl), top = post.indexOf(Math.max(...post)), mass = post.reduce((a, b) => a + b, 0);
+      const live = post.map(x => x > 1e-9), ids = ITEMS.map((_, i) => i).filter(i => live[i]), nxt = bestQ(post, aord.map(Number));
+      const hist = aord.map(j => `${QS[j].q} ${lvName(ans[j])}`).join(' · ');
+      const levels = soft ? LV : [LV[0], LV[4]];
       let body;
-      if (guessDone === 'won') body = ids.length > 1 ? `<p class="call bad">It is one of ${ids.map(i => ITEMS[i].toLowerCase()).join(' and ')}, but these questions cannot tell which: their rows are identical.${ids.map(i => ITEMS[i]).includes('Dog') && ids.map(i => ITEMS[i]).includes('Cat') ? ' Switch on “Barks?” above and play again.' : ' Switch on another question above and play again.'}</p>` : `<p class="call">Got it: <b>${ITEMS[ids[0]].toLowerCase()}</b>, with ${Object.keys(ans).length} question${Object.keys(ans).length === 1 ? '' : 's'}.</p>`;
-      else if (guessDone === 'lost' || ids.length === 0) body = `<p class="call bad">${ids.length === 0 ? 'No word in the table gives those answers.' : 'Then your word is not in the table.'} Add it: its answers become a new row, a word vector made by hand.</p>
+      if (guessDone === 'won') body = ids.length > 1 && !soft ? `<p class="call bad">It is one of ${ids.map(i => ITEMS[i].toLowerCase()).join(' and ')}, but these questions cannot tell which: their rows are identical. Switch on another question above${ITEMS[ids[0]] === 'Dog' || ITEMS[ids[0]] === 'Cat' ? ', such as “Barks?”,' : ''} and play again.</p>` : `<p class="call">Got it: <b>${ITEMS[soft ? top : ids[0]].toLowerCase()}</b>, with ${aord.length} question${aord.length === 1 ? '' : 's'}.</p>`;
+      else if (guessDone === 'lost' || mass === 0) body = `<p class="call bad">${mass === 0 ? 'No word in the table gives those answers.' : 'Then your word is not in the table.'} Add it: its answers become a new row${soft ? ' of numbers between 0 and 1' : ''}, a vector made by hand.</p>
           <div class="seg"><input id="nwName" placeholder="Your word" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)"></div>
-          <div class="scrollx"><table class="qt"><tbody>${QS.map((q, j) => `<tr><td>${q.q}</td><td><button data-nw="${j}" data-v="1" aria-pressed="${nw[j] === 1}">yes</button> <button data-nw="${j}" data-v="0" aria-pressed="${nw[j] === 0}">no</button></td></tr>`).join('')}</tbody></table></div>
+          <div class="scrollx"><table class="qt"><tbody>${QS.map((q, j) => `<tr><td>${q.q}</td><td>${levels.map(([v, l]) => `<button data-nw="${j}" data-v="${v}" aria-pressed="${nw[j] === v}">${l.toLowerCase()}</button>`).join(' ')}</td></tr>`).join('')}</tbody></table></div>
           <div><button id="nwAdd">Add it to the table</button></div>`;
-      else if (ids.length === 1 || !can.length) body = `<p><b>Is it ${ids.length === 1 ? 'the ' + ITEMS[ids[0]].toLowerCase() : 'one of ' + ids.map(i => ITEMS[i].toLowerCase()).join(', ')}?</b>${ids.length > 1 ? ' The questions in use cannot split these.' : ''}</p><div class="seg"><button data-g="1">Yes</button><button data-g="0">No</button></div>`;
-      else { const o = can[0]; body = `<p><b>${QS[o.j].q}</b> <span class="asked">(it splits the ${ids.length} words still possible into ${o.y} yes and ${ids.length - o.y} no)</span></p><div class="seg"><button data-a="${o.j}" data-v="1">Yes</button><button data-a="${o.j}" data-v="0">No</button></div>`; }
-      game = `<p class="asked">Think of a word, in the table or not. The page asks the question that splits what is left most evenly.</p>
-        ${body}<div class="asked">${hist || 'No answers yet.'}</div>
-        <div class="near">${ITEMS.map((w, i) => `<span class="chip ${guessDone === 'won' && ids.length === 1 && i === ids[0] ? 'win' : live[i] ? '' : 'off'}">${w}</span>`).join('')}</div>
+      else if ((soft && post[top] >= .85) || (!soft && ids.length === 1) || !nxt) {
+        const g = soft || ids.length === 1 ? `the ${ITEMS[soft ? top : ids[0]].toLowerCase()}` : 'one of ' + ids.map(i => ITEMS[i].toLowerCase()).join(', ');
+        body = `<p><b>Is it ${g}?</b>${soft ? ` <span class="asked">(posterior ${pct(post[top])})</span>` : ''}${!soft && ids.length > 1 ? ' The questions in use cannot split these.' : ''}</p><div class="seg"><button data-g="1">Yes</button><button data-g="0">No</button></div>`;
+      } else body = `<p><b>${QS[nxt.j].q}</b> <span class="asked">(${soft ? `expected information ${nxt.g.toFixed(2)} bits` : `it splits the ${ids.length} still possible into ${Math.round(nxt.py * ids.length)} yes and ${ids.length - Math.round(nxt.py * ids.length)} no`})</span></p><div class="seg">${levels.map(([v, l]) => `<button data-a="${nxt.j}" data-v="${v}">${l}</button>`).join('')}</div>`;
+      game = `<p class="asked">Think of ${set === 'fruit' ? 'a fruit' : 'a word'}, in the table or not. ${soft ? 'Answer as you like, “probably” included. The page updates the probability of every row by Bayes’ rule and asks the question with the largest expected information.' : 'The page asks the question that splits what is left most evenly.'}</p>
+        ${body}<div class="asked">${hist || 'No answers yet.'}</div>${chips(post, guessDone === 'won' && (soft || ids.length === 1) ? (soft ? top : ids[0]) : -1)}
         <div><button id="restart">Start again</button></div>`;
     }
-    game = `<div class="box"><h3>Play the game</h3><div class="seg" id="gm"><button data-m="ask" aria-pressed="${gmode === 'ask'}">The page thinks, you ask</button><button data-m="answer" aria-pressed="${gmode === 'answer'}">You think, the page asks</button></div>${game}</div>`;
-    // neighbours by number of differing answers
-    const diff = (a, b) => A.filter(j => QS[j].a[a] !== QS[j].a[b]).length;
-    const order = ITEMS.map((_, i) => i).filter(i => i !== focus).sort((a, b) => diff(focus, a) - diff(focus, b));
-    const tb = diff(3, 0), td = diff(3, 1);
-    const which = (x, y) => A.filter(j => QS[j].a[x] !== QS[j].a[y]).map(j => QS[j].q.replace('?', '').toLowerCase());
-    const tmsg = focus === 3 && ITEMS[3] === 'Teddy bear' ? `<p class="call ${tb > td ? 'bad' : ''}">With the questions in use, the teddy bear differs from the bear on ${tb} answer${tb === 1 ? '' : 's'} (${which(3, 0).join(', ') || 'none'}) and from the dog on ${td} (${which(3, 1).join(', ') || 'none'}). ` +
-      (tb > td ? 'So it sits nearer the dog: it answers like a pet, not like a wild animal. ' : tb < td ? 'Now it sits nearer the bear. ' : 'It sits as near the bear as the dog. ') +
-      'A question about shape, such as “Shaped like a bear?”, pulls it toward the bear; questions about life pull it away. Which neighbors are right depends on what the questions are for.</p>' : '';
-    const nearBox = `<div class="box"><h3>Who is near whom: count the answers that differ</h3>
+    game = `<div class="box"><h3>Play the game</h3><div class="seg" id="gm"><button data-m="answer" aria-pressed="${gmode === 'answer'}">You think, the page asks</button><button data-m="ask" aria-pressed="${gmode === 'ask'}">The page thinks, you ask</button></div>${game}</div>`;
+    // who is near whom
+    const d = (x, y) => A.reduce((s, j) => s + Math.abs(val(j, x) - val(j, y)), 0), fmtD = v => soft ? v.toFixed(2) : String(v);
+    const order = ITEMS.map((_, i) => i).filter(i => i !== focus).sort((a, b) => d(focus, a) - d(focus, b));
+    const which = (x, y) => A.filter(j => Math.abs(val(j, x) - val(j, y)) >= 0.5).map(j => QS[j].q.replace('?', '').toLowerCase());
+    let tmsg = '';
+    if (set === 'animals' && focus === 3) { const tb = d(3, 0), td = d(3, 1);
+      tmsg = `<p class="call ${tb > td ? 'bad' : ''}">With the questions in use, the teddy bear is ${fmtD(tb)} from the bear (${which(3, 0).join(', ') || 'no big differences'}) and ${fmtD(td)} from the dog (${which(3, 1).join(', ') || 'no big differences'}). ` +
+        (tb > td ? 'So it sits nearer the dog: it answers like a pet, not like a wild animal. ' : tb < td ? 'Now it sits nearer the bear. ' : 'It sits as near the bear as the dog. ') + 'A question about shape, such as “Shaped like a bear?”, pulls it toward the bear; questions about life pull it away. Which neighbors are right depends on what the questions are for.</p>'; }
+    if (set === 'fruit' && !soft) { const tw = ITEMS.map((_, i) => i).filter(i => twin(i)); if (tw.length) tmsg = `<p class="call bad">Rounded to yes/no, ${tw.map(i => ITEMS[i].toLowerCase()).join(' and ')} have the same row. Switch the answers back to numbers and they come apart.</p>`; }
+    const nearBox = `<div class="box"><h3>Who is near whom: ${soft ? 'add up |difference| over the questions' : 'count the answers that differ'}</h3>
       <div class="words">${ITEMS.map((w, i) => `<button data-f="${i}" aria-pressed="${i === focus}">${w}</button>`).join('')}</div>
-      <div class="near">${order.map(i => `<span class="chip">${ITEMS[i]}: ${diff(focus, i)}</span>`).join('')}</div>${tmsg}</div>`;
+      <div class="near">${order.map(i => `<span class="chip">${ITEMS[i]}: ${fmtD(d(focus, i))}</span>`).join('')}</div>${tmsg}</div>`;
+    const intro = set === 'animals'
+      ? (soft ? 'Now each entry is the probability that the answer is yes, a number between 0 and 1. A bear walks on two feet now and then (0.6); most dogs have a long tail, but not all (0.75); some children say a teddy bear is an animal (0.15). Dog and cat are no longer identical, only close.' : 'The book opens embeddings with a road-trip game: one person thinks of something, the other asks yes-or-no questions. Fix the questions in advance and every word becomes a row of 1s and 0s, one entry per question. That row is a word vector, and each column is a question. Two words are near each other when few answers differ.')
+      : (soft ? 'For fruit the natural answers are degrees between 0 and 1, not yes or no: how sweet, how sour, how crunchy. A lemon is 0.98 sour; an apple is 0.9 crunchy and a pear 0.55; about half of apples are red (0.45). Each fruit is a row of numbers, a vector, and similar fruit have similar rows.' : 'The same fruit with every degree rounded to yes or no (0.5 and above is yes). Rounding throws information away: some fruit end up with the same row.');
     return `<h2>Twenty questions: a word as a row of answers</h2>
-      <p>The book opens embeddings with a road-trip game: one person thinks of something, the other asks yes-or-no questions. Fix the questions in advance and every word becomes a row of 1s and 0s, one entry per question. That row is a word vector, and each column is a question. Two words are near each other when few answers differ.</p>
-      <div><div class="k" style="font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Questions in use (the first five are the book's; click to switch)</div><div class="seg" id="qOn">${qbtns}</div></div>
+      <div class="seg"><span class="k" style="font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center">Example</span>${Object.keys(SETS).map(k => `<button data-set="${k}" aria-pressed="${k === set}">${SETS[k].label}</button>`).join('')}
+        <span class="k" style="font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center;margin-left:12px">Answers</span><button data-soft="0" aria-pressed="${!soft}">Yes / no</button><button data-soft="1" aria-pressed="${soft}">Numbers between 0 and 1</button></div>
+      <p>${intro}</p>
+      <div><div class="k" style="font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Questions in use${set === 'animals' ? ' (the first five are the book’s)' : ''}; click to switch</div><div class="seg" id="qOn">${qbtns}</div></div>
       ${game}${table}${nearBox}
-      <p class="call">Two limits of hand-made questions, both from the book. Binary answers hide variation: a Chihuahua and a Great Dane both answer “no” to “larger than a human?”, so real-valued answers help. And in a learned embedding nobody writes the questions: each coordinate is a real number with no name, set by training to predict which words appear near which. The “A word” tab shows the neighbors that come out.</p>`;
+      <p class="call">Two limits of hand-made questions, both from the book. Yes/no answers hide variation: a Chihuahua and a Great Dane both answer “no” to “larger than a human?”, and numbers between 0 and 1 keep more of it. And in a learned embedding nobody writes the questions: each coordinate is a real number with no name, not limited to 0 to 1, set by training to predict which words appear near which. The “A word” tab shows the neighbors that come out.</p>`;
   }
   function tab(id) { modes.forEach(m => $(m).setAttribute('aria-pressed', m === id)); }
   function customer() {
@@ -227,20 +263,31 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       return;
     }
     if (mode === 't5') {
+      const QS = QSf(), ITEMS = ITEMSf();
       pane.innerHTML = twenty();
-      pane.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const j = +b.dataset.q; QS[j].on = !QS[j].on; asked = asked.filter(k => QS[k].on); render('t5'); });
+      pane.querySelectorAll('[data-set]').forEach(b => b.onclick = () => { set = b.dataset.set; focus = S().focus; newSecret(); restart(); render('t5'); });
+      pane.querySelectorAll('[data-soft]').forEach(b => b.onclick = () => { soft = b.dataset.soft === '1'; asked = []; restart(); render('t5'); });
+      pane.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const j = +b.dataset.q; QS[j].on = !QS[j].on; asked = asked.filter(k => QS[k].on); restart(); render('t5'); });
       pane.querySelectorAll('[data-ask]').forEach(b => b.onclick = () => { asked.push(+b.dataset.ask); render('t5'); });
       pane.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { focus = +b.dataset.f; render('t5'); });
       if ($('newSecret')) $('newSecret').onclick = () => { newSecret(); render('t5'); };
       if ($('restart')) $('restart').onclick = () => { restart(); render('t5'); };
       pane.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { gmode = b.dataset.m; render('t5'); });
-      pane.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { ans[b.dataset.a] = +b.dataset.v; aord.push(b.dataset.a); render('t5'); });
-      pane.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { guessDone = b.dataset.g === '1' ? 'won' : 'lost'; Object.keys(ans).forEach(j => { nw[j] = ans[j]; }); render('t5'); });
+      pane.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { if (!(b.dataset.a in ans)) aord.push(b.dataset.a); ans[b.dataset.a] = +b.dataset.v; render('t5'); });
+      pane.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
+        if (b.dataset.g === '1') guessDone = 'won';
+        else { const post = posterior(aord.map(j => [+j, ans[j]]), excl), top = post.indexOf(Math.max(...post)); excl.push(top);
+          const rest = posterior(aord.map(j => [+j, ans[j]]), excl), mass = rest.reduce((a, c) => a + c, 0);
+          if (!soft || mass === 0 || Math.max(...rest) < 1e-6) guessDone = 'lost'; }
+        if (guessDone === 'lost') aord.forEach(j => { nw[j] = soft ? ans[j] : ans[j]; });
+        render('t5'); });
       pane.querySelectorAll('[data-nw]').forEach(b => b.onclick = () => { const nm = $('nwName') ? $('nwName').value : ''; nw[b.dataset.nw] = +b.dataset.v; render('t5'); if ($('nwName')) $('nwName').value = nm; });
       if ($('nwAdd')) $('nwAdd').onclick = () => {
         const nm = ($('nwName').value || '').trim().slice(0, 24); if (!nm) { $('nwName').focus(); return; }
         const miss = QS.findIndex((_, j) => !(j in nw)); if (miss >= 0) { $('nwAdd').textContent = `Answer “${QS[miss].q}” first`; return; }
-        ITEMS.push(nm.charAt(0).toUpperCase() + nm.slice(1)); QS.forEach((q, j) => q.a.push(nw[j])); focus = ITEMS.length - 1; restart(); render('t5');
+        ITEMS.push(nm.charAt(0).toUpperCase() + nm.slice(1));
+        QS.forEach((q, j) => { const v = nw[j]; q.p.push(Math.min(.97, Math.max(.03, v))); q.a.push(v >= .5 ? 1 : 0); });
+        focus = ITEMS.length - 1; restart(); render('t5');
       };
       return;
     }
