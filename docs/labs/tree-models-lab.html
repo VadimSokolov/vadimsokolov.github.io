@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Tree Models Lab</title>
+<script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, chtml: { scale: 1, matchFontHeight: false }, options: { enableMenu: false } };</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header; Part I chess-piece tree built by hand (entropy, Gini, information gain); Part II regression tree grown split by split; Part III cost-complexity pruning with 10-fold CV; Part IV bagging with OOB error; Part V random forest on six noisy readings of one hidden z plus four noise inputs (m, rho, sigma^2, importance); Part VI boosting (learning rate, depth, trees); lesson, notes, class exercises. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
+  --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+    --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+  --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); }
+.src a { color: var(--accent); }
+.part { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); margin: 12px 0 0; border-top: 2px solid var(--line); padding-top: 18px; }
+.part small { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.dash { border-top: 2px dashed var(--ink); }
+.sw.red { border-top: 2.5px solid var(--curve); }
+.sw.acc { border-top: 2.5px solid var(--accent); }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
+.sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
+.sw.bar.ball { background: var(--ball); } .sw.bar.acc2 { background: var(--accent); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
+.sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.msg.warn { border-color: var(--curve); }
+.msg.warn b { color: var(--curve); }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-left: 0; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--curve); } .stat .v.good { color: var(--fit); }
+
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 88ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+.sec .head p + p { margin-top: 4px; }
+.sec .head a { color: var(--accent); }
+.tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
+mjx-container { font-size: 105%; }
+.frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame .note h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; }
+.frame .note p { margin: 0; font-size: 14px; }
+
+.arch { overflow-x: auto; }
+.prompt { font-family: var(--font-mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; margin: 0; }
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; overflow-x: auto; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.note a { color: var(--accent); }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+code { font-family: var(--font-mono); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.btns3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.chtree { overflow-x: auto; }
+.chtree svg text { font-family: var(--font-body); }
+.chtree .glyph { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", serif; font-size: 25px; fill: var(--ink); }
+.chtree .nm { font-size: 12.5px; fill: var(--muted); }
+.chtree .qq { font-size: 13px; font-weight: 700; fill: var(--ink); }
+.chtree .edge { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+.chtree g.click { cursor: pointer; }
+.chtree g.click:hover rect { stroke: var(--accent); }
+.pg, .selset span { font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", serif; font-size: 20px; }
+.selset { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+.selset small { color: var(--muted); font-size: 12.5px; margin-left: 8px; }
+#chQ td { font-size: 12.5px; } #chQ td:nth-child(2) { font-family: "Apple Symbols", "Segoe UI Symbol", serif; font-size: 16px; white-space: nowrap; }
+#chQ button { font-size: 12.5px; padding: 5px 8px; text-align: left; width: 100%; }
+#chQ button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+#chQ button:disabled { opacity: .45; cursor: default; }
+#chT td, #chT th { font-size: 12px; }
+.sec .head a { color: var(--accent); }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Tree models</span>
+    <h1>Tree Models Lab: from twenty questions to forests and boosting</h1>
+    <p class="lead">A tree predicts by asking yes or no questions about the input, one after another, until it reaches a leaf. Part I asks the questions by hand to tell the six chess pieces apart, and shows how to score a question. Part II lets the computer ask them about a number, growing a regression tree split by split. Part III grows the tree too big on purpose and prunes it back with cross-validation. Part IV averages many big trees fitted to bootstrap samples (bagging). Part V makes the trees less alike by letting each split see only some of the inputs (a random forest). Part VI adds small trees one at a time, each fitted to what the others got wrong (boosting).</p>
+    <a class="back" href="index.html">← All labs</a>
+    <p class="src">Based on Chapter 14, <a href="https://vsokolov.org/html/_book/14-tree.html">Tree Models</a>, of Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i> (<a href="https://vsokolov.org/html/_book/">vsokolov.org/html/_book</a>). Part I follows the book's chess-piece tree (its first figure). Parts II to IV and VI use a simulated sample shaped like the Boston housing data the chapter uses, median home value against the percent of lower-status residents. Part V simulates inputs that are noisy readings of one hidden quantity. Every tree is grown in this page.</p>
+  </header>
+
+  <h2 class="part"><small>Part I</small>Twenty questions with chess pieces</h2>
+  <section class="sec" aria-labelledby="chH">
+    <div class="head">
+      <h2 id="chH">Which piece is it? Ask yes or no questions about how it moves</h2>
+      <p>Each piece is described by four yes or no features: does it move in a straight line, diagonally, horizontally, and can it move many squares at once. The book's tree first asks about a straight line, which sets the knight apart, then asks about diagonals, then horizontal moves, and last about many squares. Its six leaves name the six pieces. Click a node that still holds several pieces and choose the question to ask there, or load the book's tree.</p>
+      <p>A good question splits the pieces into groups that are as pure as possible. Trees measure this with the entropy \(H = -\sum_k p_k \log_2 p_k\) (in bits) or the Gini index \(G = \sum_k p_k (1 - p_k)\) of the pieces in a node. The information gain of a question is the drop in entropy, the parent's entropy minus the size-weighted entropy of the two children. A split into 3 and 3 gains a full bit; setting the knight apart (5 and 1) gains only 0.65 bits.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">The tree (click a node with several pieces to choose its question)</span>
+        <div id="chTree" class="chtree"></div>
+        <table class="stats" id="chT"></table>
+      </div>
+      <div class="panel">
+        <div class="group"><span class="label">How often each piece comes up</span>
+          <div class="seg two" id="chW"><button data-v="equal" aria-pressed="true">Equally often</button><button data-v="board" aria-pressed="false">As on the board</button></div>
+          <p class="hint">On the board at the start each side has 8 pawns, 2 rooks, 2 knights, 2 bishops, a queen and a king.</p></div>
+        <div class="group"><span class="label">Load a tree</span>
+          <div class="btns3"><button id="chBook">Book's tree</button><button id="chGreedy">Greedy</button><button id="chClear">Start over</button></div></div>
+        <div class="group"><span class="label" id="chSelL">Selected node</span><div id="chSel"></div><table class="stats" id="chQ"></table></div>
+        <div class="group"><div class="two">
+          <div class="stat"><span class="k">Average questions</span><span class="v" id="chAvg">–</span></div>
+          <div class="stat"><span class="k">Worst case</span><span class="v" id="chMax">–</span></div>
+          <div class="stat"><span class="k">Best with these questions</span><span class="v" id="chOpt">–</span></div>
+          <div class="stat"><span class="k">Entropy bound H</span><span class="v" id="chH2">–</span></div></div></div>
+        <div class="group"><p class="msg" id="chM"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part II</small>A simple tree: recursive binary splitting</h2>
+  <section class="sec" aria-labelledby="t2H">
+    <div class="head">
+      <h2 id="t2H">Grow a regression tree one split at a time</h2>
+      <p>Now the input is a number, \(x\) = percent of lower-status residents in a neighborhood, and the output is \(y\) = median home value in thousands of dollars (100 simulated neighborhoods). A regression tree cuts the \(x\) axis into intervals and predicts the average \(y\) in each, so its fit is a step function. To choose a split, try every cut point \(s\) in a leaf and keep the one that most reduces the residual sum of squares (RSS):</p>
+      <div class="tex">\[ \min_{j,\,s}\ \Big[ \sum_{i:\,x_{ij} &lt; s} (y_i - \bar y_{1})^2 + \sum_{i:\,x_{ij} \ge s} (y_i - \bar y_{2})^2 \Big] \]</div>
+      <p>The lower panel draws that RSS reduction against \(s\) for every current leaf. The highest peak is the next split. Finding the best tree of a given size is NP-hard, so CART grows greedily like this and never revisits a split.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap">Data, the tree's step function, and the true curve</span><canvas id="t2a" height="300"></canvas>
+        <div class="legend"><span><i class="sw pt"></i>training data</span><span><i class="sw acc"></i>tree fit</span><span><i class="sw dash"></i>true mean</span><span><i class="sw red" style="border-top-style:dashed"></i>next split</span></div>
+        <span class="cap">RSS reduction for a cut at s, in every leaf</span><canvas id="t2b" height="190"></canvas>
+        <div class="legend"><span><i class="sw ballc"></i>the leaf that splits next</span><span><i class="sw" style="border-top-color:var(--muted)"></i>other leaves</span></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="t2k">Leaves</label><output id="t2kO"></output></div><input id="t2k" type="range" min="1" max="40" step="1" value="1"></div>
+          <div class="btns"><button class="primary" id="t2s">Split once</button><button id="t2n">New sample</button></div>
+          <p class="hint">A new sample also redraws Parts III, IV and VI, which use the same data.</p>
+        </div>
+        <div class="group"><div class="two">
+          <div class="stat"><span class="k">Training MSE</span><span class="v" id="t2tr">–</span></div>
+          <div class="stat"><span class="k">Test MSE</span><span class="v" id="t2te">–</span></div></div>
+          <p class="hint">Test MSE uses 2,000 fresh neighborhoods. The noise alone gives about <span id="t2nf"></span>, the floor no model can beat.</p></div>
+        <div class="group"><table class="stats" id="t2t"></table></div>
+        <div class="group"><p class="msg" id="t2m"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part III</small>Pruning: grow big, then cut back</h2>
+  <section class="sec" aria-labelledby="t3H">
+    <div class="head">
+      <h2 id="t3H">Cost-complexity pruning, with cross-validation choosing the size</h2>
+      <p>Stopping early is myopic, since a weak split can lead to a strong one. So grow a large tree \(T_0\) (leaves down to 2 points), then prune. For each \(\alpha \ge 0\), keep the subtree \(T \subset T_0\) that minimizes</p>
+      <div class="tex">\[ \sum_{m=1}^{|T|} \sum_{i:\,x_i \in R_m} (y_i - \bar y_m)^2 + \alpha\,|T| . \]</div>
+      <p>As \(\alpha\) grows, the weakest link goes first: the split whose RSS reduction per extra leaf, \(g(t) = \big(\mathrm{RSS}(t) - \mathrm{RSS}(T_t)\big) / (|T_t| - 1)\), is smallest. This gives a nested sequence of subtrees, from \(T_0\) down to the root alone. Ten-fold cross-validation estimates the test error of each one without touching the test set. The one-standard-error rule takes the smallest tree whose CV error is within one standard error of the minimum.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap">The full tree and the pruned tree</span><canvas id="t3a" height="280"></canvas>
+        <div class="legend"><span><i class="sw pt"></i>training data</span><span><i class="sw" style="border-top-color:var(--muted)"></i>full tree T₀</span><span><i class="sw acc"></i>pruned tree</span><span><i class="sw dash"></i>true mean</span></div>
+        <span class="cap">Error against the number of leaves (the pruning sequence)</span><canvas id="t3b" height="260"></canvas>
+        <div class="legend"><span><i class="sw" style="border-top-color:var(--muted)"></i>training</span><span><i class="sw ballc"></i>10-fold CV, ± 1 SE</span><span><i class="sw red"></i>test</span><span><i class="sw dash"></i>noise floor</span></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="t3s">Prune: α</label><output id="t3sO"></output></div><input id="t3s" type="range" min="0" max="10" step="1" value="0"></div>
+          <div class="seg" id="t3p"><button data-v="full" aria-pressed="false">Full tree</button><button data-v="min" aria-pressed="true">CV minimum</button><button data-v="se" aria-pressed="false">One-SE rule</button></div>
+        </div>
+        <div class="group"><div class="two">
+          <div class="stat"><span class="k">Leaves</span><span class="v" id="t3L">–</span></div>
+          <div class="stat"><span class="k">Training MSE</span><span class="v" id="t3tr">–</span></div>
+          <div class="stat"><span class="k">CV MSE</span><span class="v" id="t3cv">–</span></div>
+          <div class="stat"><span class="k">Test MSE</span><span class="v" id="t3te">–</span></div></div></div>
+        <div class="group"><p class="msg" id="t3m"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part IV</small>Bagging: average many big trees</h2>
+  <section class="sec" aria-labelledby="t4H">
+    <div class="head">
+      <h2 id="t4H">Bootstrap the data, grow a big tree on each sample, and average</h2>
+      <p>A big tree has low bias and high variance: a slightly different sample gives a quite different step function. Bagging (Breiman, 1996) treats the sample as the population. It draws \(B\) bootstrap samples of size \(n\) with replacement, grows an unpruned tree on each (leaves of at least 5 points), and averages them, \(\hat f_{\text{bag}}(x) = \frac1B \sum_b \hat f_b(x)\). Each bootstrap sample leaves out about \((1 - 1/n)^n \approx e^{-1} = 37\%\) of the points. Predicting each point with only the trees that did not see it gives the out-of-bag (OOB) error, a test error estimate that needs no held-out data.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap">Bootstrap trees and their average</span><canvas id="t4a" height="300"></canvas>
+        <div class="legend"><span><i class="sw" style="border-top-color:var(--muted)"></i>single bootstrap trees (up to 20 drawn)</span><span><i class="sw acc"></i>bagged average</span><span><i class="sw dash"></i>true mean</span></div>
+        <span class="cap">Error against the number of trees</span><canvas id="t4b" height="230"></canvas>
+        <div class="legend"><span><i class="sw ballc"></i>OOB</span><span><i class="sw red"></i>test</span><span><i class="sw altc"></i>pruned tree of Part III, test</span><span><i class="sw dash"></i>noise floor</span></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="t4B">Trees B</label><output id="t4BO"></output></div><input id="t4B" type="range" min="1" max="200" step="1" value="25"></div>
+          <div class="checks"><label><input type="checkbox" id="t4show" checked> Draw the single trees</label></div>
+        </div>
+        <div class="group"><div class="two">
+          <div class="stat"><span class="k">One big tree, test</span><span class="v" id="t4one">–</span></div>
+          <div class="stat"><span class="k">Bagged, test</span><span class="v" id="t4te">–</span></div>
+          <div class="stat"><span class="k">Bagged, OOB</span><span class="v" id="t4oob">–</span></div>
+          <div class="stat"><span class="k">Pruned tree, test</span><span class="v" id="t4pr">–</span></div></div></div>
+        <div class="group"><p class="msg" id="t4m"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part V</small>Random forest: make the trees disagree</h2>
+  <section class="sec" aria-labelledby="t5H">
+    <div class="head">
+      <h2 id="t5H">Let each split see only m of the p inputs</h2>
+      <p>Bagged trees look alike, because the strongest input wins the top splits in almost every bootstrap sample. Averaging alike trees removes little variance. If each tree's error has mean square \(\sigma^2\) and two trees' errors have correlation \(\rho\), the average of \(B\) trees has mean squared error</p>
+      <div class="tex">\[ \rho\,\sigma^2 + \frac{1 - \rho}{B}\,\sigma^2 , \]</div>
+      <p>which falls to \(\rho\sigma^2\), not to zero, as \(B\) grows. A random forest (Breiman, 2001) lowers \(\rho\): at each split it picks \(m\) of the \(p\) inputs at random and splits only on those. Smaller \(m\) makes the trees less alike. But a split that may only choose among a few inputs, some of them noise, can make single trees worse (larger \(\sigma^2\)), so the best \(m\) is usually in between; \(m = p\) is plain bagging. The simulated data show where this matters most: 300 points with \(p = 10\) inputs. Inputs \(x_1\) to \(x_6\) are six noisy readings of one hidden quantity \(z\), each \(x_j = 0.6\,z + 0.4\,u_j\) with \(z\) and \(u_j\) uniform on \([0,1]\), like six survey questions that measure the same trait. Inputs \(x_7\) to \(x_{10}\) are pure noise. The response is \(y = 5(x_1 + \dots + x_6) + \varepsilon\), \(\varepsilon \sim N(0, 3^2)\). Bagged trees keep splitting on whichever reading looks best, so they share its measurement error. A forest forces different trees onto different readings, and averaging them averages the readings. Errors here are measured against the true function on 1,000 test points, so they exclude the noise. In the formula, \(\sigma^2\) and \(\rho\) are measured over the test points with the training sample held fixed, and with those definitions it is an exact identity.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap">Error against the number of trees</span><canvas id="t5a" height="250"></canvas>
+        <div class="legend"><span><i class="sw acc"></i>forest with your m</span><span><i class="sw red"></i>bagging, m = 10</span><span><i class="sw" style="border-top:2px dashed var(--fit)"></i>floor ρσ² for your m</span></div>
+        <div class="duo">
+          <div class="board"><span class="cap">Permutation importance (OOB)</span><canvas id="t5b" height="220"></canvas>
+            <div class="legend"><span><i class="sw bar fitb"></i>x₁ to x₆, readings of z</span><span><i class="sw bar"></i>x₇ to x₁₀, noise</span></div></div>
+          <div class="board"><span class="cap">Forest error for every m, 200 trees</span><canvas id="t5c" height="220"></canvas>
+            <div class="legend"><span><i class="sw acc"></i>forest</span><span><i class="sw" style="border-top:2px dashed var(--fit)"></i>its floor ρσ²</span></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="t5m">Inputs tried per split, m</label><output id="t5mO"></output></div><input id="t5m" type="range" min="1" max="10" step="1" value="3"></div>
+          <p class="hint" id="t5st"></p>
+        </div>
+        <div class="group"><div class="two">
+          <div class="stat"><span class="k">One tree, σ²</span><span class="v" id="t5s2">–</span></div>
+          <div class="stat"><span class="k">Correlation ρ</span><span class="v" id="t5rho">–</span></div>
+          <div class="stat"><span class="k">Forest of 200</span><span class="v" id="t5f">–</span></div>
+          <div class="stat"><span class="k">Bagging, m = 10</span><span class="v" id="t5bag">–</span></div></div></div>
+        <div class="group"><p class="msg" id="t5msg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part VI</small>Boosting: fit what is left, a little at a time</h2>
+  <section class="sec" aria-labelledby="t6H">
+    <div class="head">
+      <h2 id="t6H">Add small trees, each fitted to the residuals of the sum so far</h2>
+      <p>Boosting builds the model in sequence. Start from the mean of \(y\) (as <code>gbm</code> does; the book's version starts from 0, which costs only a few extra trees). Then repeat \(B\) times: fit a small tree \(\hat f^b\) of depth \(d\) to the current residuals \(r_i\), add a shrunken copy to the model, and update the residuals,</p>
+      <div class="tex">\[ \hat f(x) \leftarrow \hat f(x) + \lambda \hat f^{b}(x), \qquad r_i \leftarrow r_i - \lambda \hat f^{b}(x_i) . \]</div>
+      <p>For squared loss the residual is minus the gradient of the loss at the current fit, so boosting is gradient descent in the space of functions, with each tree a step and \(\lambda\) the step size. Small \(\lambda\) learns slowly and needs many trees; large \(\lambda\) learns fast and starts fitting noise sooner. Unlike bagging, more trees can hurt: watch the test error turn up.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <div class="duo">
+          <div class="board"><span class="cap">The boosted fit after B trees</span><canvas id="t6a" height="250"></canvas>
+            <div class="legend"><span><i class="sw pt"></i>data</span><span><i class="sw acc"></i>fit</span><span><i class="sw dash"></i>true mean</span></div></div>
+          <div class="board"><span class="cap">Residuals before tree B, and tree B</span><canvas id="t6b" height="250"></canvas>
+            <div class="legend"><span><i class="sw pt"></i>residuals</span><span><i class="sw ballc"></i>tree B</span><span><i class="sw acc"></i>λ × tree B, what is added</span></div></div>
+        </div>
+        <span class="cap">Error against the number of trees (log scale)</span><canvas id="t6c" height="230"></canvas>
+        <div class="legend"><span><i class="sw" style="border-top-color:var(--muted)"></i>training</span><span><i class="sw red"></i>test</span><span><i class="sw dash"></i>noise floor</span><span><i class="sw acc"></i>your B</span></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="t6B">Trees B</label><output id="t6BO"></output></div><input id="t6B" type="range" min="1" max="1000" step="1" value="100"></div>
+          <div class="slider"><div class="top"><label for="t6l">Learning rate λ</label><output id="t6lO"></output></div><input id="t6l" type="range" min="0" max="6" step="1" value="3"></div>
+          <div class="slider"><div class="top"><label for="t6d">Tree depth d</label><output id="t6dO"></output></div><input id="t6d" type="range" min="1" max="4" step="1" value="1"></div>
+        </div>
+        <div class="group"><div class="two">
+          <div class="stat"><span class="k">Training MSE</span><span class="v" id="t6tr">–</span></div>
+          <div class="stat"><span class="k">Test MSE</span><span class="v" id="t6te">–</span></div>
+          <div class="stat"><span class="k">Best B for test</span><span class="v" id="t6bb">–</span></div>
+          <div class="stat"><span class="k">Its test MSE</span><span class="v" id="t6bt">–</span></div></div></div>
+        <div class="group"><p class="msg" id="t6m"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head"><h2>What to take away</h2></div>
+    <ol class="steps">
+      <li><div><h3>A tree is a list of questions</h3><p>Each internal node asks about one input, each leaf gives one answer. For a number the answer is the leaf's average, so the fit is a step function over boxes in the input space.</p></div></li>
+      <li><div><h3>Score a question by how pure it leaves the groups</h3><p>Entropy and the Gini index for classes, the RSS for numbers. Greedy splitting picks the best question now, which is fast and usually good, but not always the best tree.</p></div></li>
+      <li><div><h3>Size is the knob</h3><p>One leaf underfits, a leaf per point overfits. Grow big, then prune with a penalty α per leaf, and let cross-validation choose α.</p></div></li>
+      <li><div><h3>Averaging cuts variance, but only the part the trees do not share</h3><p>Bagging averages big trees on bootstrap samples; its floor is ρσ². A random forest lowers ρ by showing each split only m inputs.</p></div></li>
+      <li><div><h3>Boosting cuts bias, one small step at a time</h3><p>Each new tree fits the residuals, a gradient step in function space. The learning rate and the number of trees trade off, and too many trees overfit.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cp">Information gain of a split into L and R</div>\[ H(\text{node}) - \tfrac{n_L}{n} H(L) - \tfrac{n_R}{n} H(R) \]</div>
+      <div class="eq"><div class="cp">Cost complexity</div>\[ C_\alpha(T) = \mathrm{RSS}(T) + \alpha |T| \]</div>
+      <div class="eq"><div class="cp">Error of an average of B trees</div>\[ \rho\sigma^2 + \tfrac{1-\rho}{B}\sigma^2 \]</div>
+      <div class="eq"><div class="cp">Boosting update</div>\[ \hat f \leftarrow \hat f + \lambda \hat f^b, \quad \hat f^b \approx \text{tree fitted to } r = y - \hat f \]</div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note"><h2>Why the chess tree is not optimal</h2><p>The book's tree asks 3 questions on average when the pieces come up equally often. Asking about diagonals first splits the pieces 3 and 3 and gives 2.67, the best possible with these four questions. Entropy says no yes or no questions at all can average fewer than \(\log_2 6 = 2.58\). When the pieces come up as on the board, pawns are half of them, and the best tree changes: it should reach the pawn fast.</p></div>
+    <div class="note"><h2>Trees in more dimensions</h2><p>With several inputs the search runs over every input \(j\) and every cut \(s\), and the leaves become boxes. A tree handles interactions on its own (a split on \(x_2\) below a split on \(x_1\)) and ignores inputs it never splits on, which is why the noise inputs in Part V get near zero importance. Its weakness is that boxes give a jagged fit to smooth or diagonal shapes.</p></div>
+    <div class="note"><h2>Further reading</h2><p>Breiman, Friedman, Olshen and Stone, <i>Classification and Regression Trees</i> (1984). Breiman, Bagging predictors (1996) and Random forests (2001). Friedman, Greedy function approximation: a gradient boosting machine (2001), the source of <code>gbm</code>. James, Witten, Hastie and Tibshirani, <i>An Introduction to Statistical Learning</i>, chapter 8.</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Part I: before clicking, ask the class which question to ask first. Load the book's tree, then the greedy tree. Why does setting the knight apart first cost questions on average?</li>
+      <li>Part I: switch to "As on the board". Which question does greedy ask first now, and what is the average? No single question sets the pawn apart. Why does that keep the tree above the entropy bound?</li>
+      <li>Part II: press "Split once" four times. Where do the first cuts land, and why there and not where the curve bends least?</li>
+      <li>Part II: slide to 40 leaves. Training MSE keeps falling; when does test MSE stop falling? Press "New sample" and see how much the big tree changes.</li>
+      <li>Part III: compare the CV minimum and the one-SE rule. How many leaves does each keep, and how far apart are their test errors?</li>
+      <li>Part IV: compare one big tree, the pruned tree and bagging with 200 trees. Does the OOB error track the test error?</li>
+      <li>Part V: move m from 10 down to 1. Which of σ² and ρ moves which way? Where is the forest best, and is it near the usual default of p/3 for regression?</li>
+      <li>Part V: which inputs get importance near zero? Set m = 10 and then m = 2: how does the importance spread across the six readings change, and why?</li>
+      <li>Part VI: with λ = 1, find the B where test error is lowest and then move B to 1000. Repeat with λ = 0.01. Which setting gives the lowest test error, and at what cost in trees?</li>
+      <li>Part VI: set d = 4 and λ = 0.5. How few trees does it take to start overfitting?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function ctxOf(cv) {
+    if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h); return { c, w, h };
+  }
+  function frame(c, w, h, xr, yr, xt, yt, xl, yl, xf) {
+    const L = 52, T = 10, W = w - L - 12, H = h - T - 40;
+    const X = x => L + W * (x - xr[0]) / (xr[1] - xr[0]), Y = y => T + H * (1 - (y - yr[0]) / (yr[1] - yr[0]));
+    c.strokeStyle = css('--grid'); c.lineWidth = 1; c.fillStyle = css('--muted'); c.font = '11px ' + css('--font-mono');
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (const v of yt) { c.beginPath(); c.moveTo(L, Y(v)); c.lineTo(L + W, Y(v)); c.stroke(); c.fillText(+v.toFixed(2), L - 6, Y(v)); }
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (const v of xt) { c.beginPath(); c.moveTo(X(v), T); c.lineTo(X(v), T + H); c.stroke(); c.fillText(xf ? xf(v) : +v.toFixed(2), X(v), T + H + 5); }
+    c.font = '12px ' + css('--font-body'); c.fillText(xl, L + W / 2, T + H + 22);
+    if (yl) { c.save(); c.translate(12, T + H / 2); c.rotate(-Math.PI / 2); c.textBaseline = 'middle'; c.fillText(yl, 0, 0); c.restore(); }
+    return { X, Y, L, T, W, H };
+  }
+  const line = (c, pts, col, wd, dash) => { c.strokeStyle = col; c.lineWidth = wd; c.setLineDash(dash || []); c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke(); c.setLineDash([]); };
+  const dots = (c, pts, col, r, alpha) => { c.fillStyle = col; c.globalAlpha = alpha ?? 1; for (const [x, y] of pts) { c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); } c.globalAlpha = 1; };
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const gaussOf = r => () => { const u = r() || 1e-12, v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const fmt = (v, d = 1) => Number.isFinite(v) ? v.toFixed(d) : '–';
+  const niceTop = v => { const p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; };
+  const yticks = t => { const k = /^(5|1)/.test(String(t)) ? 5 : 4; return Array.from({ length: k + 1 }, (_, i) => +(i * t / k).toFixed(6)); };
+  const seg = (id, fn) => $(id).querySelectorAll('button').forEach(b => b.addEventListener('click', () => { $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); fn(b.dataset.v); }));
+
+  /* ================= Part I: chess pieces ================= */
+  const PCS = [
+    { name: 'Knight', g: '♘', f: [0, 0, 0, 0], w: 2 },
+    { name: 'Bishop', g: '♗', f: [1, 1, 0, 1], w: 2 },
+    { name: 'Rook', g: '♖', f: [1, 0, 1, 1], w: 2 },
+    { name: 'Queen', g: '♕', f: [1, 1, 1, 1], w: 1 },
+    { name: 'King', g: '♔', f: [1, 1, 1, 0], w: 1 },
+    { name: 'Pawn', g: '♙', f: [1, 0, 0, 0], w: 8 }];
+  const QS = ['Moves in a straight line?', 'Moves diagonally?', 'Moves horizontally?', 'Moves many squares?'];
+  const QSH = ['Straight line?', 'Diagonally?', 'Horizontally?', 'Many squares?'];
+  let chMode = 'equal', chRoot, chSel;
+  const wt = i => chMode === 'equal' ? 1 : PCS[i].w;
+  const Wsum = set => set.reduce((a, i) => a + wt(i), 0);
+  const Hent = set => { const W = Wsum(set); return -set.reduce((a, i) => { const p = wt(i) / W; return a + p * Math.log2(p); }, 0); };
+  const Gini = set => { const W = Wsum(set); return 1 - set.reduce((a, i) => a + (wt(i) / W) ** 2, 0); };
+  const splitBy = (set, j) => [set.filter(i => PCS[i].f[j]), set.filter(i => !PCS[i].f[j])];
+  const gainOf = (set, j, fn) => { const [a, b] = splitBy(set, j); if (!a.length || !b.length) return null; const W = Wsum(set); return fn(set) - Wsum(a) / W * fn(a) - Wsum(b) / W * fn(b); };
+  const mk = set => ({ set, q: null, yes: null, no: null });
+  const setQ = (n, j) => { const [a, b] = splitBy(n.set, j); n.q = j; n.yes = mk(a); n.no = mk(b); };
+  const ALL = [0, 1, 2, 3, 4, 5];
+  function bookTree() { const r = mk(ALL); setQ(r, 0); setQ(r.yes, 1); setQ(r.yes.yes, 2); setQ(r.yes.yes.yes, 3); setQ(r.yes.no, 3); return r; }
+  function greedy(n) { if (n.set.length < 2) return n; let bj = -1, bg = -1; for (let j = 0; j < 4; j++) { const g = gainOf(n.set, j, Hent); if (g !== null && g > bg + 1e-12) { bg = g; bj = j; } } setQ(n, bj); greedy(n.yes); greedy(n.no); return n; }
+  function optCost(set) { // minimum total weight × questions over trees using the four questions
+    if (set.length < 2) return 0; let best = Infinity;
+    for (let j = 0; j < 4; j++) { const [a, b] = splitBy(set, j); if (a.length && b.length) best = Math.min(best, Wsum(set) + optCost(a) + optCost(b)); }
+    return best;
+  }
+  function huffman(ws) { const a = ws.slice(); let cost = 0; while (a.length > 1) { a.sort((x, y) => x - y); const m = a.shift() + a.shift(); cost += m; a.push(m); } return cost; }
+  const firstOpen = n => n.q === null ? (n.set.length > 1 ? n : null) : (firstOpen(n.yes) || firstOpen(n.no));
+  function chStats() {
+    let tot = 0, mx = 0, open = 0;
+    (function w(n, d) { if (n.q === null) { if (n.set.length > 1) open++; else { tot += wt(n.set[0]) * d; mx = Math.max(mx, d); } } else { w(n.yes, d + 1); w(n.no, d + 1); } })(chRoot, 0);
+    return { avg: open ? NaN : tot / Wsum(ALL), mx: open ? NaN : mx, open };
+  }
+  function drawChess() {
+    const nodes = []; let leafX = 0, maxD = 0;
+    (function lay(n, d) { n.d = d; maxD = Math.max(maxD, d); if (n.q === null) n.x = leafX++; else { lay(n.yes, d + 1); lay(n.no, d + 1); n.x = (n.yes.x + n.no.x) / 2; } nodes.push(n); })(chRoot, 0);
+    const colW = 128, W = Math.max(leafX, 3) * colW, dy = 112, Hh = (maxD + 1) * dy + 10, off = (W - leafX * colW) / 2;
+    const cx = n => off + (n.x + 0.5) * colW, cy = n => 34 + n.d * dy;
+    let svg = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" style="max-width:${W}px;display:block;margin:0 auto" role="img" aria-label="Decision tree for the chess pieces">`;
+    for (const n of nodes) if (n.q !== null) for (const [ch, lab] of [[n.yes, 'yes'], [n.no, 'no']]) {
+      const x1 = cx(n), y1 = cy(n) + 44, x2 = cx(ch), y2 = cy(ch) - 20;
+      svg += `<path d="M${x1} ${y1} V${(y1 + y2) / 2} H${x2} V${y2}" fill="none" style="stroke:var(--line)" stroke-width="2"/>`;
+      svg += `<text x="${(x1 + x2) / 2 + (lab === 'yes' ? -6 : 6)}" y="${(y1 + y2) / 2 - 5}" text-anchor="${lab === 'yes' ? 'end' : 'start'}" class="edge">${lab}</text>`;
+    }
+    nodes.forEach((n, k) => {
+      const bw = 26 * n.set.length + 16, x = cx(n), y = cy(n), pure = n.set.length === 1, sel = n === chSel, open = !pure && n.q === null;
+      svg += `<g data-k="${k}" class="${pure ? '' : 'click'}"><rect x="${x - bw / 2}" y="${y - 20}" width="${bw}" height="40" rx="8" style="fill:${pure ? 'color-mix(in srgb, var(--fit) 16%, var(--surface))' : 'var(--surface)'};stroke:${sel ? 'var(--accent)' : open ? 'var(--ball)' : 'var(--line)'}" stroke-width="${sel ? 3 : open ? 2 : 1.5}" ${open && !sel ? 'stroke-dasharray="5 3"' : ''}/>`;
+      svg += `<text x="${x}" y="${y + 9}" text-anchor="middle" class="glyph">${n.set.map(i => PCS[i].g).join('')}</text>`;
+      if (pure) svg += `<text x="${x}" y="${y + 36}" text-anchor="middle" class="nm">${PCS[n.set[0]].name}</text>`;
+      if (n.q !== null) svg += `<text x="${x}" y="${y + 37}" text-anchor="middle" class="qq">${QSH[n.q]}</text>`;
+      svg += '</g>';
+    });
+    $('chTree').innerHTML = svg + '</svg>';
+    $('chTree').querySelectorAll('g.click').forEach(g => g.addEventListener('click', () => { chSel = nodes[+g.dataset.k]; renderChess(); }));
+  }
+  function renderChess() {
+    drawChess();
+    // feature table
+    $('chT').innerHTML = `<thead><tr><th>Piece</th>${QSH.map(q => `<th>${q.replace('?', '')}</th>`).join('')}<th>On the board</th></tr></thead><tbody>` +
+      PCS.map(p => `<tr><td><span class="pg">${p.g}</span> ${p.name}</td>${p.f.map(v => `<td>${v ? 'yes' : 'no'}</td>`).join('')}<td>${p.w}</td></tr>`).join('') + '</tbody>';
+    // selected node
+    if (chSel) {
+      $('chSelL').textContent = chSel.q === null ? 'Choose a question for this node' : 'This node asks (choose another to change it)';
+      $('chSel').innerHTML = `<div class="selset">${chSel.set.map(i => `<span title="${PCS[i].name}">${PCS[i].g}</span>`).join('')} <small>entropy ${Hent(chSel.set).toFixed(2)} bits · Gini ${Gini(chSel.set).toFixed(2)}</small></div>`;
+      $('chQ').innerHTML = '<thead><tr><th>Question</th><th>yes / no</th><th>gain, bits</th><th>Gini drop</th></tr></thead><tbody>' + QS.map((q, j) => {
+        const [a, b] = splitBy(chSel.set, j), g = gainOf(chSel.set, j, Hent), gg = gainOf(chSel.set, j, Gini);
+        return `<tr><td><button class="qb" data-j="${j}" ${g === null ? 'disabled' : ''} aria-pressed="${chSel.q === j}">${q}</button></td><td>${a.map(i => PCS[i].g).join('') || '–'} / ${b.map(i => PCS[i].g).join('') || '–'}</td><td>${g === null ? '–' : g.toFixed(2)}</td><td>${gg === null ? '–' : gg.toFixed(2)}</td></tr>`;
+      }).join('') + '</tbody>';
+      $('chQ').querySelectorAll('button.qb').forEach(b => b.addEventListener('click', () => { setQ(chSel, +b.dataset.j); chSel = firstOpen(chRoot); renderChess(); }));
+    } else {
+      $('chSelL').textContent = 'Selected node'; $('chSel').innerHTML = '<p class="hint">Every piece has its own leaf. Click any node with several pieces to change its question.</p>'; $('chQ').innerHTML = '';
+    }
+    const st = chStats(), W = Wsum(ALL), opt = optCost(ALL) / W, H = Hent(ALL), hf = huffman(ALL.map(wt)) / W;
+    $('chAvg').textContent = fmt(st.avg, 2); $('chMax').textContent = Number.isFinite(st.mx) ? st.mx : '–';
+    $('chOpt').textContent = opt.toFixed(2); $('chH2').textContent = H.toFixed(2);
+    const wtxt = chMode === 'equal' ? 'with every piece equally likely' : 'with the pieces weighted as on the board (pawns are half of them)';
+    if (st.open) $('chM').innerHTML = `<b>${st.open}</b> node${st.open > 1 ? 's' : ''} still hold${st.open > 1 ? '' : 's'} several pieces (dashed). The table ranks the four questions for the selected node, ${wtxt}. The greedy rule asks the one with the largest gain.`;
+    else {
+      const gap = st.avg - opt;
+      $('chM').innerHTML = `This tree asks <b>${st.avg.toFixed(2)}</b> questions on average ${wtxt}, and ${st.mx} at most. ` +
+        (gap < 1e-9 ? 'No tree built from these four questions does better. ' : `The best tree built from these four questions asks ${opt.toFixed(2)}, so this one wastes ${gap.toFixed(2)} questions per piece. `) +
+        `With any yes or no questions you like, the best possible is ${hf.toFixed(2)} (a Huffman code), ` +
+        (hf - H > 1e-9 ? `above the entropy ${H.toFixed(2)} because ${chMode === 'equal' ? 'six is not a power of two' : 'the probabilities are not powers of 1/2'}` : `equal to the entropy ${H.toFixed(2)} because every probability is a power of 1/2`) +
+        (opt - hf > 1e-9 ? `. The four move questions cannot reach it: none of them sets the pawn apart, so pawns, half of all pieces, need ${chMode === 'equal' ? 'several' : 'at least two'} questions.` : '.');
+    }
+  }
+  seg('chW', v => { chMode = v; renderChess(); });
+  $('chBook').addEventListener('click', () => { chRoot = bookTree(); chSel = null; renderChess(); });
+  $('chGreedy').addEventListener('click', () => { chRoot = greedy(mk(ALL)); chSel = null; renderChess(); });
+  $('chClear').addEventListener('click', () => { chRoot = mk(ALL); chSel = chRoot; renderChess(); });
+  chRoot = bookTree(); chSel = null;
+
+  /* ================= Tree engine ================= */
+  function bestSplit(cols, y, idx, feats, minLeaf) {
+    const n = idx.length; let S = 0, SS = 0; for (const i of idx) { S += y[i]; SS += y[i] * y[i]; }
+    const parent = SS - S * S / n; let best = null;
+    for (const j of feats) {
+      const xj = cols[j], o = idx.slice().sort((a, b) => xj[a] - xj[b]); let sl = 0, ssl = 0;
+      for (let k = 1; k < n; k++) {
+        const yi = y[o[k - 1]]; sl += yi; ssl += yi * yi;
+        if (k < minLeaf || n - k < minLeaf || xj[o[k - 1]] === xj[o[k]]) continue;
+        const sr = S - sl, sse = ssl - sl * sl / k + (SS - ssl) - sr * sr / (n - k), g = parent - sse;
+        if (!best || g > best.gain) best = { j, s: (xj[o[k - 1]] + xj[o[k]]) / 2, gain: g };
+      }
+    }
+    return best;
+  }
+  function leafOf(y, idx) { let S = 0, SS = 0; for (const i of idx) { S += y[i]; SS += y[i] * y[i]; } const n = idx.length; return { n, val: S / n, sse: Math.max(0, SS - S * S / n) }; }
+  function sampleFeats(p, m, r) { const a = [...Array(p).keys()]; for (let i = 0; i < m; i++) { const k = i + Math.floor(r() * (p - i)); [a[i], a[k]] = [a[k], a[i]]; } return a.slice(0, m); }
+  function grow(cols, y, idx, o, depth = 0) {
+    const node = leafOf(y, idx), p = cols.length;
+    if (idx.length >= 2 * o.minLeaf && depth < (o.maxDepth ?? 99)) {
+      const feats = o.mtry && o.mtry < p ? sampleFeats(p, o.mtry, o.r) : [...Array(p).keys()];
+      const sp = bestSplit(cols, y, idx, feats, o.minLeaf);
+      if (sp && sp.gain > 1e-9) {
+        node.j = sp.j; node.s = sp.s; const L = [], R = []; for (const i of idx) (cols[sp.j][i] < sp.s ? L : R).push(i);
+        node.l = grow(cols, y, L, o, depth + 1); node.r = grow(cols, y, R, o, depth + 1);
+      }
+    }
+    return node;
+  }
+  const pr1 = (n, x, a = -1) => { while (n.l && !(n.cutAt <= a)) n = x < n.s ? n.l : n.r; return n.val; };
+  const prC = (n, cols, i) => { while (n.l) n = cols[n.j][i] < n.s ? n.l : n.r; return n.val; };
+  const leavesAt = (n, a = -1) => (!n.l || n.cutAt <= a) ? 1 : leavesAt(n.l, a) + leavesAt(n.r, a);
+  function steps1D(root, a = -1, lo = 0, hi = 40) { const out = []; (function w(n, lo, hi) { if (!n.l || n.cutAt <= a) out.push([lo, hi, n.val]); else { w(n.l, lo, Math.min(hi, n.s)); w(n.r, Math.max(lo, n.s), hi); } })(root, lo, hi); return out; }
+  function drawSteps(c, f, st, col, wd, alpha) {
+    c.globalAlpha = alpha ?? 1; const pts = []; st.forEach(([lo, hi, v]) => { pts.push([f.X(lo), f.Y(v)], [f.X(hi), f.Y(v)]); }); line(c, pts, col, wd); c.globalAlpha = 1;
+  }
+
+  /* ================= Shared 1D data (Parts II, III, IV, VI) ================= */
+  const f1 = x => 6 + 40 * Math.exp(-0.07 * x), SD1 = 4;
+  function sim1(n, seed) { const r = rng(seed), g = gaussOf(r), x = new Float64Array(n), y = new Float64Array(n); for (let i = 0; i < n; i++) { x[i] = 2 + 36 * Math.pow(r(), 1.6); y[i] = Math.min(50, Math.max(5, f1(x[i]) + SD1 * g())); } return { cols: [x], y, n }; }
+  const TE = sim1(2000, 4242), NOISE = TE.y.reduce((a, y, i) => a + (y - f1(TE.cols[0][i])) ** 2, 0) / TE.n;
+  let D, dseed = 7;
+  const all = n => [...Array(n).keys()];
+  const testMSE = pred => { let s = 0; for (let i = 0; i < TE.n; i++) s += (TE.y[i] - pred(TE.cols[0][i])) ** 2; return s / TE.n; };
+  const XT = [0, 5, 10, 15, 20, 25, 30, 35, 40], YT = [0, 10, 20, 30, 40, 50];
+  const GRID = Array.from({ length: 241 }, (_, i) => i / 6);
+  function base1(cv, label) { const { c, w, h } = ctxOf(cv); const f = frame(c, w, h, [0, 40], [0, 55], XT, YT, label || 'x = % lower-status residents', 'home value, $k'); return { c, f }; }
+  const drawData = (c, f) => dots(c, Array.from(D.y, (y, i) => [f.X(D.cols[0][i]), f.Y(y)]), css('--point'), 3, 0.55);
+  const drawTruth = (c, f) => line(c, GRID.map(x => [f.X(x), f.Y(f1(x))]), css('--ink'), 1.5, [5, 4]);
+
+  /* ---------- Part II: best-first growth ---------- */
+  const MINLEAF2 = 2;
+  function growBest(K) {
+    const root = Object.assign(leafOf(D.y, all(D.n)), { idx: all(D.n), lo: 0, hi: 40 });
+    const cand = n => { n.cand = bestSplit(D.cols, D.y, n.idx, [0], MINLEAF2); };
+    cand(root); let leaves = [root]; const splits = [];
+    while (leaves.length < K) {
+      let b = null; for (const l of leaves) if (l.cand && l.cand.gain > 1e-9 && (!b || l.cand.gain > b.cand.gain)) b = l;
+      if (!b) break;
+      const s = b.cand.s, L = [], R = []; for (const i of b.idx) (D.cols[0][i] < s ? L : R).push(i);
+      b.j = 0; b.s = s; b.l = Object.assign(leafOf(D.y, L), { idx: L, lo: b.lo, hi: s }); b.r = Object.assign(leafOf(D.y, R), { idx: R, lo: s, hi: b.hi });
+      cand(b.l); cand(b.r); splits.push({ s, n: b.n, gain: b.cand.gain, lv: b.l.val, rv: b.r.val });
+      leaves = leaves.filter(l => l !== b).concat([b.l, b.r]);
+    }
+    return { root, leaves, splits };
+  }
+  function gainCurve(idx) {
+    const xs = D.cols[0], o = idx.slice().sort((a, b) => xs[a] - xs[b]), n = o.length; let S = 0, SS = 0;
+    for (const i of o) { S += D.y[i]; SS += D.y[i] ** 2; } const par = SS - S * S / n, pts = []; let sl = 0, ssl = 0;
+    for (let k = 1; k < n; k++) { const yi = D.y[o[k - 1]]; sl += yi; ssl += yi * yi; if (k < MINLEAF2 || n - k < MINLEAF2 || xs[o[k - 1]] === xs[o[k]]) continue; const sr = S - sl; pts.push([(xs[o[k - 1]] + xs[o[k]]) / 2, par - (ssl - sl * sl / k + (SS - ssl) - sr * sr / (n - k))]); }
+    return pts;
+  }
+  function part2() {
+    const K = +$('t2k').value, T = growBest(K); $('t2kO').textContent = T.leaves.length;
+    let next = null; for (const l of T.leaves) if (l.cand && l.cand.gain > 1e-9 && (!next || l.cand.gain > next.cand.gain)) next = l;
+    { const { c, f } = base1($('t2a')); drawData(c, f); drawTruth(c, f);
+      drawSteps(c, f, steps1D(T.root), css('--accent'), 2.5);
+      if (next) line(c, [[f.X(next.cand.s), f.T], [f.X(next.cand.s), f.T + f.H]], css('--curve'), 1.5, [5, 4]); }
+    { const { c, w, h } = ctxOf($('t2b')); const curves = T.leaves.map(l => ({ l, pts: gainCurve(l.idx) }));
+      const mx = Math.max(1, ...curves.flatMap(cv => cv.pts.map(p => p[1]))), top = niceTop(mx);
+      const f = frame(c, w, h, [0, 40], [0, top], XT, [0, top / 2, top], 's (cut point)', 'RSS drop');
+      for (const cv of curves) if (cv.l !== next && cv.pts.length) line(c, cv.pts.map(([x, g]) => [f.X(x), f.Y(g)]), css('--muted'), 1.3);
+      if (next) { const cv = curves.find(z => z.l === next); line(c, cv.pts.map(([x, g]) => [f.X(x), f.Y(g)]), css('--ball'), 2.5); dots(c, [[f.X(next.cand.s), f.Y(next.cand.gain)]], css('--curve'), 5); } }
+    const tr = T.leaves.reduce((a, l) => a + l.sse, 0) / D.n, te = testMSE(x => pr1(T.root, x));
+    $('t2tr').textContent = fmt(tr); $('t2te').textContent = fmt(te); $('t2nf').textContent = NOISE.toFixed(1);
+    $('t2t').innerHTML = '<thead><tr><th>Split</th><th>cut</th><th>left / right mean</th><th>RSS drop</th></tr></thead><tbody>' +
+      (T.splits.length ? T.splits.slice(0, 6).map((s, k) => `<tr><td>${k + 1}. x &lt; s</td><td>${s.s.toFixed(1)}</td><td>${s.lv.toFixed(1)} / ${s.rv.toFixed(1)}</td><td>${Math.round(s.gain).toLocaleString('en-US')}</td></tr>`).join('') + (T.splits.length > 6 ? `<tr><td colspan="4">… and ${T.splits.length - 6} more</td></tr>` : '') : '<tr><td colspan="4">No splits yet: the root predicts the overall mean.</td></tr>') + '</tbody>';
+    const K1 = T.leaves.length;
+    $('t2m').innerHTML = (K1 === 1 ? `One leaf predicts the mean, ${T.root.val.toFixed(1)}, everywhere. The lower panel shows how much each cut point would reduce the RSS; the best cut, at x = <b>${next.cand.s.toFixed(1)}</b>, separates the expensive neighborhoods from the rest.` :
+      `${K1} leaves. ` + (next ? `The next split goes at x = <b>${next.cand.s.toFixed(1)}</b>, in the leaf of ${next.n} points with the highest peak, and lowers the RSS by ${Math.round(next.cand.gain).toLocaleString('en-US')}. ` : 'No leaf can be split further. ') +
+      (te > tr + 6 ? `Training MSE (${tr.toFixed(1)}) is now well below the test MSE (${te.toFixed(1)}): the small leaves are fitting noise.` : 'Training and test MSE are still close.'));
+  }
+  $('t2k').addEventListener('input', part2);
+  $('t2s').addEventListener('click', () => { $('t2k').value = Math.min(40, +$('t2k').value + 1); part2(); });
+
+  /* ---------- Part III: cost-complexity pruning ---------- */
+  function prune(root) {
+    const seq = [{ alpha: 0 }];
+    (function init(n) { if (n.l) { n.cutAt = Infinity; init(n.l); init(n.r); } })(root);
+    if (!root.l) { seq[0].leaves = 1; return seq; }
+    for (;;) {
+      const act = [];
+      const st = n => { if (!n.l || n.cutAt < Infinity) return [n.sse, 1]; act.push(n); const a = st(n.l), b = st(n.r); n.RT = a[0] + b[0]; n.LT = a[1] + b[1]; return [n.RT, n.LT]; };
+      st(root); if (!act.length) break;
+      let g = Infinity; for (const n of act) { n.g = (n.sse - n.RT) / (n.LT - 1); if (n.g < g) g = n.g; }
+      for (const n of act) if (n.g <= g * (1 + 1e-9) + 1e-12) n.cutAt = g;
+      seq.push({ alpha: g });
+    }
+    seq.forEach(s => { s.leaves = leavesAt(root, s.alpha); });
+    return seq;
+  }
+  let P3 = null;
+  function fit3() {
+    const T0 = grow(D.cols, D.y, all(D.n), { minLeaf: 2 }), seq = prune(T0), m = seq.length;
+    const beta = seq.map((s, k) => k === m - 1 ? Infinity : k === 0 ? 0 : Math.sqrt(s.alpha * seq[k + 1].alpha));
+    // training and test error along the sequence
+    seq.forEach(s => { let rss = 0; (function w(n) { if (!n.l || n.cutAt <= s.alpha) rss += n.sse; else { w(n.l); w(n.r); } })(T0); s.train = rss / D.n; s.test = testMSE(x => pr1(T0, x, s.alpha)); });
+    // 10-fold CV
+    const K = 10, r = rng(dseed * 31 + 5), perm = all(D.n); for (let i = D.n - 1; i > 0; i--) { const k = Math.floor(r() * (i + 1)); [perm[i], perm[k]] = [perm[k], perm[i]]; }
+    const fold = new Int32Array(D.n); perm.forEach((i, k) => { fold[i] = k % K; });
+    const foldMSE = beta.map(() => new Float64Array(K)), cvSum = new Float64Array(m);
+    for (let k = 0; k < K; k++) {
+      const tr = all(D.n).filter(i => fold[i] !== k), te = all(D.n).filter(i => fold[i] === k);
+      const Tk = grow(D.cols, D.y, tr, { minLeaf: 2 }); prune(Tk);
+      beta.forEach((b, q) => { let s = 0; for (const i of te) s += (D.y[i] - pr1(Tk, D.cols[0][i], b)) ** 2; cvSum[q] += s; foldMSE[q][k] = s / te.length; });
+    }
+    seq.forEach((s, q) => { s.cv = cvSum[q] / D.n; const mu = foldMSE[q].reduce((a, b) => a + b, 0) / K; s.se = Math.sqrt(foldMSE[q].reduce((a, b) => a + (b - mu) ** 2, 0) / (K - 1) / K); });
+    let kmin = 0; seq.forEach((s, q) => { if (s.cv < seq[kmin].cv) kmin = q; });
+    let kse = kmin; seq.forEach((s, q) => { if (s.cv <= seq[kmin].cv + seq[kmin].se && s.leaves < seq[kse].leaves) kse = q; });
+    P3 = { T0, seq, kmin, kse };
+    $('t3s').max = m - 1;
+  }
+  function part3() {
+    const { T0, seq, kmin, kse } = P3, k = +$('t3s').value, s = seq[k];
+    $('t3sO').textContent = `${s.alpha < 100 ? s.alpha.toFixed(1) : Math.round(s.alpha).toLocaleString('en-US')} · ${s.leaves} leaves`;
+    $('t3p').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', (b.dataset.v === 'full' && k === 0) || (b.dataset.v === 'min' && k === kmin) || (b.dataset.v === 'se' && k === kse)));
+    { const { c, f } = base1($('t3a')); drawData(c, f); drawSteps(c, f, steps1D(T0), css('--muted'), 1.2, 0.8); drawTruth(c, f); drawSteps(c, f, steps1D(T0, s.alpha), css('--accent'), 2.8); }
+    { const { c, w, h } = ctxOf($('t3b')); const Lmax = seq[0].leaves, xr = [0.8, Lmax * 1.15];
+      const ymax = niceTop(Math.max(2.5 * NOISE, ...seq.filter(z => z.leaves >= 3).map(z => Math.max(z.test, z.cv + z.se)))), lx = v => Math.log(v);
+      const ticks = [1, 2, 5, 10, 20, 50].filter(v => v <= xr[1]);
+      const f = frame(c, w, h, [lx(xr[0]), lx(xr[1])], [0, ymax], ticks.map(lx), yticks(ymax), 'leaves (log scale)', 'MSE', v => Math.round(Math.exp(v)));
+      const P = key => seq.map(z => [f.X(lx(z.leaves)), f.Y(Math.min(z[key], ymax))]);
+      line(c, [[f.L, f.Y(NOISE)], [f.L + f.W, f.Y(NOISE)]], css('--ink'), 1.2, [5, 4]);
+      line(c, P('train'), css('--muted'), 2); line(c, P('test'), css('--curve'), 2.2); line(c, P('cv'), css('--ball'), 2.2);
+      c.strokeStyle = css('--ball'); c.lineWidth = 1.2; for (const z of seq) { const x = f.X(lx(z.leaves)); c.beginPath(); c.moveTo(x, f.Y(Math.min(ymax, z.cv - z.se))); c.lineTo(x, f.Y(Math.min(ymax, z.cv + z.se))); c.stroke(); }
+      dots(c, P('cv'), css('--ball'), 2.5);
+      line(c, [[f.X(lx(s.leaves)), f.T], [f.X(lx(s.leaves)), f.T + f.H]], css('--accent'), 2);
+      c.fillStyle = css('--muted'); c.font = '11px ' + css('--font-body'); c.textAlign = 'left'; c.textBaseline = 'bottom';
+      c.fillText('CV min', f.X(lx(seq[kmin].leaves)) + 4, f.Y(seq[kmin].cv) - 6); }
+    $('t3L').textContent = s.leaves; $('t3tr').textContent = fmt(s.train); $('t3cv').textContent = fmt(s.cv); $('t3te').textContent = fmt(s.test);
+    const sm = seq[kmin], s1 = seq[kse];
+    $('t3m').innerHTML = `The full tree has <b>${seq[0].leaves}</b> leaves, training MSE ${seq[0].train.toFixed(1)} and test MSE ${seq[0].test.toFixed(1)}. Weakest-link pruning gives ${seq.length} nested subtrees. Cross-validation is lowest at <b>${sm.leaves}</b> leaves (CV ${sm.cv.toFixed(1)} ± ${sm.se.toFixed(1)}, test ${sm.test.toFixed(1)}); the one-SE rule keeps <b>${s1.leaves}</b> (test ${s1.test.toFixed(1)}). ` +
+      (k === 0 ? 'At α = 0 nothing is pruned.' : `At your α each extra leaf must cut the RSS by at least ${s.alpha.toFixed(0)} to survive.`);
+  }
+  $('t3s').addEventListener('input', part3);
+  seg('t3p', v => { $('t3s').value = v === 'full' ? 0 : v === 'min' ? P3.kmin : P3.kse; part3(); });
+
+  /* ---------- Part IV: bagging ---------- */
+  let P4 = null; const B4 = 200;
+  function fit4() {
+    const r = rng(dseed * 97 + 3), n = D.n, oobS = new Float64Array(n), oobC = new Int32Array(n), teS = new Float64Array(TE.n), grids = [], oob = [], te = [];
+    for (let b = 0; b < B4; b++) {
+      const idx = Array.from({ length: n }, () => Math.floor(r() * n)), inb = new Uint8Array(n); idx.forEach(i => { inb[i] = 1; });
+      const T = grow(D.cols, D.y, idx, { minLeaf: 5 });
+      for (let i = 0; i < n; i++) if (!inb[i]) { oobS[i] += pr1(T, D.cols[0][i]); oobC[i]++; }
+      let so = 0, co = 0; for (let i = 0; i < n; i++) if (oobC[i]) { so += (D.y[i] - oobS[i] / oobC[i]) ** 2; co++; } oob.push(so / co);
+      let st = 0; for (let i = 0; i < TE.n; i++) { teS[i] += pr1(T, TE.cols[0][i]); st += (TE.y[i] - teS[i] / (b + 1)) ** 2; } te.push(st / TE.n);
+      grids.push(GRID.map(x => pr1(T, x)));
+    }
+    const one = grow(D.cols, D.y, all(n), { minLeaf: 5 });
+    P4 = { grids, oob, te, one: testMSE(x => pr1(one, x)) };
+  }
+  function part4() {
+    const B = +$('t4B').value; $('t4BO').textContent = B; const { grids, oob, te } = P4;
+    const avg = GRID.map((_, g) => { let s = 0; for (let b = 0; b < B; b++) s += grids[b][g]; return s / B; });
+    { const { c, f } = base1($('t4a')); drawData(c, f);
+      if ($('t4show').checked) { c.globalAlpha = 0.55; for (let b = 0; b < Math.min(B, 20); b++) line(c, GRID.map((x, g) => [f.X(x), f.Y(grids[b][g])]), css('--muted'), 1); c.globalAlpha = 1; }
+      drawTruth(c, f); line(c, GRID.map((x, g) => [f.X(x), f.Y(avg[g])]), css('--accent'), 2.8); }
+    const prT = P3.seq[P3.kmin].test;
+    { const { c, w, h } = ctxOf($('t4b')); const ymax = niceTop(Math.max(2.5 * NOISE, P4.one, prT) * 1.05);
+      const f = frame(c, w, h, [1, B4], [0, ymax], [1, 25, 50, 75, 100, 125, 150, 175, 200], yticks(ymax), 'trees B', 'MSE');
+      line(c, [[f.L, f.Y(NOISE)], [f.L + f.W, f.Y(NOISE)]], css('--ink'), 1.2, [5, 4]);
+      line(c, [[f.L, f.Y(prT)], [f.L + f.W, f.Y(prT)]], css('--alt'), 1.8);
+      line(c, oob.map((v, b) => [f.X(b + 1), f.Y(Math.min(v, ymax))]).slice(2), css('--ball'), 2); line(c, te.map((v, b) => [f.X(b + 1), f.Y(Math.min(v, ymax))]), css('--curve'), 2.2);
+      line(c, [[f.X(B), f.T], [f.X(B), f.T + f.H]], css('--accent'), 1.5); }
+    $('t4one').textContent = fmt(P4.one); $('t4te').textContent = fmt(te[B - 1]); $('t4oob').textContent = B > 2 ? fmt(oob[B - 1]) : '–'; $('t4pr').textContent = fmt(prT);
+    $('t4m').innerHTML = `One big tree on all the data has test MSE <b>${P4.one.toFixed(1)}</b>. Averaging ${B} bootstrap trees gives <b>${te[B - 1].toFixed(1)}</b>` + (B > 2 ? `, and the out-of-bag estimate, computed from the training data alone, says ${oob[B - 1].toFixed(1)}` : '') + `. ` +
+      (B < 10 ? 'Add trees: the curve drops fast and then flattens.' : `Past about 50 trees the test curve is flat: more trees never hurt bagging, they just stop helping. The noise floor is ${NOISE.toFixed(1)}; the pruned tree of Part III has ${prT.toFixed(1)}.`);
+  }
+  $('t4B').addEventListener('input', part4); $('t4show').addEventListener('change', part4);
+
+  /* ---------- Part VI: boosting ---------- */
+  const LAMS = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1], B6 = 1000; let P6 = null;
+  function fit6() {
+    const lam = LAMS[+$('t6l').value], d = +$('t6d').value, n = D.n, mu = D.y.reduce((a, b) => a + b, 0) / n;
+    const F = new Float64Array(n).fill(mu), FT = new Float64Array(TE.n).fill(mu), r = new Float64Array(n), trees = [], tr = [], te = [];
+    for (let b = 0; b < B6; b++) {
+      for (let i = 0; i < n; i++) r[i] = D.y[i] - F[i];
+      const T = grow(D.cols, r, all(n), { minLeaf: 5, maxDepth: d }); trees.push(T);
+      let s = 0; for (let i = 0; i < n; i++) { F[i] += lam * pr1(T, D.cols[0][i]); s += (D.y[i] - F[i]) ** 2; } tr.push(s / n);
+      s = 0; for (let i = 0; i < TE.n; i++) { FT[i] += lam * pr1(T, TE.cols[0][i]); s += (TE.y[i] - FT[i]) ** 2; } te.push(s / TE.n);
+    }
+    let bb = 0; te.forEach((v, b) => { if (v < te[bb]) bb = b; });
+    P6 = { lam, d, mu, trees, tr, te, bb };
+  }
+  function part6() {
+    const B = +$('t6B').value, { lam, d, mu, trees, tr, te, bb } = P6; $('t6BO').textContent = B; $('t6lO').textContent = lam; $('t6dO').textContent = d;
+    const Fg = GRID.map(x => { let s = mu; for (let b = 0; b < B; b++) s += lam * pr1(trees[b], x); return s; });
+    { const { c, f } = base1($('t6a')); drawData(c, f); drawTruth(c, f); line(c, GRID.map((x, g) => [f.X(x), f.Y(Fg[g])]), css('--accent'), 2.5); }
+    { const { c, w, h } = ctxOf($('t6b')); const res = Array.from(D.y, (y, i) => { let s = mu; for (let b = 0; b < B - 1; b++) s += lam * pr1(trees[b], D.cols[0][i]); return y - s; });
+      const m = Math.max(4, ...res.map(Math.abs)), top = niceTop(m * 1.05);
+      const f = frame(c, w, h, [0, 40], [-top, top], XT, [-top, -top / 2, 0, top / 2, top], 'x', 'residual');
+      dots(c, res.map((v, i) => [f.X(D.cols[0][i]), f.Y(v)]), css('--point'), 3, 0.55);
+      const Tb = trees[B - 1]; line(c, GRID.map(x => [f.X(x), f.Y(pr1(Tb, x))]), css('--ball'), 2.2); line(c, GRID.map(x => [f.X(x), f.Y(lam * pr1(Tb, x))]), css('--accent'), 2.2); }
+    { const { c, w, h } = ctxOf($('t6c')); const ymax = niceTop(Math.max(2.5 * NOISE, te[bb] * 1.6));
+      const f = frame(c, w, h, [0, 3], [0, ymax], [0, 1, 2, 3], yticks(ymax), 'trees B (log scale)', 'MSE', v => Math.round(Math.pow(10, v)).toLocaleString('en-US'));
+      line(c, [[f.L, f.Y(NOISE)], [f.L + f.W, f.Y(NOISE)]], css('--ink'), 1.2, [5, 4]);
+      const P = a => a.map((v, b) => [f.X(Math.log10(b + 1)), f.Y(Math.min(v, ymax))]);
+      line(c, P(tr), css('--muted'), 2); line(c, P(te), css('--curve'), 2.2);
+      line(c, [[f.X(Math.log10(B)), f.T], [f.X(Math.log10(B)), f.T + f.H]], css('--accent'), 2);
+      dots(c, [[f.X(Math.log10(bb + 1)), f.Y(te[bb])]], css('--curve'), 5); }
+    $('t6tr').textContent = fmt(tr[B - 1]); $('t6te').textContent = fmt(te[B - 1]); $('t6bb').textContent = (bb + 1).toLocaleString('en-US'); $('t6bt').textContent = fmt(te[bb]);
+    const late = te[B6 - 1] - te[bb];
+    $('t6m').innerHTML = `With λ = ${lam} and trees of depth ${d}, test error is lowest after <b>${(bb + 1).toLocaleString('en-US')}</b> trees (${te[bb].toFixed(1)}; noise floor ${NOISE.toFixed(1)}). ` +
+      (B < bb + 1 ? `At B = ${B} the model is still learning: the fit is too flat and the residuals still show the curve.` : B > (bb + 1) * 1.5 && te[B - 1] > te[bb] + 0.3 ? `At B = ${B} it has gone past that: training error keeps falling (${tr[B - 1].toFixed(1)}) while test error has risen to ${te[B - 1].toFixed(1)}. The residual panel shows trees chasing single points.` : `B = ${B} is near the best.`) +
+      (late > 0.5 ? ` By 1,000 trees test error is up ${late.toFixed(1)} from its minimum.` : ' Even 1,000 trees barely overfit at this learning rate.');
+  }
+  $('t6B').addEventListener('input', part6);
+  for (const id of ['t6l', 't6d']) $(id).addEventListener('input', () => { fit6(); part6(); });
+
+  /* ---------- Part V: random forest, correlated readings plus noise inputs ---------- */
+  // six noisy readings of one hidden z, four pure-noise inputs: y = 5 (x1 + ... + x6) + N(0, 3^2)
+  function simF(n, seed) { const r = rng(seed), g = gaussOf(r), cols = Array.from({ length: 10 }, () => new Float64Array(n)), y = new Float64Array(n), mu = new Float64Array(n);
+    for (let i = 0; i < n; i++) { const x = []; for (let j = 0; j < 10; j++) x.push(r()); const z = r(); for (let j = 0; j < 6; j++) x[j] = 0.6 * z + 0.4 * x[j];
+      for (let j = 0; j < 10; j++) cols[j][i] = x[j]; mu[i] = 5 * (x[0] + x[1] + x[2] + x[3] + x[4] + x[5]); y[i] = mu[i] + 3 * g(); } return { cols, y, mu, n }; }
+  const FD = simF(300, 2026), FT = simF(1000, 77), B5 = 200, RF = {};
+  function* rfGen(m) {
+    const r = rng(1000 + m), n = FD.n, sumE = new Float64Array(FT.n), sumE2 = new Float64Array(FT.n), imp = new Float64Array(10), res = { curve: [], b: 0, imp, done: false };
+    RF[m] = res;
+    for (let b = 0; b < B5; b++) {
+      const idx = Array.from({ length: n }, () => Math.floor(r() * n)), inb = new Uint8Array(n); idx.forEach(i => { inb[i] = 1; });
+      const T = grow(FD.cols, FD.y, idx, { minLeaf: 3, mtry: m, r });
+      let s = 0; for (let i = 0; i < FT.n; i++) { const e = prC(T, FT.cols, i) - FT.mu[i]; sumE[i] += e; sumE2[i] += e * e; s += (sumE[i] / (b + 1)) ** 2; }
+      res.curve.push(s / FT.n);
+      // permutation importance on the out-of-bag rows
+      const oob = []; for (let i = 0; i < n; i++) if (!inb[i]) oob.push(i);
+      let base = 0; for (const i of oob) base += (FD.y[i] - prC(T, FD.cols, i)) ** 2;
+      for (let j = 0; j < 10; j++) {
+        const sh = oob.slice(); for (let k = sh.length - 1; k > 0; k--) { const q = Math.floor(r() * (k + 1)); [sh[k], sh[q]] = [sh[q], sh[k]]; }
+        let e = 0; oob.forEach((i, k) => { let nd = T; while (nd.l) { const v = nd.j === j ? FD.cols[j][sh[k]] : FD.cols[nd.j][i]; nd = v < nd.s ? nd.l : nd.r; } e += (FD.y[i] - nd.val) ** 2; });
+        imp[j] += (e - base) / oob.length;
+      }
+      res.b = b + 1;
+      if (b % 10 === 9) yield;
+    }
+    let s2 = 0, cross = 0; for (let i = 0; i < FT.n; i++) { s2 += sumE2[i]; cross += sumE[i] ** 2 - sumE2[i]; }
+    res.sigma2 = s2 / (B5 * FT.n); res.rho = cross / (B5 * (B5 - 1) * FT.n) / res.sigma2; res.done = true;
+  }
+  const queue = [3, 10, 1, 2, 4, 5, 6, 7, 8, 9]; let gen = null, genM = null, busy = false;
+  function pump() {
+    busy = true; const t0 = performance.now();
+    while (performance.now() - t0 < 30) {
+      if (!gen) { const m = queue.find(q => !RF[q] || !RF[q].done); if (m === undefined) { busy = false; part5(); return; } genM = m; gen = rfGen(m); }
+      const st = gen.next(); if (st.done) { gen = null; }
+    }
+    part5(); setTimeout(pump, 0);
+  }
+  function part5() {
+    const m = +$('t5m').value, R = RF[m], Bg = RF[10]; $('t5mO').textContent = m + (m === 10 ? ' (bagging)' : '');
+    const doneN = queue.filter(q => RF[q] && RF[q].done).length;
+    $('t5st').textContent = doneN < 10 ? `Growing forests in the background: ${doneN} of 10 values of m done${gen ? `, now m = ${genM}` : ''}.` : 'All ten forests of 200 trees are grown.';
+    { const { c, w, h } = ctxOf($('t5a')); const ymax = niceTop(1.5 * Math.max(1, ...[R, Bg].filter(z => z && z.b >= 10).map(z => z.curve[9])));
+      const f = frame(c, w, h, [1, B5], [0, ymax], [1, 25, 50, 75, 100, 125, 150, 175, 200], yticks(ymax), 'trees B', 'error vs true f');
+      if (Bg) line(c, Bg.curve.map((v, b) => [f.X(b + 1), f.Y(Math.min(v, ymax))]), css('--curve'), 2);
+      if (R) line(c, R.curve.map((v, b) => [f.X(b + 1), f.Y(Math.min(v, ymax))]), css('--accent'), 2.5);
+      if (R && R.done) line(c, [[f.L, f.Y(R.rho * R.sigma2)], [f.L + f.W, f.Y(R.rho * R.sigma2)]], css('--fit'), 2, [6, 4]); }
+    { const { c, w, h } = ctxOf($('t5b')); const imp = R ? Array.from(R.imp, v => v / Math.max(1, R.b)) : new Array(10).fill(0), top = niceTop(Math.max(1, ...imp));
+      const f = frame(c, w, h, [0.4, 10.6], [0, top], [], yticks(top), 'input', 'MSE increase');
+      imp.forEach((v, j) => { c.fillStyle = css(j < 6 ? '--fit' : '--accent'); c.globalAlpha = j < 6 ? 0.85 : 0.45; const x = f.X(j + 1); c.fillRect(x - f.W / 26, f.Y(Math.max(0, v)), f.W / 13, f.Y(0) - f.Y(Math.max(0, v))); c.globalAlpha = 1;
+        c.fillStyle = css('--muted'); c.font = '11px ' + css('--font-mono'); c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText('x' + (j + 1), x, f.T + f.H + 5); }); }
+    { const { c, w, h } = ctxOf($('t5c')); const done = []; for (let q = 1; q <= 10; q++) if (RF[q] && RF[q].done) done.push(q);
+      const ymax = niceTop(Math.max(1, ...done.map(q => RF[q].curve[B5 - 1])) * 1.15);
+      const f = frame(c, w, h, [0.5, 10.5], [0, ymax], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], yticks(ymax), 'm', 'error');
+      const P = fn => done.map(q => [f.X(q), f.Y(fn(RF[q]))]);
+      line(c, P(z => z.rho * z.sigma2), css('--fit'), 2, [6, 4]); line(c, P(z => z.curve[B5 - 1]), css('--accent'), 2.5);
+      dots(c, P(z => z.curve[B5 - 1]), css('--accent'), 3.5);
+      if (RF[m] && RF[m].done) line(c, [[f.X(m), f.T], [f.X(m), f.T + f.H]], css('--muted'), 1, [3, 3]); }
+    $('t5s2').textContent = R && R.done ? R.sigma2.toFixed(2) : '…'; $('t5rho').textContent = R && R.done ? R.rho.toFixed(2) : '…';
+    $('t5f').textContent = R && R.done ? R.curve[B5 - 1].toFixed(2) : '…'; $('t5bag').textContent = Bg && Bg.done ? Bg.curve[B5 - 1].toFixed(2) : '…';
+    if (R && R.done) {
+      const all10 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every(q => RF[q] && RF[q].done); let best = m;
+      if (all10) for (let q = 1; q <= 10; q++) if (RF[q].curve[B5 - 1] < RF[best].curve[B5 - 1]) best = q;
+      $('t5msg').innerHTML = `With m = ${m}, one tree has error σ² = <b>${R.sigma2.toFixed(2)}</b>, two trees' errors have correlation ρ = <b>${R.rho.toFixed(2)}</b>, and the forest of 200 reaches ${R.curve[B5 - 1].toFixed(2)}, close to its floor ρσ² = ${(R.rho * R.sigma2).toFixed(2)}. ` +
+        (Bg && Bg.done && m !== 10 ? `Bagging (m = 10) has ρ = ${Bg.rho.toFixed(2)} and σ² = ${Bg.sigma2.toFixed(2)}, and ends at ${Bg.curve[B5 - 1].toFixed(2)}. ` : '') +
+        (all10 ? `Over all m the forest is best at <b>m = ${best}</b> (${RF[best].curve[B5 - 1].toFixed(2)}).` : '');
+    } else $('t5msg').textContent = 'Growing the forest for this m…';
+  }
+  $('t5m').addEventListener('input', () => { const m = +$('t5m').value; const k = queue.indexOf(m); queue.splice(k, 1); queue.unshift(m); part5(); });
+
+  /* ---------- wiring ---------- */
+  function newData() { D = sim1(100, dseed); part2(); fit3(); $('t3s').value = P3.kmin; part3(); fit4(); part4(); fit6(); part6(); }
+  $('t2n').addEventListener('click', () => { dseed += 1; newData(); });
+  function drawAll() { renderChess(); part2(); part3(); part4(); part6(); part5(); }
+  renderChess(); newData(); part5(); setTimeout(pump, 50);
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', drawAll);
+})();
+</script>
+</body></html>
