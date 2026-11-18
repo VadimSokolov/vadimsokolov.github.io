@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: header with the Y = F(X, U) frame; Part I galaxy mixture (data, simulate, architecture, R, one uniform, results, prompt); Part II live forecasting; Part III GBC vs GAN; Part IV GBC vs ABC; Part V mutual fund skill; lesson, notes, class exercises. */
+/* Layout: header with the Y = F(X, U) frame; Part I from absolute loss to the implicit quantile network (median, pinball loss, linear quantile regression, IQN trained live); Part II galaxy mixture (data, simulate, architecture, R, one uniform, results, prompt); Part III live forecasting; Part IV GBC vs GAN; Part V GBC vs ABC; Part VI mutual fund skill; lesson, notes, class exercises. */
 :root {
   --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
   --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
@@ -149,18 +149,109 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <header>
     <span class="eyebrow">Polson–Sokolov Lab · Generative Bayesian Computation</span>
     <h1>GBC Architecture Lab: \(Y = F(X, U)\)</h1>
-    <p class="lead">Generative Bayesian computation writes every uncertain quantity as a deterministic function of what you know and of noise you draw yourself: \(Y = F(X, U)\), with \(U\) independent of \(X\). Learn \(F\) from simulated or historical pairs \((X, Y)\), and every fresh draw of \(U\) is a draw of \(Y\) given \(X\). This lab takes the map apart on the galaxy velocities, where \(Y\) is a mixture's parameters and \(X\) a summary of the data, and on a time series, where \(Y\) is tomorrow's value and \(X\) is today's. A third part trains the same kind of map two ways, by the check loss and as a GAN, and asks why one minimization beats a saddle point. A fourth gives GBC and rejection ABC the same simulations and watches ABC widen as the summary grows. A fifth asks how many fund managers can pick stocks, and learns a map for a Dirichlet process posterior.</p>
+    <p class="lead">Generative Bayesian computation writes every uncertain quantity as a deterministic function of what you know and of noise you draw yourself: \(Y = F(X, U)\), with \(U\) independent of \(X\). Learn \(F\) from simulated or historical pairs \((X, Y)\), and every fresh draw of \(U\) is a draw of \(Y\) given \(X\). Part I builds the map from the ground up: the absolute loss gives the median, the pinball loss gives any quantile, a linear model gives quantile regression, and a network that takes the quantile level as an input gives the whole conditional distribution. The lab then takes the map apart on the galaxy velocities, where \(Y\) is a mixture's parameters and \(X\) a summary of the data, and on a time series, where \(Y\) is tomorrow's value and \(X\) is today's. A fourth part trains the same kind of map two ways, by the check loss and as a GAN, and asks why one minimization beats a saddle point. A fifth gives GBC and rejection ABC the same simulations and watches ABC widen as the summary grows. A sixth asks how many fund managers can pick stocks, and learns a map for a Dirichlet process posterior.</p>
     <a class="back" href="index.html">← All labs</a>
-    <p class="src">Based on Polson and Sokolov, <i>Generative Bayesian Computation: Quantile Neural Networks for Inference and Surrogates</i> (2026; <a href="https://github.com/VadimSokolov/gbc-book">github.com/VadimSokolov/gbc-book</a>), chapters 4 (noise outsourcing), 5 (the quantile network), 10 (Bayesian inference) and 11 (prediction). Data: the 82 galaxy velocities of Roeder (1990), <code>MASS::galaxies</code>. The galaxy fits in Part I were run offline by <a href="gbc-galaxy-lab.py">gbc-galaxy-lab.py</a>; everything else runs in this page. Part III follows Polson and Sokolov, <i>GBC versus GANs: Why a Minimization Beats a Saddle Point</i> (working paper, November 2026); its tables are recomputed from the paper's result files by <a href="gbc-gan-extract.py">gbc-gan-extract.py</a>.</p>
+    <p class="src">Based on Polson and Sokolov, <i>Generative Bayesian Computation: Quantile Neural Networks for Inference and Surrogates</i> (2026; <a href="https://github.com/VadimSokolov/gbc-book">github.com/VadimSokolov/gbc-book</a>), chapters 4 (noise outsourcing), 5 (the quantile network), 10 (Bayesian inference) and 11 (prediction). Data: the 82 galaxy velocities of Roeder (1990), <code>MASS::galaxies</code>. The galaxy fits in Part II were run offline by <a href="gbc-galaxy-lab.py">gbc-galaxy-lab.py</a>; everything else runs in this page. Part IV follows Polson and Sokolov, <i>GBC versus GANs: Why a Minimization Beats a Saddle Point</i> (working paper, November 2026); its tables are recomputed from the paper's result files by <a href="gbc-gan-extract.py">gbc-gan-extract.py</a>.</p>
   </header>
 
   <section class="frame">
     <div class="note"><h3>One equation</h3><p>The noise outsourcing theorem (Kallenberg, 1997) says such an \(F\) always exists: for any pair \((X, Y)\) there is a measurable \(F\) with \(Y = F(X, U)\) almost surely, \(U \sim U(0,1)\) independent of \(X\). For scalar \(Y\) it is the conditional quantile function, \(F(X, \tau) = Q_{Y\mid X}(\tau)\).</p></div>
-    <div class="note"><h3>Inference: Part I</h3><p>\(Y = \theta\), the parameters. \(X = S(y)\), a summary of a data set. Pairs come from the prior and the simulator. Fix \(X\) at the observed data and draw \(U\): each draw is a posterior sample.</p></div>
-    <div class="note"><h3>Forecasting: Part II</h3><p>\(Y = y_{t+1}\), the next value. \(X = y_t\), the present. Pairs come from history. Feed a draw back in as the next \(X\) and you have a simulated future path; a thousand paths are a forecast distribution.</p></div>
+    <div class="note"><h3>Inference: Part II</h3><p>\(Y = \theta\), the parameters. \(X = S(y)\), a summary of a data set. Pairs come from the prior and the simulator. Fix \(X\) at the observed data and draw \(U\): each draw is a posterior sample.</p></div>
+    <div class="note"><h3>Forecasting: Part III</h3><p>\(Y = y_{t+1}\), the next value. \(X = y_t\), the present. Pairs come from history. Feed a draw back in as the next \(X\) and you have a simulated future path; a thousand paths are a forecast distribution.</p></div>
   </section>
 
-  <h2 class="part"><small>Part I</small>Inference: how many groups of galaxies?</h2>
+  <h2 class="part"><small>Part I</small>From the median to the quantile network</h2>
+
+  <section class="sec" aria-labelledby="q1H">
+    <div class="head">
+      <h2 id="q1H">Step 1. Absolute loss: the median</h2>
+      <p>Eleven household incomes, in thousands of dollars. Pick one number \(q\) to summarize them and pay \(|y_i - q|\) for each. The average loss \(L(q) = \frac1n \sum_i |y_i - q|\) is a broken line. Its slope at \(q\) is (points below \(q\) minus points above \(q\)) divided by \(n\), so it is flat, and the loss is smallest, where as many points sit below as above: the median. Squared loss is minimized at the mean instead. Add the outlier and compare how far each one moves.</p>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">The data and your q</span><canvas id="q1a" height="230"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>your q</span><span><i class="sw red"></i>median</span><span><i class="sw dash"></i>mean</span></div></div>
+        <div class="board"><span class="cap">Average absolute loss L(q)</span><canvas id="q1b" height="230"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>L(q)</span><span><i class="sw pt"></i>your q</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="slider"><div class="top"><label for="q1q">Your summary q</label><output id="q1qO"></output></div><input id="q1q" type="range" min="20" max="110" step="0.5" value="70"></div>
+          <div class="checks"><label><input type="checkbox" id="q1o"> Add an outlier at 400</label></div>
+        </div>
+        <div class="group"><table class="stats" id="q1t"></table></div>
+        <div class="group"><p class="msg" id="q1m"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="q2H">
+    <div class="head">
+      <h2 id="q2H">Step 2. Tilt the V: the pinball loss gives any quantile</h2>
+      <p>Charge \(\tau\) per unit when the data lie above \(q\) and \(1 - \tau\) per unit when they lie below: \(\rho_\tau(u) = u\,(\tau - \mathbb 1\{u < 0\})\) with \(u = y - q\). At \(\tau = 0.5\) this is half the absolute loss. The slope of the average loss is now (share of points below \(q\)) minus \(\tau\), so the minimizer is the point with a share \(\tau\) of the data below it: the \(\tau\) quantile. One loss, indexed by \(\tau\), recovers the whole distribution one quantile at a time.</p>
+      <div class="tex">\[ Q(\tau) = \arg\min_q\ \mathbb E\,\rho_\tau(Y - q), \qquad \rho_\tau(u) = \max\{\tau u,\ (\tau - 1) u\} \]</div>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap">The pinball loss ρ<sub>τ</sub>(u)</span><canvas id="q2a" height="230"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>ρ<sub>τ</sub> at your τ</span><span><i class="sw dash"></i>τ = 0.5, half of |u|</span></div></div>
+        <div class="board"><span class="cap">Average pinball loss over the incomes</span><canvas id="q2b" height="230"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>average ρ<sub>τ</sub>(y − q)</span><span><i class="sw red"></i>minimizer</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group"><div class="slider"><div class="top"><label for="q2t">Quantile level τ</label><output id="q2tO"></output></div><input id="q2t" type="range" min="0.05" max="0.95" step="0.01" value="0.8"></div></div>
+        <div class="group"><p class="msg" id="q2m"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="q3H">
+    <div class="head">
+      <h2 id="q3H">Step 3. Let q depend on x: linear quantile regression</h2>
+      <p>Replace the constant \(q\) by a line, \(q_\tau(x) = a_\tau + b_\tau x\), and minimize the same average pinball loss over \(a\) and \(b\) (Koenker and Bassett, 1978). The problem is a linear program, and an optimal line passes through two of the data points, so the page finds it exactly by trying every pair. Five values of \(\tau\) give five lines. When the noise widens with \(x\), the lines fan out, which least squares, with one line for the mean, cannot show. Switch to the two-branch data and the lines fail: a straight line cannot follow a curve, and no single line can split into two branches.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">Fitted quantile lines for τ = 0.1, 0.25, 0.5, 0.75, 0.9</span><canvas id="q3a" height="320"></canvas>
+        <div class="legend"><span><i class="sw acc"></i>fitted line</span><span><i class="sw dash"></i>true quantile</span><span><i class="sw pt"></i>150 data points</span></div></div>
+      <div class="panel">
+        <div class="group"><span class="label">Data</span>
+          <div class="seg two" id="q3d"><button data-v="fan" aria-pressed="true">Widening fan</button><button data-v="two" aria-pressed="false">Two branches</button></div>
+          <button id="q3n">New sample</button></div>
+        <div class="group"><table class="stats" id="q3t"></table></div>
+        <div class="group"><p class="msg" id="q3m"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="q4H">
+    <div class="head">
+      <h2 id="q4H">Step 4. Make τ an input: the implicit quantile network</h2>
+      <p>Instead of one fit per \(\tau\), train one network \(F(x, \tau)\) for all of them. At every step draw a fresh \(\tau \sim U(0, 1)\) for each example and take a gradient step on \(\rho_\tau(y - F(x, \tau))\). This is the implicit quantile network of Dabney et al. (2018). Here \(\tau\) enters through the cosine features \(\cos(\pi k \tau)\), \(k = 1, \dots, 8\), and a ReLU layer. That output is multiplied elementwise with a ReLU layer of \(x\), and two more layers give one number. The 1,441 weights are trained live in your browser on 2,000 points from the two-branch data.</p>
+      <p>Once trained, \(F(x, \cdot)\) is the conditional quantile function. Fix \(x\), draw \(U \sim U(0, 1)\), and \(F(x, U)\) is a draw of \(Y\) given \(x\). That is \(Y = F(X, U)\), the map the rest of this lab builds on. In Part II the noise enters through a random projection instead of cosines, and \(Y\) is a vector of parameters.</p>
+      <div class="tex">\[ \min_F\ \mathbb E_{(X, Y)}\, \mathbb E_{\tau \sim U(0,1)}\ \rho_\tau\bigl(Y - F(X, \tau)\bigr), \qquad F(x, \tau) = w_3^\top \mathrm{ReLU}\bigl(W_2 [\mathrm{ReLU}(w_x x + b_x) \odot \mathrm{ReLU}(W_\tau \cos(\pi k \tau) + b_\tau)] + b_2\bigr) + b_3 \]</div>
+    </div>
+    <div class="grid">
+      <div class="duo">
+        <div class="board"><span class="cap" id="q4cap">Learned quantile curves</span><canvas id="q4a" height="280"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>F(x, τ), τ = 0.1, 0.25, 0.5, 0.75, 0.9</span><span><i class="sw dash"></i>true quantile</span></div></div>
+        <div class="board"><span class="cap" id="q4cap2">Draws of F(x, U) at the chosen x</span><canvas id="q4b" height="280"></canvas>
+          <div class="legend"><span><i class="sw bar"></i>4,000 draws of F(x, U)</span><span><i class="sw red"></i>true density of Y given x</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="group">
+          <div class="btns"><button class="primary" id="q4go">Train</button><button id="q4rs">Reset weights</button></div>
+          <div class="slider"><div class="top"><label for="q4x">x for the draws</label><output id="q4xO"></output></div><input id="q4x" type="range" min="0" max="1" step="0.01" value="0.8"></div>
+        </div>
+        <div class="group"><div class="two">
+          <div class="stat"><span class="k">Steps</span><span class="v" id="q4s">0</span></div>
+          <div class="stat"><span class="k">Mean quantile error</span><span class="v" id="q4e">–</span></div>
+        </div></div>
+        <div class="group"><p class="msg" id="q4m"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part II</small>Inference: how many groups of galaxies?</h2>
 
   <!-- DATA -->
   <section class="sec" aria-labelledby="dH">
@@ -377,7 +468,7 @@ Give me the code and the two figures.</pre>
     </div>
   </section>
 
-  <h2 class="part"><small>Part II</small>Forecasting: \(y_{t+1} = F(y_t, U)\), trained live</h2>
+  <h2 class="part"><small>Part III</small>Forecasting: \(y_{t+1} = F(y_t, U)\), trained live</h2>
 
   <section class="sec" aria-labelledby="fH">
     <div class="head">
@@ -416,7 +507,7 @@ Give me the code and the two figures.</pre>
     </div>
   </section>
 
-  <h2 class="part"><small>Part III</small>GBC versus GANs: a minimization against a saddle point</h2>
+  <h2 class="part"><small>Part IV</small>GBC versus GANs: a minimization against a saddle point</h2>
 
   <section class="sec" aria-labelledby="gH">
     <div class="head">
@@ -527,7 +618,7 @@ Give me the code and the two figures.</pre>
     </div>
   </section>
 
-  <h2 class="part"><small>Part IV</small>GBC versus ABC: regression instead of rejection</h2>
+  <h2 class="part"><small>Part V</small>GBC versus ABC: regression instead of rejection</h2>
 
   <section class="sec" aria-labelledby="abH">
     <div class="head">
@@ -603,7 +694,7 @@ Give me the code and the two figures.</pre>
     </div>
   </section>
 
-  <h2 class="part"><small>Part V</small>Who can pick stocks? A map for a Dirichlet process</h2>
+  <h2 class="part"><small>Part VI</small>Who can pick stocks? A map for a Dirichlet process</h2>
 
   <section class="sec" aria-labelledby="fuH">
     <div class="head">
@@ -712,20 +803,24 @@ Give me the code and the two figures.</pre>
   <section class="try">
     <h2>Try this in class</h2>
     <ol>
+      <li>In Part I, Step 1, slide q from 30 to 90 and watch the slope of L(q) step by 2/11 each time q passes a data point. Switch on the outlier: how far do the mean and the median move?</li>
+      <li>In Step 2, set τ to 0.1, 0.5 and 0.9. Before each move, predict which income will minimize the loss by counting points from the bottom. Why does a share τ of the data, not a distance, decide it?</li>
+      <li>In Step 3, compare the slopes of the τ = 0.1 and τ = 0.9 lines on the widening fan. What would least squares report about the spread? Then switch to two branches: which line has the most points close to it, and why does the loss not mind?</li>
+      <li>In Step 4, train the network and set x to 0.1, 0.5 and 0.9. When does the histogram of F(x, U) split into two modes, and what does the τ = 0.5 curve do there?</li>
       <li>Set the kernel bandwidth to 300 and then to 2,500. Count the bumps each time. Ask: is the number of components a property of the data or of the smoother?</li>
       <li>Draw ten prior samples and note the occupied count each time. Then search for a close draw at closeness 1.2, 0.8 and 0.6 and record how many draws it burned. That count is what rejection ABC pays per posterior sample; GBC paid \(10^5\) simulations once.</li>
       <li>In the architecture panel, uncheck "Freeze R" at M = 2²⁰. How many trainable parameters does the first layer have now? Then set M to 2⁵ and the width after R to 2¹⁰: what is wrong with that design?</li>
       <li>In the R panel, hold d = 32 and raise M from 2⁴ to 2¹⁶. Predict the off-diagonal spread at each step from \(1/\sqrt M\) before you look.</li>
       <li>With equally spaced knots, how many ReLU units does a single uniform need before the group near 9.7 separates from the main body? With knots placed by velocity?</li>
-      <li>Switch Step 3 between the global energy-score fit and the pinball fit. Compare the sum of the raw weights and the occupied count with Gibbs. Which part of the posterior did the pinball fit get right? Then switch to the local fit: what changed, and why is it still the same posterior?</li>
+      <li>In Part II, switch Step 3 between the global energy-score fit and the pinball fit. Compare the sum of the raw weights and the occupied count with Gibbs. Which part of the posterior did the pinball fit get right? Then switch to the local fit: what changed, and why is it still the same posterior?</li>
       <li>Train the forecaster with 100 points of history and then with 3,000. Where in X do the learned one-step quantiles go wrong with little data? Set the start value to 0.1 and the horizon to 20: why is the median path a poor forecast?</li>
       <li>Run the Dirac GAN at h = 0.5 and h = 0.05 for 1,500 steps. Ask before revealing: will the smaller step converge? Then read off the radius and check it against the product of \(1 + h^2 f'^2\).</li>
       <li>Start the ring race at the tuned rates, then at "Both 2e-3". Record when each method first covers all eight modes. Which method needed its learning rate tuned, and how would you know without the true answer?</li>
       <li>In the evidence panel, compare the GAN's coverage in studies 1, 4 and 5 with its point errors. Why can a method with nearly the right point estimates still give intervals that miss half the time?</li>
-      <li>In Part IV, step the dimension from 1 to 10 at test data set 1. Before each click, predict the ABC width from \(\epsilon\) in the table. Why does ABC's interval still cover the truth 98% of the time at d = 10, and why is that no comfort?</li>
+      <li>In Part V, step the dimension from 1 to 10 at test data set 1. Before each click, predict the ABC width from \(\epsilon\) in the table. Why does ABC's interval still cover the truth 98% of the time at d = 10, and why is that no comfort?</li>
       <li>Run the live ABC at 10⁴, 10⁵ and 4×10⁵ simulations. At d = 10, how much does forty times the budget shrink \(\epsilon\)? Compare with \(N^{-1/d}\) and with the rate \(N^{-4/(d+4)}\). Then explain why the regression adjustment fixes everything here, and invent a model where it would not.</li>
-      <li>In Part V, set the skilled share to 0 and press New panel a few times. What does the naive count above +2% say, and what do the chain and the map say? Then set it to 3% at +2 and ask which of the three numbers an allocator should act on.</li>
-      <li>Time the two routes in Part V for one panel, then for the 200 panels of the calibration check. At how many panels does training the map pay for itself, and what would change if the chain were written in plain Python?</li>
+      <li>In Part VI, set the skilled share to 0 and press New panel a few times. What does the naive count above +2% say, and what do the chain and the map say? Then set it to 3% at +2 and ask which of the three numbers an allocator should act on.</li>
+      <li>Time the two routes in Part VI for one panel, then for the 200 panels of the calibration check. At how many panels does training the map pay for itself, and what would change if the chain were written in plain Python?</li>
     </ol>
   </section>
 </div>
@@ -1644,4 +1739,189 @@ Give me the code and the two figures.</pre>
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
 })();
 </script>
+<script>
+/* Part I: absolute loss, pinball loss, linear quantile regression, implicit quantile network (all computed in the page) */
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function ctxOf(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.getAttribute('height');
+    cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h); return { c, w, h };
+  }
+  function frame(c, w, h, xr, yr, xt, yt, xl, yl) {
+    const L = 52, T = 10, W = w - L - 12, H = h - T - 40;
+    const X = x => L + W * (x - xr[0]) / (xr[1] - xr[0]), Y = y => T + H * (1 - (y - yr[0]) / (yr[1] - yr[0]));
+    c.strokeStyle = css('--grid'); c.lineWidth = 1; c.fillStyle = css('--muted'); c.font = '11px ' + css('--font-mono');
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (const v of yt) { c.beginPath(); c.moveTo(L, Y(v)); c.lineTo(L + W, Y(v)); c.stroke(); c.fillText(+v.toFixed(2), L - 6, Y(v)); }
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (const v of xt) { c.beginPath(); c.moveTo(X(v), T); c.lineTo(X(v), T + H); c.stroke(); c.fillText(+v.toFixed(2), X(v), T + H + 5); }
+    c.font = '12px ' + css('--font-body'); c.fillText(xl, L + W / 2, T + H + 22);
+    if (yl) { c.save(); c.translate(12, T + H / 2); c.rotate(-Math.PI / 2); c.textBaseline = 'middle'; c.fillText(yl, 0, 0); c.restore(); }
+    return { X, Y, L, T, W, H };
+  }
+  const line = (c, pts, col, wd, dash) => { c.strokeStyle = col; c.lineWidth = wd; c.setLineDash(dash || []); c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke(); c.setLineDash([]); };
+  const vline = (c, x, T, H, col, wd, dash) => line(c, [[x, T], [x, T + H]], col, wd, dash);
+  const rho = (u, t) => u * (t - (u < 0 ? 1 : 0));
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const gaussOf = r => () => { const u = r() || 1e-12, v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  function erf(x) { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; }
+  const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
+  function zq(p) { let lo = -8, hi = 8; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (Phi(m) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+  const TAUS = [0.1, 0.25, 0.5, 0.75, 0.9];
+
+  /* ---------- Steps 1 and 2: incomes ---------- */
+  const BASE = [28, 31, 35, 38, 42, 45, 51, 58, 64, 80, 95];
+  const data = () => $('q1o').checked ? BASE.concat([400]) : BASE;
+  const sorted = a => a.slice().sort((x, y) => x - y);
+  function quantileMin(ys, t) { // a minimizer of the average pinball loss: the smallest y with share at or below >= t
+    const s = sorted(ys), n = s.length; return s[Math.max(0, Math.ceil(t * n) - 1)];
+  }
+  function median(ys) { const s = sorted(ys), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; }
+  function step1() {
+    const ys = data(), n = ys.length, q = +$('q1q').value, mean = ys.reduce((a, b) => a + b, 0) / n, med = median(ys);
+    $('q1qO').textContent = q.toFixed(1);
+    const xr = [0, 120];
+    { const { c, w, h } = ctxOf($('q1a')); const f = frame(c, w, h, xr, [0, 1], [0, 20, 40, 60, 80, 100, 120], [], 'Income, $ thousands' + (ys.length > 11 ? ' (outlier at 400 off the scale)' : ''), '');
+      const yb = f.T + f.H * 0.55;
+      sorted(ys).forEach((y, i) => { const px = f.X(Math.min(y, 119)), py = yb - (i % 2) * 14; line(c, [[px, py], [f.X(q), py]], css('--grid'), 1.5); c.fillStyle = css('--point'); c.beginPath(); c.arc(px, py, 5, 0, 7); c.fill(); });
+      vline(c, f.X(q), f.T, f.H, css('--accent'), 2.5); vline(c, f.X(med), f.T, f.H, css('--curve'), 2); vline(c, f.X(Math.min(mean, 119)), f.T, f.H, css('--ink'), 1.5, [5, 4]); }
+    { const { c, w, h } = ctxOf($('q1b')); const Lq = v => ys.reduce((a, y) => a + Math.abs(y - v), 0) / n;
+      const pts = []; let mx = 0; for (let v = xr[0]; v <= xr[1]; v += 0.5) { const l = Lq(v); pts.push([v, l]); mx = Math.max(mx, l); }
+      const top = Math.ceil(mx / 10) * 10, f = frame(c, w, h, xr, [0, top], [0, 20, 40, 60, 80, 100, 120], [0, top / 2, top], 'q', 'L(q)');
+      line(c, pts.map(([v, l]) => [f.X(v), f.Y(l)]), css('--accent'), 2.5); vline(c, f.X(med), f.T, f.H, css('--curve'), 1.5, [3, 3]);
+      c.fillStyle = css('--point'); c.beginPath(); c.arc(f.X(q), f.Y(Lq(q)), 5, 0, 7); c.fill(); }
+    const below = ys.filter(y => y < q).length, above = ys.filter(y => y > q).length;
+    $('q1t').innerHTML = `<thead><tr><th></th><th>without outlier</th><th>with outlier</th></tr></thead><tbody>
+      <tr><td>Median, minimizes |y − q|</td><td>${median(BASE).toFixed(1)}</td><td>${median(BASE.concat([400])).toFixed(1)}</td></tr>
+      <tr><td>Mean, minimizes (y − q)²</td><td>${(BASE.reduce((a, b) => a + b, 0) / 11).toFixed(1)}</td><td>${(BASE.concat([400]).reduce((a, b) => a + b, 0) / 12).toFixed(1)}</td></tr></tbody>`;
+    $('q1m').innerHTML = `At q = ${q.toFixed(1)}: <b>${below}</b> points below, <b>${above}</b> above, so the slope of L is (${below} − ${above}) / ${n} = ${((below - above) / n).toFixed(2)}. ` +
+      (below === above ? 'Flat: you are at a median.' : below < above ? 'Negative: moving q up lowers the loss.' : 'Positive: moving q down lowers the loss.') +
+      (n % 2 === 0 ? ' With an even count, every q between the two middle points is a median; the table reports their midpoint.' : '');
+  }
+  function step2() {
+    const ys = data(), n = ys.length, t = +$('q2t').value; $('q2tO').textContent = t.toFixed(2);
+    { const { c, w, h } = ctxOf($('q2a')); const f = frame(c, w, h, [-2, 2], [0, 2], [-2, -1, 0, 1, 2], [0, 1, 2], 'u = y − q', 'ρτ(u)');
+      line(c, [[f.X(-2), f.Y(1)], [f.X(0), f.Y(0)], [f.X(2), f.Y(1)]], css('--ink'), 1.5, [5, 4]);
+      line(c, [[f.X(-2), f.Y(2 * (1 - t))], [f.X(0), f.Y(0)], [f.X(2), f.Y(2 * t)]], css('--accent'), 2.5);
+      c.fillStyle = css('--muted'); c.font = '12px ' + css('--font-body'); c.textAlign = 'left'; c.fillText(`slope ${t.toFixed(2)}`, f.X(1.05), f.Y(Math.min(1.9, 2 * t)) - 14); c.textAlign = 'right'; c.fillText(`slope −${(1 - t).toFixed(2)}`, f.X(-1.05), f.Y(Math.min(1.9, 2 * (1 - t))) - 14); }
+    const qs = quantileMin(ys, t), R = v => ys.reduce((a, y) => a + rho(y - v, t), 0) / n;
+    { const { c, w, h } = ctxOf($('q2b')); const xr = [0, 120], pts = []; let mx = 0; for (let v = 0; v <= 120; v += 0.5) { const l = R(v); pts.push([v, l]); mx = Math.max(mx, l); }
+      const top = Math.ceil(mx / 10) * 10, f = frame(c, w, h, xr, [0, top], [0, 20, 40, 60, 80, 100, 120], [0, top / 2, top], 'q', 'average loss');
+      line(c, pts.map(([v, l]) => [f.X(v), f.Y(l)]), css('--accent'), 2.5); vline(c, f.X(Math.min(qs, 119)), f.T, f.H, css('--curve'), 2);
+      c.fillStyle = css('--point'); for (const y of ys) { c.beginPath(); c.arc(f.X(Math.min(y, 119)), f.T + f.H - 4, 3.5, 0, 7); c.fill(); } }
+    const below = ys.filter(y => y < qs).length, atOrBelow = ys.filter(y => y <= qs).length;
+    $('q2m').innerHTML = `The minimizer is <b>${qs}</b>. ${below} of ${n} points lie below it and ${atOrBelow} at or below it, so the share below steps across τ = ${t.toFixed(2)} at this point: ${(below / n).toFixed(2)} below, ${(atOrBelow / n).toFixed(2)} with it. Set τ = 0.5 to get the median of Step 1; move τ toward 0.95 and the minimizer climbs to the top incomes, ${$('q1o').checked ? 'and with the outlier switched on it can reach 400' : 'and switch on the outlier in Step 1 to see the top quantile jump'}.`;
+  }
+  $('q1q').addEventListener('input', step1); $('q1o').addEventListener('change', () => { step1(); step2(); }); $('q2t').addEventListener('input', step2);
+
+  /* ---------- Step 3: linear quantile regression, exact over pairs ---------- */
+  const SD = 0.15, mu = x => 0.3 * Math.sin(3 * x);
+  const GEN = {
+    fan: { xr: [0, 4], draw: (r, g) => { const x = 4 * r(); return [x, 1 + 0.5 * x + (0.3 + 0.35 * x) * (Math.exp(0.6 * g()) - 1.2)]; },
+      q: (x, t) => 1 + 0.5 * x + (0.3 + 0.35 * x) * (Math.exp(0.6 * zq(t)) - 1.2) },
+    two: { xr: [0, 1], draw: (r, g) => { const x = r(), s = r() < 0.5 ? -1 : 1; return [x, s * 1.2 * x + mu(x) + SD * g()]; },
+      q: (x, t) => { let lo = -4, hi = 4; for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2, cd = 0.5 * Phi((m - mu(x) - 1.2 * x) / SD) + 0.5 * Phi((m - mu(x) + 1.2 * x) / SD); if (cd < t) lo = m; else hi = m; } return (lo + hi) / 2; } }
+  };
+  let q3kind = 'fan', q3seed = 3;
+  function qrFit(P, t) {
+    const n = P.length; let best = Infinity, ab = [0, 0];
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const dx = P[j][0] - P[i][0]; if (Math.abs(dx) < 1e-12) continue;
+      const b = (P[j][1] - P[i][1]) / dx, a = P[i][1] - b * P[i][0]; let L = 0;
+      for (let k = 0; k < n && L < best; k++) L += rho(P[k][1] - a - b * P[k][0], t);
+      if (L < best) { best = L; ab = [a, b]; }
+    }
+    return ab;
+  }
+  function step3() {
+    const G = GEN[q3kind], r = rng(q3seed), g = gaussOf(r), P = Array.from({ length: 150 }, () => G.draw(r, g));
+    const fits = TAUS.map(t => qrFit(P, t));
+    const ys = P.map(p => p[1]), yr = [Math.floor(Math.min(...ys) * 2) / 2, Math.ceil(Math.max(...ys) * 2) / 2];
+    const { c, w, h } = ctxOf($('q3a'));
+    const xt = q3kind === 'fan' ? [0, 1, 2, 3, 4] : [0, 0.25, 0.5, 0.75, 1], yt = []; for (let v = Math.ceil(yr[0]); v <= yr[1]; v++) yt.push(v);
+    const f = frame(c, w, h, G.xr, yr, xt, yt, 'x', 'y');
+    c.fillStyle = css('--point'); c.globalAlpha = 0.55; for (const [x, y] of P) { c.beginPath(); c.arc(f.X(x), f.Y(y), 3, 0, 7); c.fill(); } c.globalAlpha = 1;
+    TAUS.forEach((t, k) => {
+      const tp = []; for (let i = 0; i <= 60; i++) { const x = G.xr[0] + (G.xr[1] - G.xr[0]) * i / 60; tp.push([f.X(x), f.Y(G.q(x, t))]); }
+      line(c, tp, css('--ink'), 1.2, [5, 4]);
+      const [a, b] = fits[k]; line(c, [[f.X(G.xr[0]), f.Y(a + b * G.xr[0])], [f.X(G.xr[1]), f.Y(a + b * G.xr[1])]], css('--accent'), 2.5);
+    });
+    $('q3t').innerHTML = '<thead><tr><th>τ</th><th>intercept</th><th>slope</th><th>share below</th></tr></thead><tbody>' +
+      TAUS.map((t, k) => { const [a, b] = fits[k], sb = P.filter(([x, y]) => y < a + b * x).length / P.length; return `<tr><td>${t}</td><td>${a.toFixed(2)}</td><td>${b.toFixed(2)}</td><td>${sb.toFixed(2)}</td></tr>`; }).join('') + '</tbody>';
+    $('q3m').innerHTML = q3kind === 'fan'
+      ? `The slopes grow with τ (${fits[0][1].toFixed(2)} at τ = 0.1, ${fits[4][1].toFixed(2)} at τ = 0.9): the spread of y widens with x, and the true quantiles here are straight lines, so the fitted lines track them. Each line has close to a share τ of the points below it.`
+      : `Each line still has close to a share τ of the points below it, which is all the loss asks for. But the data form two branches that bend, and the lines run straight through the empty middle. The model, not the loss, is the limit: the quantiles need to curve and to split, and that needs a nonlinear F.`;
+  }
+  $('q3d').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; q3kind = b.dataset.v; for (const x of $('q3d').children) x.setAttribute('aria-pressed', x === b); step3(); });
+  $('q3n').addEventListener('click', () => { q3seed = (q3seed * 48271) % 2147483647; step3(); });
+
+  /* ---------- Step 4: implicit quantile network, trained live ---------- */
+  const K = 8, H = 32, NTR = 2000, D = (() => { const r = rng(5), g = gaussOf(r); return Array.from({ length: NTR }, () => GEN.two.draw(r, g)); })();
+  let P, Gr, Mo, Ve, step = 0, running = false, sr = rng(17);
+  function init() {
+    const r = rng(9), g = gaussOf(r), he = (n, fan) => Float64Array.from({ length: n }, () => g() * Math.sqrt(2 / fan));
+    P = { Wx: he(H, 1), bx: new Float64Array(H), Wt: he(H * K, K), bt: new Float64Array(H), W2: he(H * H, H), b2: new Float64Array(H), w3: he(H, H), b3: new Float64Array(1) };
+    Gr = {}; Mo = {}; Ve = {}; for (const k in P) { Gr[k] = new Float64Array(P[k].length); Mo[k] = new Float64Array(P[k].length); Ve[k] = new Float64Array(P[k].length); }
+    step = 0; sr = rng(17);
+  }
+  const hx = new Float64Array(H), ph = new Float64Array(H), hh = new Float64Array(H), h2 = new Float64Array(H), em = new Float64Array(K), pt = new Float64Array(H), ax = new Float64Array(H), a2 = new Float64Array(H), dh2 = new Float64Array(H), dh = new Float64Array(H);
+  function fwd(x, t) {
+    for (let k = 0; k < K; k++) em[k] = Math.cos(Math.PI * (k + 1) * t);
+    for (let i = 0; i < H; i++) { ax[i] = P.Wx[i] * x + P.bx[i]; hx[i] = ax[i] > 0 ? ax[i] : 0; let s = P.bt[i]; for (let k = 0; k < K; k++) s += P.Wt[i * K + k] * em[k]; pt[i] = s; ph[i] = s > 0 ? s : 0; hh[i] = hx[i] * ph[i]; }
+    let o = P.b3[0]; for (let i = 0; i < H; i++) { let s = P.b2[i]; for (let j = 0; j < H; j++) s += P.W2[i * H + j] * hh[j]; a2[i] = s; h2[i] = s > 0 ? s : 0; o += P.w3[i] * h2[i]; }
+    return o;
+  }
+  function bwd(x, gr) {
+    Gr.b3[0] += gr; for (let i = 0; i < H; i++) { Gr.w3[i] += gr * h2[i]; dh2[i] = a2[i] > 0 ? gr * P.w3[i] : 0; }
+    dh.fill(0); for (let i = 0; i < H; i++) { if (!dh2[i]) continue; Gr.b2[i] += dh2[i]; for (let j = 0; j < H; j++) { Gr.W2[i * H + j] += dh2[i] * hh[j]; dh[j] += dh2[i] * P.W2[i * H + j]; } }
+    for (let i = 0; i < H; i++) { const dx = dh[i] * ph[i], dp = dh[i] * hx[i]; if (ax[i] > 0) { Gr.Wx[i] += dx * x; Gr.bx[i] += dx; } if (pt[i] > 0) { Gr.bt[i] += dp; for (let k = 0; k < K; k++) Gr.Wt[i * K + k] += dp * em[k]; } }
+  }
+  function train(n) {
+    const B = 64;
+    for (let s = 0; s < n; s++) {
+      for (const k in Gr) Gr[k].fill(0);
+      for (let b = 0; b < B; b++) { const [x, y] = D[(sr() * NTR) | 0], t = sr(), u = y - fwd(x, t); bwd(x, ((u < 0 ? 1 : 0) - t) / B); }
+      step++; const lr = Math.max(2e-4, 3e-3 * Math.pow(0.5, step / 1500)), b1 = 0.9, b2 = 0.999, c1 = 1 - b1 ** step, c2 = 1 - b2 ** step;
+      for (const k in P) { const p = P[k], g = Gr[k], m = Mo[k], v = Ve[k]; for (let i = 0; i < p.length; i++) { m[i] = b1 * m[i] + (1 - b1) * g[i]; v[i] = b2 * v[i] + (1 - b2) * g[i] * g[i]; p[i] -= lr * (m[i] / c1) / (Math.sqrt(v[i] / c2) + 1e-8); } }
+    }
+  }
+  const TQ = []; for (let i = 0; i <= 40; i++) { const x = i / 40; TQ.push(TAUS.map(t => GEN.two.q(x, t))); }
+  function err() { let e = 0, c = 0; for (let i = 2; i <= 40; i += 4) TAUS.forEach((t, k) => { e += Math.abs(fwd(i / 40, t) - TQ[i][k]); c++; }); return e / c; }
+  function step4() {
+    const xs = +$('q4x').value; $('q4xO').textContent = xs.toFixed(2);
+    { const { c, w, h } = ctxOf($('q4a')); const f = frame(c, w, h, [0, 1], [-2, 2], [0, 0.25, 0.5, 0.75, 1], [-2, -1, 0, 1, 2], 'x', 'y');
+      c.fillStyle = css('--point'); c.globalAlpha = 0.18; for (let i = 0; i < NTR; i += 2) { const [x, y] = D[i]; c.beginPath(); c.arc(f.X(x), f.Y(y), 2, 0, 7); c.fill(); } c.globalAlpha = 1;
+      TAUS.forEach((t, k) => { line(c, TQ.map((q, i) => [f.X(i / 40), f.Y(q[k])]), css('--ink'), 1.2, [5, 4]); const pts = []; for (let i = 0; i <= 50; i++) pts.push([f.X(i / 50), f.Y(fwd(i / 50, t))]); line(c, pts, css('--accent'), 2.5); });
+      vline(c, f.X(xs), f.T, f.H, css('--curve'), 1.5, [3, 3]); }
+    { const { c, w, h } = ctxOf($('q4b')); const nb = 60, lo = -2, hi = 2, bw = (hi - lo) / nb, cnt = new Float64Array(nb), r = rng(23), N = 4000;
+      for (let i = 0; i < N; i++) { const y = fwd(xs, r()), b = Math.floor((y - lo) / bw); if (b >= 0 && b < nb) cnt[b]++; }
+      const dens = y => 0.5 * (Math.exp(-0.5 * ((y - mu(xs) - 1.2 * xs) / SD) ** 2) + Math.exp(-0.5 * ((y - mu(xs) + 1.2 * xs) / SD) ** 2)) / (SD * Math.sqrt(2 * Math.PI));
+      let top = 0; for (let i = 0; i < nb; i++) top = Math.max(top, cnt[i] / (N * bw)); for (let y = lo; y <= hi; y += 0.01) top = Math.max(top, dens(y));
+      top = Math.min(top, 8) * 1.08; const yt = [0, +(top / 2).toFixed(1), +top.toFixed(1)];
+      const f = frame(c, w, h, [lo, hi], [0, top], [-2, -1, 0, 1, 2], yt, 'y', 'density');
+      c.fillStyle = css('--accent'); c.globalAlpha = 0.45; for (let i = 0; i < nb; i++) { const d = Math.min(cnt[i] / (N * bw), top); c.fillRect(f.X(lo + i * bw) + 0.5, f.Y(d), f.X(lo + bw) - f.X(lo) - 1, f.Y(0) - f.Y(d)); } c.globalAlpha = 1;
+      const pts = []; for (let y = lo; y <= hi; y += 0.01) pts.push([f.X(y), f.Y(Math.min(dens(y), top))]); line(c, pts, css('--curve'), 2); }
+    $('q4cap2').textContent = `Draws of F(x, U) at x = ${xs.toFixed(2)}`;
+    $('q4s').textContent = step.toLocaleString('en-US'); const e = err(); $('q4e').textContent = e.toFixed(3);
+    const m = $('q4m');
+    m.className = 'msg' + (step < 1000 ? ' warn' : '');
+    m.innerHTML = step === 0 ? 'The weights are random, so the curves are noise. Press Train.'
+      : step < 1000 ? `After ${step.toLocaleString('en-US')} steps the outer quantiles are taking shape; the middle ones still blur the two branches.`
+      : `After ${step.toLocaleString('en-US')} steps the average distance between learned and true quantiles is <b>${e.toFixed(3)}</b>. Where the branches separate, the τ = 0.5 curve can sit anywhere between them: every point in the gap has almost the same pinball loss at τ = 0.5, so the learned median may hug one branch while the true median (dashed) runs down the middle. The draws at x = ${xs.toFixed(2)} still find both modes, because the whole function of τ jumps across the gap.`;
+  }
+  let goal = 0;
+  function loop() { if (!running) return; train(25); step4(); if (step >= goal) { running = false; $('q4go').textContent = 'Train more'; return; } requestAnimationFrame(loop); }
+  $('q4go').addEventListener('click', () => { running = !running; $('q4go').textContent = running ? 'Pause' : 'Train'; if (running) { if (step >= goal) goal = step + 6000; loop(); } });
+  $('q4rs').addEventListener('click', () => { running = false; goal = 0; $('q4go').textContent = 'Train'; init(); step4(); });
+  $('q4x').addEventListener('input', step4);
+
+  init();
+  const all = () => { step1(); step2(); step3(); step4(); };
+  all();
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(all, 150); });
+})();
+</script>
+
 </body></html>
