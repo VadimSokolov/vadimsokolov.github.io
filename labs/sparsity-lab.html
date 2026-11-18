@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: three-row haystack plot (truth, gene-by-gene |t|, estimates) with data and method controls in the right rail; scorecard, lasso path + CV, shrinkage functions, phase transition, L1/L2 geometry lesson, notes and class exercises below. */
+/* Layout: opening card, L1 trend filtering of the book's I-55 traffic speeds (fit, second differences, CV, L1 vs L2); then three-row haystack plot (truth, gene-by-gene |t|, estimates) with data and method controls in the right rail; scorecard, lasso path + CV, shrinkage functions, phase transition, L1/L2 geometry lesson, notes and class exercises below. */
 :root {
   --bg: #eceff3;
   --surface: #ffffff;
@@ -185,10 +185,46 @@ mjx-container { font-size: 105%; }
   <header>
     <span class="eyebrow">Polson–Sokolov Lab · Sparsity and regularization</span>
     <h1>Needle in a Haystack</h1>
-    <p class="lead">A study measures the expression of 1,000 genes on 100 patients. Only a handful of genes move the disease score: those are the needles, the rest is hay. Compare what each gene shows on its own with least squares, ridge, the lasso and a spike-and-slab prior, all fitted to the same simulated data, and find out when the needles can no longer be found.</p>
+    <p class="lead">Start with the book's traffic example: an L1 penalty on the slope changes turns noisy speed readings into a straight-line trend with a few kinks, and most slope changes come out exactly zero. Then the same idea finds genes. A study measures the expression of 1,000 genes on 100 patients. Only a handful of genes move the disease score: those are the needles, the rest is hay. Compare what each gene shows on its own with least squares, ridge, the lasso and a spike-and-slab prior, all fitted to the same simulated data, and find out when the needles can no longer be found.</p>
     <a class="back" href="index.html">← All labs</a>
-    <p class="src">Based on Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/17-theoryai.html">Chapter 17</a> (statistical learning theory and regularization). Gene data on this page are simulated.</p>
+    <p class="src">Based on Polson and Sokolov, <i>Bayes, Artificial Intelligence, and Deep Learning</i>, <a href="https://vsokolov.org/html/_book/17-theoryai.html">Chapter 17</a> (statistical learning theory and regularization). The traffic speeds are the 216 points of the book's trend filtering figure; gene data on this page are simulated.</p>
   </header>
+
+  <section class="card" aria-labelledby="tfH">
+    <span class="eyebrow">Start here · the book's traffic example · L1 trend filtering</span>
+    <h2 id="tfH">Smoothing traffic speeds: sparsity in the kinks</h2>
+    <p>An in-ground sensor on interstate I-55 near Chicago records traffic speed. The 216 points below are the speeds in the book's trend filtering figure (Chapter 17, Example "Traffic"). The measurements are noisy, from the sensor itself and because one lane does not represent all lanes. The model is \(y_t = f_t + \varepsilon_t\). Least squares alone sets \(\hat f_t = y_t\) and learns nothing. Trend filtering adds an L1 penalty on the second differences of \(f\):</p>
+    <div class="tex">\[ \hat f = \arg\min_f\ \tfrac12 \sum_{t=1}^{n} (y_t - f_t)^2 + \lambda \sum_{t=2}^{n-1} \left| f_{t-1} - 2 f_t + f_{t+1} \right| . \]</div>
+    <p>A second difference is zero when three neighboring points lie on a straight line. The L1 penalty sets most of them <i>exactly</i> to zero, so the fit is a straight line between a few kinks. This is sparsity, but in the changes of slope rather than in the coefficients. Square the penalty instead (the Hodrick–Prescott filter) and no second difference is exactly zero: the fit bends a little everywhere and rounds off the sudden drop into a jam. The same contrast, exact zeros from L1 and none from L2, runs through the gene study below.</p>
+    <div class="grid">
+      <div class="board">
+        <span class="eyebrow">(a) Speeds and the fitted trend</span>
+        <canvas id="tfA" height="290" role="img" aria-label="Traffic speeds against time with the fitted trend"></canvas>
+        <div class="legend"><span><i class="sw dot" style="background:var(--point)"></i>speed measurements</span><span><i class="sw line" style="border-color:var(--accent)"></i>fitted trend</span><span><i class="sw dot" style="background:var(--ball)"></i>kink (nonzero second difference)</span><span id="tfBookLeg" hidden><i class="sw line" style="border-color:var(--curve)"></i>λ = 5 <i class="sw line" style="border-color:var(--fit);margin-left:8px"></i>λ = 50 <i class="sw line" style="border-color:var(--coinB);margin-left:8px"></i>λ = 500, the book's fits</span></div>
+        <span class="eyebrow">(b) Second differences Δ²f of the fit: zero means no kink</span>
+        <canvas id="tfB" height="150" role="img" aria-label="Second differences of the fitted trend"></canvas>
+        <span class="eyebrow">(c) Cross-validation: error on held-out blocks of 12 points against λ</span>
+        <canvas id="tfC" height="190" role="img" aria-label="Cross-validated error against lambda"></canvas>
+        <div class="legend"><span><i class="sw line" style="border-color:var(--accent)"></i>L1 trend filter</span><span><i class="sw line" style="border-color:var(--curve)"></i>L2, Hodrick–Prescott</span><span><i class="sw dash"></i>your λ</span></div>
+        <p class="hint">Each fold hides blocks of 12 consecutive readings and predicts them from the rest. Hiding single readings instead makes cross-validation pick almost no smoothing: neighboring readings share noise, so a hidden point is best guessed from its neighbors. Even with blocks the curve is flat over a wide range of λ. Cross-validation narrows λ down, and the book makes the final choice by eye.</p>
+      </div>
+      <aside class="panel">
+        <div class="group">
+          <span class="label">Penalty on the second differences</span>
+          <div class="seg" id="tfPen"><button data-v="l1" aria-pressed="true">L1: |·|, trend filter</button><button data-v="l2" aria-pressed="false">L2: (·)², Hodrick–Prescott</button></div>
+          <div class="slider"><div class="top"><label for="tfLam">Penalty λ</label><output id="tfLamO" for="tfLam">–</output></div>
+            <input type="range" id="tfLam" min="0" max="80" step="1" value="35"></div>
+          <div class="btns"><button data-l="5" class="tfPre">λ = 5</button><button data-l="50" class="tfPre">λ = 50</button><button data-l="500" class="tfPre">λ = 500</button><button id="tfCv">Use CV minimum</button></div>
+          <div class="checks"><label><input type="checkbox" id="tfBook"> Show the book's fits for λ = 5, 50, 500</label></div>
+          <p class="hint">The slider is on a log scale, from 0.3 to 3,000. The same λ means a different amount of smoothing for the two penalties, since one charges |Δ²f| and the other (Δ²f)².</p>
+        </div>
+        <div class="group">
+          <table class="stats" id="tfT"><tbody></tbody></table>
+        </div>
+        <div class="group"><p class="callout" id="tfM"></p></div>
+      </aside>
+    </div>
+  </section>
 
   <main class="grid">
     <section class="board" aria-label="Haystack plot: truth, gene-by-gene evidence and estimates">
@@ -409,6 +445,9 @@ mjx-container { font-size: 105%; }
   <section class="try">
     <h2>Try this in class</h2>
     <ol>
+      <li>Traffic: click λ = 5, 50 and 500 and count the kinks each time. Turn on the book's fits to check that the page reproduces the book's figure.</li>
+      <li>Traffic: switch to the L2 penalty and find a λ that looks about as smooth as L1 at λ = 50. Look at the drop into the jam near time 150: which penalty keeps the corner sharp, and why does a square penalty round it off?</li>
+      <li>Traffic: press "Use CV minimum" for each penalty. Which has the lower cross-validated error, and with how many degrees of freedom?</li>
       <li>Untick "Reveal the needles". Ask the class to point at the needles using panel (b) only. Then reveal them. How many of the tallest \(|t|\) spikes were hay, and how many hay genes cross the \(p &lt; 0.05\) line? (Expect about 5% of p.)</li>
       <li>Switch to least squares with the default p = 1,000 and n = 100. Read off the rank and explain why the estimate is useless. Then click "p &lt; n" and see least squares work again, noisily, with every gene selected.</li>
       <li>Slowly lower the signal strength with the lasso at \(\lambda_{\text{1se}}\). Find the value where needles start to be missed, then compare it with the universal threshold \(\sigma\sqrt{2 \log p / n}\) shown in the path card. Run the phase transition to confirm.</li>
@@ -1405,4 +1444,113 @@ mjx-container { font-size: 105%; }
 })();
 </script>
 
+<script>
+/* Part 0: L1 trend filtering of the book's I-55 traffic speeds (216 points read from the book's figure), with an L2 (Hodrick-Prescott) comparison and 5-fold CV */
+(() => {
+  const Y = [57, 60, 64, 60, 60, 62, 59, 62, 61, 63, 63, 65, 61, 63, 52, 58, 60, 57, 54, 51, 57, 59, 58, 54, 54, 54, 45, 40, 39, 31, 28, 25, 30, 16, 29, 25, 23, 17, 23, 25, 30, 37, 33, 28, 29, 30, 30, 24, 37, 34, 27, 19, 30, 38, 38, 31, 32, 34, 40, 30, 36, 44, 49, 48, 49, 47, 38, 25, 21, 26, 26, 29, 21, 33, 36, 38, 31, 29, 17, 17, 31, 22, 33, 29, 29, 27, 32, 46, 53, 55, 58, 60, 56, 55, 54, 53, 57, 59, 51, 57, 57, 55, 57, 58, 58, 55, 53, 51, 49, 53, 55, 57, 56, 56, 37, 52, 57, 59, 52, 53, 53, 56, 51, 20, 33, 25, 26, 30, 37, 41, 27, 41, 52, 44, 48, 57, 58, 56, 53, 40, 45, 45, 46, 54, 52, 44, 56, 53, 56, 42, 11, 11, 13, 15, 15, 8, 10, 9, 5, 28, 29, 22, 14, 16, 31, 36, 19, 27, 23, 22, 18, 20, 23, 19, 32, 24, 19, 42, 34, 33, 42, 55, 54, 57, 52, 58, 48, 56, 56, 60, 53, 55, 53, 53, 55, 58, 53, 59, 51, 57, 56, 60, 54, 51, 56, 55, 59, 51, 53, 54, 57, 58, 52, 57, 53, 56];
+  const n = Y.length, m = n - 2, $ = id => document.getElementById(id);
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const LAM = k => Math.pow(10, -0.5 + 0.05 * k);
+  // symmetric pentadiagonal solve A f = b, A = diag(w) + c D'D (D = second differences)
+  function factor(w, c) {
+    const A0 = Float64Array.from(w), A1 = new Float64Array(n), A2 = new Float64Array(n);
+    for (let k = 0; k < m; k++) { A0[k] += c; A0[k + 1] += 4 * c; A0[k + 2] += c; A1[k] -= 2 * c; A1[k + 1] -= 2 * c; A2[k] += c; }
+    const d = new Float64Array(n), l1 = new Float64Array(n), l2 = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      if (i >= 2) l2[i] = A2[i - 2] / d[i - 2];
+      if (i >= 1) l1[i] = (A1[i - 1] - (i >= 2 ? l2[i] * d[i - 2] * l1[i - 1] : 0)) / d[i - 1];
+      d[i] = A0[i] - (i >= 1 ? l1[i] * l1[i] * d[i - 1] : 0) - (i >= 2 ? l2[i] * l2[i] * d[i - 2] : 0);
+    }
+    return b => { const x = Float64Array.from(b); for (let i = 1; i < n; i++) x[i] -= l1[i] * x[i - 1] + (i >= 2 ? l2[i] * x[i - 2] : 0);
+      for (let i = 0; i < n; i++) x[i] /= d[i];
+      for (let i = n - 2; i >= 0; i--) x[i] -= l1[i + 1] * x[i + 1] + (i + 2 < n ? l2[i + 2] * x[i + 2] : 0); return x; };
+  }
+  const D2 = f => { const z = new Float64Array(m); for (let k = 0; k < m; k++) z[k] = f[k] - 2 * f[k + 1] + f[k + 2]; return z; };
+  const ONES = new Float64Array(n).fill(1);
+  // L1: ADMM on z = D f; the z returned has exact zeros
+  function fitL1(lam, w = ONES, iters = 2500) {
+    const rho = lam, solve = factor(w, rho), wy = Y.map((v, i) => v * w[i]);
+    let f = null, z = new Float64Array(m), u = new Float64Array(m), t = lam / rho;
+    for (let it = 0; it < iters; it++) {
+      const b = Float64Array.from(wy); for (let k = 0; k < m; k++) { const q = rho * (z[k] - u[k]); b[k] += q; b[k + 1] -= 2 * q; b[k + 2] += q; }
+      f = solve(b);
+      for (let k = 0; k < m; k++) { const v = f[k] - 2 * f[k + 1] + f[k + 2] + u[k]; z[k] = v > t ? v - t : v < -t ? v + t : 0; u[k] = v - z[k]; }
+    }
+    return { f, z };
+  }
+  // L2: 1/2||y - f||^2 + lam ||D f||^2  =>  (W + 2 lam D'D) f = W y
+  function fitL2(lam, w = ONES) { const f = factor(w, 2 * lam)(Y.map((v, i) => v * w[i])); return { f, z: D2(f) }; }
+  function dfL2(lam) { const s = factor(ONES, 2 * lam); let tr = 0; for (let i = 0; i < n; i++) { const e = new Float64Array(n); e[i] = 1; tr += s(e)[i]; } return tr; }
+
+  let pen = 'l1', cur = null;
+  const BOOK = [5, 50, 500].map(l => fitL1(l).f);
+  // 5-fold CV over blocks of 12 consecutive points (single held-out points favour no smoothing, since neighbouring readings share noise), on every 4th slider value
+  const CVK = []; for (let k = 0; k <= 80; k += 4) CVK.push(k);
+  const CV = { l1: [], l2: [] };
+  function cvAt(fitter, lam) { let s = 0; for (let fo = 0; fo < 5; fo++) { const w = new Float64Array(n); for (let i = 0; i < n; i++) w[i] = Math.floor(i / 12) % 5 === fo ? 0 : 1; const { f } = fitter(lam, w, 1500); for (let i = 0; i < n; i++) if (!w[i]) s += (Y[i] - f[i]) ** 2; } return s / n; }
+  CVK.forEach(k => CV.l2.push(cvAt(fitL2, LAM(k))));
+  let cvNext = 0;
+  function cvPump() { const t0 = performance.now(); while (cvNext < CVK.length && performance.now() - t0 < 40) { CV.l1.push(cvAt(fitL1, LAM(CVK[cvNext]))); cvNext++; } draw(); if (cvNext < CVK.length) setTimeout(cvPump, 0); }
+  const cvBest = a => { let b = 0; a.forEach((v, i) => { if (v < a[b]) b = i; }); return CVK[b]; };
+
+  function ctxOf(cv) { if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height'); const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h); return { c, w, h }; }
+  function frame(c, w, h, xr, yr, xt, yt, xl, yl, xf) {
+    const L = 50, T = 8, W = w - L - 12, H = h - T - 38, X = x => L + W * (x - xr[0]) / (xr[1] - xr[0]), Yp = y => T + H * (1 - (y - yr[0]) / (yr[1] - yr[0]));
+    c.strokeStyle = css('--grid'); c.lineWidth = 1; c.fillStyle = css('--muted'); c.font = '11px ' + css('--font-mono'); c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (const v of yt) { c.beginPath(); c.moveTo(L, Yp(v)); c.lineTo(L + W, Yp(v)); c.stroke(); c.fillText(+v.toFixed(2), L - 6, Yp(v)); }
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (const v of xt) { c.beginPath(); c.moveTo(X(v), T); c.lineTo(X(v), T + H); c.stroke(); c.fillText(xf ? xf(v) : v, X(v), T + H + 5); }
+    c.font = '12px ' + css('--font-body'); c.fillText(xl, L + W / 2, T + H + 21);
+    if (yl) { c.save(); c.translate(11, T + H / 2); c.rotate(-Math.PI / 2); c.textBaseline = 'middle'; c.fillText(yl, 0, 0); c.restore(); }
+    return { X, Y: Yp, L, T, W, H };
+  }
+  const path = (c, pts, col, wd, dash) => { c.strokeStyle = col; c.lineWidth = wd; c.setLineDash(dash || []); c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke(); c.setLineDash([]); };
+
+  function refit() { const k = +$('tfLam').value, lam = LAM(k); cur = { k, lam, ...(pen === 'l1' ? fitL1(lam) : fitL2(lam)) }; }
+  function draw() {
+    const { k, lam, f, z } = cur, kinks = []; z.forEach((v, j) => { if (v !== 0 && (pen === 'l1' || Math.abs(v) > 1e-9)) kinks.push(j); });
+    $('tfLamO').textContent = lam < 10 ? lam.toFixed(2) : Math.round(lam).toLocaleString('en-US');
+    const XT = [0, 50, 100, 150, 200];
+    { const { c, w, h } = ctxOf($('tfA')); const F = frame(c, w, h, [0, n + 1], [0, 70], XT, [0, 10, 20, 30, 40, 50, 60, 70], 'time index', 'speed');
+      c.fillStyle = css('--point'); c.globalAlpha = 0.6; Y.forEach((v, i) => { c.beginPath(); c.arc(F.X(i + 1), F.Y(v), 2.6, 0, 7); c.fill(); }); c.globalAlpha = 1;
+      if ($('tfBook').checked) [['--curve', 0], ['--fit', 1], ['--coinB', 2]].forEach(([col, j]) => path(c, Array.from(BOOK[j], (v, i) => [F.X(i + 1), F.Y(v)]), css(col), 1.4, [5, 3]));
+      path(c, Array.from(f, (v, i) => [F.X(i + 1), F.Y(v)]), css('--accent'), 2.6);
+      if (pen === 'l1') { c.fillStyle = css('--ball'); for (const j of kinks) { c.beginPath(); c.arc(F.X(j + 2), F.Y(f[j + 1]), 3.6, 0, 7); c.fill(); } } }
+    { const { c, w, h } = ctxOf($('tfB')); const mx = Math.max(0.5, ...Array.from(z, Math.abs)), top = Math.ceil(mx * 1.1 * 2) / 2;
+      const F = frame(c, w, h, [0, n + 1], [-top, top], XT, [-top, 0, top], 'time index', 'Δ²f');
+      for (let j = 0; j < m; j++) { const v = z[j]; if (v === 0) continue; const x = F.X(j + 2); c.strokeStyle = css(pen === 'l1' ? '--ball' : '--curve'); c.lineWidth = 1.6; c.beginPath(); c.moveTo(x, F.Y(0)); c.lineTo(x, F.Y(v)); c.stroke(); } }
+    { const { c, w, h } = ctxOf($('tfC')); const all = CV.l1.concat(CV.l2), lo = Math.min(...all), hi = Math.max(...all.filter(v => v < 3 * lo));
+      const yr = [Math.floor(lo * 0.9 / 5) * 5, Math.ceil(Math.min(hi, 3 * lo) / 5) * 5], step = (yr[1] - yr[0]) / 4;
+      const F = frame(c, w, h, [-0.5, 3.5], yr, [0, 1, 2, 3], [0, 1, 2, 3, 4].map(i => yr[0] + i * step), 'λ (log scale)', 'CV MSE', v => Math.pow(10, v).toLocaleString('en-US'));
+      const P = a => a.map((v, i) => [F.X(-0.5 + 0.05 * CVK[i]), F.Y(Math.min(v, yr[1]))]);
+      path(c, P(CV.l2), css('--curve'), 2.2); if (CV.l1.length) path(c, P(CV.l1), css('--accent'), 2.4);
+      path(c, [[F.X(Math.log10(lam)), F.T], [F.X(Math.log10(lam)), F.T + F.H]], css('--ink'), 1.2, [4, 4]);
+      for (const [a, col] of [[CV.l1, '--accent'], [CV.l2, '--curve']]) if (a.length === CVK.length) { const b = cvBest(a), i = CVK.indexOf(b); c.fillStyle = css(col); c.beginPath(); c.arc(F.X(-0.5 + 0.05 * b), F.Y(a[i]), 4.5, 0, 7); c.fill(); } }
+    const rss = Y.reduce((s, v, i) => s + (v - f[i]) ** 2, 0), df = pen === 'l1' ? kinks.length + 2 : dfL2(lam);
+    const cvA = CV[pen], cvDone = cvA.length === CVK.length, cvHere = cvDone ? cvAt(pen === 'l1' ? fitL1 : fitL2, lam) : NaN, cvK = cvDone ? cvBest(cvA) : null;
+    $('tfT').querySelector('tbody').innerHTML =
+      `<tr><td>Kinks (second differences not exactly 0)</td><td>${pen === 'l1' ? kinks.length + ' of ' + m : 'all ' + m}</td></tr>` +
+      `<tr><td>Degrees of freedom</td><td>${df.toFixed(1)}</td></tr>` +
+      `<tr><td>Residual SD</td><td>${Math.sqrt(rss / n).toFixed(2)}</td></tr>` +
+      `<tr><td>5-fold CV error at this λ</td><td>${cvDone ? cvHere.toFixed(1) : 'computing…'}</td></tr>` +
+      `<tr><td>λ with the lowest CV error</td><td>${cvDone ? (LAM(cvK) < 10 ? LAM(cvK).toFixed(1) : Math.round(LAM(cvK)).toLocaleString('en-US')) : '…'}</td></tr>`;
+    $('tfCv').disabled = !cvDone;
+    const minAbs = Math.min(...Array.from(z, Math.abs));
+    $('tfM').innerHTML = pen === 'l1'
+      ? `With λ = ${$('tfLamO').textContent}, <b>${m - kinks.length} of the ${m}</b> second differences are exactly zero, so the trend is a straight line between ${kinks.length} kinks (the orange dots). ` +
+        (kinks.length > 40 ? 'Many kinks: the trend still chases the noise. Raise λ.' : kinks.length < 8 ? 'Very few kinks: the trend misses the dips. Lower λ.' : 'The kinks sit where traffic really changes, at the start and end of each slowdown.') +
+        ' This is the lasso applied to the slopes: the penalty sets small changes of slope to exactly zero, the way the lasso below sets small genes to exactly zero.'
+      : `The squared penalty leaves <b>no</b> second difference at exactly zero (the smallest is ${minAbs.toExponential(1)}): the curve bends a little everywhere and has no kinks to point to. It also starts to slow down before each jam and recovers late, because a sharp corner costs too much under a square. This is ridge applied to the slopes.`;
+  }
+  const update = () => { refit(); draw(); };
+  $('tfLam').addEventListener('input', update);
+  $('tfBook').addEventListener('change', () => { $('tfBookLeg').hidden = !$('tfBook').checked; draw(); });
+  document.querySelectorAll('.tfPre').forEach(b => b.addEventListener('click', () => { $('tfLam').value = Math.round((Math.log10(+b.dataset.l) + 0.5) / 0.05); update(); }));
+  $('tfCv').addEventListener('click', () => { $('tfLam').value = cvBest(CV[pen]); update(); });
+  $('tfPen').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { $('tfPen').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); pen = b.dataset.v; update(); }));
+  update(); setTimeout(cvPump, 30);
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+})();
+</script>
 </body></html>
