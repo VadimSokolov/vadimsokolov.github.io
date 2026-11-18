@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>AlphaGo Lab: Move 37 and Move 78</title>
+<script>window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, chtml: { scale: 1, matchFontHeight: false }, options: { enableMenu: false } };</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header with three framing cards; Part I the two moves on Go boards; Part II the search live (trace and tables, controls); Part III first visit after 1/P simulations; Part IV Game 4 win probability and the quantile reading; lesson, notes, exercises. Same lab-family tokens as the other labs. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0; --grid: #e3e7ec;
+  --accent: #2257b0; --on-accent: #ffffff; --ball: #c9811a; --curve: #c23a2e; --point: #3a4654; --fit: #0e7f73; --alt: #7a4fc4;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+    --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440; --grid: #1f2831;
+  --accent: #6b9ff0; --on-accent: #0b1320; --ball: #f0aa3c; --curve: #ff7466; --point: #b8c3cf; --fit: #3cc7b4; --alt: #b596f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; max-width: 80ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; align-self: flex-start; margin-top: 2px; }
+.back:hover { text-decoration: underline; }
+.src { margin: 0; font-size: 13px; color: var(--muted); }
+.src a { color: var(--accent); }
+.part { font-family: var(--font-display); font-size: clamp(24px, 3.4vw, 32px); margin: 12px 0 0; border-top: 2px solid var(--line); padding-top: 18px; }
+.part small { display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .duo { grid-template-columns: minmax(0, 1fr); } }
+.board { position: relative; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+canvas { display: block; width: 100%; }
+.cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--fit); }
+.sw.dash { border-top: 2px dashed var(--ink); }
+.sw.red { border-top: 2.5px solid var(--curve); }
+.sw.acc { border-top: 2.5px solid var(--accent); }
+.sw.bar { width: 12px; height: 10px; border: 0; border-radius: 2px; background: var(--accent); opacity: .45; }
+.sw.band { width: 14px; height: 10px; border: 0; border-radius: 2px; background: color-mix(in srgb, var(--fit) 30%, transparent); }
+.sw.bar.ball { background: var(--ball); } .sw.bar.acc2 { background: var(--accent); } .sw.bar.fitb { background: var(--fit); } .sw.bar.altb { background: var(--alt); }
+.sw.ballc { border-top: 2.5px solid var(--ball); } .sw.altc { border-top: 2.5px solid var(--alt); }
+.sw.pt { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--point); opacity: .7; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 10px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); transition: border-color .15s, background .15s; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; font-size: 13px; padding: 8px 4px; line-height: 1.2; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider label { font-weight: 700; font-size: 14px; }
+.slider output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; font-size: 14px; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.msg { font-size: 13.5px; background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; font-variant-numeric: tabular-nums; }
+.msg b { color: var(--ball); }
+.msg.warn { border-color: var(--curve); }
+.msg.warn b { color: var(--curve); }
+table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 5px 0 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.stats th:first-child, .stats td:first-child { text-align: left; padding-left: 0; padding-right: 8px; }
+.stats thead th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.stats td { font-family: var(--font-mono); font-size: 13px; }
+.stats td:first-child { font-family: var(--font-body); }
+.stats tr:last-child td { border-bottom: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--curve); } .stat .v.good { color: var(--fit); }
+
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; max-width: 88ch; }
+.sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
+.sec .head p { margin: 0; color: var(--muted); }
+.sec .head p + p { margin-top: 4px; }
+.tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
+mjx-container { font-size: 105%; }
+.frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .frame { grid-template-columns: minmax(0, 1fr); } }
+.frame .note h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; }
+.frame .note p { margin: 0; font-size: 14px; }
+
+.lesson { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: clamp(18px, 3vw, 28px); display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px 32px; }
+@media (max-width: 900px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson .head { grid-column: 1 / -1; }
+.lesson h2 { font-family: var(--font-display); font-size: clamp(22px, 3vw, 28px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.steps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 12px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--board); border: 1px solid var(--line); color: var(--muted); }
+.steps h3 { font-family: var(--font-display); font-size: 16.5px; margin: 1px 0 3px; }
+.steps p { margin: 0; max-width: 66ch; }
+.eqs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eq { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; overflow-x: auto; }
+.eq .cp { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.note h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; text-wrap: balance; }
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.note a { color: var(--accent); }
+.try { border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; }
+.try h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+.try ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 88ch; }
+code { font-family: var(--font-mono); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+.sec a { color: var(--accent); }
+.seg.two { grid-template-columns: 1fr 1fr; }
+.goboard { width: min(100%, 440px); margin: 0 auto; display: block; }
+.capt { font-size: 14px; margin: 0; }
+.capt b { color: var(--accent); }
+.stats tr.hid td { color: var(--curve); font-weight: 600; }
+.stats tr.sub td:first-child { padding-left: 14px; }
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Deep learning and games</span>
+    <h1>AlphaGo Lab: Move 37 and Move 78</h1>
+    <p class="lead">In March 2016 in Seoul, AlphaGo beat Lee Sedol 4 to 1. Two moves from that match are still discussed. In Game 2, AlphaGo played a move its own policy network gave about 1 chance in 10,000 of a human playing, and it won. In Game 4, Lee played a move AlphaGo had given about the same 1 in 10,000, and AlphaGo lost. This lab runs the search rule AlphaGo used on a small game tree, so you can watch both happen and see where the line between them falls.</p>
+    <p class="src">After Nick Polson's 41916 Week 8 notes on AlphaGo and Lee Sedol, and Silver et al., <a href="https://doi.org/10.1038/nature16961" target="_blank" rel="noopener">Mastering the game of Go with deep neural networks and tree search</a>, Nature 529 (2016). For a network you can play against, see the <a href="chess-lab.html">Chess Lab</a>.</p>
+    <a class="back" href="index.html">← All labs</a>
+  </header>
+
+  <section class="frame">
+    <div class="note"><h3>Move 37: search finds what the prior missed</h3><p>The policy network, trained on human games, gives each move a prior \(P(s,a)\). Move 37 had \(P \approx 10^{-4}\). Once the search did visit it, the value network scored it high, and the search played it.</p></div>
+    <div class="note"><h3>Move 78: the prior hides what search needed</h3><p>Lee's wedge also had \(P \approx 10^{-4}\) in AlphaGo's eyes, so its search almost never looked at it. AlphaGo kept reporting about 70% after its mistaken reply at move 79 and only saw the problem at move 87.</p></div>
+    <div class="note"><h3>Same rule, two outcomes</h3><p>Both come from one selection rule: \(a = \arg\max_a Q(s,a) + c\,P(s,a)\,\frac{\sqrt{N(s)}}{1 + N(s,a)}\). A move with a tiny prior gets its first look only after a large number of simulations. Whether that number fits in the budget decides which story you get.</p></div>
+  </section>
+
+  <h2 class="part"><small>Part I</small>Two moves nobody expected</h2>
+
+  <section class="sec" aria-labelledby="mvH">
+    <div class="head">
+      <h2 id="mvH">The boards</h2>
+      <p>Schematic local sketches after Nick's slides, not full game records: the stones around each move are shown, the rest of the board is not.</p>
+    </div>
+    <div class="duo">
+      <div class="board"><span class="cap">Game 2, 10 March 2016 · AlphaGo has Black</span><svg class="goboard" id="go37" viewBox="-1.3 -1.3 20.6 20.6" role="img" aria-label="Go board sketch with Black's move 37 on the fifth line"></svg>
+        <p class="capt"><b>Move 37.</b> A shoulder hit on the fifth line. The proverb says third-line stones take territory and fourth-line stones build influence; a fifth-line shoulder hit hands the opponent secure territory for a thin wall. Black gave up the side for a stone facing the open centre, where the game was later decided. Lee left the board and took about 15 minutes to reply. Commentator Michael Redmond first took it for a mistake; Fan Hui called it beautiful. Later engines such as KataGo agree with it.</p></div>
+      <div class="board"><span class="cap">Game 4, 13 March 2016 · Lee has White, down 0 to 3</span><svg class="goboard" id="go78" viewBox="-1.3 -1.3 20.6 20.6" role="img" aria-label="Go board sketch with White's move 78 wedge at L11"></svg>
+        <p class="capt"><b>Move 78.</b> Black had a large framework in the centre, and White had to break it or lose. The wedge at L11 split Black's shape and made several cutting points at once. AlphaGo's reply at 79 was wrong, yet its win estimate stayed near 70% until move 87. Behind on the board, it then played low-percentage tricks, because it maximizes the probability of winning, not the margin. Lee won by resignation after 180 moves.</p></div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part II</small>The search, live</h2>
+
+  <section class="sec" aria-labelledby="srH">
+    <div class="head">
+      <h2 id="srH">Where does the search look?</h2>
+      <p>A two-move game tree stands in for the board. AlphaGo (the root player) picks a move, the opponent replies, and the leaf returns AlphaGo's win probability plus noise, the way the value network would. The opponent picks replies that minimize it. Every simulation walks down by the selection rule above, scores one leaf and backs the value up. AlphaGo plays the root move with the most visits and reports its average value as the win probability.</p>
+      <p>The <b>Move 37</b> tree has one root move with a tiny prior that is really the best. In the <b>Move 78</b> tree, AlphaGo's natural plan has one reply with a tiny prior that refutes it. The red row is the hidden move in both.</p>
+    </div>
+    <div class="grid">
+      <div class="board">
+        <span class="cap" id="trCap">What AlphaGo would report, by number of simulations</span>
+        <canvas id="tr" height="300"></canvas>
+        <div class="legend"><span><i class="sw acc"></i>Reported win probability of the move it would play</span><span><i class="sw dash"></i>True value of the best move</span><span><i class="sw red"></i>First visit to the hidden move</span></div>
+        <table class="stats" id="tab"></table>
+      </div>
+      <div class="panel">
+        <div class="group"><span class="label">Tree</span>
+          <div class="seg two" id="scn"><button data-v="37" aria-pressed="true">Move 37</button><button data-v="78" aria-pressed="false">Move 78</button></div></div>
+        <div class="group">
+          <div class="slider"><div class="top"><label for="hp">Prior of the hidden move</label><output id="hpO"></output></div><input id="hp" type="range" min="-5" max="-1" step="0.1" value="-4"></div>
+          <div class="slider"><div class="top"><label for="ns">Simulations</label><output id="nsO"></output></div><input id="ns" type="range" min="2" max="6" step="0.05" value="3.2"></div>
+          <div class="slider"><div class="top"><label for="cc">Exploration constant c</label><output id="ccO"></output></div><input id="cc" type="range" min="0.5" max="10" step="0.5" value="5"></div>
+          <div class="slider"><div class="top"><label for="sd">Leaf noise (value net error)</label><output id="sdO"></output></div><input id="sd" type="range" min="0" max="0.3" step="0.01" value="0.1"></div>
+          <div class="btns"><button id="rs">New random seed</button><button id="rst">Reset</button></div>
+        </div>
+        <div class="group"><div class="two">
+          <div class="stat"><span class="k">Plays</span><span class="v" id="sPick"></span></div>
+          <div class="stat"><span class="k">Reports</span><span class="v" id="sRep"></span></div>
+          <div class="stat"><span class="k">True value of that move</span><span class="v" id="sTrue"></span></div>
+          <div class="stat"><span class="k">Hidden move first visited</span><span class="v" id="sFirst"></span></div>
+        </div></div>
+        <div class="group"><p class="msg" id="msg"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part III</small>The first look comes after about 1/P simulations</h2>
+
+  <section class="sec" aria-labelledby="fvH">
+    <div class="head">
+      <h2 id="fvH">Prior against first visit</h2>
+      <p>Run the Move 37 tree with different priors for the hidden move and record the simulation at which it is first visited. The points fall on the line \(N = 1/P\), and the exploration constant does not move them. A prior of \(10^{-4}\) means about 10,000 simulations before the move is looked at once.</p>
+      <p>The reason: a move nobody has visited is scored at its parent's running value plus \(c\,p\sqrt{N}\). A visited move \(i\) has about the same value plus \(c\,P_i\sqrt{N}/(1+N_i)\). The unvisited move wins the argmax once \(1 + N_i > P_i/p\) for every visited move. Adding these up, \(N \approx \sum_i P_i/p \approx 1/p\). The constant \(c\) multiplies both sides and cancels.</p>
+    </div>
+    <div class="grid">
+      <div class="board"><span class="cap">Simulation of the first visit, against the prior (log scales)</span><canvas id="fv" height="300"></canvas>
+        <div class="legend"><span><i class="sw pt" style="background:var(--accent)"></i>c = 1</span><span><i class="sw pt" style="background:var(--ball)"></i>c = 5 (AlphaGo's value)</span><span><i class="sw dash"></i>N = 1/P</span></div></div>
+      <div class="panel"><div class="group"><table class="stats" id="fvTab"></table></div>
+        <div class="group"><p class="msg">The law needs the visited moves to have similar values and unvisited moves to start at the parent's value. If the visited moves look much worse than the parent, the hidden move is tried sooner; if much better, later. In the Move 78 tree the clock runs inside the opponent's node, so the total is about \(1/p\) divided by the share of simulations that go to plan A.</p></div></div>
+    </div>
+  </section>
+
+  <h2 class="part"><small>Part IV</small>Game 4: confidence is not calibration</h2>
+
+  <section class="sec" aria-labelledby="g4H">
+    <div class="head">
+      <h2 id="g4H">The win probability that stayed high</h2>
+      <p>Demis Hassabis reported that AlphaGo's estimate was still about 70% at move 79, after the decisive mistake, and that it fell only at move 87. The curve below is an illustrative path through those two reported values; the points in between are not DeepMind data. The Move 78 tree in Part II gives the same picture: with too few simulations it reports about 73% for a plan whose true value is 10%.</p>
+      <p>Nick's reading through generative Bayesian computation: AlphaGo reported one number, the mean of the win probability. A network that learns the quantiles of the value instead, as an implicit quantile network does (Dabney et al., 2018), could report a 70% mean with a fat left tail, which is a warning. The right panel shows two such value distributions, also illustrative, with the same mean of 70%.</p>
+    </div>
+    <div class="duo">
+      <div class="board"><span class="cap">P(AlphaGo wins), Game 4 · illustrative</span><canvas id="g4" height="260"></canvas></div>
+      <div class="board"><span class="cap">Two value distributions with mean 70% · illustrative</span><canvas id="qd" height="260"></canvas>
+        <div class="legend"><span><i class="sw acc"></i>Confident: Beta(35, 15)</span><span><i class="sw red"></i>Fat left tail: 0.8 Beta(40, 10) + 0.2 Beta(6, 14)</span></div>
+        <p class="hint" id="qdT"></p></div>
+    </div>
+  </section>
+
+  <section class="lesson">
+    <div class="head"><h2>The rationale under Bellman</h2></div>
+    <ol class="steps">
+      <li><div><h3>Go is a Bellman problem with one reward</h3><p>A win scores 1 and everything else 0, with no discounting. The optimal value of a position is then the probability of winning under best play, and it satisfies the Bellman equation. The value network is a learned approximation to it.</p></div></li>
+      <li><div><h3>Search is a sampled Bellman backup</h3><p>Each simulation replaces the max and the expectation by one path and one leaf value. Averaged over many paths, \(Q(s,a)\) approaches the backed-up value for the moves the search visits. The prior decides which moves those are.</p></div></li>
+      <li><div><h3>Move 37: the max overrides the prior</h3><p>The prior said \(10^{-4}\), but once the move was visited its \(Q\) was high, and the max took it. Novelty came from maximizing value, not from imitating people.</p></div></li>
+      <li><div><h3>Move 78: the prior hides the threat</h3><p>With \(P \approx 10^{-4}\) the wedge kept \(N(s,a)\) near zero, so AlphaGo's estimate was a max over the replies it had seen, not over all of them. The estimate was confident and wrong for eight moves.</p></div></li>
+    </ol>
+    <div class="eqs">
+      <div class="eq"><div class="cp">Bellman, reward only at the end (win = 1, \(\gamma = 1\))</div>\[ V^\star(s) = \max_a \mathbb{E}\bigl[V^\star(s') \mid s, a\bigr] = P(\text{win} \mid s) \]</div>
+      <div class="eq"><div class="cp">AlphaGo's leaf value mixes the value net and a fast rollout outcome \(z\)</div>\[ V(s_L) = (1 - \lambda)\, v_\theta(s_L) + \lambda\, z_L, \quad \lambda = \tfrac12 \]</div>
+      <div class="eq"><div class="cp">Selection, steered by the prior</div>\[ a^\star = \arg\max_a \Bigl[ Q(s,a) + c\, P(s,a) \frac{\sqrt{N(s)}}{1 + N(s,a)} \Bigr] \]</div>
+      <div class="eq"><div class="cp">What the search can report</div>\[ \hat V(s) = \max_{a \in A_{\text{seen}}} Q(s,a) \ne V^\star(s) \]</div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note"><h2>AlphaGo's networks</h2><p>Both networks read the board as a stack of 48 feature planes on the 19 × 19 grid (stones, liberties, ko, history) through 13 convolutional layers of 3 × 3 filters. The policy network was first trained on 30 million positions from human games and predicted the expert's move 57% of the time; self-play reinforcement learning then improved it. The value network was trained on 30 million self-play positions, one per game, so it could not memorize whole games. The search used the human-trained policy as its prior because its suggestions were more varied.</p></div>
+    <div class="note"><h2>What the toy leaves out</h2><p>The real tree has about 250 moves per turn and 150 turns, and the search expands it as it goes. Our tree has two levels and a handful of moves, and the leaf values are set by hand. Unvisited moves start at the parent's running value, as in Leela Zero and KataGo; the 2016 paper started them at a draw. That choice matters for the 1/P law, so the law is about this rule, not a theorem about AlphaGo.</p></div>
+    <div class="note"><h2>What happened next</h2><p>AlphaGo Zero (2017) dropped the human games, learned from self-play alone, and merged the two networks into one with two heads. Professionals adopted the machines' ideas, and fifth-line shoulder hits are no longer taboo. Lee Sedol retired in 2019, saying AI could not be beaten.</p></div>
+  </section>
+
+  <section class="try">
+    <h2>Try this in class</h2>
+    <ol>
+      <li>Move 37 tree at about 1,600 simulations: which move does AlphaGo play, and what does it report? Slide the simulations past 10,000. At which simulation is Move 37 first visited, and how fast does it take over the visits once it is?</li>
+      <li>Set c to 1, then to 10. Does the first visit move? Now change the hidden prior to \(10^{-3}\) and to \(10^{-5}\). Predict the first visit before you look.</li>
+      <li>Move 78 tree at about 1,600 simulations: AlphaGo reports about 73% for plan A, whose true value is 10%. How many simulations does the search need before it switches to plan B? Compare that with \(1/P\) and explain the gap.</li>
+      <li>Turn the leaf noise up to 0.3 and down to 0. Does noise in the value network help the search find the hidden move? Use the reasoning in Part III to explain what you see.</li>
+      <li>In Part IV, both distributions have mean 70%. Which quantile would you report to a player deciding whether to play safe? What would it have said at move 79?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const fmtN = n => n >= 1e6 ? (n / 1e6).toFixed(n % 1e6 ? 1 : 0) + 'M' : Math.round(n).toLocaleString('en-US');
+  const pct = v => (100 * v).toFixed(0) + '%';
+
+  /* ---------- Go boards (coordinates from Nick's TikZ: x 0..18 = A..T without I, y 0..18 = rows 1..19) ---------- */
+  const LET = 'ABCDEFGHJKLMNOPQRST';
+  function goSVG(el, black, white, mark, hi) {
+    const y = r => 18 - r, s = [];
+    s.push(`<rect x="-1" y="-1" width="20" height="20" rx=".4" fill="#D6A85C"/>`);
+    s.push(`<rect x="${hi[0]}" y="${y(hi[3])}" width="${hi[2] - hi[0]}" height="${hi[3] - hi[1]}" rx=".3" fill="#EBC985"/>`);
+    for (let i = 0; i <= 18; i++) s.push(`<line x1="0" y1="${i}" x2="18" y2="${i}" stroke="#3B2A12" stroke-width=".05"/><line x1="${i}" y1="0" x2="${i}" y2="18" stroke="#3B2A12" stroke-width=".05"/>`);
+    for (const a of [3, 9, 15]) for (const b of [3, 9, 15]) s.push(`<circle cx="${a}" cy="${b}" r=".13" fill="#3B2A12"/>`);
+    for (let i = 0; i <= 18; i++) s.push(`<text x="${i}" y="18.75" font-size=".5" text-anchor="middle" fill="#3B2A12" font-family="sans-serif">${LET[i]}</text><text x="-.65" y="${y(i) + .17}" font-size=".5" text-anchor="middle" fill="#3B2A12" font-family="sans-serif">${i + 1}</text>`);
+    for (const [a, b] of black) s.push(`<circle cx="${a}" cy="${y(b)}" r=".46" fill="#111"/>`);
+    for (const [a, b] of white) s.push(`<circle cx="${a}" cy="${y(b)}" r=".46" fill="#fff" stroke="#888" stroke-width=".05"/>`);
+    const [a, b, col, n] = mark;
+    s.push(`<circle cx="${a}" cy="${y(b)}" r=".5" fill="${col === 'b' ? '#111' : '#fff'}" stroke="#b2182b" stroke-width=".14"/><text x="${a}" y="${y(b) + .17}" font-size=".46" font-weight="700" text-anchor="middle" fill="${col === 'b' ? '#fff' : '#111'}" font-family="sans-serif">${n}</text>`);
+    el.innerHTML = s.join('');
+  }
+  goSVG($('go37'), [[15,15],[3,3],[2,13],[16,5],[13,16],[15,12]], [[3,15],[15,2],[15,9],[16,11],[16,7],[5,2]], [14,10,'b',37], [12.4,5.4,17.6,12.6]);
+  goSVG($('go78'), [[9,9],[10,11],[11,11],[9,11],[8,9],[11,12],[7,10],[12,9],[9,7]], [[10,9],[11,9],[8,10],[9,8],[12,10],[13,11],[12,12],[10,7]], [10,10,'w',78], [6.4,6.4,13.6,12.6]);
+
+  /* ---------- canvas helpers ---------- */
+  function ctxOf(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.getAttribute('height');
+    cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+    return { c, w, h };
+  }
+  function axes(c, L, T, W, H, xt, yt, xl, yl) {
+    c.strokeStyle = css('--grid'); c.lineWidth = 1; c.fillStyle = css('--muted'); c.font = '11px ' + css('--font-mono');
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (const [p, s] of yt) { c.beginPath(); c.moveTo(L, p); c.lineTo(L + W, p); c.stroke(); c.fillText(s, L - 6, p); }
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (const [p, s] of xt) { c.beginPath(); c.moveTo(p, T); c.lineTo(p, T + H); c.stroke(); c.fillText(s, p, T + H + 5); }
+    c.font = '12px ' + css('--font-body'); c.fillText(xl, L + W / 2, T + H + 22);
+    c.save(); c.translate(12, T + H / 2); c.rotate(-Math.PI / 2); c.textBaseline = 'middle'; c.fillText(yl, 0, 0); c.restore();
+  }
+
+  /* ---------- the two-ply PUCT search ---------- */
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function gauss(r) { const u = r() || 1e-12, v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  const norm = p => { const s = p.reduce((a, b) => a + b, 0); return p.map(x => x / s); };
+
+  const SC = {
+    '37': { names: ['Standard move A', 'Standard move B', 'Standard move C', 'Standard move D', 'Standard move E', 'Move 37'],
+      P: h => norm([0.45, 0.30, 0.15, 0.06, 0.04, h]), R: h => Array.from({ length: 6 }, () => norm([0.5, 0.3, 0.2])),
+      V: [[.52,.54,.55],[.50,.52,.53],[.49,.51,.52],[.47,.50,.50],[.46,.48,.50],[.66,.68,.70]], hid: { a: 5 }, rnames: null },
+    '78': { names: ['Plan A, as played', 'Plan B, solid', 'Plan C'],
+      P: h => norm([0.55, 0.30, 0.15]), R: h => [norm([0.5, 0.3, 0.2, h]), norm([0.5, 0.3, 0.2]), norm([0.5, 0.3, 0.2])],
+      V: [[.72,.74,.75,.10],[.60,.62,.63],[.55,.57,.58]], hid: { a: 0, b: 3 }, rnames: ['White reply 1', 'White reply 2', 'White reply 3', 'The wedge (78)'] }
+  };
+
+  // Unvisited children start at the parent's running value (from the mover's side). The opponent's values are 1 - AlphaGo's.
+  function search(sc, h, nSim, c, sd, seed, trace, stopAtFirst) {
+    const r = rng(seed), P = sc.P(h), R = sc.R(h), V = sc.V, K = P.length;
+    const N = new Float64Array(K), W = new Float64Array(K), n = R.map(x => new Float64Array(x.length)), w = R.map(x => new Float64Array(x.length));
+    let Nt = 0, Wt = 0, first = -1, ci = 0; const tr = [];
+    for (let t = 0; t < nSim; t++) {
+      const pm = Nt ? Wt / Nt : 0.5, sq = Math.sqrt(Math.max(1, Nt));
+      let a = 0, bv = -1e9;
+      for (let i = 0; i < K; i++) { const q = N[i] ? W[i] / N[i] : pm, s = q + c * P[i] * sq / (1 + N[i]); if (s > bv) { bv = s; a = i; } }
+      const Ra = R[a], pmo = N[a] ? 1 - W[a] / N[a] : 1 - pm, sq2 = Math.sqrt(Math.max(1, N[a]));
+      let b = 0, bb = -1e9;
+      for (let j = 0; j < Ra.length; j++) { const q = n[a][j] ? 1 - w[a][j] / n[a][j] : pmo, s = q + c * Ra[j] * sq2 / (1 + n[a][j]); if (s > bb) { bb = s; b = j; } }
+      if (first < 0 && a === sc.hid.a && (sc.hid.b === undefined || b === sc.hid.b)) { first = t + 1; if (stopAtFirst) break; }
+      let v = V[a][b] + sd * gauss(r); v = v < 0 ? 0 : v > 1 ? 1 : v;
+      n[a][b]++; w[a][b] += v; N[a]++; W[a] += v; Nt++; Wt += v;
+      if (trace && ci < trace.length && t + 1 >= trace[ci]) { let k = 0; for (let i = 1; i < K; i++) if (N[i] > N[k]) k = i; tr.push([t + 1, k, W[k] / N[k]]); while (ci < trace.length && t + 1 >= trace[ci]) ci++; }
+    }
+    let pick = 0; for (let i = 1; i < K; i++) if (N[i] > N[pick]) pick = i;
+    return { P, R, N, W, n, w, pick, first, tr, Nt };
+  }
+  const minV = row => Math.min(...row);
+
+  /* ---------- Part II ---------- */
+  let scn = '37', seed = 7;
+  const DEF = { hp: -4, ns: 3.2, cc: 5, sd: 0.1 };
+  function render() {
+    const sc = SC[scn], h = 10 ** +$('hp').value, nS = Math.round(10 ** +$('ns').value), c = +$('cc').value, sd = +$('sd').value;
+    $('hpO').textContent = '1 in ' + fmtN(1 / h); $('nsO').textContent = fmtN(nS); $('ccO').textContent = c.toFixed(1); $('sdO').textContent = sd.toFixed(2);
+    const cps = []; for (let k = 0; k <= 80; k++) cps.push(Math.max(1, Math.round(10 ** (k * Math.log10(nS) / 80))));
+    const o = search(sc, h, nS, c, sd, seed, cps, false);
+    const truth = sc.V.map(minV), best = Math.max(...truth);
+    // trace plot
+    const { c: g, w, h: H } = ctxOf($('tr')); const L = 50, T = 12, Wd = w - L - 14, Hd = H - T - 40, lx = Math.log10(nS);
+    const X = t => L + Wd * (lx > 0 ? Math.log10(t) / lx : 0), Y = v => T + Hd * (1 - v);
+    const xt = []; for (let k = 0; k <= Math.floor(lx); k++) xt.push([X(10 ** k), fmtN(10 ** k)]);
+    axes(g, L, T, Wd, Hd, xt, [0, .25, .5, .75, 1].map(v => [Y(v), pct(v)]), 'Simulations (log scale)', 'Win probability');
+    g.setLineDash([5, 4]); g.strokeStyle = css('--ink'); g.lineWidth = 1.5; g.beginPath(); g.moveTo(L, Y(best)); g.lineTo(L + Wd, Y(best)); g.stroke(); g.setLineDash([]);
+    if (o.first > 0) { g.strokeStyle = css('--curve'); g.lineWidth = 2; g.beginPath(); g.moveTo(X(o.first), T); g.lineTo(X(o.first), T + Hd); g.stroke(); }
+    g.strokeStyle = css('--accent'); g.lineWidth = 2.5; g.beginPath(); o.tr.forEach(([t, k, q], i) => i ? g.lineTo(X(t), Y(q)) : g.moveTo(X(t), Y(q))); g.stroke();
+    // table
+    const rows = [`<thead><tr><th>${scn === '37' ? 'AlphaGo\'s move' : 'AlphaGo\'s plan'}</th><th>Prior</th><th>Visits</th><th>Q</th><th>True</th></tr></thead><tbody>`];
+    const pr = p => p >= 0.01 ? p.toFixed(2) : p.toExponential(0).replace('e-', '×10⁻').replace(/⁻(\d)/, (m, d) => '⁻' + '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
+    sc.names.forEach((nm, a) => {
+      rows.push(`<tr class="${scn === '37' && a === sc.hid.a ? 'hid' : ''}"><td>${nm}${a === o.pick ? ' ◂' : ''}</td><td>${pr(o.P[a])}</td><td>${fmtN(o.N[a])}</td><td>${o.N[a] ? pct(o.W[a] / o.N[a]) : '–'}</td><td>${pct(truth[a])}</td></tr>`);
+      if (scn === '78' && a === 0) sc.rnames.forEach((rn, b) => rows.push(`<tr class="sub ${b === sc.hid.b ? 'hid' : ''}"><td>${rn}</td><td>${pr(o.R[0][b])}</td><td>${fmtN(o.n[0][b])}</td><td>${o.n[0][b] ? pct(o.w[0][b] / o.n[0][b]) : '–'}</td><td>${pct(sc.V[0][b])}</td></tr>`));
+    });
+    $('tab').innerHTML = rows.join('') + '</tbody>';
+    const rep = o.W[o.pick] / o.N[o.pick], tv = truth[o.pick];
+    $('sPick').textContent = sc.names[o.pick].replace(', as played', '').replace(', solid', '');
+    $('sRep').textContent = pct(rep); $('sTrue').textContent = pct(tv);
+    $('sTrue').className = 'v ' + (tv >= best - 1e-9 ? 'good' : 'bad');
+    $('sFirst').textContent = o.first > 0 ? 'at ' + fmtN(o.first) : 'never';
+    const m = $('msg');
+    if (scn === '37') {
+      m.className = 'msg' + (o.pick === 5 ? '' : ' warn');
+      m.innerHTML = o.pick === 5 ? `The search found Move 37 at simulation <b>${fmtN(o.first)}</b> (1/P is ${fmtN(1 / h)}) and now gives it ${pct(o.N[5] / o.Nt)} of all visits. The max overrode the prior.`
+        : o.first > 0 ? `Move 37 was first visited at simulation <b>${fmtN(o.first)}</b> but has not yet collected the most visits. Add simulations.`
+        : `Move 37 was <b>never visited</b>. With a prior of 1 in ${fmtN(1 / h)}, the first look comes after about that many simulations; this budget is ${fmtN(nS)}.`;
+    } else {
+      const fooled = o.pick === 0;
+      m.className = 'msg' + (fooled ? ' warn' : '');
+      m.innerHTML = fooled ? `AlphaGo plays plan A and reports <b>${pct(rep)}</b>. Its true value is ${pct(tv)}: the wedge ${o.first > 0 ? 'was first visited at simulation ' + fmtN(o.first) + ' but has not yet pulled plan A down' : 'was never visited'}. The estimate is a max over the replies it has seen.`
+        : `The search found the wedge at simulation <b>${fmtN(o.first)}</b>, plan A's value collapsed, and AlphaGo switched to ${sc.names[o.pick].toLowerCase()} at ${pct(rep)}, close to the truth of ${pct(best)}.`;
+    }
+  }
+  $('scn').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; scn = b.dataset.v; for (const x of $('scn').children) x.setAttribute('aria-pressed', x === b); render(); });
+  for (const id of ['hp', 'ns', 'cc', 'sd']) $(id).addEventListener('input', render);
+  $('rs').addEventListener('click', () => { seed = (seed * 1103515245 + 12345) % 2147483647; render(); });
+  $('rst').addEventListener('click', () => { for (const k in DEF) $(k).value = DEF[k]; seed = 7; render(); });
+
+  /* ---------- Part III ---------- */
+  const PRI = [-1, -1.5, -2, -2.5, -3, -3.5, -4, -4.5, -5];
+  const FV = PRI.map(lp => { const p = 10 ** lp; return [lp, search(SC['37'], p, 3e6, 1, 0.1, 11, null, true).first, search(SC['37'], p, 3e6, 5, 0.1, 11, null, true).first]; });
+  function renderFV() {
+    const { c: g, w, h: H } = ctxOf($('fv')); const L = 70, T = 12, Wd = w - L - 14, Hd = H - T - 40;
+    const X = lp => L + Wd * (-1 - lp) / 4, Y = ln => T + Hd * (1 - (ln - 0.5) / 5);
+    axes(g, L, T, Wd, Hd, [-1, -2, -3, -4, -5].map(k => [X(k), '10⁻' + '⁰¹²³⁴⁵'[-k]]), [1, 2, 3, 4, 5].map(k => [Y(k), fmtN(10 ** k)]), 'Prior of the hidden move', 'First visit');
+    g.setLineDash([5, 4]); g.strokeStyle = css('--ink'); g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(-1), Y(1)); g.lineTo(X(-5), Y(5)); g.stroke(); g.setLineDash([]);
+    for (const [lp, f1, f5] of FV) for (const [f, col, dx] of [[f1, '--accent', -3], [f5, '--ball', 3]]) { g.fillStyle = css(col); g.beginPath(); g.arc(X(lp) + dx, Y(Math.log10(f)), 4.5, 0, 7); g.fill(); }
+    $('fvTab').innerHTML = '<thead><tr><th>Prior</th><th>1/P</th><th>c = 1</th><th>c = 5</th></tr></thead><tbody>' +
+      FV.filter((_, i) => i % 2 === 0).map(([lp, f1, f5]) => `<tr><td>1 in ${fmtN(10 ** -lp)}</td><td>${fmtN(10 ** -lp)}</td><td>${fmtN(f1)}</td><td>${fmtN(f5)}</td></tr>`).join('') + '</tbody>';
+  }
+
+  /* ---------- Part IV ---------- */
+  const G4 = [[1,50],[10,54],[20,58],[30,61],[40,63],[50,66],[60,68],[70,70],[77,71],[78,70],[79,70],[82,69],[85,67],[86,66],[87,42],[90,32],[95,26],[100,22],[110,18],[120,15],[135,11],[150,8],[165,5],[180,3]];
+  function renderG4() {
+    const { c: g, w, h: H } = ctxOf($('g4')); const L = 50, T = 12, Wd = w - L - 14, Hd = H - T - 40;
+    const X = m => L + Wd * (m - 1) / 179, Y = v => T + Hd * (1 - v / 100);
+    axes(g, L, T, Wd, Hd, [1, 40, 80, 120, 160, 180].map(m => [X(m), m]), [0, 25, 50, 75, 100].map(v => [Y(v), v + '%']), 'Move number', 'P(AlphaGo wins)');
+    g.setLineDash([2, 3]); g.strokeStyle = css('--muted'); g.lineWidth = 1; g.beginPath(); g.moveTo(X(1), Y(50)); g.lineTo(X(180), Y(50)); g.stroke(); g.setLineDash([]);
+    g.font = '11px ' + css('--font-mono'); g.fillStyle = css('--curve'); g.strokeStyle = css('--curve'); g.lineWidth = 1.5;
+    for (const [m, s, al] of [[78, '78: wedge', 'right'], [87, '87: dive', 'left']]) { g.beginPath(); g.moveTo(X(m), T); g.lineTo(X(m), T + Hd); g.stroke(); g.textAlign = al; g.textBaseline = 'top'; g.fillText(s, X(m) + (al === 'left' ? 5 : -5), T + 2); }
+    g.strokeStyle = css('--accent'); g.lineWidth = 2.5; g.beginPath(); G4.forEach(([m, v], i) => i ? g.lineTo(X(m), Y(v)) : g.moveTo(X(m), Y(v))); g.stroke();
+    g.fillStyle = css('--accent'); g.beginPath(); g.arc(X(79), Y(70), 4, 0, 7); g.fill();
+    g.fillStyle = css('--muted'); g.textAlign = 'left'; g.fillText('resigns at 180', X(118), Y(30));
+  }
+  function lgam(x) { const c = [676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]; if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgam(1 - x); x -= 1; let a = 0.99999999999980993; const t = x + 7.5; for (let i = 0; i < 8; i++) a += c[i] / (x + i + 1); return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a); }
+  const beta = (x, a, b) => x <= 0 || x >= 1 ? 0 : Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) + lgam(a + b) - lgam(a) - lgam(b));
+  const fA = x => beta(x, 35, 15), fB = x => 0.8 * beta(x, 40, 10) + 0.2 * beta(x, 6, 14);
+  function quant(f, q) { let s = 0; const d = 1e-4; for (let x = d / 2; x < 1; x += d) { s += f(x) * d; if (s >= q) return x; } return 1; }
+  const qA = [0.1, 0.5].map(q => quant(fA, q)), qB = [0.1, 0.5].map(q => quant(fB, q));
+  function renderQD() {
+    const { c: g, w, h: H } = ctxOf($('qd')); const L = 50, T = 12, Wd = w - L - 14, Hd = H - T - 40;
+    let mx = 0; for (let x = 0.005; x < 1; x += 0.005) mx = Math.max(mx, fA(x), fB(x));
+    const X = x => L + Wd * x, Y = d => T + Hd * (1 - d / (mx * 1.08));
+    axes(g, L, T, Wd, Hd, [0, .25, .5, .75, 1].map(v => [X(v), pct(v)]), [[Y(0), '0']], 'Win probability', 'Density');
+    for (const [f, col, q] of [[fA, '--accent', qA[0]], [fB, '--curve', qB[0]]]) {
+      g.strokeStyle = css(col); g.lineWidth = 2.5; g.beginPath(); for (let i = 0; i <= 400; i++) { const x = i / 400; i ? g.lineTo(X(x), Y(f(x))) : g.moveTo(X(x), Y(f(x))); } g.stroke();
+      g.setLineDash([4, 3]); g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(q), T + Hd); g.lineTo(X(q), Y(f(q))); g.stroke(); g.setLineDash([]);
+    }
+    g.setLineDash([5, 4]); g.strokeStyle = css('--ink'); g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(0.7), T); g.lineTo(X(0.7), T + Hd); g.stroke(); g.setLineDash([]);
+    $('qdT').textContent = `Both means are 70% (dashed black line). The 10% quantile (short dashes) is ${pct(qA[0])} for the confident value and ${pct(qB[0])} for the fat-tailed one; their medians are ${pct(qA[1])} and ${pct(qB[1])}. A mean alone cannot tell them apart.`;
+  }
+
+  function all() { render(); renderFV(); renderG4(); renderQD(); }
+  all();
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(all, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+})();
+</script>
+</body></html>
