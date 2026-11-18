@@ -1925,7 +1925,7 @@ Give me the code and the two figures.</pre>
     $('q4s').textContent = step.toLocaleString('en-US'); const e = err(); $('q4e').textContent = e.toFixed(3);
     const m = $('q4m');
     m.className = 'msg' + (step < 1000 ? ' warn' : '');
-    m.innerHTML = step === 0 ? 'The weights are random, so the curves are noise. Press Train.'
+    m.innerHTML = step === 0 ? 'The weights are random, so the curves and the draws are noise, nowhere near the data. Press Train and watch them move onto the two branches.'
       : step < 1000 ? `After ${step.toLocaleString('en-US')} steps the outer quantiles are taking shape; the middle ones still blur the two branches.`
       : `After ${step.toLocaleString('en-US')} steps the average distance between learned and true quantiles is <b>${e.toFixed(3)}</b>. Where the branches separate, the τ = 0.5 curve can sit anywhere between them: every point in the gap has almost the same pinball loss at τ = 0.5, so the learned median may hug one branch while the true median (dashed) runs down the middle. The draws at x = ${xs.toFixed(2)} still find both modes, because the whole function of τ jumps across the gap.`;
   }
@@ -1933,6 +1933,9 @@ Give me the code and the two figures.</pre>
   function loop() { if (!running) return; train(25); step4(); if (step >= goal) { running = false; $('q4go').textContent = 'Train more'; return; } requestAnimationFrame(loop); }
   $('q4go').addEventListener('click', () => { running = !running; $('q4go').textContent = running ? 'Pause' : 'Train'; if (running) { if (step >= goal) goal = step + 6000; loop(); } });
   $('q4rs').addEventListener('click', () => { running = false; goal = 0; $('q4go').textContent = 'Train'; init(); step4(); });
+  // start training by itself the first time Step 4 scrolls into view, so nobody meets the untrained network by accident
+  let autoStarted = false;
+  if ('IntersectionObserver' in window) new IntersectionObserver((es, ob) => { if (!autoStarted && es.some(e => e.isIntersecting) && step === 0 && !running) { autoStarted = true; ob.disconnect(); $('q4go').click(); } }, { threshold: 0.3 }).observe($('q4a'));
   $('q4x').addEventListener('input', step4);
 
   init();
