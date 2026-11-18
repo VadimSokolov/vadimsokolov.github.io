@@ -158,6 +158,15 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .tex mjx-container[display="true"] { margin: 6px 0 !important; }
 mjx-container { font-size: 105%; }
 .eq .m mjx-container { font-size: 100%; }
+.mix { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; min-height: 92px; }
+.dot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); }
+.dot.heavy { background: var(--ball); }
+.lesson .rooms { grid-column: 1 / -1; }
+.rooms { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 700px) { .rooms { grid-template-columns: 1fr; } }
+.room { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+.room h3 { font-family: var(--font-display); font-size: 16px; margin: 0 0 4px; }
+.room .sub { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
 </style>
 </head><body>
 
@@ -335,6 +344,33 @@ mjx-container { font-size: 105%; }
       <li>Load pink vs black and switch between two-sided and one-sided. The one-sided p-value is exactly half. Then pick "B &lt; A": the p-value is near 1, because the data point the other way.</li>
       <li>Load Karaca. With 20,000 sessions per arm the lab's CI is wider than the original example's. Ask students how many sessions that narrower interval implies (about 34,000 per arm).</li>
     </ol>
+  </section>
+
+  <section class="lesson" id="random">
+    <div class="head">
+      <span class="eyebrow">Random assignment</span>
+      <h2>The same page, two ways of filling the rooms</h2>
+      <p class="hint" style="font-size:14px;max-width:80ch">Heavy buyers convert at 40% on the old page and 43% on the new one. Light buyers convert at 10% and 13%. The new page is worth 3 points for either kind of customer. Each dot is five customers. Gold dots are heavy buyers, blue dots are light buyers.</p>
+      <div class="demo">
+        <button class="primary" id="asCoin" aria-pressed="true">Flip a coin</button>
+        <button id="asChoose" aria-pressed="false">Let people choose</button>
+      </div>
+    </div>
+    <div class="rooms">
+      <div class="room">
+        <h3>Old page</h3>
+        <p class="sub" id="oldSub"></p>
+        <div class="mix" id="oldMix"></div>
+      </div>
+      <div class="room">
+        <h3>New page</h3>
+        <p class="sub" id="newSub"></p>
+        <div class="mix" id="newMix"></div>
+      </div>
+    </div>
+    <div class="takeaway">
+      <p id="asText"></p>
+    </div>
   </section>
 </div>
 
@@ -769,6 +805,39 @@ mjx-container { font-size: 105%; }
 
   resize(); loadPreset('pGoogle'); anim = 1;
   requestAnimationFrame(frame);
+})();
+</script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  // 100 heavy and 100 light customers. Each dot stands for five.
+  // Choice: 85 heavy and 15 light pick the new page. A coin split is 50/50.
+  const scenes = {
+    coin: {
+      oldH: 10, oldL: 10, newH: 10, newL: 10,
+      text: 'A coin puts the same mix in both rooms, 50 heavy and 50 light. The new page converts at 28% and the old page at 25%. The 3 point gap is the page. Heavy buyers alone, and light buyers alone, show the same 3 points.'
+    },
+    choose: {
+      oldH: 3, oldL: 17, newH: 17, newL: 3,
+      text: 'When heavy buyers flock to the new page, that room converts at about 39% and the old room at about 15%. A 24 point gap. Split the rooms by buyer type and the page is still worth 3 points. The other 21 points are who walked in.'
+    }
+  };
+  function dots(heavy, light) {
+    return '<i class="dot heavy"></i>'.repeat(heavy) + '<i class="dot"></i>'.repeat(light);
+  }
+  function show(mode) {
+    const s = scenes[mode];
+    $('oldMix').innerHTML = dots(s.oldH, s.oldL);
+    $('newMix').innerHTML = dots(s.newH, s.newL);
+    $('oldSub').textContent = `${s.oldH * 5} heavy, ${s.oldL * 5} light`;
+    $('newSub').textContent = `${s.newH * 5} heavy, ${s.newL * 5} light`;
+    $('asText').textContent = s.text;
+    $('asCoin').setAttribute('aria-pressed', mode === 'coin');
+    $('asChoose').setAttribute('aria-pressed', mode === 'choose');
+  }
+  $('asCoin').onclick = () => show('coin');
+  $('asChoose').onclick = () => show('choose');
+  show('coin');
 })();
 </script>
 

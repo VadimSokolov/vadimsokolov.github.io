@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>What a Model Sees</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0;
+  --accent: #2257b0; --on-accent: #ffffff; --curve: #c23a2e; --fit: #0e7f73; --ball: #c9811a;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440;
+    --accent: #6b9ff0; --on-accent: #0b1320; --curve: #ff7466; --fit: #3cc7b4; --ball: #f0aa3c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440;
+  --accent: #6b9ff0; --on-accent: #0b1320; --curve: #ff7466; --fit: #3cc7b4; --ball: #f0aa3c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1100px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; display: flex; flex-direction: column; gap: 20px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.lead, .src { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+.src { font-size: 13px; }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; }
+.src a, .back:hover { color: var(--accent); }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 12px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.board { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.board h2 { font-family: var(--font-display); font-size: 22px; margin: 0; }
+.big { font-family: var(--font-display); font-size: 64px; line-height: 1; margin: 0; }
+.row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 720px) { .row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cell { background: var(--board); border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-width: 0; }
+.cell.off { opacity: .35; }
+.cell .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cell .v { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+.grid8 { display: grid; grid-template-columns: repeat(8, 28px); gap: 3px; }
+.px { width: 28px; height: 28px; border-radius: 3px; border: 1px solid var(--line); background: var(--board); padding: 0; font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.px.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.words { display: flex; flex-wrap: wrap; gap: 8px; }
+.words button { font-weight: 700; }
+.near { display: flex; flex-wrap: wrap; gap: 8px; min-height: 42px; }
+.chip { background: var(--board); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+.call { border-left: 4px solid var(--fit); padding: 4px 0 4px 12px; margin: 0; max-width: 70ch; }
+.call.bad { border-left-color: var(--curve); }
+</style>
+</head><body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Scalar, vector, matrix, embedding</span>
+    <h1>What a model sees</h1>
+    <p class="lead">A model never sees a customer, a photograph, or a word. It sees a number, a row of numbers, a table of numbers, or a point that stands for a word.</p>
+    <a class="back" href="index.html">← All labs</a>
+  </header>
+  <p class="src">The customer is invented. The word neighbors are a sketch of the idea in <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>, not a model trained on War and Peace. In that chapter, military words and social words do not fall into two neat camps.</p>
+  <div class="seg" role="tablist">
+    <button id="t1" aria-pressed="true">One number</button>
+    <button id="t2" aria-pressed="false">A row of features</button>
+    <button id="t3" aria-pressed="false">A picture</button>
+    <button id="t4" aria-pressed="false">A word</button>
+  </div>
+  <section class="board" id="pane" aria-live="polite"></section>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const FOUR = [0,0,1,1,0,0,0,0, 0,0,0,1,0,0,0,0, 0,0,1,1,0,0,0,0, 0,1,0,1,0,0,0,0, 1,1,1,1,1,0,0,0, 0,0,0,1,0,0,0,0, 0,0,0,1,0,0,0,0, 0,0,0,1,0,0,0,0];
+  let pix = FOUR.slice(), showNum = false, dropReturn = false, word = 'king';
+  const near = {
+    king: ['queen', 'crown', 'man', 'ruler'],
+    queen: ['king', 'crown', 'woman', 'ruler'],
+    man: ['woman', 'king', 'person'],
+    woman: ['man', 'queen', 'person'],
+    paris: ['france', 'city', 'rome'],
+    france: ['paris', 'country', 'italy'],
+    rome: ['italy', 'city', 'paris'],
+    italy: ['rome', 'country', 'france'],
+    war: ['battle', 'army', 'soldier'],
+    peace: ['treaty', 'home', 'family'],
+    happy: ['glad', 'joy', 'smile'],
+    unhappiness: ['orbit', 'kiln', 'tuesday']
+  };
+  const modes = ['t1', 't2', 't3', 't4'];
+  function tab(id) { modes.forEach(m => $(m).setAttribute('aria-pressed', m === id)); }
+  function customer() {
+    const stay = dropReturn;
+    return `<h2>A row of features</h2>
+      <p>Same customer. The model does not see a person. It sees this row. Drop “returned an item” and the call changes, because that was the feature doing the work.</p>
+      <div class="row">
+        <div class="cell"><div class="k">Spent today</div><div class="v">$42</div></div>
+        <div class="cell"><div class="k">Visits</div><div class="v">7</div></div>
+        <div class="cell"><div class="k">Days since order</div><div class="v">3</div></div>
+        <div class="cell"><div class="k">Country</div><div class="v">US</div></div>
+        <div class="cell ${dropReturn ? 'off' : ''}"><div class="k">Returned an item</div><div class="v">${dropReturn ? 'hidden' : 'Yes'}</div></div>
+      </div>
+      <p class="call ${stay ? '' : 'bad'}">${stay ? 'Without the return, the row looks like a healthy customer. The call is: they stay.' : 'With the return on the row, the call is: they leave.'}</p>
+      <button id="drop" aria-pressed="${dropReturn}">${dropReturn ? 'Put the return back' : 'Hide the return'}</button>`;
+  }
+  function picture() {
+    const cells = pix.map((v, i) => `<button class="px ${v ? 'on' : ''}" data-i="${i}">${showNum ? v : ''}</button>`).join('');
+    return `<h2>A picture is a table</h2>
+      <p>Click a square to draw. The model never sees the drawing. It sees one number per square.</p>
+      <div class="grid8" id="pix">${cells}</div>
+      <button id="nums" aria-pressed="${showNum}">${showNum ? 'Hide the numbers' : 'Show the numbers'}</button>
+      <button id="reset4">Reset to a 4</button>`;
+  }
+  function words() {
+    const chips = Object.keys(near).map(w => `<button data-w="${w}" aria-pressed="${w === word}">${w}</button>`).join('');
+    const list = near[word].map(w => `<span class="chip">${w}</span>`).join('');
+    const broken = word === 'unhappiness' ? '<p class="call bad">“unhappiness” is not sitting next to “happy”. A word-level model stores the whole word as its own point and never takes it apart; models that split words into pieces can link it to “happy” through a shared piece.</p>' : '';
+    return `<h2>A word is a point near other words</h2>
+      <p>Neighbors are words that showed up in the same kinds of sentences. Paris goes with France the way Rome goes with Italy. That is the whole trick.</p>
+      <div class="words" id="wlist">${chips}</div>
+      <div class="near">${list}</div>
+      ${broken}`;
+  }
+  function render(mode) {
+    tab(mode);
+    const pane = $('pane');
+    if (mode === 't1') {
+      pane.innerHTML = `<h2>One number</h2><p class="big">$42</p><p>Amount this customer spent today. “Send a coupon if they spent more than $40” can be decided from this number alone. “Will they still be a customer next year?” cannot. One number is a scalar. It is enough only when the decision really is about that number.</p>`;
+      return;
+    }
+    if (mode === 't2') { pane.innerHTML = customer(); $('drop').onclick = () => { dropReturn = !dropReturn; render('t2'); }; return; }
+    if (mode === 't3') {
+      pane.innerHTML = picture();
+      pane.querySelectorAll('.px').forEach(b => b.onclick = () => { pix[+b.dataset.i] = pix[+b.dataset.i] ? 0 : 1; render('t3'); });
+      $('nums').onclick = () => { showNum = !showNum; render('t3'); };
+      $('reset4').onclick = () => { pix = FOUR.slice(); render('t3'); };
+      return;
+    }
+    pane.innerHTML = words();
+    pane.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { word = b.dataset.w; render('t4'); });
+  }
+  $('t1').onclick = () => render('t1');
+  $('t2').onclick = () => render('t2');
+  $('t3').onclick = () => render('t3');
+  $('t4').onclick = () => render('t4');
+  render('t1');
+})();
+</script>
+</body></html>

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#fafafa}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>How a Language Model Behaves</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #eceff3; --surface: #ffffff; --board: #f7f8fa; --ink: #17212c; --muted: #5a6674; --line: #d3d9e0;
+  --accent: #2257b0; --on-accent: #ffffff; --curve: #c23a2e; --fit: #0e7f73; --ball: #c9811a;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440;
+    --accent: #6b9ff0; --on-accent: #0b1320; --curve: #ff7466; --fit: #3cc7b4; --ball: #f0aa3c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --board: #121920; --ink: #e5eaf0; --muted: #98a4b1; --line: #2a3440;
+  --accent: #6b9ff0; --on-accent: #0b1320; --curve: #ff7466; --fit: #3cc7b4; --ball: #f0aa3c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1100px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 56px; display: flex; flex-direction: column; gap: 22px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 24px; margin: 0; text-wrap: balance; }
+.lead, .src { color: var(--muted); max-width: 74ch; }
+.lead { margin: 4px 0 0; font-size: 16px; }
+.src { margin: 0; font-size: 13px; }
+.back, .src a { color: var(--accent); }
+.back { font-size: 13px; text-decoration: none; }
+.sec { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.tokens { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tok { font-family: var(--font-mono); background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+.tok.next { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.bar { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 14px; }
+.track { height: 12px; background: var(--board); border-radius: 99px; overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--accent); }
+.pct { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 8px; padding: 9px 12px; cursor: pointer; border: 1px solid var(--line); background: var(--board); color: var(--ink); }
+button:hover { border-color: var(--accent); }
+button.primary, button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.pair { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+.digit { display: grid; grid-template-columns: repeat(5, 22px); gap: 3px; }
+.digit i { width: 22px; height: 22px; border-radius: 3px; background: var(--board); border: 1px solid var(--line); }
+.digit i.on { background: var(--ink); border-color: var(--ink); }
+.stage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 800px) { .stage { grid-template-columns: 1fr; } }
+.card { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+.card h3 { font-family: var(--font-display); font-size: 16px; margin: 0 0 6px; }
+.card p { margin: 0; }
+.say { margin-top: 8px; font-family: var(--font-display); font-size: 18px; }
+</style>
+</head><body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Polson–Sokolov Lab · Generation, modalities, training</span>
+    <h1>How a language model behaves</h1>
+    <p class="lead">It guesses the next token. A picture becomes tokens the same way a sentence does. Training changes which guess you get, and a badly chosen reward changes it in the wrong direction.</p>
+    <a class="back" href="index.html">← All labs</a>
+  </header>
+  <p class="src">The bars are a sketch of the next-token idea in <a href="https://vsokolov.org/html/_book/24-llm.html">Chapter 24</a>, not the output of a live model. The Next-Token Lab is the same idea with a distribution you can edit. Agents, tools, and prompt injection are taught in the agentic-AI week, not here.</p>
+
+  <section class="sec">
+    <h2>Guess the next word</h2>
+    <p>The sentence so far is a list of tokens. The model puts a weight on each word that could come next. “Stay with the likely word” keeps picking the tallest bar. “Allow surprises” sometimes picks a shorter one.</p>
+    <div class="tokens" id="sofar"></div>
+    <div id="bars"></div>
+    <div class="row">
+      <button class="primary" id="go">Write the next word</button>
+      <button id="reset">Start over</button>
+      <button id="temp" aria-pressed="false">Allow surprises</button>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>A picture takes the same next step</h2>
+    <p>Switch the drawing. Under it, the picture has already been cut into tokens. The next token is the model’s name for what it sees. The machinery did not change. Only the tokens in front of it changed.</p>
+    <div class="pair">
+      <div>
+        <div class="digit" id="digit"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="d7" aria-pressed="true">A seven</button>
+          <button id="d4" aria-pressed="false">A four</button>
+        </div>
+      </div>
+      <div>
+        <div class="tokens" id="ptoks"></div>
+        <p class="say" id="pname"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Three stages, one question</h2>
+    <p>The question is “What is the capital of France?” Each stage was trained with a different job.</p>
+    <div class="stage">
+      <article class="card"><h3>Pre-training</h3><p>Read a huge amount of text and practice guessing the next token.</p><p class="say">“… Paris, a city of about two million on the Seine.”</p></article>
+      <article class="card"><h3>Post-training</h3><p>Shown questions paired with the shape of an answer.</p><p class="say">“Paris.”</p></article>
+      <article class="card"><h3>A reward for sounding thorough</h3><p>Paid when the answer is long and confident, whether or not it is careful.</p><p class="say">“A rich question. European capitals have long histories, and while Paris is often mentioned one should also weigh Lyon.”</p></article>
+    </div>
+    <p>Pre-training teaches what tends to come next. Post-training teaches the shape of an answer. A reward teaches whatever you paid for, including the wrong thing. Checking the reward is an evaluation problem, which is next week.</p>
+  </section>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const start = ['The', 'capital', 'of', 'France', 'is'];
+  const steps = [
+    [['Paris', 62], ['Lyon', 9], ['a', 8], ['the', 7], ['Marseille', 5]],
+    [['.', 40], [',', 28], ['which', 12], ['and', 8], ['a', 6]],
+    [['The', 22], ['It', 18], ['Paris', 16], ['A', 11], ['This', 8]]
+  ];
+  let i = 0, words = start.slice(), surprise = false;
+  function pick(opts) {
+    if (!surprise) return opts[0][0];
+    const t = opts.reduce((s, x) => s + x[1], 0);
+    let r = Math.random() * t;
+    for (const [w, p] of opts) { r -= p; if (r <= 0) return w; }
+    return opts[0][0];
+  }
+  function draw() {
+    const opts = steps[Math.min(i, steps.length - 1)];
+    $('sofar').innerHTML = words.map(w => `<span class="tok">${w}</span>`).join('') + (i < steps.length ? '<span class="tok next">?</span>' : '');
+    $('bars').innerHTML = opts.map(([w, p]) => `<div class="bar"><span>${w}</span><span class="track"><i style="width:${p}%"></i></span><span class="pct">${p}</span></div>`).join('');
+    $('go').disabled = i >= steps.length;
+  }
+  $('go').onclick = () => {
+    if (i >= steps.length) return;
+    words.push(pick(steps[i]));
+    i++;
+    draw();
+  };
+  $('reset').onclick = () => { i = 0; words = start.slice(); draw(); };
+  $('temp').onclick = () => { surprise = !surprise; $('temp').setAttribute('aria-pressed', surprise); $('temp').textContent = surprise ? 'Stay with the likely word' : 'Allow surprises'; };
+  const digits = {
+    d7: [0,1,1,1,0, 0,0,0,1,0, 0,0,1,0,0, 0,1,0,0,0, 1,0,0,0,0],
+    d4: [0,0,1,0,0, 0,1,1,0,0, 1,0,1,0,0, 1,1,1,1,0, 0,0,1,0,0]
+  };
+  const names = { d7: 'The next token is “seven”.', d4: 'The next token is “four”.' };
+  function showDigit(id) {
+    $('digit').innerHTML = digits[id].map(v => `<i class="${v ? 'on' : ''}"></i>`).join('');
+    $('ptoks').innerHTML = '<span class="tok">image</span><span class="tok">patch</span><span class="tok">patch</span><span class="tok">patch</span><span class="tok next">?</span>';
+    $('pname').textContent = names[id];
+    $('d7').setAttribute('aria-pressed', id === 'd7');
+    $('d4').setAttribute('aria-pressed', id === 'd4');
+  }
+  $('d7').onclick = () => showDigit('d7');
+  $('d4').onclick = () => showDigit('d4');
+  draw();
+  showDigit('d7');
+})();
+</script>
+</body></html>
