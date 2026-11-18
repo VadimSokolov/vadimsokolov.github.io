@@ -66,6 +66,11 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chip.win { background: var(--fit); color: var(--on-accent); border-color: var(--fit); }
 .box { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .box h3 { font-family: var(--font-display); font-size: 17px; margin: 0; }
+.akg { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .akg { grid-template-columns: 1fr; } }
+.akg figure { margin: 0; min-width: 0; }
+.akg canvas { width: 100%; display: block; background: var(--board); border-radius: 8px; }
+.akg figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
 .asked { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
 </style>
 </head><body>
@@ -76,13 +81,14 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <p class="lead">A model never sees a customer, a photograph, or a word. It sees a number, a row of numbers, a table of numbers, or a point that stands for a word.</p>
     <a class="back" href="index.html">← All labs</a>
   </header>
-  <p class="src">The Twenty Questions tab follows the game that opens the embeddings section of <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>; the bear, dog and cat yes/no rows are the book's; the other rows, the extra questions, the probabilities and the fruit example are ours. The customer is invented. The word neighbors are a sketch of the idea in <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>, not a model trained on War and Peace. In that chapter, military words and social words do not fall into two neat camps.</p>
+  <p class="src">The Twenty Questions tab follows the game that opens the embeddings section of <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>; the bear, dog and cat yes/no rows are the book's; the other rows, the extra questions, the probabilities and the fruit example are ours. The customer is invented. The word neighbors are a sketch of the idea in <a href="https://vsokolov.org/html/_book/23-nlp.html">Chapter 23</a>, not a model trained on War and Peace. In that chapter, military words and social words do not fall into two neat camps. The Anna Karenina tab redraws Figure 3 of Huh, Cheung, Wang and Isola, <a href="https://arxiv.org/abs/2405.07987">The Platonic Representation Hypothesis</a> (ICML 2024), with simulated models in place of their 78 vision models.</p>
   <div class="seg" role="tablist">
     <button id="t1" aria-pressed="true">One number</button>
     <button id="t2" aria-pressed="false">A row of features</button>
     <button id="t3" aria-pressed="false">A picture</button>
     <button id="t5" aria-pressed="false">Twenty questions</button>
     <button id="t4" aria-pressed="false">A word</button>
+    <button id="t6" aria-pressed="false">Anna Karenina</button>
   </div>
   <section class="board" id="pane" aria-live="polite"></section>
 </div>
@@ -105,7 +111,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     happy: ['glad', 'joy', 'smile'],
     unhappiness: ['orbit', 'kiln', 'tuesday']
   };
-  const modes = ['t1', 't2', 't3', 't5', 't4'];
+  const modes = ['t1', 't2', 't3', 't5', 't4', 't6'];
   /* Twenty questions (book, Chapter 23): a word as a row of answers. Answers are yes/no, or numbers between 0 and 1:
      a probability of yes (animals) or a degree (fruit). The game keeps a posterior over the words by Bayes' rule. */
   const SETS = {
@@ -247,6 +253,166 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <div class="near">${list}</div>
       ${broken}`;
   }
+  /* Anna Karenina (Huh, Cheung, Wang and Isola 2024, Fig. 3): models that solve more tasks agree more on which items are neighbors.
+     Simulation: 200 items have 6 real attributes z and 30 incidental ones u. A model with competence c sees tanh(W [c z ; (1-c) S u]),
+     where S is the model's own shortcut (a random mix of incidental attributes) or one shortcut shared by all models. */
+  let akShared = false, akM = 40, akK = 10, akSeed = 1, akRun = null, akHover = -1;
+  const AKN = 200, AKZ = 6, AKU = 30, AKH = 12, AKT = 8, AKPASS = 0.85;
+  function akRng(s) { return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function akSolve(A, b) {
+    const n = b.length, a = A.map((r, i) => [...r, b[i]]);
+    for (let i = 0; i < n; i++) {
+      let p = i; for (let j = i + 1; j < n; j++) if (Math.abs(a[j][i]) > Math.abs(a[p][i])) p = j;
+      [a[i], a[p]] = [a[p], a[i]];
+      for (let j = i + 1; j < n; j++) { const f = a[j][i] / a[i][i]; for (let k = i; k <= n; k++) a[j][k] -= f * a[i][k]; }
+    }
+    const x = Array(n).fill(0);
+    for (let i = n - 1; i >= 0; i--) { let s = a[i][n]; for (let k = i + 1; k < n; k++) s -= a[i][k] * x[k]; x[i] = s / a[i][i]; }
+    return x;
+  }
+  function akSimulate() {
+    const R = akRng(akSeed * 7919), gn = () => { let u = 0; while (!u) u = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * R()); };
+    const vec = d => Array.from({ length: d }, gn), mat = (r, c) => Array.from({ length: r }, () => vec(c).map(v => v / Math.sqrt(c)));
+    const Z = Array.from({ length: AKN }, () => vec(AKZ)), U = Array.from({ length: AKN }, () => vec(AKU));
+    const Y = Array.from({ length: AKT }, () => { const a = vec(AKZ); return Z.map(z => z.reduce((s, v, i) => s + v * a[i], 0) > 0 ? 1 : -1); });
+    const common = mat(AKZ, AKU), half = AKN / 2, models = [];
+    for (let m = 0; m < akM; m++) {
+      const c = (m + R()) / akM, S = akShared ? common : mat(AKZ, AKU), W = mat(AKH, 2 * AKZ);
+      const H = Z.map((z, i) => { const s = S.map(r => r.reduce((a, v, j) => a + v * U[i][j], 0)); const x = [...z.map(v => c * v), ...s.map(v => (1 - c) * v)]; return W.map(r => Math.tanh(r.reduce((a, v, j) => a + v * x[j], 0))); });
+      let solved = 0;
+      for (let t = 0; t < AKT; t++) {   /* linear probe: fit on the first 100 items, score on the other 100 */
+        const XtX = Array.from({ length: AKH + 1 }, () => Array(AKH + 1).fill(0)), Xty = Array(AKH + 1).fill(0);
+        for (let i = 0; i < half; i++) { const x = [1, ...H[i]]; for (let a = 0; a <= AKH; a++) { Xty[a] += x[a] * Y[t][i]; for (let b = 0; b <= AKH; b++) XtX[a][b] += x[a] * x[b]; } }
+        for (let a = 0; a <= AKH; a++) XtX[a][a] += 1e-3;
+        const w = akSolve(XtX, Xty); let ok = 0;
+        for (let i = half; i < AKN; i++) { const x = [1, ...H[i]]; ok += (x.reduce((s, v, j) => s + v * w[j], 0) > 0 ? 1 : -1) === Y[t][i]; }
+        if (ok / half >= AKPASS) solved++;
+      }
+      const order = H.map((h, i) => H.map((g, j) => [j === i ? Infinity : h.reduce((s, v, k) => s + (v - g[k]) ** 2, 0), j]).sort((a, b) => a[0] - b[0]).map(d => d[1]));
+      models.push({ c, solved, order });
+    }
+    akRun = { models, key: `${akSeed}|${akShared}|${akM}` };
+    akHover = -1;
+  }
+  function akAlign() {   /* mutual k nearest neighbors: share of each item's k neighbors that both models list, averaged over items */
+    const ms = akRun.models, M = ms.length, sets = ms.map(m => m.order.map(o => new Set(o.slice(0, akK))));
+    const A = Array.from({ length: M }, () => Array(M).fill(1));
+    for (let a = 0; a < M; a++) for (let b = a + 1; b < M; b++) {
+      let s = 0; for (let i = 0; i < AKN; i++) for (const j of sets[a][i]) if (sets[b][i].has(j)) s++;
+      A[a][b] = A[b][a] = s / AKN / akK;
+    }
+    return A;
+  }
+  function akMDS(A) {   /* classical scaling of the distance 1 - alignment, two largest eigenvectors by power iteration */
+    const M = A.length, D2 = A.map(r => r.map(v => (1 - v) ** 2));
+    const rm = D2.map(r => r.reduce((a, b) => a + b, 0) / M), gm = rm.reduce((a, b) => a + b, 0) / M;
+    const B = D2.map((r, i) => r.map((v, j) => -0.5 * (v - rm[i] - rm[j] + gm)));
+    const out = [];
+    for (let e = 0; e < 2; e++) {
+      let v = Array.from({ length: M }, (_, i) => Math.sin(i * (e + 1) + 1)), lam = 0;
+      for (let it = 0; it < 300; it++) {
+        let w = B.map(r => r.reduce((s, x, j) => s + x * v[j], 0));
+        out.forEach(([u, l]) => { const d = u.reduce((s, x, j) => s + x * v[j], 0); w = w.map((x, j) => x - l * d * u[j]); });
+        lam = Math.hypot(...w); v = w.map(x => x / (lam || 1));
+      }
+      out.push([v, lam]);
+    }
+    return out[0][0].map((x, i) => [x * Math.sqrt(out[0][1]), out[1][0][i] * Math.sqrt(out[1][1])]);
+  }
+  const AKBINS = [[0, 1, '0–20%'], [2, 3, '20–40%'], [4, 4, '40–60%'], [5, 6, '60–80%'], [7, 8, '80–100%']];
+  function akHTML() {
+    return `<h2>All strong models are alike</h2>
+      <p>“All happy families are alike; each unhappy family is unhappy in its own way.” Huh, Cheung, Wang and Isola (2024) found the same pattern in 78 vision models. They gave every model the same pictures and asked, for each picture, which other pictures the model places nearest. Models that solve more downstream tasks agree more on those neighbors. Weak models disagree with the strong ones and with each other. The authors read this as a sign that strong models converge on one shared picture of the world, and called it the Platonic representation hypothesis.</p>
+      <p>Here the models are simulated, so you can see why. Each of ${AKN} items has ${AKZ} real attributes, which decide the answers to ${AKT} tasks, and ${AKU} incidental ones (think background and lighting). A model with competence c builds its ${AKH} features from c × the real attributes plus (1 − c) × its own shortcut, a mix of incidental attributes, then a random layer. A task counts as solved when a straight-line probe on the features gets at least ${Math.round(AKPASS * 100)}% of held-out items right.</p>
+      <div class="box">
+        <div class="seg" id="akS"><button data-s="own" aria-pressed="${!akShared}">Each weak model has its own shortcut</button><button data-s="shared" aria-pressed="${akShared}">All models share one shortcut</button></div>
+        <div class="seg" style="align-items:center;gap:14px">
+          <label>Models <input type="range" id="akM" min="20" max="60" step="5" value="${akM}"> <b id="akMv">${akM}</b></label>
+          <label>Neighbors k <input type="range" id="akK" min="3" max="30" value="${akK}"> <b id="akKv">${akK}</b></label>
+          <button id="akNew">New models</button>
+        </div>
+      </div>
+      <div class="akg">
+        <figure><canvas id="akA" height="300"></canvas><figcaption>Average alignment of the models inside each band of tasks solved (the paper's left panel). Dashed: two models that rank neighbors at random.</figcaption></figure>
+        <figure><canvas id="akB" height="300"></canvas><figcaption id="akCap">Each dot is a model, placed so that models that agree sit close (classical scaling of 1 − alignment). Color: tasks solved, from red (none) to blue (all ${AKT}). Point at a dot.</figcaption></figure>
+      </div>
+      <p class="call" id="akMsg"></p>
+      <p class="src">Alignment of models a and b = average over items of |N<sub>a</sub>(i) ∩ N<sub>b</sub>(i)| / k, where N<sub>a</sub>(i) holds the k items nearest to item i in model a's features. This is the paper's mutual nearest-neighbor score. The paper's data are real models on Places-365 and VTAB; the numbers here come from the simulation.</p>`;
+  }
+  function akColor(t, a = 1) {   /* red (0 tasks) to blue (all tasks) */
+    const r = [194, 58, 46], b = [34, 87, 176], f = t / AKT;
+    return `rgba(${r.map((v, i) => Math.round(v + (b[i] - v) * f)).join(',')},${a})`;
+  }
+  function akCtx(cv) {
+    if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+    const h = +cv.dataset.h, w = cv.clientWidth || 400, dpr = window.devicePixelRatio || 1;
+    cv.style.height = h + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+    return [c, w, h];
+  }
+  function akDraw() {
+    const key = `${akSeed}|${akShared}|${akM}`;
+    if (!akRun || akRun.key !== key) akSimulate();
+    const ms = akRun.models, A = akAlign(), XY = akMDS(A), css = getComputedStyle(document.documentElement);
+    const ink = css.getPropertyValue('--ink').trim(), muted = css.getPropertyValue('--muted').trim(), line = css.getPropertyValue('--line').trim();
+    const chance = akK / (AKN - 1);
+    /* left: intra-band alignment */
+    const bands = AKBINS.map(([lo, hi, lab]) => {
+      const idx = ms.map((m, i) => i).filter(i => ms[i].solved >= lo && ms[i].solved <= hi), v = [];
+      for (let a = 0; a < idx.length; a++) for (let b = a + 1; b < idx.length; b++) v.push(A[idx[a]][idx[b]]);
+      return { lab, n: idx.length, mean: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null, mid: (lo + hi) / 2 };
+    });
+    let [c, w, h] = akCtx($('akA'));
+    const L = 48, Rm = 12, T = 14, Bm = 44, ymax = Math.max(0.2, ...bands.map(b => b.mean || 0)) * 1.15;
+    const X = i => L + (i + 0.5) * (w - L - Rm) / bands.length, Yp = v => h - Bm - v / ymax * (h - T - Bm);
+    c.font = '12px ' + css.getPropertyValue('--font-mono'); c.strokeStyle = line; c.fillStyle = muted; c.lineWidth = 1;
+    for (let g = 0; g <= ymax + 1e-9; g += ymax > 0.5 ? 0.2 : 0.1) { c.beginPath(); c.moveTo(L, Yp(g)); c.lineTo(w - Rm, Yp(g)); c.stroke(); c.textAlign = 'right'; c.fillText(g.toFixed(1), L - 6, Yp(g) + 4); }
+    c.setLineDash([5, 4]); c.strokeStyle = muted; c.beginPath(); c.moveTo(L, Yp(chance)); c.lineTo(w - Rm, Yp(chance)); c.stroke(); c.setLineDash([]);
+    c.textAlign = 'center';
+    bands.forEach((b, i) => { c.fillStyle = muted; c.fillText(b.lab, X(i), h - Bm + 16); c.fillText(`${b.n} model${b.n === 1 ? '' : 's'}`, X(i), h - Bm + 31); });
+    c.save(); c.translate(13, (h - Bm + T) / 2); c.rotate(-Math.PI / 2); c.fillText('alignment inside the band', 0, 0); c.restore();
+    const pts = bands.map((b, i) => [i, b]).filter(([, b]) => b.mean !== null);
+    c.strokeStyle = ink; c.lineWidth = 2; c.beginPath(); pts.forEach(([i, b], k) => k ? c.lineTo(X(i), Yp(b.mean)) : c.moveTo(X(i), Yp(b.mean))); c.stroke();
+    pts.forEach(([i, b]) => { c.fillStyle = akColor(b.mid); c.beginPath(); c.arc(X(i), Yp(b.mean), 6, 0, 7); c.fill(); });
+    /* right: map of models */
+    [c, w, h] = akCtx($('akB'));
+    const xs = XY.map(p => p[0]), ys = XY.map(p => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), pad = 16;
+    const s = Math.min((w - 2 * pad) / (x1 - x0 || 1), (h - 2 * pad) / (y1 - y0 || 1));
+    const ox = (w - s * (x1 - x0)) / 2, oy = (h - s * (y1 - y0)) / 2;
+    akRun.xy = XY.map(([x, y]) => [ox + (x - x0) * s, oy + (y - y0) * s]);
+    c.strokeStyle = line; c.strokeRect(0.5, 0.5, w - 1, h - 1);
+    const order = ms.map((m, i) => i).sort((a, b) => ms[a].solved - ms[b].solved);
+    order.forEach(i => { const [x, y] = akRun.xy[i]; c.fillStyle = akColor(ms[i].solved, 0.85); c.beginPath(); c.arc(x, y, i === akHover ? 8 : 5.5, 0, 7); c.fill(); if (i === akHover) { c.strokeStyle = ink; c.lineWidth = 2; c.stroke(); } });
+    /* message */
+    const strong = bands[4], weak = bands[0];
+    const f = v => v === null ? 'n/a' : v.toFixed(2);
+    const top = ms.map((m, i) => i).filter(i => ms[i].solved >= 7), bot = ms.map((m, i) => i).filter(i => ms[i].solved <= 1);
+    const cross = []; top.forEach(a => bot.forEach(b => { cross.push(A[a][b]); }));
+    const cm = cross.length ? cross.reduce((s, x) => s + x, 0) / cross.length : null;
+    const msg = $('akMsg');
+    if (!akShared) { msg.className = 'call';
+      msg.innerHTML = `Strong models (7 or 8 tasks) agree at <b>${f(strong.mean)}</b>; weak models (0 or 1 task) agree with each other at <b>${f(weak.mean)}</b> and with the strong ones at ${f(cm)}; chance is ${chance.toFixed(2)}. On the map the blue dots bunch together and the red ones scatter: there is one way to be right and many ways to be wrong. Now make every model use the same shortcut.`; }
+    else { msg.className = 'call bad';
+      msg.innerHTML = `With one shared shortcut the weak models agree with each other at <b>${f(weak.mean)}</b>, against ${f(strong.mean)} for the strong ones, and the curve turns into a U. They are wrong in the same way, so they look alike. The Anna Karenina pattern needs failures that differ; when real models share a training set or an architecture, their mistakes can be shared too, and agreement alone does not show that a model is right.`; }
+  }
+  function akWire() {
+    const pane = $('pane');
+    pane.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { akShared = b.dataset.s === 'shared'; render('t6'); });
+    $('akM').oninput = () => { akM = +$('akM').value; $('akMv').textContent = akM; akDraw(); };
+    $('akK').oninput = () => { akK = +$('akK').value; $('akKv').textContent = akK; akDraw(); };
+    $('akNew').onclick = () => { akSeed++; akDraw(); };
+    const cv = $('akB');
+    cv.onmousemove = e => {
+      if (!akRun || !akRun.xy) return;
+      const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      let best = -1, bd = 144; akRun.xy.forEach(([px, py], i) => { const d = (px - x) ** 2 + (py - y) ** 2; if (d < bd) { bd = d; best = i; } });
+      if (best !== akHover) { akHover = best; akDraw();
+        $('akCap').textContent = best < 0 ? 'Each dot is a model, placed so that models that agree sit close.' : `This model: competence c = ${akRun.models[best].c.toFixed(2)}, solves ${akRun.models[best].solved} of ${AKT} tasks.`; }
+    };
+    akDraw();
+  }
+  window.addEventListener('resize', () => { if ($('akA')) akDraw(); });
   function render(mode) {
     tab(mode);
     const pane = $('pane');
@@ -262,6 +428,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       $('reset4').onclick = () => { pix = FOUR.slice(); render('t3'); };
       return;
     }
+    if (mode === 't6') { pane.innerHTML = akHTML(); akWire(); return; }
     if (mode === 't5') {
       const QS = QSf(), ITEMS = ITEMSf();
       pane.innerHTML = twenty();
@@ -299,6 +466,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   $('t3').onclick = () => render('t3');
   $('t4').onclick = () => render('t4');
   $('t5').onclick = () => render('t5');
+  $('t6').onclick = () => render('t6');
   render('t1');
 })();
 </script>
