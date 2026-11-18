@@ -109,6 +109,7 @@ table.stats { width: 100%; border-collapse: collapse; font-variant-numeric: tabu
 .sec h2 { font-family: var(--font-display); font-size: clamp(21px, 2.8vw, 26px); margin: 0; line-height: 1.15; }
 .sec .head p { margin: 0; color: var(--muted); }
 .sec .head p + p { margin-top: 4px; }
+.sec .head a { color: var(--accent); }
 .tex { background: var(--board); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; overflow-x: auto; overflow-y: hidden; margin: 6px 0 8px; }
 mjx-container { font-size: 105%; }
 .frame { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -165,19 +166,25 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <section class="sec" aria-labelledby="q1H">
     <div class="head">
       <h2 id="q1H">Step 1. Absolute loss: the median</h2>
-      <p>Eleven household incomes, in thousands of dollars. Pick one number \(q\) to summarize them and pay \(|y_i - q|\) for each. The average loss \(L(q) = \frac1n \sum_i |y_i - q|\) is a broken line. Its slope at \(q\) is (points below \(q\) minus points above \(q\)) divided by \(n\), so it is flat, and the loss is smallest, where as many points sit below as above: the median. Squared loss is minimized at the mean instead. Add the outlier and compare how far each one moves.</p>
+      <p>Eleven household incomes, in thousands of dollars. Pick one number \(\beta\) to summarize them and pay \(|y_i - \beta|\) for each. The book (<a href="https://vsokolov.org/html/_book/12-regression.html">Chapter 12</a> of <i>Bayes, Artificial Intelligence, and Deep Learning</i>) gives two arguments that the best \(\beta\) is the median.</p>
+      <p><b>Subgradient.</b> \(|x|\) has slope \(+1\) for \(x &gt; 0\), \(-1\) for \(x &lt; 0\), and any value in \([-1, 1]\) at \(x = 0\). So the slope of the total loss in \(\beta\) is</p>
+      <div class="tex">\[ \frac{\partial}{\partial \beta} \sum_{i=1}^n |y_i - \beta| = -\sum_{i=1}^n \operatorname{sign}(y_i - \beta) = \#\{y_i &lt; \beta\} - \#\{y_i &gt; \beta\}, \]</div>
+      <p>which is zero only when as many points lie below \(\beta\) as above it: the median. The right panel shows this slope.</p>
+      <p><b>Pairing from the outside in</b> (Schwertman, 1990), no calculus needed. Sort the data, \(y_{(1)} \le \dots \le y_{(n)}\), and pair \(y_{(i)}\) with \(y_{(n+1-i)}\). The two distances from \(\beta\) must together span the gap between the pair, so</p>
+      <div class="tex">\[ |y_{(i)} - \beta| + |y_{(n+1-i)} - \beta| \ \ge\ y_{(n+1-i)} - y_{(i)}, \qquad \sum_{i=1}^n |y_i - \beta| \ \ge\ \sum_{i \le n/2} \big( y_{(n+1-i)} - y_{(i)} \big), \]</div>
+      <p>with equality for a pair exactly when \(\beta\) lies between its two points. The bound on the right does not depend on \(\beta\), and the total reaches it only when \(\beta\) lies in every one of the nested intervals, that is in the innermost one: the middle point when \(n\) is odd, anywhere between the two middle points when \(n\) is even. The left panel draws the pairs. Move \(\beta\) out of the innermost interval and a pair starts to cost extra, twice its distance to \(\beta\) (once for the lone middle point when \(n\) is odd). Squared loss is minimized at the mean instead. Add the outlier and compare how far each one moves.</p>
     </div>
     <div class="grid">
       <div class="duo">
-        <div class="board"><span class="cap">The data and your q</span><canvas id="q1a" height="230"></canvas>
-          <div class="legend"><span><i class="sw acc"></i>your q</span><span><i class="sw red"></i>median</span><span><i class="sw dash"></i>mean</span></div></div>
-        <div class="board"><span class="cap">Average absolute loss L(q)</span><canvas id="q1b" height="230"></canvas>
-          <div class="legend"><span><i class="sw acc"></i>L(q)</span><span><i class="sw pt"></i>your q</span></div></div>
+        <div class="board"><span class="cap">The data, paired from the outside in, and your β</span><canvas id="q1a" height="230"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>your β</span><span><i class="sw red"></i>median</span><span><i class="sw dash"></i>mean</span><span><i class="sw"></i>pair holds β: costs its gap</span><span><i class="sw red" style="border-top-style:dashed"></i>extra cost of a pair that misses β</span></div></div>
+        <div class="board"><span class="cap">Average absolute loss L(β)</span><canvas id="q1b" height="230"></canvas>
+          <div class="legend"><span><i class="sw acc"></i>L(β)</span><span><i class="sw pt"></i>your β</span></div></div>
       </div>
       <div class="panel">
         <div class="group">
-          <div class="slider"><div class="top"><label for="q1q">Your summary q</label><output id="q1qO"></output></div><input id="q1q" type="range" min="20" max="110" step="0.5" value="70"></div>
-          <div class="checks"><label><input type="checkbox" id="q1o"> Add an outlier at 400</label></div>
+          <div class="slider"><div class="top"><label for="q1q">Your summary β</label><output id="q1qO"></output></div><input id="q1q" type="range" min="20" max="110" step="0.5" value="70"></div>
+          <div class="checks"><label><input type="checkbox" id="q1p" checked> Draw the pairs (uncheck for the distances to β)</label><label><input type="checkbox" id="q1o"> Add an outlier at 400</label></div>
         </div>
         <div class="group"><table class="stats" id="q1t"></table></div>
         <div class="group"><p class="msg" id="q1m"></p></div>
@@ -188,15 +195,15 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <section class="sec" aria-labelledby="q2H">
     <div class="head">
       <h2 id="q2H">Step 2. Tilt the V: the pinball loss gives any quantile</h2>
-      <p>Charge \(\tau\) per unit when the data lie above \(q\) and \(1 - \tau\) per unit when they lie below: \(\rho_\tau(u) = u\,(\tau - \mathbb 1\{u < 0\})\) with \(u = y - q\). At \(\tau = 0.5\) this is half the absolute loss. The slope of the average loss is now (share of points below \(q\)) minus \(\tau\), so the minimizer is the point with a share \(\tau\) of the data below it: the \(\tau\) quantile. One loss, indexed by \(\tau\), recovers the whole distribution one quantile at a time.</p>
-      <div class="tex">\[ Q(\tau) = \arg\min_q\ \mathbb E\,\rho_\tau(Y - q), \qquad \rho_\tau(u) = \max\{\tau u,\ (\tau - 1) u\} \]</div>
+      <p>Charge \(\tau\) per unit when the data lie above \(\beta\) and \(1 - \tau\) per unit when they lie below: \(\rho_\tau(u) = u\,(\tau - \mathbb 1\{u < 0\})\) with \(u = y - \beta\). At \(\tau = 0.5\) this is half the absolute loss. The slope of the average loss is now (share of points below \(\beta\)) minus \(\tau\), so the minimizer is the point with a share \(\tau\) of the data below it: the \(\tau\) quantile. One loss, indexed by \(\tau\), recovers the whole distribution one quantile at a time.</p>
+      <div class="tex">\[ Q(\tau) = \arg\min_\beta\ \mathbb E\,\rho_\tau(Y - \beta), \qquad \rho_\tau(u) = \max\{\tau u,\ (\tau - 1) u\} \]</div>
     </div>
     <div class="grid">
       <div class="duo">
         <div class="board"><span class="cap">The pinball loss ρ<sub>τ</sub>(u)</span><canvas id="q2a" height="230"></canvas>
           <div class="legend"><span><i class="sw acc"></i>ρ<sub>τ</sub> at your τ</span><span><i class="sw dash"></i>τ = 0.5, half of |u|</span></div></div>
         <div class="board"><span class="cap">Average pinball loss over the incomes</span><canvas id="q2b" height="230"></canvas>
-          <div class="legend"><span><i class="sw acc"></i>average ρ<sub>τ</sub>(y − q)</span><span><i class="sw red"></i>minimizer</span></div></div>
+          <div class="legend"><span><i class="sw acc"></i>average ρ<sub>τ</sub>(y − β)</span><span><i class="sw red"></i>minimizer</span></div></div>
       </div>
       <div class="panel">
         <div class="group"><div class="slider"><div class="top"><label for="q2t">Quantile level τ</label><output id="q2tO"></output></div><input id="q2t" type="range" min="0.05" max="0.95" step="0.01" value="0.8"></div></div>
@@ -208,7 +215,7 @@ code { font-family: var(--font-mono); font-size: 13px; }
   <section class="sec" aria-labelledby="q3H">
     <div class="head">
       <h2 id="q3H">Step 3. Let q depend on x: linear quantile regression</h2>
-      <p>Replace the constant \(q\) by a line, \(q_\tau(x) = a_\tau + b_\tau x\), and minimize the same average pinball loss over \(a\) and \(b\) (Koenker and Bassett, 1978). The problem is a linear program, and an optimal line passes through two of the data points, so the page finds it exactly by trying every pair. Five values of \(\tau\) give five lines. When the noise widens with \(x\), the lines fan out, which least squares, with one line for the mean, cannot show. Switch to the two-branch data and the lines fail: a straight line cannot follow a curve, and no single line can split into two branches.</p>
+      <p>Replace the constant \(\beta\) by a line, \(q_\tau(x) = a_\tau + b_\tau x\), and minimize the same average pinball loss over \(a\) and \(b\) (Koenker and Bassett, 1978). The problem is a linear program, and an optimal line passes through two of the data points, so the page finds it exactly by trying every pair. Five values of \(\tau\) give five lines. When the noise widens with \(x\), the lines fan out, which least squares, with one line for the mean, cannot show. Switch to the two-branch data and the lines fail: a straight line cannot follow a curve, and no single line can split into two branches.</p>
     </div>
     <div class="grid">
       <div class="board"><span class="cap">Fitted quantile lines for τ = 0.1, 0.25, 0.5, 0.75, 0.9</span><canvas id="q3a" height="320"></canvas>
@@ -803,7 +810,7 @@ Give me the code and the two figures.</pre>
   <section class="try">
     <h2>Try this in class</h2>
     <ol>
-      <li>In Part I, Step 1, slide q from 30 to 90 and watch the slope of L(q) step by 2/11 each time q passes a data point. Switch on the outlier: how far do the mean and the median move?</li>
+      <li>In Part I, Step 1, slide β from 30 to 90 and watch the slope of L(β) step by 2/11 each time β passes a data point. With the pairs drawn, count how many pairs miss β at each position and check that the extra cost is twice their distance to β. Switch on the outlier: how far do the mean and the median move?</li>
       <li>In Step 2, set τ to 0.1, 0.5 and 0.9. Before each move, predict which income will minimize the loss by counting points from the bottom. Why does a share τ of the data, not a distance, decide it?</li>
       <li>In Step 3, compare the slopes of the τ = 0.1 and τ = 0.9 lines on the widening fan. What would least squares report about the spread? Then switch to two branches: which line has the most points close to it, and why does the loss not mind?</li>
       <li>In Step 4, train the network and set x to 0.1, 0.5 and 0.9. When does the histogram of F(x, U) split into two modes, and what does the τ = 0.5 curve do there?</li>
@@ -1785,37 +1792,46 @@ Give me the code and the two figures.</pre>
     $('q1qO').textContent = q.toFixed(1);
     const xr = [0, 120];
     { const { c, w, h } = ctxOf($('q1a')); const f = frame(c, w, h, xr, [0, 1], [0, 20, 40, 60, 80, 100, 120], [], 'Income, $ thousands' + (ys.length > 11 ? ' (outlier at 400 off the scale)' : ''), '');
-      const yb = f.T + f.H * 0.55;
-      sorted(ys).forEach((y, i) => { const px = f.X(Math.min(y, 119)), py = yb - (i % 2) * 14; line(c, [[px, py], [f.X(q), py]], css('--grid'), 1.5); c.fillStyle = css('--point'); c.beginPath(); c.arc(px, py, 5, 0, 7); c.fill(); });
+      const s = sorted(ys), P = Math.ceil(n / 2), dot = (y, py) => { c.fillStyle = css('--point'); c.beginPath(); c.arc(f.X(Math.min(y, 119)), py, 5, 0, 7); c.fill(); };
+      if ($('q1p').checked) {
+        for (let i = 0; i < P; i++) { const a = s[i], b = s[n - 1 - i], py = f.T + f.H - (i + 0.6) * f.H / (P + 0.2), inside = q >= a && q <= b;
+          line(c, [[f.X(a), py], [f.X(Math.min(b, 119)), py]], css(inside ? '--fit' : '--muted'), 3);
+          if (!inside) line(c, [[f.X(q < a ? a : Math.min(b, 119)), py], [f.X(q), py]], css('--curve'), 3, [5, 3]);
+          dot(a, py); dot(b, py); }
+      } else { const yb = f.T + f.H * 0.55;
+        s.forEach((y, i) => { const px = f.X(Math.min(y, 119)), py = yb - (i % 2) * 14; line(c, [[px, py], [f.X(q), py]], css('--grid'), 1.5); dot(y, py); }); }
       vline(c, f.X(q), f.T, f.H, css('--accent'), 2.5); vline(c, f.X(med), f.T, f.H, css('--curve'), 2); vline(c, f.X(Math.min(mean, 119)), f.T, f.H, css('--ink'), 1.5, [5, 4]); }
     { const { c, w, h } = ctxOf($('q1b')); const Lq = v => ys.reduce((a, y) => a + Math.abs(y - v), 0) / n;
       const pts = []; let mx = 0; for (let v = xr[0]; v <= xr[1]; v += 0.5) { const l = Lq(v); pts.push([v, l]); mx = Math.max(mx, l); }
-      const top = Math.ceil(mx / 10) * 10, f = frame(c, w, h, xr, [0, top], [0, 20, 40, 60, 80, 100, 120], [0, top / 2, top], 'q', 'L(q)');
+      const top = Math.ceil(mx / 10) * 10, f = frame(c, w, h, xr, [0, top], [0, 20, 40, 60, 80, 100, 120], [0, top / 2, top], 'β', 'L(β)');
       line(c, pts.map(([v, l]) => [f.X(v), f.Y(l)]), css('--accent'), 2.5); vline(c, f.X(med), f.T, f.H, css('--curve'), 1.5, [3, 3]);
       c.fillStyle = css('--point'); c.beginPath(); c.arc(f.X(q), f.Y(Lq(q)), 5, 0, 7); c.fill(); }
     const below = ys.filter(y => y < q).length, above = ys.filter(y => y > q).length;
     $('q1t').innerHTML = `<thead><tr><th></th><th>without outlier</th><th>with outlier</th></tr></thead><tbody>
-      <tr><td>Median, minimizes |y − q|</td><td>${median(BASE).toFixed(1)}</td><td>${median(BASE.concat([400])).toFixed(1)}</td></tr>
-      <tr><td>Mean, minimizes (y − q)²</td><td>${(BASE.reduce((a, b) => a + b, 0) / 11).toFixed(1)}</td><td>${(BASE.concat([400]).reduce((a, b) => a + b, 0) / 12).toFixed(1)}</td></tr></tbody>`;
-    $('q1m').innerHTML = `At q = ${q.toFixed(1)}: <b>${below}</b> points below, <b>${above}</b> above, so the slope of L is (${below} − ${above}) / ${n} = ${((below - above) / n).toFixed(2)}. ` +
-      (below === above ? 'Flat: you are at a median.' : below < above ? 'Negative: moving q up lowers the loss.' : 'Positive: moving q down lowers the loss.') +
-      (n % 2 === 0 ? ' With an even count, every q between the two middle points is a median; the table reports their midpoint.' : '');
+      <tr><td>Median, minimizes Σ|y − β|</td><td>${median(BASE).toFixed(1)}</td><td>${median(BASE.concat([400])).toFixed(1)}</td></tr>
+      <tr><td>Mean, minimizes Σ(y − β)²</td><td>${(BASE.reduce((a, b) => a + b, 0) / 11).toFixed(1)}</td><td>${(BASE.concat([400]).reduce((a, b) => a + b, 0) / 12).toFixed(1)}</td></tr></tbody>`;
+    const s1 = sorted(ys), LB = s1.slice(0, Math.floor(n / 2)).reduce((a, y, i) => a + s1[n - 1 - i] - y, 0), S = ys.reduce((a, y) => a + Math.abs(y - q), 0);
+    let miss = 0; for (let i = 0; i < Math.ceil(n / 2); i++) if (q < s1[i] || q > s1[n - 1 - i]) miss++; // for odd n the middle point is its own pair, of gap 0
+    $('q1m').innerHTML = `Pairs: the gaps add to ${LB.toFixed(1)}, the lower bound. At β = ${q.toFixed(1)} the total Σ|y<sub>i</sub> − β| is ${S.toFixed(1)}: ` + (miss ? `<b>${miss}</b> pair${miss > 1 ? 's miss' : ' misses'} β and cost${miss > 1 ? '' : 's'} ${(S - LB).toFixed(1)} extra${n % 2 && (q < s1[(n - 1) / 2] || q > s1[(n - 1) / 2]) ? ' (with n odd, the middle point is a pair of its own, of gap 0)' : ''}. ` : `<b>every pair holds β</b>, so the bound is reached. `) +
+      `Slope: <b>${below}</b> points below, <b>${above}</b> above, so the slope of L is (${below} − ${above}) / ${n} = ${((below - above) / n).toFixed(2)}. ` +
+      (below === above ? 'Flat: you are at a median.' : below < above ? 'Negative: moving β up lowers the loss.' : 'Positive: moving β down lowers the loss.') +
+      (n % 2 === 0 ? ' With an even count, every β between the two middle points is a median (the innermost pair); the table reports their midpoint.' : '');
   }
   function step2() {
     const ys = data(), n = ys.length, t = +$('q2t').value; $('q2tO').textContent = t.toFixed(2);
-    { const { c, w, h } = ctxOf($('q2a')); const f = frame(c, w, h, [-2, 2], [0, 2], [-2, -1, 0, 1, 2], [0, 1, 2], 'u = y − q', 'ρτ(u)');
+    { const { c, w, h } = ctxOf($('q2a')); const f = frame(c, w, h, [-2, 2], [0, 2], [-2, -1, 0, 1, 2], [0, 1, 2], 'u = y − β', 'ρτ(u)');
       line(c, [[f.X(-2), f.Y(1)], [f.X(0), f.Y(0)], [f.X(2), f.Y(1)]], css('--ink'), 1.5, [5, 4]);
       line(c, [[f.X(-2), f.Y(2 * (1 - t))], [f.X(0), f.Y(0)], [f.X(2), f.Y(2 * t)]], css('--accent'), 2.5);
       c.fillStyle = css('--muted'); c.font = '12px ' + css('--font-body'); c.textAlign = 'left'; c.fillText(`slope ${t.toFixed(2)}`, f.X(1.05), f.Y(Math.min(1.9, 2 * t)) - 14); c.textAlign = 'right'; c.fillText(`slope −${(1 - t).toFixed(2)}`, f.X(-1.05), f.Y(Math.min(1.9, 2 * (1 - t))) - 14); }
     const qs = quantileMin(ys, t), R = v => ys.reduce((a, y) => a + rho(y - v, t), 0) / n;
     { const { c, w, h } = ctxOf($('q2b')); const xr = [0, 120], pts = []; let mx = 0; for (let v = 0; v <= 120; v += 0.5) { const l = R(v); pts.push([v, l]); mx = Math.max(mx, l); }
-      const top = Math.ceil(mx / 10) * 10, f = frame(c, w, h, xr, [0, top], [0, 20, 40, 60, 80, 100, 120], [0, top / 2, top], 'q', 'average loss');
+      const top = Math.ceil(mx / 10) * 10, f = frame(c, w, h, xr, [0, top], [0, 20, 40, 60, 80, 100, 120], [0, top / 2, top], 'β', 'average loss');
       line(c, pts.map(([v, l]) => [f.X(v), f.Y(l)]), css('--accent'), 2.5); vline(c, f.X(Math.min(qs, 119)), f.T, f.H, css('--curve'), 2);
       c.fillStyle = css('--point'); for (const y of ys) { c.beginPath(); c.arc(f.X(Math.min(y, 119)), f.T + f.H - 4, 3.5, 0, 7); c.fill(); } }
     const below = ys.filter(y => y < qs).length, atOrBelow = ys.filter(y => y <= qs).length;
     $('q2m').innerHTML = `The minimizer is <b>${qs}</b>. ${below} of ${n} points lie below it and ${atOrBelow} at or below it, so the share below steps across τ = ${t.toFixed(2)} at this point: ${(below / n).toFixed(2)} below, ${(atOrBelow / n).toFixed(2)} with it. Set τ = 0.5 to get the median of Step 1; move τ toward 0.95 and the minimizer climbs to the top incomes, ${$('q1o').checked ? 'and with the outlier switched on it can reach 400' : 'and switch on the outlier in Step 1 to see the top quantile jump'}.`;
   }
-  $('q1q').addEventListener('input', step1); $('q1o').addEventListener('change', () => { step1(); step2(); }); $('q2t').addEventListener('input', step2);
+  $('q1q').addEventListener('input', step1); $('q1p').addEventListener('change', step1); $('q1o').addEventListener('change', () => { step1(); step2(); }); $('q2t').addEventListener('input', step2);
 
   /* ---------- Step 3: linear quantile regression, exact over pairs ---------- */
   const SD = 0.15, mu = x => 0.3 * Math.sin(3 * x);
