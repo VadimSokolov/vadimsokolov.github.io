@@ -2,6 +2,30 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
+
+[![Computing the Riemann Hypothesis, Volume I: Representations of Xi, Thorin Measures and the Reciprocal Xi Function](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v3.0.0/pdf/cover_vol1.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
+
+The theory: representations of Riemann's Xi function, the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, and the reciprocal Xi function as a generalised gamma convolution.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v3.0.0/computing_rh_vol1.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.24377750](https://zenodo.org/badge/DOI/10.5281/zenodo.24377750.svg)](https://doi.org/10.5281/zenodo.24377750) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1D4ZSF "Paperback on Amazon")
+
+## [Computing the Riemann Hypothesis, Volume II](https://vsokolov.org/books/computing_rh/) <small>Cauchy Deconvolution and Certified Computation</small>
+
+[![Computing the Riemann Hypothesis, Volume II: Cauchy Deconvolution and Certified Computation](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v3.0.0/pdf/cover_vol2.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
+
+The computations: Riemann's Xi function in ball arithmetic, the Thorin measure at finite resolution, Cauchy deconvolution, the de Bruijn Newman flow, the barrier method and the Thorin phase diagram.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v3.0.0/computing_rh_vol2.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.24377753](https://zenodo.org/badge/DOI/10.5281/zenodo.24377753.svg)](https://doi.org/10.5281/zenodo.24377753) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1J5762 "Paperback on Amazon")
+
+## [Computing the Riemann Hypothesis, Volume III](https://vsokolov.org/books/computing_rh/) <small>Is There a Path? Routes to RH from the Thorin Programme</small>
+
+[![Computing the Riemann Hypothesis, Volume III: Is There a Path? Routes to RH from the Thorin Programme](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v3.0.0/pdf/cover_vol3.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
+
+The assessment: the routes from the Thorin programme to the Riemann Hypothesis, the filters that test them, and what is proved and what is open after the zero free half plane Re s > 7/8.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v3.0.0/computing_rh_vol3.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.24377757](https://zenodo.org/badge/DOI/10.5281/zenodo.24377757.svg)](https://doi.org/10.5281/zenodo.24377757)
+
 ## [Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/)
 
 [![Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/cover.jpg)](https://vsokolov.org/books/bayesian_clinical_trials/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
@@ -25,22 +49,6 @@ A casebook for law students on reasoning under uncertainty: priors, likelihood r
 Why the Collatz (3x+1) conjecture resists proof: the map as a random walk, an optimizer and a Diophantine problem; proofs that fixed horizon monotone Lyapunov certificates and finite residue sieves cannot settle it and the cycle inequality cannot exclude all cycles; a momentum method from log2 3.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/collatz/releases/download/v1.4.0/collatz.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/collatz "Source on GitHub") [![DOI 10.5281/zenodo.24113412](https://zenodo.org/badge/DOI/10.5281/zenodo.24113412.svg)](https://doi.org/10.5281/zenodo.24113412) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HN8TS5N8 "Paperback on Amazon")
-
-## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
-
-[![Computing the Riemann Hypothesis, Volume I: Representations of Xi, Thorin Measures and the Reciprocal Xi Function](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.2.0/pdf/cover_vol1.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
-
-The theory: representations of Riemann's Xi function, the Thorin measure whose positivity is equivalent to the Riemann Hypothesis, and the reciprocal Xi function as a generalised gamma convolution.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.2.0/computing_rh_vol1.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.24086101](https://zenodo.org/badge/DOI/10.5281/zenodo.24086101.svg)](https://doi.org/10.5281/zenodo.24086101) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1D4ZSF "Paperback on Amazon")
-
-## [Computing the Riemann Hypothesis, Volume II](https://vsokolov.org/books/computing_rh/) <small>Cauchy Deconvolution and Certified Computation</small>
-
-[![Computing the Riemann Hypothesis, Volume II: Cauchy Deconvolution and Certified Computation](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v2.2.0/pdf/cover_vol2.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
-
-The computations: Riemann's Xi function in ball arithmetic, the Thorin measure at finite resolution, Cauchy deconvolution, the de Bruijn Newman flow, the barrier method and the Thorin phase diagram.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v2.2.0/computing_rh_vol2.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.24086102](https://zenodo.org/badge/DOI/10.5281/zenodo.24086102.svg)](https://doi.org/10.5281/zenodo.24086102) [![Paperback, available at Amazon](https://vsokolov.org/books/available-at-amazon.png)](https://www.amazon.com/dp/B0HQ1J5762 "Paperback on Amazon")
 
 ## [Elements of Bayes and Information Theory](https://vsokolov.org/books/elements_bayes_information/) <small>A Predictive Theory of Inference: Information, Algorithms, and Large Deviations</small>
 
