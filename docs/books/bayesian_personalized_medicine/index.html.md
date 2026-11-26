@@ -2,7 +2,7 @@
 
 By Alexandra Sokolova, [Vadim Sokolov](https://orcid.org/0000-0002-6618-2965) and Nicholas G. Polson.
 
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_personalized_medicine/releases/download/v1.0.0/bayesian_personalized_medicine.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_personalized_medicine/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_personalized_medicine/tree/v1.0.0 "Source on GitHub") [![DOI 10.5281/zenodo.24562216](https://zenodo.org/badge/DOI/10.5281/zenodo.24562216.svg)](https://doi.org/10.5281/zenodo.24562216)
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_personalized_medicine/releases/download/v1.0.1/bayesian_personalized_medicine.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_personalized_medicine/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_personalized_medicine/tree/v1.0.1 "Source on GitHub") [![DOI 10.5281/zenodo.24564454](https://zenodo.org/badge/DOI/10.5281/zenodo.24564454.svg)](https://doi.org/10.5281/zenodo.24564454)
 
 ## Description
 
@@ -16,7 +16,7 @@ Every number comes from short R code shown with the text or from scripts that ac
 
 ## How to cite
 
-Sokolova, Sokolov and Polson (2026), *Bayesian Personalized Medicine: Utility, Value and Decision*, edition 1, https://doi.org/10.5281/zenodo.24562216.
+Sokolova, Sokolov and Polson (2026), *Bayesian Personalized Medicine: Utility, Value and Decision*, edition 1, https://doi.org/10.5281/zenodo.24564454.
 
 ```bibtex
 @book{sokolovasokolovpolson2026bayesian_personalized_medicine,
@@ -24,7 +24,7 @@ Sokolova, Sokolov and Polson (2026), *Bayesian Personalized Medicine: Utility, V
   title = {{Bayesian Personalized Medicine: Utility, Value and Decision}},
   year = {2026},
   publisher = {Independently published},
-  doi = {10.5281/zenodo.24562216},
+  doi = {10.5281/zenodo.24564454},
   url = {https://vsokolov.org/books/bayesian_personalized_medicine/}
 }
 ```
@@ -34,8 +34,8 @@ Sokolova, Sokolov and Polson (2026), *Bayesian Personalized Medicine: Utility, V
 - [Severity monotone divergence of the Bayes and MAP actions](https://vsokolov.org/books/bayesian_personalized_medicine/results.html#severity_monotone_divergence) (Proposition 3.1, page 26): When the advantage of aggressive treatment grows with severity and the posterior has no mass below its mode, some Bayes action is at least as aggressive as the action chosen at the modal state.
 - [Wedge lower bound for the Bayes advantage of aggressive treatment](https://vsokolov.org/books/bayesian_personalized_medicine/results.html#wedge_lower_bound) (Proposition 3.2, page 26): A closed form bound in the posterior tail mass and the cost ratio gives a sufficient condition under which the Bayes rule prefers the aggressive action even when the modal rule prefers the conservative one.
 - [Undervaluation of posterior yielding actions by direct utility](https://vsokolov.org/books/bayesian_personalized_medicine/results.html#undervaluation_of_posterior_yielding_actions) (Proposition 3.3, page 28): An action that leaves an informative posterior has a sequential value at least as large as an action that preserves the prior and removes later options, even when their direct utilities are equal, and the gap is zero only if one later action is optimal under every posterior the first action can leave.
-- [Enforcement substitutes for restriction of the permitted analysis set](https://vsokolov.org/books/bayesian_personalized_medicine/results.html#enforcement_substitutes_for_restriction) (Proposition 12.1, page 122): A cheaper audit technology or a higher maximum penalty optimally lets the regulator permit a larger set of sponsor analyses instead of a smaller one, when the deviation gain rises with the richness of the analysis set.
-- [Phase II specificity and cost per approved drug](https://vsokolov.org/books/bayesian_personalized_medicine/results.html#phase2_specificity_cost_per_approval) (Proposition 13.1, page 135): Treating Phase II as a diagnostic test, specificity lowers the cost per approved drug more than the same gain in sensitivity under a stated condition on costs and accuracy.
+- [Enforcement substitutes for restriction of the permitted analysis set](https://vsokolov.org/books/bayesian_personalized_medicine/results.html#enforcement_substitutes_for_restriction) (Proposition 12.1, page 124): A cheaper audit technology or a higher maximum penalty optimally lets the regulator permit a larger set of sponsor analyses instead of a smaller one, when the deviation gain rises with the richness of the analysis set.
+- [Phase II specificity and cost per approved drug](https://vsokolov.org/books/bayesian_personalized_medicine/results.html#phase2_specificity_cost_per_approval) (Proposition 13.1, page 137): Treating Phase II as a diagnostic test, specificity lowers the cost per approved drug more than the same gain in sensitivity under a stated condition on costs and accuracy.
 
 All 7 results of the book (7 proved) are on the page [Results by chapter](https://vsokolov.org/books/bayesian_personalized_medicine/results.html), each with its statement, status and number.
 
@@ -43,6 +43,6 @@ All 7 results of the book (7 proved) are on the page [Results by chapter](https:
 
 <small>License: Text, figures and PDF: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Code: [MIT](https://opensource.org/license/mit).</small>
 
-<small>This page is generated from the book's repository ([main](https://github.com/VadimSokolov/bayesian_personalized_medicine/tree/main)). The numbers and pages are those of the PDF, [version 1.0.0](https://github.com/VadimSokolov/bayesian_personalized_medicine/releases/tag/v1.0.0).</small>
+<small>This page is generated from the book's repository ([main](https://github.com/VadimSokolov/bayesian_personalized_medicine/tree/main)). The numbers and pages are those of the PDF, [version 1.0.1](https://github.com/VadimSokolov/bayesian_personalized_medicine/releases/tag/v1.0.1).</small>
 
 <!-- Generated by bookrepo.py from book.yaml and results.yaml. Edit those files, not this one. -->
