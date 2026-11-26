@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Bayesian Personalized Medicine](https://vsokolov.org/books/bayesian_personalized_medicine/) <small>Utility, Value and Decision</small>
+
+[![Bayesian Personalized Medicine: Utility, Value and Decision](https://vsokolov.org/books/bayesian_personalized_medicine/cover.jpg)](https://vsokolov.org/books/bayesian_personalized_medicine/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
+
+Bayesian decision theory for one patient and for health systems: utility and QALYs, the modal doctor versus the Bayesian patient, screening schedules, causal effects, diagnosis without a gold standard, value of information and the regulation of trials, with R code.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_personalized_medicine/releases/download/v1.0.0/bayesian_personalized_medicine.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_personalized_medicine/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_personalized_medicine "Source on GitHub") [![DOI 10.5281/zenodo.24562216](https://zenodo.org/badge/DOI/10.5281/zenodo.24562216.svg)](https://doi.org/10.5281/zenodo.24562216)
+
 ## [Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/)
 
 [![Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/cover.jpg)](https://vsokolov.org/books/bayesian_clinical_trials/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
