@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/)
+
+[![Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/cover.jpg)](https://vsokolov.org/books/bayesian_clinical_trials/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
+
+Bayesian clinical trials built up from the traditional trial and tied to regulation: calibration, monitoring, safety, borrowing, adaptive designs, and reanalyses of landmark trials, with an R package and an online lab.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials/releases/download/v1.3.0/bayesian_clinical_trials.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_clinical_trials/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials "Source on GitHub") [![DOI 10.5281/zenodo.24163054](https://zenodo.org/badge/DOI/10.5281/zenodo.24163054.svg)](https://doi.org/10.5281/zenodo.24163054)
+
 ## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
 
 [![Computing the Riemann Hypothesis, Volume I: Representations of Xi, Thorin Measures and the Reciprocal Xi Function](https://raw.githubusercontent.com/VadimSokolov/computing_rh/v3.0.0/pdf/cover_vol1.jpg)](https://vsokolov.org/books/computing_rh/) Nicholas G. Polson and Vadim Sokolov. 2026. Edition 2.
@@ -25,14 +33,6 @@ The computations: Riemann's Xi function in ball arithmetic, the Thorin measure a
 The assessment: the routes from the Thorin programme to the Riemann Hypothesis, the filters that test them, and what is proved and what is open after the zero free half plane Re s > 7/8.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/computing_rh/releases/download/v3.0.0/computing_rh_vol3.pdf "PDF") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/computing_rh "Source on GitHub") [![DOI 10.5281/zenodo.24377757](https://zenodo.org/badge/DOI/10.5281/zenodo.24377757.svg)](https://doi.org/10.5281/zenodo.24377757)
-
-## [Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/)
-
-[![Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/cover.jpg)](https://vsokolov.org/books/bayesian_clinical_trials/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
-
-Bayesian clinical trials built up from the traditional trial and tied to regulation: calibration, monitoring, safety, borrowing, adaptive designs, and reanalyses of landmark trials, with an R package and an online lab.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials/releases/download/v1.2.0/bayesian_clinical_trials.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_clinical_trials/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials "Source on GitHub") [![DOI 10.5281/zenodo.24147174](https://zenodo.org/badge/DOI/10.5281/zenodo.24147174.svg)](https://doi.org/10.5281/zenodo.24147174)
 
 ## [Bayes and Law](https://vsokolov.org/books/bayes_law/) <small>Evidence, Expected Utility and Machines in the Courtroom</small>
 
