@@ -2,6 +2,14 @@
 
 Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and its source and code are on GitHub.
 
+## [Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/)
+
+[![Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/cover.jpg)](https://vsokolov.org/books/bayesian_clinical_trials/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
+
+Bayesian clinical trials built up from the traditional trial and tied to regulation: calibration, monitoring, safety, borrowing, adaptive designs, and reanalyses of landmark trials, with an R package and an online lab.
+
+[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials/releases/download/v1.3.1/bayesian_clinical_trials.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_clinical_trials/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials "Source on GitHub") [![DOI 10.5281/zenodo.24564479](https://zenodo.org/badge/DOI/10.5281/zenodo.24564479.svg)](https://doi.org/10.5281/zenodo.24564479)
+
 ## [Bayesian Personalized Medicine](https://vsokolov.org/books/bayesian_personalized_medicine/) <small>Utility, Value and Decision</small>
 
 [![Bayesian Personalized Medicine: Utility, Value and Decision](https://vsokolov.org/books/bayesian_personalized_medicine/cover.jpg)](https://vsokolov.org/books/bayesian_personalized_medicine/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
@@ -9,14 +17,6 @@ Books by Vadim Sokolov and coauthors. Each book is free to read as a PDF, and it
 Bayesian decision theory for one patient and for health systems: utility and QALYs, the modal doctor versus the Bayesian patient, screening schedules, causal effects, diagnosis without a gold standard, value of information and the regulation of trials, with R code.
 
 [![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_personalized_medicine/releases/download/v1.0.1/bayesian_personalized_medicine.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_personalized_medicine/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_personalized_medicine "Source on GitHub") [![DOI 10.5281/zenodo.24564454](https://zenodo.org/badge/DOI/10.5281/zenodo.24564454.svg)](https://doi.org/10.5281/zenodo.24564454)
-
-## [Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/)
-
-[![Bayesian Clinical Trials](https://vsokolov.org/books/bayesian_clinical_trials/cover.jpg)](https://vsokolov.org/books/bayesian_clinical_trials/) Alexandra Sokolova, Vadim Sokolov and Nicholas G. Polson. 2026. Edition 1.
-
-Bayesian clinical trials built up from the traditional trial and tied to regulation: calibration, monitoring, safety, borrowing, adaptive designs, and reanalyses of landmark trials, with an R package and an online lab.
-
-[![PDF](https://vsokolov.org/books/icon-pdf.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials/releases/download/v1.3.0/bayesian_clinical_trials.pdf "PDF") [![Online edition](https://vsokolov.org/books/icon-web.svg)](https://vsokolov.org/bayesian_clinical_trials/ "Online edition") [![Source on GitHub](https://vsokolov.org/books/icon-github.svg)](https://github.com/VadimSokolov/bayesian_clinical_trials "Source on GitHub") [![DOI 10.5281/zenodo.24163054](https://zenodo.org/badge/DOI/10.5281/zenodo.24163054.svg)](https://doi.org/10.5281/zenodo.24163054)
 
 ## [Computing the Riemann Hypothesis, Volume I](https://vsokolov.org/books/computing_rh/) <small>Representations of Xi, Thorin Measures and the Reciprocal Xi Function</small>
 
